@@ -1,0 +1,44 @@
+# PyCharm
+.idea
+exportToHTML
+
+# Python
+*.pyc
+
+# Emacs
+*~
+.#*
+
+# Vagrant
+.vagrant
+*.box
+
+# Ansible
+ansible/*.retry
+
+# Any vi swap files
+*.swp
+
+# Editors
+*.bak
+*.project
+*.pydevproject
+
+# Mac stuff
+.DS_Store
+**/.DS_Store
+
+# Vagrant logfile
+*.log
+
+# Virtualenv
+venv-*
+
+# Development versions of locally built libraries
+python/local_imports
+
+# test output
+tests/results
+
+# SCA reports from run golangci-lint tool
+sca-report/
