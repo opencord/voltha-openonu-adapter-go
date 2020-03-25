@@ -17,12 +17,16 @@
 
 FROM golang:1.13.8-alpine3.11 AS build-env
 
-# Install required packages
-RUN apk add --no-cache wget=1.20.3-r0 git=2.20.2-r0 make=4.2.1-r2 build-base=0.5-r1 protobuf=3.6.1-r1 protobuf-dev=3.6.1-r1
-
 # Prepare directory structure
 WORKDIR /go/src
-COPY . .
+
+# Copy common files.
+COPY vendor ./vendor
+
+# Copy files
+COPY cmd ./cmd
+COPY go.mod ./
+COPY go.sum ./
 
 ARG org_label_schema_version=unknown
 ARG org_label_schema_vcs_url=unknown
@@ -31,10 +35,10 @@ ARG org_label_schema_build_date=unknown
 ARG org_opencord_vcs_commit_date=unknown
 ARG org_opencord_vcs_dirty=unknown
 
-# Build openonugo
+# Build openonu
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 ENV GO111MODULE=on
-RUN go build -mod=vendor -o /go/bin/openonugo \
+RUN go build -mod=vendor -o /go/bin/openonu \
 	-ldflags \
 	"-X test.internal/openadapter/config/version.version=$org_label_schema_version \
 	 -X test.internal/openadapter/config/version.vcsRef=$org_label_schema_vcs_ref  \
@@ -42,7 +46,8 @@ RUN go build -mod=vendor -o /go/bin/openonugo \
 	 -X test.internal/openadapter/config/version.goVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
 	 -X test.internal/openadapter/config/version.os=$(go env GOHOSTOS) \
 	 -X test.internal/openadapter/config/version.arch=$(go env GOHOSTARCH) \
-	 -X test.internal/openadapter/config/version.buildTime=$org_label_schema_build_date"
+	 -X test.internal/openadapter/config/version.buildTime=$org_label_schema_build_date" \
+	 ./cmd/openonu.go
 
 # -------------
 # Image creation stage
@@ -53,7 +58,7 @@ FROM alpine:3.11.3
 WORKDIR /app
 
 # Copy required files
-COPY --from=build-env /go/bin/openonugo /app/
+COPY --from=build-env /go/bin/openonu /app/
 
 # Label image
 ARG org_label_schema_version=unknown
@@ -71,3 +76,5 @@ LABEL org.label-schema.schema-version=1.0 \
       org.label-schema.build-date=$org_label_schema_build_date \
       org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date \
       org.opencord.vcs-dirty=$org_opencord_vcs_dirty
+
+CMD [ '/app/openonu' ]

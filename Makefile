@@ -151,7 +151,7 @@ lint-mod:
 
 lint: local-lib-go lint-style lint-sanity lint-mod lint-dockerfile
 
-test:
+test: docker-build
 	@mkdir -p ./tests/results
 	@${GO} test -mod=vendor -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
 	RETURN=$$? ;\

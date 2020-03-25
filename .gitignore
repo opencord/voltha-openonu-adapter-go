@@ -42,3 +42,6 @@ tests/results
 
 # SCA reports from run golangci-lint tool
 sca-report/
+
+# go build
+openonu
