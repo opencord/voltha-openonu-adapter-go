@@ -21,12 +21,7 @@ FROM golang:1.13.8-alpine3.11 AS build-env
 WORKDIR /go/src
 
 # Copy common files.
-COPY vendor ./vendor
-
-# Copy files
-COPY cmd ./cmd
-COPY go.mod ./
-COPY go.sum ./
+COPY . .
 
 ARG org_label_schema_version=unknown
 ARG org_label_schema_vcs_url=unknown
@@ -38,6 +33,7 @@ ARG org_opencord_vcs_dirty=unknown
 # Build openonu
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 ENV GO111MODULE=on
+ENV CGO_ENABLED=0
 RUN go build -mod=vendor -o /go/bin/openonu \
 	-ldflags \
 	"-X test.internal/openadapter/config/version.version=$org_label_schema_version \
@@ -46,8 +42,8 @@ RUN go build -mod=vendor -o /go/bin/openonu \
 	 -X test.internal/openadapter/config/version.goVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
 	 -X test.internal/openadapter/config/version.os=$(go env GOHOSTOS) \
 	 -X test.internal/openadapter/config/version.arch=$(go env GOHOSTARCH) \
-	 -X test.internal/openadapter/config/version.buildTime=$org_label_schema_build_date" \
-	 ./cmd/openonu.go
+	 -X test.internal/openadapter/config/version.buildTime=$org_label_schema_build_date"  \
+	 ./main.go
 
 # -------------
 # Image creation stage
