@@ -25,6 +25,121 @@
     },
     {
       "key": {
+        "uuid": "fd3dc26e_816f8735",
+        "filename": "adaptercoreont/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "There are some replication of parameters between this and https://github.com/opencord/voltha-protos/blob/master/protos/voltha_protos/device.proto#L220 that you have at line 48. The Device also carries proper types for state etc",
+      "range": {
+        "startLine": 44,
+        "startChar": 5,
+        "endLine": 44,
+        "endChar": 18
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b1d5106a_df017f42",
+        "filename": "adaptercoreont/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "I would Suggest the DeviceType object here https://github.com/opencord/voltha-protos/blob/master/protos/voltha_protos/device.proto#L15",
+      "range": {
+        "startLine": 46,
+        "startChar": 18,
+        "endLine": 46,
+        "endChar": 24
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b34b869b_942d2a92",
+        "filename": "adaptercoreont/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "seem that you are not actually ding anything in this method, I would start by doing the add",
+      "range": {
+        "startLine": 128,
+        "startChar": 0,
+        "endLine": 133,
+        "endChar": 36
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5fb66dae_8bac22b0",
+        "filename": "adaptercoreont/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "general comment: please be consistent, the elements at the start of the methods shoudl be debug",
+      "range": {
+        "startLine": 150,
+        "startChar": 5,
+        "endLine": 150,
+        "endChar": 10
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3d9583a9_acd118b9",
+        "filename": "adaptercoreont/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "just to be consistent I woudl avoid ONT in favour of ONU. This is for historic reasons",
+      "range": {
+        "startLine": 267,
+        "startChar": 49,
+        "endLine": 267,
+        "endChar": 52
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ea726c63_34fc3994",
         "filename": "adaptercoreont/device_handler.go",
         "patchSetId": 4
@@ -94,6 +209,23 @@
     },
     {
       "key": {
+        "uuid": "7151c9ea_25125978",
+        "filename": "adaptercoreont/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 629,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "Return the error",
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f52961a1_038ed8b7",
         "filename": "adaptercoreont/mib_sync.go",
         "patchSetId": 4
@@ -140,6 +272,46 @@
     },
     {
       "key": {
+        "uuid": "3ca3345c_01d6f765",
+        "filename": "adaptercoreont/ont_device_entry.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "we probably wanted to put this in the proto",
+      "range": {
+        "startLine": 108,
+        "startChar": 2,
+        "endLine": 108,
+        "endChar": 12
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4e7d5f21_7f3f4b9c",
+        "filename": "adaptercoreont/ont_device_state_transition.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "return error here and then return when needed.",
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "44fb1a20_e3f58836",
         "filename": "adaptercoreont/openonu.go",
         "patchSetId": 4
@@ -179,6 +351,53 @@
         "startChar": 2,
         "endLine": 163,
         "endChar": 48
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e19f9338_53ea39c8",
+        "filename": "adaptercoreont/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "and most likely try to handle it and return the error",
+      "parentUuid": "264bc13c_3dcb1ac9",
+      "range": {
+        "startLine": 163,
+        "startChar": 2,
+        "endLine": 163,
+        "endChar": 48
+      },
+      "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d7ec0715_a25be7db",
+        "filename": "config/config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-03-30T08:04:10Z",
+      "side": 1,
+      "message": "openonu",
+      "range": {
+        "startLine": 44,
+        "startChar": 32,
+        "endLine": 44,
+        "endChar": 39
       },
       "revId": "7a6fa28165db4b5bc8d64fd3a18d82224157b7ce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
