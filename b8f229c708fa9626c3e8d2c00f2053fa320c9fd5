@@ -1,0 +1,159 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a57bb6a5_31a91c2e",
+        "filename": "adaptercoreont/messageTypes.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "I\u0027m wondering if this class is actually better suited for the omci-lib-go class",
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7646522f_58680cfe",
+        "filename": "adaptercoreont/mib_sync.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 216,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "why commented out ?",
+      "range": {
+        "startLine": 202,
+        "startChar": 0,
+        "endLine": 216,
+        "endChar": 4
+      },
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e2061081_e90db031",
+        "filename": "adaptercoreont/omci_cc.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "as we have created a package olterrors in the openolt it might be worth creating one here to better exemplify the error with the best parameters to enable handling.",
+      "range": {
+        "startLine": 213,
+        "startChar": 10,
+        "endLine": 213,
+        "endChar": 21
+      },
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f470f454_3da2e756",
+        "filename": "adaptercoreont/omci_cc.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 447,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "probably worth adding to the log before",
+      "range": {
+        "startLine": 446,
+        "startChar": 0,
+        "endLine": 447,
+        "endChar": 74
+      },
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5f34aaa6_c8ac1882",
+        "filename": "adaptercoreont/omci_cc.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 473,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "another option, just FYI is to put a defer oo.mutexTid.Unlock() immediately after the lock. there are advantages to both approaches. just flagging it for your convenience.",
+      "range": {
+        "startLine": 473,
+        "startChar": 2,
+        "endLine": 473,
+        "endChar": 22
+      },
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "50064f07_8328d86b",
+        "filename": "adaptercoreont/omci_test_request.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "this is a blocking call, if something happened on the other side and nobody is listening you might not get out fo this situation. The easy way out is to wrap this in a go routine.",
+      "range": {
+        "startLine": 123,
+        "startChar": 2,
+        "endLine": 123,
+        "endChar": 24
+      },
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2aa7560d_584af7a4",
+        "filename": "adaptercoreont/omci_test_request.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-04-09T13:55:24Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 138,
+        "startChar": 1,
+        "endLine": 138,
+        "endChar": 22
+      },
+      "revId": "b8f229c708fa9626c3e8d2c00f2053fa320c9fd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
