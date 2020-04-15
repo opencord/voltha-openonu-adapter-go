@@ -30,18 +30,6 @@ type ID = common.ID
 // IDs from public import voltha_protos/common.proto
 type IDs = common.IDs
 
-// LogLevel from public import voltha_protos/common.proto
-type LogLevel = common.LogLevel
-
-// Logging from public import voltha_protos/common.proto
-type Logging = common.Logging
-
-// LoggingComponent from public import voltha_protos/common.proto
-type LoggingComponent = common.LoggingComponent
-
-// Loggings from public import voltha_protos/common.proto
-type Loggings = common.Loggings
-
 // AdminState from public import voltha_protos/common.proto
 type AdminState = common.AdminState
 
@@ -61,19 +49,6 @@ var TestModeKeys_name = common.TestModeKeys_name
 var TestModeKeys_value = common.TestModeKeys_value
 
 const TestModeKeys_api_test = TestModeKeys(common.TestModeKeys_api_test)
-
-// LogLevel_Types from public import voltha_protos/common.proto
-type LogLevel_Types = common.LogLevel_Types
-
-var LogLevel_Types_name = common.LogLevel_Types_name
-var LogLevel_Types_value = common.LogLevel_Types_value
-
-const LogLevel_DEBUG = LogLevel_Types(common.LogLevel_DEBUG)
-const LogLevel_INFO = LogLevel_Types(common.LogLevel_INFO)
-const LogLevel_WARNING = LogLevel_Types(common.LogLevel_WARNING)
-const LogLevel_ERROR = LogLevel_Types(common.LogLevel_ERROR)
-const LogLevel_CRITICAL = LogLevel_Types(common.LogLevel_CRITICAL)
-const LogLevel_FATAL = LogLevel_Types(common.LogLevel_FATAL)
 
 // AdminState_Types from public import voltha_protos/common.proto
 type AdminState_Types = common.AdminState_Types
@@ -145,6 +120,12 @@ type CoreInstance = voltha.CoreInstance
 // CoreInstances from public import voltha_protos/voltha.proto
 type CoreInstances = voltha.CoreInstances
 
+// OmciTestRequest from public import voltha_protos/voltha.proto
+type OmciTestRequest = voltha.OmciTestRequest
+
+// TestResponse from public import voltha_protos/voltha.proto
+type TestResponse = voltha.TestResponse
+
 // Voltha from public import voltha_protos/voltha.proto
 type Voltha = voltha.Voltha
 
@@ -172,6 +153,15 @@ const EventFilterRuleKey_sub_category = EventFilterRuleKey_EventFilterRuleType(v
 const EventFilterRuleKey_kpi_event_type = EventFilterRuleKey_EventFilterRuleType(voltha.EventFilterRuleKey_kpi_event_type)
 const EventFilterRuleKey_config_event_type = EventFilterRuleKey_EventFilterRuleType(voltha.EventFilterRuleKey_config_event_type)
 const EventFilterRuleKey_device_event_type = EventFilterRuleKey_EventFilterRuleType(voltha.EventFilterRuleKey_device_event_type)
+
+// TestResponse_TestResponseResult from public import voltha_protos/voltha.proto
+type TestResponse_TestResponseResult = voltha.TestResponse_TestResponseResult
+
+var TestResponse_TestResponseResult_name = voltha.TestResponse_TestResponseResult_name
+var TestResponse_TestResponseResult_value = voltha.TestResponse_TestResponseResult_value
+
+const TestResponse_SUCCESS = TestResponse_TestResponseResult(voltha.TestResponse_SUCCESS)
+const TestResponse_FAILURE = TestResponse_TestResponseResult(voltha.TestResponse_FAILURE)
 
 // SelfTestResponse_SelfTestResult from public import voltha_protos/voltha.proto
 type SelfTestResponse_SelfTestResult = voltha.SelfTestResponse_SelfTestResult

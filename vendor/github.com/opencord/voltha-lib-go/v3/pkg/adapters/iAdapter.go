@@ -51,4 +51,6 @@ type IAdapter interface {
 	Revert_image_update(device *voltha.Device, request *voltha.ImageDownload) (*voltha.ImageDownload, error)
 	Enable_port(deviceId string, port *voltha.Port) error
 	Disable_port(deviceId string, port *voltha.Port) error
+	Child_device_lost(parentDeviceId string, parentPortNo uint32, onuID uint32) error
+	Start_omci_test(device *voltha.Device, request *voltha.OmciTestRequest) (*voltha.TestResponse, error)
 }

@@ -9,6 +9,10 @@ github.com/aead/cmac/aes
 github.com/armon/go-metrics
 # github.com/bsm/sarama-cluster v2.1.15+incompatible
 github.com/bsm/sarama-cluster
+# github.com/buraksezer/consistent v0.0.0-20191006190839-693edf70fd72
+github.com/buraksezer/consistent
+# github.com/cespare/xxhash v1.1.0
+github.com/cespare/xxhash
 # github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 github.com/coreos/go-systemd/journal
 # github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
@@ -68,15 +72,16 @@ github.com/mitchellh/mapstructure
 # github.com/opencord/omci-lib-go v0.13.1
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v3 v3.0.8
+# github.com/opencord/voltha-lib-go/v3 v3.1.3
 github.com/opencord/voltha-lib-go/v3/pkg/adapters
 github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif
 github.com/opencord/voltha-lib-go/v3/pkg/adapters/common
+github.com/opencord/voltha-lib-go/v3/pkg/db
 github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore
 github.com/opencord/voltha-lib-go/v3/pkg/kafka
 github.com/opencord/voltha-lib-go/v3/pkg/log
 github.com/opencord/voltha-lib-go/v3/pkg/probe
-# github.com/opencord/voltha-protos/v3 v3.2.2
+# github.com/opencord/voltha-protos/v3 v3.3.0
 github.com/opencord/voltha-protos/v3/go/common
 github.com/opencord/voltha-protos/v3/go/inter_container
 github.com/opencord/voltha-protos/v3/go/omci
@@ -87,8 +92,12 @@ github.com/opencord/voltha-protos/v3/go/voltha
 # github.com/pierrec/lz4 v2.3.0+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 github.com/rcrowley/go-metrics
+# github.com/stretchr/testify v1.5.1
+github.com/stretchr/testify/assert
 # go.etcd.io/etcd v0.0.0-20190930204107-236ac2a90522
 go.etcd.io/etcd/auth/authpb
 go.etcd.io/etcd/clientv3
@@ -219,3 +228,5 @@ gopkg.in/jcmturner/gokrb5.v7/types
 # gopkg.in/jcmturner/rpc.v1 v1.1.0
 gopkg.in/jcmturner/rpc.v1/mstypes
 gopkg.in/jcmturner/rpc.v1/ndr
+# gopkg.in/yaml.v2 v2.2.8
+gopkg.in/yaml.v2
