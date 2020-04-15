@@ -658,3 +658,80 @@ func (rhp *RequestHandlerProxy) getEnableDisableParams(args []*ic.Argument) (str
 	}
 	return deviceId.Val, port, nil
 }
+
+func (rhp *RequestHandlerProxy) Child_device_lost(args []*ic.Argument) error {
+	if len(args) < 4 {
+		logger.Warn("invalid-number-of-args", log.Fields{"args": args})
+		return errors.New("invalid-number-of-args")
+	}
+
+	pDeviceId := &ic.StrType{}
+	pPortNo := &ic.IntType{}
+	onuID := &ic.IntType{}
+	fromTopic := &ic.StrType{}
+	for _, arg := range args {
+		switch arg.Key {
+		case "pDeviceId":
+			if err := ptypes.UnmarshalAny(arg.Value, pDeviceId); err != nil {
+				logger.Warnw("cannot-unmarshal-parent-deviceId", log.Fields{"error": err})
+				return err
+			}
+		case "pPortNo":
+			if err := ptypes.UnmarshalAny(arg.Value, pPortNo); err != nil {
+				logger.Warnw("cannot-unmarshal-port", log.Fields{"error": err})
+				return err
+			}
+		case "onuID":
+			if err := ptypes.UnmarshalAny(arg.Value, onuID); err != nil {
+				logger.Warnw("cannot-unmarshal-transaction-ID", log.Fields{"error": err})
+				return err
+			}
+		case kafka.FromTopic:
+			if err := ptypes.UnmarshalAny(arg.Value, fromTopic); err != nil {
+				logger.Warnw("cannot-unmarshal-from-topic", log.Fields{"error": err})
+				return err
+			}
+		}
+	}
+	//Update the core reference for that device
+	rhp.coreProxy.UpdateCoreReference(pDeviceId.Val, fromTopic.Val)
+	//Invoke the Child_device_lost API on the adapter
+	if err := rhp.adapter.Child_device_lost(pDeviceId.Val, uint32(pPortNo.Val), uint32(onuID.Val)); err != nil {
+		return status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return nil
+}
+
+func (rhp *RequestHandlerProxy) Start_omci_test(args []*ic.Argument) (*ic.TestResponse, error) {
+	if len(args) < 2 {
+		logger.Warn("invalid-number-of-args", log.Fields{"args": args})
+		err := errors.New("invalid-number-of-args")
+		return nil, err
+	}
+
+	// TODO: See related comment in voltha-go:adapter_proxy_go:startOmciTest()
+	//   Second argument should perhaps be uuid instead of omcitestrequest
+
+	device := &voltha.Device{}
+	request := &voltha.OmciTestRequest{}
+	for _, arg := range args {
+		switch arg.Key {
+		case "device":
+			if err := ptypes.UnmarshalAny(arg.Value, device); err != nil {
+				logger.Warnw("cannot-unmarshal-device", log.Fields{"error": err})
+				return nil, err
+			}
+		case "omcitestrequest":
+			if err := ptypes.UnmarshalAny(arg.Value, request); err != nil {
+				logger.Warnw("cannot-unmarshal-omcitestrequest", log.Fields{"error": err})
+				return nil, err
+			}
+		}
+	}
+	logger.Debugw("Start_omci_test", log.Fields{"device-id": device.Id, "req": request})
+	result, err := rhp.adapter.Start_omci_test(device, request)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return result, nil
+}

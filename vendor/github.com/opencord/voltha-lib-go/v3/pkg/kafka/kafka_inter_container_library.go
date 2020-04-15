@@ -19,6 +19,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"reflect"
 	"strings"
 	"sync"
@@ -34,7 +36,7 @@ import (
 
 const (
 	DefaultMaxRetries     = 3
-	DefaultRequestTimeout = 10000 // 10000 milliseconds - to handle a wider latency range
+	DefaultRequestTimeout = 60000 // 60000 milliseconds - to handle a wider latency range
 )
 
 const (
@@ -66,6 +68,7 @@ type InterContainerProxy interface {
 	GetDefaultTopic() *Topic
 	DeviceDiscovered(deviceId string, deviceType string, parentId string, publisher string) error
 	InvokeRPC(ctx context.Context, rpc string, toTopic *Topic, replyToTopic *Topic, waitForResponse bool, key string, kvArgs ...*KVArg) (bool, *any.Any)
+	InvokeAsyncRPC(ctx context.Context, rpc string, toTopic *Topic, replyToTopic *Topic, waitForResponse bool, key string, kvArgs ...*KVArg) chan *RpcResponse
 	SubscribeWithRequestHandlerInterface(topic Topic, handler interface{}) error
 	SubscribeWithDefaultRequestHandler(topic Topic, initialOffset int64) error
 	UnSubscribeFromRequestHandler(topic Topic) error
@@ -189,9 +192,15 @@ func (kp *interContainerProxy) Stop() {
 	kp.doneOnce.Do(func() { close(kp.doneCh) })
 	// TODO : Perform cleanup
 	kp.kafkaClient.Stop()
-	//kp.deleteAllTopicRequestHandlerChannelMap()
-	//kp.deleteAllTopicResponseChannelMap()
-	//kp.deleteAllTransactionIdToChannelMap()
+	err := kp.deleteAllTopicRequestHandlerChannelMap()
+	if err != nil {
+		logger.Errorw("failed-delete-all-topic-request-handler-channel-map", log.Fields{"error": err})
+	}
+	err = kp.deleteAllTopicResponseChannelMap()
+	if err != nil {
+		logger.Errorw("failed-delete-all-topic-response-channel-map", log.Fields{"error": err})
+	}
+	kp.deleteAllTransactionIdToChannelMap()
 }
 
 func (kp *interContainerProxy) GetDefaultTopic() *Topic {
@@ -240,6 +249,104 @@ func (kp *interContainerProxy) DeviceDiscovered(deviceId string, deviceType stri
 	return nil
 }
 
+// InvokeAsyncRPC is used to make an RPC request asynchronously
+func (kp *interContainerProxy) InvokeAsyncRPC(ctx context.Context, rpc string, toTopic *Topic, replyToTopic *Topic,
+	waitForResponse bool, key string, kvArgs ...*KVArg) chan *RpcResponse {
+
+	logger.Debugw("InvokeAsyncRPC", log.Fields{"rpc": rpc, "key": key})
+	//	If a replyToTopic is provided then we use it, otherwise just use the  default toTopic.  The replyToTopic is
+	// typically the device ID.
+	responseTopic := replyToTopic
+	if responseTopic == nil {
+		responseTopic = kp.GetDefaultTopic()
+	}
+
+	chnl := make(chan *RpcResponse)
+
+	go func() {
+
+		// once we're done,
+		// close the response channel
+		defer close(chnl)
+
+		var err error
+		var protoRequest *ic.InterContainerMessage
+
+		// Encode the request
+		protoRequest, err = encodeRequest(rpc, toTopic, responseTopic, key, kvArgs...)
+		if err != nil {
+			logger.Warnw("cannot-format-request", log.Fields{"rpc": rpc, "error": err})
+			chnl <- NewResponse(RpcFormattingError, err, nil)
+			return
+		}
+
+		// Subscribe for response, if needed, before sending request
+		var ch <-chan *ic.InterContainerMessage
+		if ch, err = kp.subscribeForResponse(*responseTopic, protoRequest.Header.Id); err != nil {
+			logger.Errorw("failed-to-subscribe-for-response", log.Fields{"error": err, "toTopic": toTopic.Name})
+			chnl <- NewResponse(RpcTransportError, err, nil)
+			return
+		}
+
+		// Send request - if the topic is formatted with a device Id then we will send the request using a
+		// specific key, hence ensuring a single partition is used to publish the request.  This ensures that the
+		// subscriber on that topic will receive the request in the order it was sent.  The key used is the deviceId.
+		logger.Debugw("sending-msg", log.Fields{"rpc": rpc, "toTopic": toTopic, "replyTopic": responseTopic, "key": key, "xId": protoRequest.Header.Id})
+
+		// if the message is not sent on kafka publish an event an close the channel
+		if err = kp.kafkaClient.Send(protoRequest, toTopic, key); err != nil {
+			chnl <- NewResponse(RpcTransportError, err, nil)
+			return
+		}
+
+		// if the client is not waiting for a response send the ack and close the channel
+		chnl <- NewResponse(RpcSent, nil, nil)
+		if !waitForResponse {
+			return
+		}
+
+		defer func() {
+			// Remove the subscription for a response on return
+			if err := kp.unSubscribeForResponse(protoRequest.Header.Id); err != nil {
+				logger.Warnw("invoke-async-rpc-unsubscriber-for-response-failed", log.Fields{"err": err})
+			}
+		}()
+
+		// Wait for response as well as timeout or cancellation
+		select {
+		case msg, ok := <-ch:
+			if !ok {
+				logger.Warnw("channel-closed", log.Fields{"rpc": rpc, "replyTopic": replyToTopic.Name})
+				chnl <- NewResponse(RpcTransportError, status.Error(codes.Aborted, "channel closed"), nil)
+			}
+			logger.Debugw("received-response", log.Fields{"rpc": rpc, "msgHeader": msg.Header})
+			if responseBody, err := decodeResponse(msg); err != nil {
+				chnl <- NewResponse(RpcReply, err, nil)
+			} else {
+				if responseBody.Success {
+					chnl <- NewResponse(RpcReply, nil, responseBody.Result)
+				} else {
+					// response body contains an error
+					unpackErr := &ic.Error{}
+					if err := ptypes.UnmarshalAny(responseBody.Result, unpackErr); err != nil {
+						chnl <- NewResponse(RpcReply, err, nil)
+					} else {
+						chnl <- NewResponse(RpcReply, status.Error(codes.Internal, unpackErr.Reason), nil)
+					}
+				}
+			}
+		case <-ctx.Done():
+			logger.Errorw("context-cancelled", log.Fields{"rpc": rpc, "ctx": ctx.Err()})
+			err := status.Error(codes.DeadlineExceeded, ctx.Err().Error())
+			chnl <- NewResponse(RpcTimeout, err, nil)
+		case <-kp.doneCh:
+			chnl <- NewResponse(RpcSystemClosing, nil, nil)
+			logger.Warnw("received-exit-signal", log.Fields{"toTopic": toTopic.Name, "rpc": rpc})
+		}
+	}()
+	return chnl
+}
+
 // InvokeRPC is used to send a request to a given topic
 func (kp *interContainerProxy) InvokeRPC(ctx context.Context, rpc string, toTopic *Topic, replyToTopic *Topic,
 	waitForResponse bool, key string, kvArgs ...*KVArg) (bool, *any.Any) {
@@ -272,7 +379,14 @@ func (kp *interContainerProxy) InvokeRPC(ctx context.Context, rpc string, toTopi
 	// subscriber on that topic will receive the request in the order it was sent.  The key used is the deviceId.
 	//key := GetDeviceIdFromTopic(*toTopic)
 	logger.Debugw("sending-msg", log.Fields{"rpc": rpc, "toTopic": toTopic, "replyTopic": responseTopic, "key": key, "xId": protoRequest.Header.Id})
-	go kp.kafkaClient.Send(protoRequest, toTopic, key)
+	go func() {
+		if err := kp.kafkaClient.Send(protoRequest, toTopic, key); err != nil {
+			logger.Errorw("send-failed", log.Fields{
+				"topic": toTopic,
+				"key":   key,
+				"error": err})
+		}
+	}()
 
 	if waitForResponse {
 		// Create a child context based on the parent context, if any
@@ -287,7 +401,13 @@ func (kp *interContainerProxy) InvokeRPC(ctx context.Context, rpc string, toTopi
 
 		// Wait for response as well as timeout or cancellation
 		// Remove the subscription for a response on return
-		defer kp.unSubscribeForResponse(protoRequest.Header.Id)
+		defer func() {
+			if err := kp.unSubscribeForResponse(protoRequest.Header.Id); err != nil {
+				logger.Errorw("response-unsubscribe-failed", log.Fields{
+					"id":    protoRequest.Header.Id,
+					"error": err})
+			}
+		}()
 		select {
 		case msg, ok := <-ch:
 			if !ok {
@@ -378,23 +498,6 @@ func (kp *interContainerProxy) UnSubscribeFromRequestHandler(topic Topic) error 
 	return kp.deleteFromTopicRequestHandlerChannelMap(topic.Name)
 }
 
-// setupTopicResponseChannelMap sets up single consumers channel that will act as a broadcast channel for all
-// responses from that topic.
-func (kp *interContainerProxy) setupTopicResponseChannelMap(topic string, arg <-chan *ic.InterContainerMessage) {
-	kp.lockTopicResponseChannelMap.Lock()
-	defer kp.lockTopicResponseChannelMap.Unlock()
-	if _, exist := kp.topicToResponseChannelMap[topic]; !exist {
-		kp.topicToResponseChannelMap[topic] = arg
-	}
-}
-
-func (kp *interContainerProxy) isTopicSubscribedForResponse(topic string) bool {
-	kp.lockTopicResponseChannelMap.RLock()
-	defer kp.lockTopicResponseChannelMap.RUnlock()
-	_, exist := kp.topicToResponseChannelMap[topic]
-	return exist
-}
-
 func (kp *interContainerProxy) deleteFromTopicResponseChannelMap(topic string) error {
 	kp.lockTopicResponseChannelMap.Lock()
 	defer kp.lockTopicResponseChannelMap.Unlock()
@@ -407,22 +510,31 @@ func (kp *interContainerProxy) deleteFromTopicResponseChannelMap(topic string) e
 		delete(kp.topicToResponseChannelMap, topic)
 		return err
 	} else {
-		return errors.New(fmt.Sprintf("%s-Topic-not-found", topic))
+		return fmt.Errorf("%s-Topic-not-found", topic)
 	}
 }
 
+// nolint: unused
 func (kp *interContainerProxy) deleteAllTopicResponseChannelMap() error {
+	logger.Debug("delete-all-topic-response-channel")
 	kp.lockTopicResponseChannelMap.Lock()
 	defer kp.lockTopicResponseChannelMap.Unlock()
-	var err error
-	for topic, _ := range kp.topicToResponseChannelMap {
+	var unsubscribeFailTopics []string
+	for topic := range kp.topicToResponseChannelMap {
 		// Unsubscribe to this topic first - this will close the subscribed channel
-		if err = kp.kafkaClient.UnSubscribe(&Topic{Name: topic}, kp.topicToResponseChannelMap[topic]); err != nil {
+		if err := kp.kafkaClient.UnSubscribe(&Topic{Name: topic}, kp.topicToResponseChannelMap[topic]); err != nil {
+			unsubscribeFailTopics = append(unsubscribeFailTopics, topic)
 			logger.Errorw("unsubscribing-error", log.Fields{"topic": topic, "error": err})
+			// Do not return. Continue to try to unsubscribe to other topics.
+		} else {
+			// Only delete from channel map if successfully unsubscribed.
+			delete(kp.topicToResponseChannelMap, topic)
 		}
-		delete(kp.topicToResponseChannelMap, topic)
 	}
-	return err
+	if len(unsubscribeFailTopics) > 0 {
+		return fmt.Errorf("unsubscribe-errors: %v", unsubscribeFailTopics)
+	}
+	return nil
 }
 
 func (kp *interContainerProxy) addToTopicRequestHandlerChannelMap(topic string, arg *requestHandlerChannel) {
@@ -438,26 +550,37 @@ func (kp *interContainerProxy) deleteFromTopicRequestHandlerChannelMap(topic str
 	defer kp.lockTopicRequestHandlerChannelMap.Unlock()
 	if _, exist := kp.topicToRequestHandlerChannelMap[topic]; exist {
 		// Close the kafka client client first by unsubscribing to this topic
-		kp.kafkaClient.UnSubscribe(&Topic{Name: topic}, kp.topicToRequestHandlerChannelMap[topic].ch)
+		if err := kp.kafkaClient.UnSubscribe(&Topic{Name: topic}, kp.topicToRequestHandlerChannelMap[topic].ch); err != nil {
+			return err
+		}
 		delete(kp.topicToRequestHandlerChannelMap, topic)
 		return nil
 	} else {
-		return errors.New(fmt.Sprintf("%s-Topic-not-found", topic))
+		return fmt.Errorf("%s-Topic-not-found", topic)
 	}
 }
 
+// nolint: unused
 func (kp *interContainerProxy) deleteAllTopicRequestHandlerChannelMap() error {
+	logger.Debug("delete-all-topic-request-channel")
 	kp.lockTopicRequestHandlerChannelMap.Lock()
 	defer kp.lockTopicRequestHandlerChannelMap.Unlock()
-	var err error
-	for topic, _ := range kp.topicToRequestHandlerChannelMap {
+	var unsubscribeFailTopics []string
+	for topic := range kp.topicToRequestHandlerChannelMap {
 		// Close the kafka client client first by unsubscribing to this topic
-		if err = kp.kafkaClient.UnSubscribe(&Topic{Name: topic}, kp.topicToRequestHandlerChannelMap[topic].ch); err != nil {
+		if err := kp.kafkaClient.UnSubscribe(&Topic{Name: topic}, kp.topicToRequestHandlerChannelMap[topic].ch); err != nil {
+			unsubscribeFailTopics = append(unsubscribeFailTopics, topic)
 			logger.Errorw("unsubscribing-error", log.Fields{"topic": topic, "error": err})
+			// Do not return. Continue to try to unsubscribe to other topics.
+		} else {
+			// Only delete from channel map if successfully unsubscribed.
+			delete(kp.topicToRequestHandlerChannelMap, topic)
 		}
-		delete(kp.topicToRequestHandlerChannelMap, topic)
 	}
-	return err
+	if len(unsubscribeFailTopics) > 0 {
+		return fmt.Errorf("unsubscribe-errors: %v", unsubscribeFailTopics)
+	}
+	return nil
 }
 
 func (kp *interContainerProxy) addToTransactionIdToChannelMap(id string, topic *Topic, arg chan *ic.InterContainerMessage) {
@@ -489,7 +612,9 @@ func (kp *interContainerProxy) deleteTopicTransactionIdToChannelMap(id string) {
 	}
 }
 
+// nolint: unused
 func (kp *interContainerProxy) deleteAllTransactionIdToChannelMap() {
+	logger.Debug("delete-all-transaction-id-channel-map")
 	kp.lockTransactionIdToChannelMap.Lock()
 	defer kp.lockTransactionIdToChannelMap.Unlock()
 	for key, value := range kp.transactionIdToChannelMap {
@@ -575,11 +700,12 @@ func encodeResponse(request *ic.InterContainerMessage, success bool, returnedVal
 	// Go over all returned values
 	var marshalledReturnedVal *any.Any
 	var err error
-	for _, returnVal := range returnedValues {
-		if marshalledReturnedVal, err = encodeReturnedValue(returnVal); err != nil {
+
+	// for now we support only 1 returned value - (excluding the error)
+	if len(returnedValues) > 0 {
+		if marshalledReturnedVal, err = encodeReturnedValue(returnedValues[0]); err != nil {
 			logger.Warnw("cannot-marshal-response-body", log.Fields{"error": err})
 		}
-		break // for now we support only 1 returned value - (excluding the error)
 	}
 
 	responseBody := &ic.InterContainerResponseBody{
@@ -730,7 +856,14 @@ func (kp *interContainerProxy) handleMessage(msg *ic.InterContainerMessage, targ
 			key := msg.Header.KeyTopic
 			logger.Debugw("sending-response-to-kafka", log.Fields{"rpc": requestBody.Rpc, "header": icm.Header, "key": key})
 			// TODO: handle error response.
-			go kp.kafkaClient.Send(icm, replyTopic, key)
+			go func() {
+				if err := kp.kafkaClient.Send(icm, replyTopic, key); err != nil {
+					logger.Errorw("send-reply-failed", log.Fields{
+						"topic": replyTopic,
+						"key":   key,
+						"error": err})
+				}
+			}()
 		}
 	} else if msg.Header.Type == ic.MessageType_RESPONSE {
 		logger.Debugw("response-received", log.Fields{"msg-header": msg.Header})
@@ -767,7 +900,8 @@ func (kp *interContainerProxy) subscribeForResponse(topic Topic, trnsId string) 
 
 	// Create a specific channel for this consumers.  We cannot use the channel from the kafkaclient as it will
 	// broadcast any message for this topic to all channels waiting on it.
-	ch := make(chan *ic.InterContainerMessage)
+	// Set channel size to 1 to prevent deadlock, see VOL-2708
+	ch := make(chan *ic.InterContainerMessage, 1)
 	kp.addToTransactionIdToChannelMap(trnsId, &topic, ch)
 
 	return ch, nil

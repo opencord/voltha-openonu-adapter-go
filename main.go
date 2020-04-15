@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/opencord/voltha-lib-go/v3/pkg/db"
 	"os"
 	"os/signal"
 	"strconv"
@@ -122,7 +123,15 @@ func (a *adapter) start(ctx context.Context) error {
 
 	// Create the adaptor proxy to handle request between olt and onu
 	//a.adapterProxy = com.NewAdapterProxy(a.kip, "brcm_openomci_onu", a.config.CoreTopic)
-	a.adapterProxy = com.NewAdapterProxy(a.kip, "openolt", a.config.CoreTopic)
+	backend := &db.Backend{
+		Client:     a.kvClient,
+		StoreType:  a.config.KVStoreType,
+		Host:       a.config.KVStoreHost,
+		Port:       a.config.KVStorePort,
+		Timeout:    a.config.KVStoreTimeout,
+		PathPrefix: "service/voltha",
+	}
+	a.adapterProxy = com.NewAdapterProxy(a.kip, "openolt", a.config.CoreTopic, backend)
 
 	// Create the event proxy to post events to KAFKA
 	a.eventProxy = com.NewEventProxy(com.MsgClient(a.kafkaClient), com.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))
@@ -305,9 +314,15 @@ func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 			AcceptsBulkFlowUpdate:       false,     // Currently openolt adapter does not support bulk flow handling
 			AcceptsAddRemoveFlowUpdates: true}}
 	*/
-	adapterDescription := &voltha.Adapter{Id: "brcm_openomci_onu", // Unique name for the device type ->exact type required for OLT comm????
+	adapterDescription := &voltha.Adapter{
+		Id: "brcm_openomci_onu", // Unique name for the device type ->exact type required for OLT comm????
 		Vendor:  "VOLTHA OpenONUGo",
-		Version: version.VersionInfo.Version}
+		Version: version.VersionInfo.Version,
+		Endpoint:       "brcm_openomci_onu",
+		Type:           "brcm_openomci_onu",
+		CurrentReplica: 1,
+		TotalReplicas:  1,
+	}
 	types := []*voltha.DeviceType{{Id: "brcm_openomci_onu",
 		VendorIds:                   []string{"OPEN", "ALCL", "BRCM", "TWSH", "ALPH", "ISKT", "SFAA", "BBSM", "SCOM"},
 		Adapter:                     "brcm_openomci_onu", // Name of the adapter that handles device type
@@ -492,7 +507,10 @@ func main() {
 
 	// Setup logging
 
-	loglevel := log.StringToInt(cf.LogLevel)
+	loglevel, err := log.StringToLogLevel(cf.LogLevel)
+	if err != nil {
+		log.Fatalf("Cannot setup logging, %s", err)
+	}
 
 	// Setup default logger - applies for packages that do not have specific logger set
 	if _, err := log.SetDefaultLogger(log.JSON, loglevel, log.Fields{"instanceId": cf.InstanceID}); err != nil {

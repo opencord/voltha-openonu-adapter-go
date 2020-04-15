@@ -291,5 +291,13 @@ func (oo *OpenONUAC) enableDisablePort(deviceID string, port *voltha.Port, enabl
 	return errors.New("unImplemented")
 }
 
+func (oo *OpenONUAC) Child_device_lost(deviceID string, pPortNo uint32, onuID uint32) error {
+	return errors.New("unImplemented")
+}
+
+func (oo *OpenONUAC) Start_omci_test(device *voltha.Device, request *voltha.OmciTestRequest) (*voltha.TestResponse, error) {
+	return nil, errors.New("unImplemented")
+}
+
 // Adapter interface required methods ################ end #########
 // #################################################################
