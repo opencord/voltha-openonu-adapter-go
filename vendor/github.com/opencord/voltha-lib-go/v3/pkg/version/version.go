@@ -1,12 +1,23 @@
-// Package version is used to inject build time information via -X variables
+/*
+ * Copyright 2019-present Open Networking Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package version
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strings"
-
-	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 )
 
 // Default build-time variable.
@@ -22,8 +33,7 @@ var (
 	arch      = "unknown-arch"
 )
 
-// InfoType is a collection of build time environment variables
-type InfoType struct {
+type VersionInfoType struct {
 	Version   string `json:"version"`
 	GoVersion string `json:"goversion"`
 	VcsRef    string `json:"vcsref"`
@@ -33,11 +43,10 @@ type InfoType struct {
 	Arch      string `json:"arch"`
 }
 
-// VersionInfo is an instance of build time environment variables populated at build time via -X arguments
-var VersionInfo InfoType
+var VersionInfo VersionInfoType
 
 func init() {
-	VersionInfo = InfoType{
+	VersionInfo = VersionInfoType{
 		Version:   version,
 		VcsRef:    vcsRef,
 		VcsDirty:  vcsDirty,
@@ -46,10 +55,9 @@ func init() {
 		Arch:      arch,
 		BuildTime: buildTime,
 	}
-	_, _ = log.AddPackage(log.CONSOLE, log.DebugLevel, nil)
 }
 
-func (v InfoType) String(indent string) string {
+func (v VersionInfoType) String(indent string) string {
 	builder := strings.Builder{}
 
 	builder.WriteString(fmt.Sprintf("%sVersion:      %s\n", indent, VersionInfo.Version))
@@ -59,18 +67,4 @@ func (v InfoType) String(indent string) string {
 	builder.WriteString(fmt.Sprintf("%sBuilt:        %s\n", indent, VersionInfo.BuildTime))
 	builder.WriteString(fmt.Sprintf("%sOS/Arch:      %s/%s\n", indent, VersionInfo.Os, VersionInfo.Arch))
 	return builder.String()
-}
-
-func GetCodeVersion() string {
-	if VersionInfo.Version == "unknown-version" {
-		content, err := ioutil.ReadFile("VERSION")
-		if err == nil {
-			return (string(content))
-		} else {
-			log.Error("VERSION-file not readable")
-			return VersionInfo.Version
-		}
-	} else {
-		return VersionInfo.Version
-	}
 }

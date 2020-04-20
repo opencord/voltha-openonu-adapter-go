@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//Package adaptercoreont provides the utility for onu devices, flows and statistics
-package adaptercoreont
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
+package adaptercoreonu
 
 import (
 	"context"
@@ -27,6 +27,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/looplab/fsm"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
@@ -52,16 +53,15 @@ type DeviceHandler struct {
 	ProxyAddressID   string
 	ProxyAddressType string
 
-	coreProxy     adapterif.CoreProxy
-	AdapterProxy  adapterif.AdapterProxy
-	EventProxy    adapterif.EventProxy
-	openOnuAc     *OpenONUAC
-	transitionMap *TransitionMap
-	omciAgent     *OpenOMCIAgent
-	ponPort       *voltha.Port
-	onuOmciDevice *OnuDeviceEntry
-	exitChannel   chan int
-	lockDevice    sync.RWMutex
+	coreProxy       adapterif.CoreProxy
+	AdapterProxy    adapterif.AdapterProxy
+	EventProxy      adapterif.EventProxy
+	pOpenOnuAc      *OpenONUAC
+	pDeviceStateFsm *fsm.FSM
+	pPonPort        *voltha.Port
+	pOnuOmciDevice  *OnuDeviceEntry
+	exitChannel     chan int
+	lockDevice      sync.RWMutex
 
 	//Client        oop.OpenoltClient
 	//clientCon     *grpc.ClientConn
@@ -115,8 +115,7 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	dh.DeviceType = cloned.Type
 	dh.adminState = "up"
 	dh.device = cloned
-	dh.openOnuAc = adapter
-	dh.transitionMap = nil
+	dh.pOpenOnuAc = adapter
 	dh.exitChannel = make(chan int, 1)
 	dh.lockDevice = sync.RWMutex{}
 	dh.stopCollector = make(chan bool, 2)
@@ -124,25 +123,42 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
 	dh.activePorts = sync.Map{}
 	//TODO initialize the support classes.
+
+	// Device related state machine
+	dh.pDeviceStateFsm = fsm.NewFSM(
+		"null",
+		fsm.Events{
+			{Name: "DeviceInit", Src: []string{"null", "down"}, Dst: "init"},
+			{Name: "GrpcConnected", Src: []string{"init"}, Dst: "connected"},
+			{Name: "GrpcDisconnected", Src: []string{"connected", "down"}, Dst: "init"},
+			{Name: "DeviceUpInd", Src: []string{"connected", "down"}, Dst: "up"},
+			{Name: "DeviceDownInd", Src: []string{"up"}, Dst: "down"},
+		},
+		fsm.Callbacks{
+			"before_event":            func(e *fsm.Event) { dh.logStateChange(e) },
+			"before_DeviceInit":       func(e *fsm.Event) { dh.doStateInit(e) },
+			"after_DeviceInit":        func(e *fsm.Event) { dh.postInit(e) },
+			"before_GrpcConnected":    func(e *fsm.Event) { dh.doStateConnected(e) },
+			"before_GrpcDisconnected": func(e *fsm.Event) { dh.doStateInit(e) },
+			"after_GrpcDisconnected":  func(e *fsm.Event) { dh.postInit(e) },
+			"before_DeviceUpInd":      func(e *fsm.Event) { dh.doStateUp(e) },
+			"before_DeviceDownInd":    func(e *fsm.Event) { dh.doStateDown(e) },
+		},
+	)
 	return &dh
 }
 
 // start save the device to the data model
 func (dh *DeviceHandler) Start(ctx context.Context) {
-	dh.lockDevice.Lock()
-	defer dh.lockDevice.Unlock()
-	log.Debugw("starting-device-handler", log.Fields{"device": dh.device, "deviceId": dh.deviceID})
+	logger.Debugw("starting-device-handler", log.Fields{"device": dh.device, "deviceId": dh.deviceID})
 	// Add the initial device to the local model
-	log.Debug("device-handler-started")
+	logger.Debug("device-handler-started")
 }
 
 // stop stops the device dh.  Not much to do for now
 func (dh *DeviceHandler) stop(ctx context.Context) {
-	dh.lockDevice.Lock()
-	defer dh.lockDevice.Unlock()
-	log.Debug("stopping-device-agent")
+	logger.Debug("stopping-device-handler")
 	dh.exitChannel <- 1
-	log.Debug("device-agent-stopped")
 }
 
 // ##########################################################################################
@@ -150,19 +166,22 @@ func (dh *DeviceHandler) stop(ctx context.Context) {
 
 //AdoptDevice adopts the OLT device
 func (dh *DeviceHandler) AdoptDevice(ctx context.Context, device *voltha.Device) {
-	log.Debugw("Adopt_device", log.Fields{"deviceID": device.Id, "Address": device.GetHostAndPort()})
+	logger.Debugw("Adopt_device", log.Fields{"deviceID": device.Id, "Address": device.GetHostAndPort()})
 
-	if dh.transitionMap == nil {
-		dh.transitionMap = NewTransitionMap(dh)
-		dh.transitionMap.Handle(ctx, DeviceInit)
+	logger.Debug("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
+	if dh.pDeviceStateFsm.Is("null") {
+		if err := dh.pDeviceStateFsm.Event("DeviceInit"); err != nil {
+			logger.Errorw("Device FSM: Can't go to state DeviceInit", log.Fields{"err": err})
+		}
+		logger.Debug("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
 	} else {
-		log.Debug("AdoptDevice: Agent/device init already done")
+		logger.Debug("AdoptDevice: Agent/device init already done")
 	}
 
 	/*
 		// Now, set the initial PM configuration for that device
 		if err := dh.coreProxy.DevicePMConfigUpdate(nil, dh.metrics.ToPmConfigs()); err != nil {
-			log.Errorw("error-updating-PMs", log.Fields{"deviceId": device.Id, "error": err})
+			logger.Errorw("error-updating-PMs", log.Fields{"deviceId": device.Id, "error": err})
 		}
 
 		go startCollector(dh)
@@ -180,7 +199,7 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	toTopic := msg.Header.ToTopic
 	toDeviceID := msg.Header.ToDeviceId
 	proxyDeviceID := msg.Header.ProxyDeviceId
-	log.Debugw("InterAdapter message header", log.Fields{"msgID": msgID, "msgType": msgType,
+	logger.Debugw("InterAdapter message header", log.Fields{"msgID": msgID, "msgType": msgType,
 		"fromTopic": fromTopic, "toTopic": toTopic, "toDeviceID": toDeviceID, "proxyDeviceID": proxyDeviceID})
 
 	switch msgType {
@@ -191,16 +210,16 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 
 			omciMsg := &ic.InterAdapterOmciMessage{}
 			if err := ptypes.UnmarshalAny(msgBody, omciMsg); err != nil {
-				log.Warnw("cannot-unmarshal-omci-msg-body", log.Fields{"error": err})
+				logger.Warnw("cannot-unmarshal-omci-msg-body", log.Fields{"error": err})
 				return err
 			}
 
 			//assuming omci message content is hex coded!
 			// with restricted output of 16(?) bytes would be ...omciMsg.Message[:16]
-			log.Debugw("inter-adapter-recv-omci",
+			logger.Debugw("inter-adapter-recv-omci",
 				log.Fields{"RxOmciMessage": hex.EncodeToString(omciMsg.Message)})
 			//receive_message(omci_msg.message)
-			return dh.onuOmciDevice.PDevOmciCC.ReceiveMessage(context.TODO(), omciMsg.Message)
+			return dh.GetOnuDeviceEntry().PDevOmciCC.ReceiveMessage(context.TODO(), omciMsg.Message)
 		}
 	case ic.InterAdapterMessageType_ONU_IND_REQUEST:
 		{
@@ -209,12 +228,12 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 
 			onu_indication := &oop.OnuIndication{}
 			if err := ptypes.UnmarshalAny(msgBody, onu_indication); err != nil {
-				log.Warnw("cannot-unmarshal-onu-indication-msg-body", log.Fields{"error": err})
+				logger.Warnw("cannot-unmarshal-onu-indication-msg-body", log.Fields{"error": err})
 				return err
 			}
 
 			onu_operstate := onu_indication.GetOperState()
-			log.Debugw("inter-adapter-recv-onu-ind", log.Fields{"OnuId": onu_indication.GetOnuId(),
+			logger.Debugw("inter-adapter-recv-onu-ind", log.Fields{"OnuId": onu_indication.GetOnuId(),
 				"AdminState": onu_indication.GetAdminState(), "OperState": onu_operstate,
 				"SNR": onu_indication.GetSerialNumber()})
 
@@ -224,13 +243,13 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 			} else if (onu_operstate == "down") || (onu_operstate == "unreachable") {
 				dh.update_interface(onu_indication)
 			} else {
-				log.Errorw("unknown-onu-indication operState", log.Fields{"OnuId": onu_indication.GetOnuId()})
+				logger.Errorw("unknown-onu-indication operState", log.Fields{"OnuId": onu_indication.GetOnuId()})
 				return errors.New("InvalidOperState")
 			}
 		}
 	default:
 		{
-			log.Errorw("inter-adapter-unhandled-type", log.Fields{"msgType": msg.Header.Type})
+			logger.Errorw("inter-adapter-unhandled-type", log.Fields{"msgType": msg.Header.Type})
 			return errors.New("unimplemented")
 		}
 	}
@@ -239,14 +258,14 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	   elif request.header.type == InterAdapterMessageType.TECH_PROFILE_DOWNLOAD_REQUEST:
 	       tech_msg = InterAdapterTechProfileDownloadMessage()
 	       request.body.Unpack(tech_msg)
-	       self.log.debug('inter-adapter-recv-tech-profile', tech_msg=tech_msg)
+	       self.logger.debug('inter-adapter-recv-tech-profile', tech_msg=tech_msg)
 
 	       self.load_and_configure_tech_profile(tech_msg.uni_id, tech_msg.path)
 
 	   elif request.header.type == InterAdapterMessageType.DELETE_GEM_PORT_REQUEST:
 	       del_gem_msg = InterAdapterDeleteGemPortMessage()
 	       request.body.Unpack(del_gem_msg)
-	       self.log.debug('inter-adapter-recv-del-gem', gem_del_msg=del_gem_msg)
+	       self.logger.debug('inter-adapter-recv-del-gem', gem_del_msg=del_gem_msg)
 
 	       self.delete_tech_profile(uni_id=del_gem_msg.uni_id,
 	                                gem_port_id=del_gem_msg.gem_port_id,
@@ -255,13 +274,13 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	   elif request.header.type == InterAdapterMessageType.DELETE_TCONT_REQUEST:
 	       del_tcont_msg = InterAdapterDeleteTcontMessage()
 	       request.body.Unpack(del_tcont_msg)
-	       self.log.debug('inter-adapter-recv-del-tcont', del_tcont_msg=del_tcont_msg)
+	       self.logger.debug('inter-adapter-recv-del-tcont', del_tcont_msg=del_tcont_msg)
 
 	       self.delete_tech_profile(uni_id=del_tcont_msg.uni_id,
 	                                alloc_id=del_tcont_msg.alloc_id,
 	                                tp_path=del_tcont_msg.tp_path)
 	   else:
-	       self.log.error("inter-adapter-unhandled-type", request=request)
+	       self.logger.error("inter-adapter-unhandled-type", request=request)
 	*/
 	return nil
 }
@@ -272,18 +291,26 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 // ################  to be updated acc. needs of ONU Device ########################
 // DeviceHandler StateMachine related state transition methods ##### begin #########
 
+func (dh *DeviceHandler) logStateChange(e *fsm.Event) {
+	logger.Debugw("Device FSM: ", log.Fields{"event name": string(e.Event), "src state": string(e.Src), "dst state": string(e.Dst), "device-id": dh.deviceID})
+}
+
 // doStateInit provides the device update to the core
-func (dh *DeviceHandler) doStateInit(ctx context.Context) error {
-	log.Debug("doStateInit-started")
+func (dh *DeviceHandler) doStateInit(e *fsm.Event) {
+
+	logger.Debug("doStateInit-started")
+	var err error
+
 	/*
 		var err error
 		dh.clientCon, err = grpc.Dial(dh.device.GetHostAndPort(), grpc.WithInsecure(), grpc.WithBlock())
 		if err != nil {
-			log.Errorw("Failed to dial device", log.Fields{"DeviceId": dh.deviceID, "HostAndPort": dh.device.GetHostAndPort(), "err": err})
+			logger.Errorw("Failed to dial device", log.Fields{"DeviceId": dh.deviceID, "HostAndPort": dh.device.GetHostAndPort(), "err": err})
 			return err
 		}
 		return nil
 	*/
+
 	// populate what we know.  rest comes later after mib sync
 	dh.device.Root = false
 	dh.device.Vendor = "OpenONU"
@@ -291,60 +318,61 @@ func (dh *DeviceHandler) doStateInit(ctx context.Context) error {
 	dh.device.Reason = "activating-onu"
 	dh.logicalDeviceID = dh.deviceID
 
-	dh.coreProxy.DeviceUpdate(ctx, dh.device)
+	dh.coreProxy.DeviceUpdate(context.TODO(), dh.device)
 
 	// store proxy parameters for later communication - assumption: invariant, else they have to be requested dynamically!!
 	dh.ProxyAddressID = dh.device.ProxyAddress.GetDeviceId()
 	dh.ProxyAddressType = dh.device.ProxyAddress.GetDeviceType()
-	log.Debugw("device-updated", log.Fields{"deviceID": dh.deviceID, "proxyAddressID": dh.ProxyAddressID,
+	logger.Debugw("device-updated", log.Fields{"deviceID": dh.deviceID, "proxyAddressID": dh.ProxyAddressID,
 		"proxyAddressType": dh.ProxyAddressType, "SNR": dh.device.SerialNumber,
 		"ParentId": dh.device.ParentId, "ParentPortNo": dh.device.ParentPortNo})
 
 	/*
 		self._pon = PonPort.create(self, self._pon_port_number)
 		self._pon.add_peer(self.parent_id, self._pon_port_number)
-		self.log.debug('adding-pon-port-to-agent',
+		self.logger.debug('adding-pon-port-to-agent',
 				   type=self._pon.get_port().type,
 				   admin_state=self._pon.get_port().admin_state,
 				   oper_status=self._pon.get_port().oper_status,
 				   )
 	*/
-	log.Debug("adding-pon-port")
-	ponPortNo := uint32(1)
+	logger.Debug("adding-pon-port")
+	pPonPortNo := uint32(1)
 	if dh.device.ParentPortNo != 0 {
-		ponPortNo = dh.device.ParentPortNo
+		pPonPortNo = dh.device.ParentPortNo
 	}
 
-	ponPort := &voltha.Port{
-		PortNo:     ponPortNo,
-		Label:      fmt.Sprintf("pon-%d", ponPortNo),
+	pPonPort := &voltha.Port{
+		PortNo:     pPonPortNo,
+		Label:      fmt.Sprintf("pon-%d", pPonPortNo),
 		Type:       voltha.Port_PON_ONU,
 		OperStatus: voltha.OperStatus_ACTIVE,
 		Peers: []*voltha.Port_PeerPort{{DeviceId: dh.device.ParentId, // Peer device  is OLT
 			PortNo: dh.device.ParentPortNo}}, // Peer port is parent's port number
 	}
-	var err error
-	if err = dh.coreProxy.PortCreated(context.TODO(), dh.deviceID, ponPort); err != nil {
-		log.Fatalf("PortCreated-failed-%s", err)
+	if err = dh.coreProxy.PortCreated(context.TODO(), dh.deviceID, pPonPort); err != nil {
+		logger.Fatalf("Device FSM: PortCreated-failed-%s", err)
+		e.Cancel(err)
+		return
 	}
-
-	log.Debug("doStateInit-done")
-	return nil
+	logger.Debug("doStateInit-done")
 }
 
 // postInit setups the DeviceEntry for the conerned device
-func (dh *DeviceHandler) postInit(ctx context.Context) error {
+func (dh *DeviceHandler) postInit(e *fsm.Event) {
+
+	logger.Debug("postInit-started")
+	var err error
 	/*
 		dh.Client = oop.NewOpenoltClient(dh.clientCon)
-		dh.transitionMap.Handle(ctx, GrpcConnected)
+		dh.pTransitionMap.Handle(ctx, GrpcConnected)
 		return nil
 	*/
-	//start the Agent object with no specific FSM setting
-	dh.omciAgent = NewOpenOMCIAgent(ctx, dh.coreProxy, dh.AdapterProxy)
-	dh.omciAgent.Start(ctx)
-	// might be updated with some error handling !!!
-	dh.onuOmciDevice, _ = dh.omciAgent.Add_device(ctx, dh.deviceID, dh)
-	//dh.transitionMap.Handle(ctx, GrpcConnected)
+	if err = dh.Add_OnuDeviceEntry(context.TODO()); err != nil {
+		logger.Fatalf("Device FSM: Add_OnuDeviceEntry-failed-%s", err)
+		e.Cancel(err)
+		return
+	}
 
 	/*
 			############################################################################
@@ -359,13 +387,13 @@ func (dh *DeviceHandler) postInit(ctx context.Context) error {
 				'heartbeat': self.heartbeat,
 				OnuOmciPmMetrics.OMCI_DEV_KEY: self._onu_omci_device
 			}
-			self.log.debug('create-pm-metrics', device_id=device.id, serial_number=device.serial_number)
+			self.logger.debug('create-pm-metrics', device_id=device.id, serial_number=device.serial_number)
 			self._pm_metrics = OnuPmMetrics(self.events, self.core_proxy, self.device_id,
 										   self.logical_device_id, device.serial_number,
 										   grouped=True, freq_override=False, **kwargs)
 			pm_config = self._pm_metrics.make_proto()
 			self._onu_omci_device.set_pm_config(self._pm_metrics.omci_pm.openomci_interval_pm)
-			self.log.info("initial-pm-config", device_id=device.id, serial_number=device.serial_number)
+			self.logger.info("initial-pm-config", device_id=device.id, serial_number=device.serial_number)
 			yield self.core_proxy.device_pm_config_update(pm_config, init=True)
 
 			# Note, ONU ID and UNI intf set in add_uni_port method
@@ -387,45 +415,66 @@ func (dh *DeviceHandler) postInit(ctx context.Context) error {
 
 			self.enabled = True
 		else:
-			self.log.info('onu-already-activated')
+			self.logger.info('onu-already-activated')
 	*/
+	logger.Debug("postInit-done")
+}
 
-	return nil
+// doStateConnected get the device info and update to voltha core
+// for comparison of the original method (not that easy to uncomment): compare here:
+//  voltha-openolt-adapter/adaptercore/device_handler.go
+//  -> this one obviously initiates all communication interfaces of the device ...?
+func (dh *DeviceHandler) doStateConnected(e *fsm.Event) {
+
+	logger.Debug("doStateConnected-started")
+	var err error
+	err = errors.New("Device FSM: function not implemented yet!")
+	e.Cancel(err)
+	return
+	logger.Debug("doStateConnected-done")
 }
 
 // doStateUp handle the onu up indication and update to voltha core
-func (dh *DeviceHandler) doStateUp(ctx context.Context) error {
+func (dh *DeviceHandler) doStateUp(e *fsm.Event) {
+
+	logger.Debug("doStateUp-started")
+	var err error
+	err = errors.New("Device FSM: function not implemented yet!")
+	e.Cancel(err)
+	return
+	logger.Debug("doStateUp-done")
+
 	/*
 		// Synchronous call to update device state - this method is run in its own go routine
 		if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.device.Id, voltha.ConnectStatus_REACHABLE,
 			voltha.OperStatus_ACTIVE); err != nil {
-			log.Errorw("Failed to update device with OLT UP indication", log.Fields{"deviceID": dh.device.Id, "error": err})
+			logger.Errorw("Failed to update device with OLT UP indication", log.Fields{"deviceID": dh.device.Id, "error": err})
 			return err
 		}
 		return nil
 	*/
-	return errors.New("unimplemented")
 }
 
 // doStateDown handle the onu down indication
-func (dh *DeviceHandler) doStateDown(ctx context.Context) error {
-	dh.lockDevice.Lock()
-	defer dh.lockDevice.Unlock()
-	log.Debug("do-state-down-start")
+func (dh *DeviceHandler) doStateDown(e *fsm.Event) {
 
-	device, err := dh.coreProxy.GetDevice(ctx, dh.device.Id, dh.device.Id)
+	logger.Debug("doStateDown-started")
+	var err error
+
+	device, err := dh.coreProxy.GetDevice(context.TODO(), dh.device.Id, dh.device.Id)
 	if err != nil || device == nil {
 		/*TODO: needs to handle error scenarios */
-		log.Errorw("Failed to fetch device device", log.Fields{"err": err})
-		return errors.New("failed to fetch device device")
+		logger.Errorw("Failed to fetch device device", log.Fields{"err": err})
+		e.Cancel(err)
+		return
 	}
 
 	cloned := proto.Clone(device).(*voltha.Device)
-	log.Debugw("do-state-down", log.Fields{"ClonedDeviceID": cloned.Id})
+	logger.Debugw("do-state-down", log.Fields{"ClonedDeviceID": cloned.Id})
 	/*
 		// Update the all ports state on that device to disable
 		if er := dh.coreProxy.PortsStateUpdate(ctx, cloned.Id, voltha.OperStatus_UNKNOWN); er != nil {
-			log.Errorw("updating-ports-failed", log.Fields{"deviceID": device.Id, "error": er})
+			logger.Errorw("updating-ports-failed", log.Fields{"deviceID": device.Id, "error": er})
 			return er
 		}
 
@@ -435,14 +484,14 @@ func (dh *DeviceHandler) doStateDown(ctx context.Context) error {
 		dh.device = cloned
 
 		if er := dh.coreProxy.DeviceStateUpdate(ctx, cloned.Id, cloned.ConnectStatus, cloned.OperStatus); er != nil {
-			log.Errorw("error-updating-device-state", log.Fields{"deviceID": device.Id, "error": er})
+			logger.Errorw("error-updating-device-state", log.Fields{"deviceID": device.Id, "error": er})
 			return er
 		}
 
 		//get the child device for the parent device
 		onuDevices, err := dh.coreProxy.GetChildDevices(ctx, dh.device.Id)
 		if err != nil {
-			log.Errorw("failed to get child devices information", log.Fields{"deviceID": dh.device.Id, "error": err})
+			logger.Errorw("failed to get child devices information", log.Fields{"deviceID": dh.device.Id, "error": err})
 			return err
 		}
 		for _, onuDevice := range onuDevices.Items {
@@ -453,7 +502,7 @@ func (dh *DeviceHandler) doStateDown(ctx context.Context) error {
 			er := dh.AdapterProxy.SendInterAdapterMessage(ctx, &onuInd, ic.InterAdapterMessageType_ONU_IND_REQUEST,
 				"openolt", onuDevice.Type, onuDevice.Id, onuDevice.ProxyAddress.DeviceId, "")
 			if er != nil {
-				log.Errorw("Failed to send inter-adapter-message", log.Fields{"OnuInd": onuInd,
+				logger.Errorw("Failed to send inter-adapter-message", log.Fields{"OnuInd": onuInd,
 					"From Adapter": "openolt", "DevieType": onuDevice.Type, "DeviceID": onuDevice.Id})
 				//Do not return here and continue to process other ONUs
 			}
@@ -461,19 +510,13 @@ func (dh *DeviceHandler) doStateDown(ctx context.Context) error {
 		// * Discovered ONUs entries need to be cleared , since after OLT
 		//   is up, it starts sending discovery indications again* /
 		dh.discOnus = sync.Map{}
-		log.Debugw("do-state-down-end", log.Fields{"deviceID": device.Id})
+		logger.Debugw("do-state-down-end", log.Fields{"deviceID": device.Id})
 		return nil
 	*/
-	return errors.New("unimplemented")
-}
-
-// doStateConnected get the device info and update to voltha core
-// for comparison of the original method (not that easy to uncomment): compare here:
-//  voltha-openolt-adapter/adaptercore/device_handler.go
-//  -> this one obviously initiates all communication interfaces of the device ...?
-func (dh *DeviceHandler) doStateConnected(ctx context.Context) error {
-	log.Debug("OLT device has been connected")
-	return errors.New("unimplemented")
+	err = errors.New("Device FSM: function not implemented yet!")
+	e.Cancel(err)
+	return
+	logger.Debug("doStateDown-done")
 }
 
 // DeviceHandler StateMachine related state transition methods ##### end #########
@@ -482,30 +525,74 @@ func (dh *DeviceHandler) doStateConnected(ctx context.Context) error {
 // ###################################################
 // DeviceHandler utility methods ##### begin #########
 
+// Get ONU device entry for this deviceId specific handler
+func (dh *DeviceHandler) GetOnuDeviceEntry() *OnuDeviceEntry {
+	dh.lockDevice.Lock()
+	defer dh.lockDevice.Unlock()
+	if dh.pOnuOmciDevice != nil {
+		logger.Debugw("GetOnuDeviceEntry params:",
+			log.Fields{"onu_device_entry": dh.pOnuOmciDevice, "device_id": dh.pOnuOmciDevice.deviceID,
+				"device_handler": dh.pOnuOmciDevice.baseDeviceHandler, "core_proxy": dh.pOnuOmciDevice.coreProxy, "adapter_proxy": dh.pOnuOmciDevice.adapterProxy})
+	} else {
+		logger.Debug("GetOnuDeviceEntry returns nil")
+	}
+	return dh.pOnuOmciDevice
+}
+
+// Set ONU device entry
+func (dh *DeviceHandler) SetOnuDeviceEntry(pDeviceEntry *OnuDeviceEntry) error {
+	dh.lockDevice.Lock()
+	defer dh.lockDevice.Unlock()
+	dh.pOnuOmciDevice = pDeviceEntry
+	return nil
+}
+
+//creates a new ONU device or returns the existing
+func (dh *DeviceHandler) Add_OnuDeviceEntry(ctx context.Context) error {
+	logger.Debugw("adding-deviceEntry", log.Fields{"for deviceId": dh.deviceID})
+
+	deviceEntry := dh.GetOnuDeviceEntry()
+	if deviceEntry == nil {
+		/* costum_me_map in python code seems always to be None,
+		   we omit that here first (declaration unclear) -> todo at Adapter specialization ...*/
+		/* also no 'clock' argument - usage open ...*/
+		/* and no alarm_db yet (oo.alarm_db)  */
+		deviceEntry = NewOnuDeviceEntry(ctx, dh.deviceID, dh, dh.coreProxy, dh.AdapterProxy,
+			dh.pOpenOnuAc.pSupportedFsms) //nil as FSM pointer would yield deviceEntry internal defaults ...
+		//error treatment possible //TODO!!!
+		dh.SetOnuDeviceEntry(deviceEntry)
+		logger.Infow("onuDeviceEntry-added", log.Fields{"for deviceId": dh.deviceID})
+	} else {
+		logger.Infow("onuDeviceEntry-add: Device already exists", log.Fields{"for deviceId": dh.deviceID})
+	}
+	// might be updated with some error handling !!!
+	return nil
+}
+
 // doStateInit provides the device update to the core
 func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
-	log.Debug("create_interface-started - not yet fully implemented (only device state update)")
+	logger.Debug("create_interface-started - not yet fully implemented (only device state update)")
 
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVATING); err != nil {
-		log.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
 	}
 
 	device, err := dh.coreProxy.GetDevice(context.TODO(), dh.device.Id, dh.device.Id)
 	if err != nil || device == nil {
 		/*TODO: needs to handle error scenarios */
-		log.Errorw("Failed to fetch device device at creating If", log.Fields{"err": err})
+		logger.Errorw("Failed to fetch device device at creating If", log.Fields{"err": err})
 		return errors.New("Voltha Device not found")
 	}
 
-	dh.onuOmciDevice.Start(context.TODO())
+	dh.GetOnuDeviceEntry().Start(context.TODO())
 	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "starting-openomci"); err != nil {
-		log.Errorw("error-DeviceReasonUpdate to starting-openomci", log.Fields{"deviceID": dh.deviceID, "error": err})
+		logger.Errorw("error-DeviceReasonUpdate to starting-openomci", log.Fields{"deviceID": dh.deviceID, "error": err})
 	}
 
 	/* this might be a good time for Omci Verify message?  */
 	verifyExec := make(chan bool)
 	omci_verify := NewOmciTestRequest(context.TODO(),
-		dh.device.Id, dh.onuOmciDevice.PDevOmciCC,
+		dh.device.Id, dh.GetOnuDeviceEntry().PDevOmciCC,
 		true, true) //eclusive and allowFailure (anyway not yet checked)
 	omci_verify.PerformOmciTest(context.TODO(), verifyExec)
 
@@ -514,9 +601,9 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	(to prevent stopping on just not supported OMCI verification from ONU) */
 	select {
 	case <-time.After(2 * time.Second):
-		log.Warn("omci start-verification timed out (continue normal)")
+		logger.Warn("omci start-verification timed out (continue normal)")
 	case testresult := <-verifyExec:
-		log.Infow("Omci start verification done", log.Fields{"result": testresult})
+		logger.Infow("Omci start verification done", log.Fields{"result": testresult})
 	}
 
 	/* In py code it looks earlier (on activate ..)
@@ -548,7 +635,7 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 
 	               :param callback: (callable) Function to call to collect PM data
 	       """
-	       self.log.info("starting-pm-collection", device_name=self.name, default_freq=self.default_freq)
+	       self.logger.info("starting-pm-collection", device_name=self.name, default_freq=self.default_freq)
 	       if callback is None:
 	           callback = self.perform_test_omci
 
@@ -566,13 +653,13 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	       ani_g_entities_ids = list(ani_g_entities.keys()) if ani_g_entities \
 	                                                     is not None else None
 	       self._entity_id = ani_g_entities_ids[0]
-	       self.log.info('perform-test', entity_class=self._entity_class,
+	       self.logger.info('perform-test', entity_class=self._entity_class,
 	                     entity_id=self._entity_id)
 	       try:
 	           frame = MEFrame(self._entity_class, self._entity_id, []).test()
 	           result = yield self._device.omci_cc.send(frame)
 	           if not result.fields['omci_message'].fields['success_code']:
-	               self.log.info('Self-Test Submitted Successfully',
+	               self.logger.info('Self-Test Submitted Successfully',
 	                             code=result.fields[
 	                                 'omci_message'].fields['success_code'])
 	           else:
@@ -582,7 +669,7 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	           self.deferred.errback(failure.Failure(e))
 
 	       except Exception as e:
-	           self.log.exception('perform-test-Error', e=e,
+	           self.logger.exception('perform-test-Error', e=e,
 	                              class_id=self._entity_class,
 	                              entity_id=self._entity_id)
 	           self.deferred.errback(failure.Failure(e))
@@ -593,32 +680,32 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	//self._heartbeat.enabled = True
 
 	//example how to call FSM - transition up to state "uploading"
-	if dh.onuOmciDevice.MibSyncFsm.Is("disabled") {
+	if dh.GetOnuDeviceEntry().MibSyncFsm.Is("disabled") {
 
-		if err := dh.onuOmciDevice.MibSyncFsm.Event("start"); err != nil {
-			log.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
+		if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("start"); err != nil {
+			logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
 			return errors.New("Can't go to state starting")
 		} else {
-			log.Debug("MibSyncFsm", log.Fields{"state": string(dh.onuOmciDevice.MibSyncFsm.Current())})
+			logger.Debug("MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
 			//Determine ONU status and start/re-start MIB Synchronization tasks
 			//Determine if this ONU has ever synchronized
 			if true { //TODO: insert valid check
-				if err := dh.onuOmciDevice.MibSyncFsm.Event("load_mib_template"); err != nil {
-					log.Errorw("MibSyncFsm: Can't go to state loading_mib_template", log.Fields{"err": err})
+				if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("load_mib_template"); err != nil {
+					logger.Errorw("MibSyncFsm: Can't go to state loading_mib_template", log.Fields{"err": err})
 					return errors.New("Can't go to state loading_mib_template")
 				} else {
-					log.Debug("MibSyncFsm", log.Fields{"state": string(dh.onuOmciDevice.MibSyncFsm.Current())})
+					logger.Debug("MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
 					//Find and load a mib template. If not found proceed with mib_upload
 					// callbacks to be handled:
 					// Event("success")
 					// Event("timeout")
 					//no mib template found
 					if true { //TODO: insert valid check
-						if err := dh.onuOmciDevice.MibSyncFsm.Event("upload_mib"); err != nil {
-							log.Errorw("MibSyncFsm: Can't go to state uploading", log.Fields{"err": err})
+						if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("upload_mib"); err != nil {
+							logger.Errorw("MibSyncFsm: Can't go to state uploading", log.Fields{"err": err})
 							return errors.New("Can't go to state uploading")
 						} else {
-							log.Debug("state of MibSyncFsm", log.Fields{"state": string(dh.onuOmciDevice.MibSyncFsm.Current())})
+							logger.Debug("state of MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
 							//Begin full MIB data upload, starting with a MIB RESET
 							// callbacks to be handled:
 							// success: e.Event("success")
@@ -627,8 +714,8 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 					}
 				}
 			} else {
-				dh.onuOmciDevice.MibSyncFsm.Event("examine_mds")
-				log.Debug("state of MibSyncFsm", log.Fields{"state": string(dh.onuOmciDevice.MibSyncFsm.Current())})
+				dh.GetOnuDeviceEntry().MibSyncFsm.Event("examine_mds")
+				logger.Debug("state of MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
 				//Examine the MIB Data Sync
 				// callbacks to be handled:
 				// Event("success")
@@ -637,25 +724,25 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 			}
 		}
 	} else {
-		log.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(dh.onuOmciDevice.MibSyncFsm.Current())})
+		logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
 		return errors.New("wrong state of MibSyncFsm")
 	}
 	return nil
 }
 
 func (dh *DeviceHandler) update_interface(onuind *oop.OnuIndication) error {
-	log.Debug("update_interface-started - not yet implemented")
+	logger.Debug("update_interface-started - not yet implemented")
 	return nil
 }
 
 func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 	if dev_Event == MibDatabaseSync {
-		log.Debug("MibInSync Event: update dev state to 'MibSync complete'")
+		logger.Debug("MibInSync Event: update dev state to 'MibSync complete'")
 		//initiate DevStateUpdate
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
-			log.Errorw("error-DeviceReasonUpdate to mibsync-complete", log.Fields{"deviceID": dh.deviceID, "error": err})
+			logger.Errorw("error-DeviceReasonUpdate to mibsync-complete", log.Fields{"deviceID": dh.deviceID, "error": err})
 		}
 	} else {
-		log.Warnw("unhandled-device-event", log.Fields{"event": dev_Event})
+		logger.Warnw("unhandled-device-event", log.Fields{"event": dev_Event})
 	}
 }

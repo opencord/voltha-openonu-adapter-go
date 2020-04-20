@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 )
 
 // Open ONU default constants
@@ -38,7 +36,7 @@ const (
 	defaultKvstoretimeout       = 5 //in seconds
 	defaultKvstorehost          = "localhost"
 	defaultKvstoreport          = 2379 // Consul = 8500; Etcd = 2379
-	defaultLoglevel             = "DEBUG"
+	defaultLoglevel             = "WARN"
 	defaultBanner               = false
 	defaultDisplayVersionOnly   = false
 	defaultTopic                = "openonu"
@@ -55,6 +53,8 @@ const (
 	defaultHearbeatFailReportInterval = 180 * time.Second
 	//defaultKafkaReconnectRetries -1: reconnect endlessly.
 	defaultKafkaReconnectRetries = -1
+	defaultCurrentReplica        = 1
+	defaultTotalReplicas         = 1
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -83,10 +83,8 @@ type AdapterFlags struct {
 	HeartbeatCheckInterval      time.Duration
 	HeartbeatFailReportInterval time.Duration
 	KafkaReconnectRetries       int
-}
-
-func init() {
-	_, _ = log.AddPackage(log.JSON, log.WarnLevel, nil)
+	CurrentReplica              int
+	TotalReplicas               int
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -115,6 +113,8 @@ func NewAdapterFlags() *AdapterFlags {
 		HeartbeatCheckInterval:      defaultHearbeatCheckInterval,
 		HeartbeatFailReportInterval: defaultHearbeatFailReportInterval,
 		KafkaReconnectRetries:       defaultKafkaReconnectRetries,
+		CurrentReplica:              defaultCurrentReplica,
+		TotalReplicas:               defaultTotalReplicas,
 	}
 	return &adapterFlags
 }
@@ -187,6 +187,12 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("Number of retries to connect to Kafka.")
 	flag.IntVar(&(so.KafkaReconnectRetries), "kafka_reconnect_retries", defaultKafkaReconnectRetries, help)
+
+	help = "Replica number of this particular instance (default: %s)"
+	flag.IntVar(&(so.CurrentReplica), "current_replica", defaultCurrentReplica, help)
+
+	help = "Total number of instances for this adapter"
+	flag.IntVar(&(so.TotalReplicas), "total_replica", defaultTotalReplicas, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
