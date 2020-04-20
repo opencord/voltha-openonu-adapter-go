@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//Package adaptercoreont provides the utility for onu devices, flows and statistics
-package adaptercoreont
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
+package adaptercoreonu
 
 import (
 	"context"
@@ -40,15 +40,16 @@ const (
 	DeviceStatusInit     OnuDeviceEvent = 0 // OnuDeviceEntry default start state
 	MibDatabaseSync      OnuDeviceEvent = 1 // MIB database sync (upload done)
 	OmciCapabilitiesDone OnuDeviceEvent = 2 // OMCI ME and message type capabilities known
-	PortLinkUp           OnuDeviceEvent = 3 // Port link state change
-	PortLinkDw           OnuDeviceEvent = 4 // Port link state change
+	MibDownloadDone      OnuDeviceEvent = 3 // MIB database sync (upload done)
+	PortLinkUp           OnuDeviceEvent = 4 // Port link state change
+	PortLinkDw           OnuDeviceEvent = 5 // Port link state change
 	// Add other events here as needed (alarms separate???)
 )
 
 type activityDescr struct {
 	databaseClass   func() error
 	advertiseEvents bool
-	auditDelay      int
+	auditDelay      uint16
 	//tasks           map[string]func() error
 }
 type OmciDeviceFsms map[string]activityDescr
@@ -67,6 +68,7 @@ type OnuDeviceEntry struct {
 	MibSyncFsm    *fsm.FSM
 	MibSyncChan   chan Message
 	devState      OnuDeviceEvent
+	mibAuditDelay uint16
 }
 
 //OnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -74,8 +76,8 @@ type OnuDeviceEntry struct {
 func NewOnuDeviceEntry(ctx context.Context,
 	device_id string, device_Handler *DeviceHandler,
 	core_proxy adapterif.CoreProxy, adapter_proxy adapterif.AdapterProxy,
-	mib_db func() error, supported_Fsms_Ptr *OmciDeviceFsms) *OnuDeviceEntry {
-	log.Infow("init-onuDeviceEntry", log.Fields{"deviceId": device_id})
+	supported_Fsms_Ptr *OmciDeviceFsms) *OnuDeviceEntry {
+	logger.Infow("init-onuDeviceEntry", log.Fields{"deviceId": device_id})
 	var onuDeviceEntry OnuDeviceEntry
 	onuDeviceEntry.started = false
 	onuDeviceEntry.deviceID = device_id
@@ -92,6 +94,7 @@ func NewOnuDeviceEntry(ctx context.Context,
 		onuDeviceEntry.supportedFsms = *supported_Fsms_Ptr
 	} else {
 		//var mibSyncFsm = NewMibSynchronizer()
+		// use some internaö defaults, if not defined from outside
 		onuDeviceEntry.supportedFsms = OmciDeviceFsms{
 			"mib-synchronizer": {
 				//mibSyncFsm,        // Implements the MIB synchronization state machine
@@ -110,8 +113,10 @@ func NewOnuDeviceEntry(ctx context.Context,
 		}
 	}
 	onuDeviceEntry.mibDbClass = onuDeviceEntry.supportedFsms["mib-synchronizer"].databaseClass
-	log.Debug("access2mibDbClass")
+	logger.Debug("access2mibDbClass")
 	go onuDeviceEntry.mibDbClass()
+	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
+	logger.Debugw("MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
 
 	// Omci related Mib sync state machine
 	onuDeviceEntry.MibSyncFsm = fsm.NewFSM(
@@ -168,7 +173,7 @@ func NewOnuDeviceEntry(ctx context.Context,
 
 //Start starts (logs) the omci agent
 func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
-	log.Info("starting-OnuDeviceEntry")
+	logger.Info("starting-OnuDeviceEntry")
 
 	oo.PDevOmciCC = NewOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
 		oo.coreProxy, oo.adapterProxy)
@@ -176,22 +181,22 @@ func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 	//TODO .....
 	//mib_db.start()
 	oo.started = true
-	log.Info("OnuDeviceEntry-started, but not yet mib_db!!!")
+	logger.Info("OnuDeviceEntry-started, but not yet mib_db!!!")
 	return nil
 }
 
 //Stop terminates the session
 func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
-	log.Info("stopping-OnuDeviceEntry")
+	logger.Info("stopping-OnuDeviceEntry")
 	oo.started = false
 	//oo.exitChannel <- 1
-	log.Info("OnuDeviceEntry-stopped")
+	logger.Info("OnuDeviceEntry-stopped")
 	return nil
 }
 
 //Relay the InSync message via Handler to Rw core - Status update
 func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
-	log.Debugw("relaying system-event", log.Fields{"Event": dev_Event})
+	logger.Debugw("relaying system-event", log.Fields{"Event": dev_Event})
 	// decouple the handler transfer from further processing here
 	// TODO!!! check if really no synch is required within the system e.g. to ensure following steps ..
 	if dev_Event == MibDatabaseSync {
@@ -200,10 +205,17 @@ func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
 			go oo.baseDeviceHandler.DeviceStateUpdate(dev_Event)
 			//TODO!!! device control: next step: start MIB capability verification from here ?!!!
 		} else {
-			log.Debugw("mib-in-sync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
+			logger.Debugw("mibinsync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
+		}
+	} else if dev_Event == MibDownloadDone {
+		if oo.devState < MibDownloadDone { //devState has not been synced yet
+			oo.devState = MibDownloadDone
+			go oo.baseDeviceHandler.DeviceStateUpdate(dev_Event)
+		} else {
+			logger.Debugw("mibdownloaddone-event was already seen - ignored", log.Fields{"state": oo.devState})
 		}
 	} else {
-		log.Warnw("device-event not yet handled", log.Fields{"state": dev_Event})
+		logger.Warnw("device-event not yet handled", log.Fields{"state": dev_Event})
 	}
 	return nil
 }

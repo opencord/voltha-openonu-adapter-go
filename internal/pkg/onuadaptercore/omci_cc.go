@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//Package adaptercoreont provides the utility for onu devices, flows and statistics
-package adaptercoreont
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
+package adaptercoreonu
 
 import (
 	"container/list"
@@ -91,7 +91,7 @@ type OmciCC struct {
 func NewOmciCC(ctx context.Context, onu_device_entry *OnuDeviceEntry,
 	device_id string, device_handler *DeviceHandler,
 	core_proxy adapterif.CoreProxy, adapter_proxy adapterif.AdapterProxy) *OmciCC {
-	log.Infow("init-omciCC", log.Fields{"deviceId": device_id})
+	logger.Infow("init-omciCC", log.Fields{"deviceId": device_id})
 	var omciCC OmciCC
 	omciCC.enabled = false
 	omciCC.pOnuDeviceEntry = onu_device_entry
@@ -118,7 +118,7 @@ func NewOmciCC(ctx context.Context, onu_device_entry *OnuDeviceEntry,
 
 // Rx handler for omci messages
 func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) error {
-	log.Debugw("rx-onu-autonomous-message", log.Fields{"omciMsgType": omciMsg.MessageType,
+	logger.Debugw("rx-onu-autonomous-message", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"payload": hex.EncodeToString(omciMsg.Payload)})
 	/*
 			msgType = rxFrame.fields["message_type"] //assumed OmciOperationsValue
@@ -127,7 +127,7 @@ func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 			switch msgType {
 			case AlarmNotification:
 				{
-					log.Info("Unhandled: received-onu-alarm-message")
+					logger.Info("Unhandled: received-onu-alarm-message")
 					// python code was:
 					//if msg_type == EntityOperations.AlarmNotification.value:
 					//	topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.Alarm_Notification)
@@ -137,7 +137,7 @@ func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 				}
 			case AttributeValueChange:
 				{
-					log.Info("Unhandled: received-attribute-value-change")
+					logger.Info("Unhandled: received-attribute-value-change")
 					// python code was:
 					//elif msg_type == EntityOperations.AttributeValueChange.value:
 					//	topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.AVC_Notification)
@@ -147,7 +147,7 @@ func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 				}
 			case TestResult:
 				{
-					log.Info("Unhandled: received-test-result")
+					logger.Info("Unhandled: received-test-result")
 					// python code was:
 					//elif msg_type == EntityOperations.TestResult.value:
 					//	topic = OMCI_CC.event_bus_topic(self._device_id, RxEvent.Test_Result)
@@ -157,7 +157,7 @@ func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 				}
 			default:
 				{
-					log.Errorw("rx-onu-unsupported-autonomous-message", log.Fields{"msgType": msgType})
+					logger.Errorw("rx-onu-unsupported-autonomous-message", log.Fields{"msgType": msgType})
 					rxOnuDiscards++
 					return errors.New("RxOnuMsgType unimplemented")
 				}
@@ -169,51 +169,51 @@ func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 // Rx handler for onu messages
 //    e.g. would call ReceiveOnuMessage() in case of TID=0 or Action=test ...
 func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
-	//log.Debugw("cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
+	//logger.Debugw("cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
 	if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
 		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
 		//  (am extendedFormat message could be destroyed this way!)
 		trailerLenData := rxMsg[42:44]
 		trailerLen := binary.BigEndian.Uint16(trailerLenData)
-		log.Infow("omci-received-trailer-len", log.Fields{"Length": trailerLen})
+		logger.Infow("omci-received-trailer-len", log.Fields{"Length": trailerLen})
 		if trailerLen != 40 { // invalid base Format entry -> autocorrect
 			binary.BigEndian.PutUint16(rxMsg[42:44], 40)
-			log.Debug("cc-corrected-omci-message: trailer len inserted")
+			logger.Debug("cc-corrected-omci-message: trailer len inserted")
 		}
 	} else {
-		log.Errorw("received omci-message to small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
+		logger.Errorw("received omci-message to small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
 		return errors.New("RxOmciMessage to small for BaseFormat")
 	}
 
 	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, gopacket.NoCopy)
 	if packet == nil {
-		log.Error("omci-message could not be decoded")
+		logger.Error("omci-message could not be decoded")
 		return errors.New("could not decode rxMsg as OMCI")
 	}
 	omciLayer := packet.Layer(omci.LayerTypeOMCI)
 	if omciLayer == nil {
-		log.Error("omci-message could not decode omci layer")
+		logger.Error("omci-message could not decode omci layer")
 		return errors.New("could not decode omci layer")
 	}
 	omciMsg, ok := omciLayer.(*omci.OMCI)
 	if !ok {
-		log.Error("omci-message could not assign omci layer")
+		logger.Error("omci-message could not assign omci layer")
 		return errors.New("could not assign omci layer")
 	}
-	log.Debugw("omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
+	logger.Debugw("omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": omciMsg.TransactionID, "DeviceIdent": omciMsg.DeviceIdentifier})
 	if byte(omciMsg.MessageType) & ^me.AK == 0 {
 		// Not a response
-		log.Debug("RxMsg is no Omci Response Message")
+		logger.Debug("RxMsg is no Omci Response Message")
 		if omciMsg.TransactionID == 0 {
 			return oo.ReceiveOnuMessage(ctx, omciMsg)
 		} else {
-			log.Errorw("Unexpected TransCorrId != 0  not accepted for autonomous messages",
+			logger.Errorw("Unexpected TransCorrId != 0  not accepted for autonomous messages",
 				log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload)})
 			return errors.New("Autonomous Omci Message with TranSCorrId != 0 not acccepted")
 		}
 	} else {
-		log.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
+		logger.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
 		oo.mutexRxSchedMap.Lock()
 		rxCallback, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
 		if ok && rxCallback != nil {
@@ -225,7 +225,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 			oo.mutexRxSchedMap.Unlock()
 		} else {
 			oo.mutexRxSchedMap.Unlock()
-			log.Error("omci-message-response for not registered transCorrId")
+			logger.Error("omci-message-response for not registered transCorrId")
 			return errors.New("could not find registered response handler tor transCorrId")
 		}
 	}
@@ -253,15 +253,15 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 
 	               try:
 	                   rx_frame = msg if isinstance(msg, OmciFrame) else OmciFrame(msg)
-	                   self.log.debug('recv-omci-msg', omci_msg=hexlify(msg))
+	                   self.logger.debug('recv-omci-msg', omci_msg=hexlify(msg))
 	               except KeyError as e:
 	                   # Unknown, Unsupported, or vendor-specific ME. Key is the unknown classID
-	                   self.log.debug('frame-decode-key-error', omci_msg=hexlify(msg), e=e)
+	                   self.logger.debug('frame-decode-key-error', omci_msg=hexlify(msg), e=e)
 	                   rx_frame = self._decode_unknown_me(msg)
 	                   self._rx_unknown_me += 1
 
 	               except Exception as e:
-	                   self.log.exception('frame-decode', omci_msg=hexlify(msg), e=e)
+	                   self.logger.exception('frame-decode', omci_msg=hexlify(msg), e=e)
 	                   return
 
 	               finally:
@@ -269,17 +269,17 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 
 	               rx_tid = rx_frame.fields['transaction_id']
 	               msg_type = rx_frame.fields['message_type']
-	               self.log.debug('Received message for rx_tid', rx_tid = rx_tid, msg_type = msg_type)
+	               self.logger.debug('Received message for rx_tid', rx_tid = rx_tid, msg_type = msg_type)
 	               # Filter the Test Result frame and route through receive onu
 	               # message method.
 	               if rx_tid == 0 or msg_type == EntityOperations.TestResult.value:
-	                   self.log.debug('Receive ONU message', rx_tid=0)
+	                   self.logger.debug('Receive ONU message', rx_tid=0)
 	                   return self._receive_onu_message(rx_frame)
 
 	               # Previously unreachable if this is the very first round-trip Rx or we
 	               # have been running consecutive errors
 	               if self._rx_frames == 0 or self._consecutive_errors != 0:
-	                   self.log.debug('Consecutive errors for rx', err = self._consecutive_errors)
+	                   self.logger.debug('Consecutive errors for rx', err = self._consecutive_errors)
 	                   self.reactor.callLater(0, self._publish_connectivity_event, True)
 
 	               self._rx_frames += 1
@@ -296,7 +296,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	                           last_tx_tuple[OMCI_CC.REQUEST_FRAME].fields.get('transaction_id') != rx_tid:
 	                       # Possible late Rx on a message that timed-out
 	                       if last_tx_tuple:
-	                           self.log.debug('Unknown message', rx_tid=rx_tid,
+	                           self.logger.debug('Unknown message', rx_tid=rx_tid,
 	                                          tx_id=last_tx_tuple[OMCI_CC.REQUEST_FRAME].fields.get('transaction_id'))
 	                       self._rx_unknown_tid += 1
 	                       self._rx_late += 1
@@ -311,17 +311,17 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	                   # Late arrival already serviced by a timeout?
 	                   if d.called:
 	                       self._rx_late += 1
-	                       self.log.debug('Serviced by timeout. Late arrival', rx_late = self._rx_late)
+	                       self.logger.debug('Serviced by timeout. Late arrival', rx_late = self._rx_late)
 	                       return
 
 	               except Exception as e:
-	                   self.log.exception('frame-match', msg=hexlify(msg), e=e)
+	                   self.logger.exception('frame-match', msg=hexlify(msg), e=e)
 	                   if d is not None:
 	                       return d.errback(failure.Failure(e))
 	                   return
 
 	               # Publish Rx event to listeners in a different task
-	               self.log.debug('Publish rx event', rx_tid = rx_tid,
+	               self.logger.debug('Publish rx event', rx_tid = rx_tid,
 	                              tx_tid = tx_frame.fields['transaction_id'])
 	               reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
 
@@ -330,7 +330,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	               d.callback(rx_frame)
 
 	           except Exception as e:
-	   			self.log.exception('rx-msg', e=e)
+	   			self.logger.exception('rx-msg', e=e)
 	*/
 }
 
@@ -345,7 +345,7 @@ func (oo *OmciCC) PublishRxResponseFrame(ctx context.Context, txFrame []byte, rx
 func (oo *OmciCC) Send(ctx context.Context, txFrame []byte, timeout int, retry int, highPrio bool,
 	receiveCallbackPair CallbackPair) error {
 
-	log.Debugw("register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.cbKey})
+	logger.Debugw("register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.cbKey})
 	// it could be checked, if the callback keay is already registered - but simply overwrite may be acceptable ...
 	oo.mutexRxSchedMap.Lock()
 	oo.rxSchedulerMap[receiveCallbackPair.cbKey] = receiveCallbackPair.cbFunction
@@ -381,7 +381,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 		omciTxRequest := queueElement.Value.(omciTransferStructure)
 		/* compare olt device handler code:
 		func (dh *DeviceHandler) omciIndication(omciInd *oop.OmciIndication) {
-			log.Debugw("omci indication", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId})
+			logger.Debugw("omci indication", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId})
 			var deviceType string
 			var deviceID string
 			var proxyDeviceID string
@@ -390,7 +390,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 
 			if onuInCache, ok := dh.onus.Load(onuKey); !ok {
 
-				log.Debugw("omci indication for a device not in cache.", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId})
+				logger.Debugw("omci indication for a device not in cache.", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId})
 				ponPort := IntfIDToPortNo(omciInd.GetIntfId(), voltha.Port_PON_OLT)
 				kwargs := make(map[string]interface{})
 				kwargs["onu_id"] = omciInd.OnuId
@@ -398,7 +398,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 
 				onuDevice, err := dh.coreProxy.GetChildDevice(context.TODO(), dh.device.Id, kwargs)
 				if err != nil {
-					log.Errorw("onu not found", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId, "error": err})
+					logger.Errorw("onu not found", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId, "error": err})
 					return
 				}
 				deviceType = onuDevice.Type
@@ -408,7 +408,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 				dh.onus.Store(onuKey, NewOnuDevice(deviceID, deviceType, onuDevice.SerialNumber, omciInd.OnuId, omciInd.IntfId, proxyDeviceID))
 			} else {
 				//found in cache
-				log.Debugw("omci indication for a device in cache.", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId})
+				logger.Debugw("omci indication for a device in cache.", log.Fields{"intfID": omciInd.IntfId, "onuID": omciInd.OnuId})
 				deviceType = onuInCache.(*OnuDevice).deviceType
 				deviceID = onuInCache.(*OnuDevice).deviceID
 				proxyDeviceID = onuInCache.(*OnuDevice).proxyDeviceID
@@ -420,7 +420,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 			proxy_address=self._proxy_address,
 			connect_status=self._device.connect_status)
 
-		self.log.debug('sent-omci-msg', tid=tx_tid, omci_msg=hexlify(bytes(frame)))
+		self.logger.debug('sent-omci-msg', tid=tx_tid, omci_msg=hexlify(bytes(frame)))
 
 		yield self._adapter_proxy.send_inter_adapter_message(
 			msg=omci_msg,
@@ -435,15 +435,15 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 			oo.pBaseDeviceHandler.deviceID, oo.deviceID) //parent, child
 		if err != nil || device == nil {
 			/*TODO: needs to handle error scenarios */
-			log.Errorw("Failed to fetch device", log.Fields{"err": err, "ParentId": oo.pBaseDeviceHandler.deviceID,
+			logger.Errorw("Failed to fetch device", log.Fields{"err": err, "ParentId": oo.pBaseDeviceHandler.deviceID,
 				"ChildId": oo.deviceID})
 			return errors.New("failed to fetch device")
 		}
 
-		log.Debugw("omci-message-sending", log.Fields{"fromDeviceType": oo.pBaseDeviceHandler.DeviceType,
+		logger.Debugw("omci-message-sending", log.Fields{"fromDeviceType": oo.pBaseDeviceHandler.DeviceType,
 			"toDeviceType": oo.pBaseDeviceHandler.ProxyAddressType,
 			"onuDeviceID":  oo.deviceID, "proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
-		log.Debugw("omci-message-to-send:",
+		logger.Debugw("omci-message-to-send:",
 			log.Fields{"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame)})
 
 		omciMsg := &ic.InterAdapterOmciMessage{Message: omciTxRequest.txFrame}
@@ -452,7 +452,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 			//fromType,toType,toDevId, ProxyDevId
 			oo.pBaseDeviceHandler.DeviceType, oo.pBaseDeviceHandler.ProxyAddressType,
 			oo.deviceID, oo.pBaseDeviceHandler.ProxyAddressID, ""); sendErr != nil {
-			log.Errorw("send omci request error", log.Fields{"error": sendErr})
+			logger.Errorw("send omci request error", log.Fields{"error": sendErr})
 			return sendErr
 		}
 		oo.txQueue.Remove(queueElement) // Dequeue
@@ -513,11 +513,11 @@ func hexEncode(omciPkt []byte) ([]byte, error) {
 //supply a response handler for the MibSync omci response messages
 func (oo *OmciCC) receiveMibSyncResponse(omciMsg *omci.OMCI, packet *gp.Packet) error {
 
-	log.Debugw("mib-sync-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
+	logger.Debugw("mib-sync-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": omciMsg.TransactionID, "deviceId": oo.deviceID})
 
 	if oo.pOnuDeviceEntry == nil {
-		log.Error("Abort Receive MibSync OMCI, DeviceEntryPointer is nil")
+		logger.Error("Abort Receive MibSync OMCI, DeviceEntryPointer is nil")
 		return errors.New("DeviceEntryPointer is nil")
 	}
 
@@ -530,7 +530,7 @@ func (oo *OmciCC) receiveMibSyncResponse(omciMsg *omci.OMCI, packet *gp.Packet) 
 			OmciPacket: packet,
 		},
 	}
-	//log.Debugw("Message to be sent into channel:", log.Fields{"mibSyncMsg": mibSyncMsg})
+	//logger.Debugw("Message to be sent into channel:", log.Fields{"mibSyncMsg": mibSyncMsg})
 	(*oo.pOnuDeviceEntry).MibSyncChan <- mibSyncMsg
 
 	return nil
@@ -538,7 +538,7 @@ func (oo *OmciCC) receiveMibSyncResponse(omciMsg *omci.OMCI, packet *gp.Packet) 
 
 func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) error {
 
-	log.Debugw("send MibReset-msg to:", log.Fields{"deviceId": oo.deviceID})
+	logger.Debugw("send MibReset-msg to:", log.Fields{"deviceId": oo.deviceID})
 	request := &omci.MibResetRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -547,7 +547,7 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 	tid := oo.GetNextTid(highPrio)
 	pkt, err := serialize(omci.MibResetRequestType, request, tid)
 	if err != nil {
-		log.Errorw("Cannot serialize MibResetRequest", log.Fields{"Err": err})
+		logger.Errorw("Cannot serialize MibResetRequest", log.Fields{"Err": err})
 		return err
 	}
 	omciRxCallbackPair := CallbackPair{tid, oo.receiveMibSyncResponse}
@@ -556,7 +556,7 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 
 func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
 
-	log.Debugw("send MibUpload-msg to:", log.Fields{"deviceId": oo.deviceID})
+	logger.Debugw("send MibUpload-msg to:", log.Fields{"deviceId": oo.deviceID})
 	request := &omci.MibUploadRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -565,7 +565,7 @@ func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool)
 	tid := oo.GetNextTid(highPrio)
 	pkt, err := serialize(omci.MibUploadRequestType, request, tid)
 	if err != nil {
-		log.Errorw("Cannot serialize MibUploadRequest", log.Fields{"Err": err})
+		logger.Errorw("Cannot serialize MibUploadRequest", log.Fields{"Err": err})
 		return err
 	}
 	oo.uploadSequNo = 0
@@ -577,7 +577,7 @@ func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool)
 
 func (oo *OmciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio bool) error {
 
-	log.Debugw("send MibUploadNext-msg to:", log.Fields{"deviceId": oo.deviceID, "uploadSequNo": oo.uploadSequNo})
+	logger.Debugw("send MibUploadNext-msg to:", log.Fields{"deviceId": oo.deviceID, "uploadSequNo": oo.uploadSequNo})
 	request := &omci.MibUploadNextRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -587,7 +587,7 @@ func (oo *OmciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio b
 	tid := oo.GetNextTid(highPrio)
 	pkt, err := serialize(omci.MibUploadNextRequestType, request, tid)
 	if err != nil {
-		log.Errorw("Cannot serialize MibUploadNextRequest", log.Fields{"Err": err})
+		logger.Errorw("Cannot serialize MibUploadNextRequest", log.Fields{"Err": err})
 		return err
 	}
 	oo.uploadSequNo++
