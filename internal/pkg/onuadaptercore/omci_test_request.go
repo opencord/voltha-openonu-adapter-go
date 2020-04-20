@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//Package adaptercoreont provides the utility for onu devices, flows and statistics
-package adaptercoreont
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
+package adaptercoreonu
 
 import (
 	"context"
@@ -51,7 +51,7 @@ type OmciTestRequest struct {
 func NewOmciTestRequest(ctx context.Context,
 	device_id string, omci_cc *OmciCC,
 	exclusive bool, allow_failure bool) *OmciTestRequest {
-	log.Debug("omciTestRequest-init")
+	logger.Debug("omciTestRequest-init")
 	var omciTestRequest OmciTestRequest
 	omciTestRequest.deviceID = device_id
 	omciTestRequest.pDevOmciCC = omci_cc
@@ -65,7 +65,7 @@ func NewOmciTestRequest(ctx context.Context,
 
 //
 func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, exec_Channel chan<- bool) {
-	log.Debug("omciTestRequest-start-test")
+	logger.Debug("omciTestRequest-start-test")
 
 	if oo.pDevOmciCC != nil {
 		oo.verifyDone = exec_Channel
@@ -75,12 +75,12 @@ func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, exec_Channel cha
 		onu2gBaseGet, _ := oo.CreateOnu2gBaseGet(tid)
 		omciRxCallbackPair := CallbackPair{tid, oo.ReceiveOmciVerifyResponse}
 
-		log.Debugw("performOmciTest-start sending frame", log.Fields{"for deviceId": oo.deviceID})
+		logger.Debugw("performOmciTest-start sending frame", log.Fields{"for deviceId": oo.deviceID})
 		// send with default timeout and normal prio
 		go oo.pDevOmciCC.Send(ctx, onu2gBaseGet, ConstDefaultOmciTimeout, 0, false, omciRxCallbackPair)
 
 	} else {
-		log.Errorw("performOmciTest: Device does not exist", log.Fields{"for deviceId": oo.deviceID})
+		logger.Errorw("performOmciTest: Device does not exist", log.Fields{"for deviceId": oo.deviceID})
 	}
 }
 
@@ -101,7 +101,7 @@ func (oo *OmciTestRequest) CreateOnu2gBaseGet(tid uint16) ([]byte, error) {
 	pkt, err := serialize(omci.GetRequestType, request, tid)
 	if err != nil {
 		//omciLogger.WithFields(log.Fields{ ...
-		log.Errorw("Cannot serialize Onu2-G GetRequest", log.Fields{"Err": err})
+		logger.Errorw("Cannot serialize Onu2-G GetRequest", log.Fields{"Err": err})
 		return nil, err
 	}
 	// hexEncode would probably work as well, but not needed and leads to wrong logs on OltAdapter frame
@@ -112,21 +112,21 @@ func (oo *OmciTestRequest) CreateOnu2gBaseGet(tid uint16) ([]byte, error) {
 //supply a response handler
 func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(omciMsg *omci.OMCI, packet *gp.Packet) error {
 
-	log.Debugw("verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
+	logger.Debugw("verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": omciMsg.TransactionID, "DeviceIdent": omciMsg.DeviceIdentifier})
 
 	if omciMsg.TransactionID == oo.txSeqNo {
-		log.Debugw("verify-omci-message-response", log.Fields{"correct TransCorrId": omciMsg.TransactionID})
+		logger.Debugw("verify-omci-message-response", log.Fields{"correct TransCorrId": omciMsg.TransactionID})
 	} else {
-		log.Debugw("verify-omci-message-response error", log.Fields{"incorrect TransCorrId": omciMsg.TransactionID,
+		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect TransCorrId": omciMsg.TransactionID,
 			"expected": oo.txSeqNo})
 		oo.verifyDone <- false
 		return errors.New("Unexpected TransCorrId")
 	}
 	if omciMsg.MessageType == omci.GetResponseType {
-		log.Debugw("verify-omci-message-response", log.Fields{"correct RespType": omciMsg.MessageType})
+		logger.Debugw("verify-omci-message-response", log.Fields{"correct RespType": omciMsg.MessageType})
 	} else {
-		log.Debugw("verify-omci-message-response error", log.Fields{"incorrect RespType": omciMsg.MessageType,
+		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect RespType": omciMsg.MessageType,
 			"expected": omci.GetResponseType})
 		oo.verifyDone <- false
 		return errors.New("Unexpected MessageType")

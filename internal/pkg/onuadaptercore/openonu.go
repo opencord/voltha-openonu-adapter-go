@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//Package adaptercoreont provides the utility for onu devices, flows and statistics
-package adaptercoreont
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
+package adaptercoreonu
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 	"github.com/opencord/voltha-protos/v3/go/openflow_13"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 
-	"test.internal/openadapter/config"
+	"test.internal/openadapter/internal/pkg/config"
 )
 
 //OpenONUAC structure holds the ONU core information
@@ -51,6 +51,7 @@ type OpenONUAC struct {
 	HeartbeatFailReportInterval time.Duration
 	//GrpcTimeoutInterval         time.Duration
 	lockDeviceHandlersMap sync.RWMutex
+	pSupportedFsms        *OmciDeviceFsms
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -73,21 +74,39 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.HeartbeatFailReportInterval = cfg.HeartbeatFailReportInterval
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.lockDeviceHandlersMap = sync.RWMutex{}
+
+	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
+		"mib-synchronizer": {
+			//mibSyncFsm,        // Implements the MIB synchronization state machine
+			MibDbVolatileDictImpl, // Implements volatile ME MIB database
+			true,                  // Advertise events on OpenOMCI event bus
+			cMibAuditDelayImpl,    // Time to wait between MIB audits.  0 to disable audits.
+			// map[string]func() error{
+			// 	"mib-upload":    onuDeviceEntry.MibUploadTask,
+			// 	"mib-template":  onuDeviceEntry.MibTemplateTask,
+			// 	"get-mds":       onuDeviceEntry.GetMdsTask,
+			// 	"mib-audit":     onuDeviceEntry.GetMdsTask,
+			// 	"mib-resync":    onuDeviceEntry.MibResyncTask,
+			// 	"mib-reconcile": onuDeviceEntry.MibReconcileTask,
+			// },
+		},
+	}
+
 	return &openOnuAc
 }
 
 //Start starts (logs) the adapter
 func (oo *OpenONUAC) Start(ctx context.Context) error {
-	log.Info("starting-openonu-adapter")
-	log.Info("openonu-adapter-started")
+	logger.Info("starting-openonu-adapter")
+	logger.Info("openonu-adapter-started")
 	return nil
 }
 
 //Stop terminates the session
 func (oo *OpenONUAC) Stop(ctx context.Context) error {
-	log.Info("stopping-device-manager")
+	logger.Info("stopping-device-manager")
 	oo.exitChannel <- 1
-	log.Info("device-manager-stopped")
+	logger.Info("device-manager-stopped")
 	return nil
 }
 
@@ -124,11 +143,11 @@ func (oo *OpenONUAC) getDeviceHandler(deviceID string) *DeviceHandler {
 // Adopt_device creates a new device handler if not present already and then adopts the device
 func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 	if device == nil {
-		log.Warn("voltha-device-is-nil")
+		logger.Warn("voltha-device-is-nil")
 		return errors.New("nil-device")
 	}
 	ctx := context.Background()
-	log.Infow("adopt-device", log.Fields{"deviceId": device.Id})
+	logger.Infow("adopt-device", log.Fields{"deviceId": device.Id})
 	var handler *DeviceHandler
 	if handler = oo.getDeviceHandler(device.Id); handler == nil {
 		handler := NewDeviceHandler(oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
@@ -142,27 +161,32 @@ func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 
 //Get_ofp_device_info returns OFP information for the given device
 func (oo *OpenONUAC) Get_ofp_device_info(device *voltha.Device) (*ic.SwitchCapability, error) {
-	log.Errorw("device-handler-not-set", log.Fields{"deviceId": device.Id})
+	logger.Errorw("device-handler-not-set", log.Fields{"deviceId": device.Id})
 	return nil, errors.New("device-handler-not-set")
 }
 
 //Get_ofp_port_info returns OFP port information for the given device
 func (oo *OpenONUAC) Get_ofp_port_info(device *voltha.Device, portNo int64) (*ic.PortCapability, error) {
-	log.Errorw("device-handler-not-set", log.Fields{"deviceId": device.Id})
+	logger.Errorw("device-handler-not-set", log.Fields{"deviceId": device.Id})
 	return nil, errors.New("device-handler-not-set")
 }
 
 //Process_inter_adapter_message sends messages to a target device (between adapters)
 func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) error {
-	log.Debugw("Process_inter_adapter_message", log.Fields{"msgId": msg.Header.Id,
+	logger.Debugw("Process_inter_adapter_message", log.Fields{"msgId": msg.Header.Id,
 		"msgProxyDeviceId": msg.Header.ProxyDeviceId, "msgToDeviceId": msg.Header.ToDeviceId})
 
 	targetDevice := msg.Header.ToDeviceId
 	//ToDeviceId should address an DeviceHandler instance
 	if handler := oo.getDeviceHandler(targetDevice); handler != nil {
-		return handler.ProcessInterAdapterMessage(msg)
+		go handler.ProcessInterAdapterMessage(msg)
+		// error treatment might be more sophisticated
+		// by now let's just accept the message on 'communication layer'
+		// message content problems have to be evaluated then in the handler
+		//   and are by now not reported to the calling party (to force what reaction there?)
+		return nil
 	}
-	log.Warn("no handler found for received Inter-Proxy-message 'ToDeviceId'")
+	logger.Warn("no handler found for received Inter-Proxy-message 'ToDeviceId'")
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
 }
 
@@ -291,6 +315,7 @@ func (oo *OpenONUAC) enableDisablePort(deviceID string, port *voltha.Port, enabl
 	return errors.New("unImplemented")
 }
 
+//needed for if update >= 3.1.x
 func (oo *OpenONUAC) Child_device_lost(deviceID string, pPortNo uint32, onuID uint32) error {
 	return errors.New("unImplemented")
 }
