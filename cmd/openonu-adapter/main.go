@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-//Package main -> this is the entry point of the OpenAdapter
+//Package main -> this is the entry point of the OpenOnuAdapter
 package main
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/opencord/voltha-lib-go/v3/pkg/db"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
@@ -31,16 +31,17 @@ import (
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
 	com "github.com/opencord/voltha-lib-go/v3/pkg/adapters/common"
+	conf "github.com/opencord/voltha-lib-go/v3/pkg/config"
 	"github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	"github.com/opencord/voltha-lib-go/v3/pkg/probe"
+	"github.com/opencord/voltha-lib-go/v3/pkg/version"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 
-	ac "test.internal/openadapter/adaptercoreont"
-	"test.internal/openadapter/config"
-	"test.internal/openadapter/config/version"
+	"test.internal/openadapter/internal/pkg/config"
+	ac "test.internal/openadapter/internal/pkg/onuadaptercore"
 )
 
 type adapter struct {
@@ -59,11 +60,6 @@ type adapter struct {
 	receiverChannels []<-chan *ic.InterContainerMessage //from inter-container
 }
 
-//package single start function (run at first package instantiation)
-func init() {
-	_, _ = log.AddPackage(log.JSON, log.DebugLevel, nil)
-}
-
 func newAdapter(cf *config.AdapterFlags) *adapter {
 	var a adapter
 	a.instanceID = cf.InstanceID
@@ -75,7 +71,7 @@ func newAdapter(cf *config.AdapterFlags) *adapter {
 }
 
 func (a *adapter) start(ctx context.Context) error {
-	log.Info("Starting Core Adapter components")
+	logger.Info("Starting Core Adapter components")
 	var err error
 
 	var p *probe.Probe
@@ -93,18 +89,22 @@ func (a *adapter) start(ctx context.Context) error {
 	}
 
 	// Setup KV Client
-	log.Debugw("create-kv-client", log.Fields{"kvstore": a.config.KVStoreType})
+	logger.Debugw("create-kv-client", log.Fields{"kvstore": a.config.KVStoreType})
 	if err = a.setKVClient(); err != nil {
-		log.Fatal("error-setting-kv-client")
+		logger.Fatalw("error-setting-kv-client", log.Fields{"error": err})
 	}
 
 	if p != nil {
 		p.UpdateStatus("kv-store", probe.ServiceStatusRunning)
 	}
 
+	// Setup Log Config
+	cm := conf.NewConfigManager(a.kvClient, a.config.KVStoreType, a.config.KVStoreHost, a.config.KVStorePort, a.config.KVStoreTimeout)
+	go conf.StartLogLevelConfigProcessing(cm, ctx)
+
 	// Setup Kafka Client
 	if a.kafkaClient, err = newKafkaClient("sarama", a.config.KafkaAdapterHost, a.config.KafkaAdapterPort); err != nil {
-		log.Fatal("Unsupported-common-client")
+		logger.Fatalw("Unsupported-common-client", log.Fields{"error": err})
 	}
 
 	if p != nil {
@@ -113,7 +113,7 @@ func (a *adapter) start(ctx context.Context) error {
 
 	// Start the common InterContainer Proxy - retries as per program arguments or indefinitely per default
 	if a.kip, err = a.startInterContainerProxy(ctx, a.config.KafkaReconnectRetries); err != nil {
-		log.Fatal("error-starting-inter-container-proxy")
+		logger.Fatalw("error-starting-inter-container-proxy", log.Fields{"error": err})
 		//aborting the complete processing here (does notmake sense after set Retry number [else use -1 for infinite])
 		return err
 	}
@@ -122,16 +122,7 @@ func (a *adapter) start(ctx context.Context) error {
 	a.coreProxy = com.NewCoreProxy(a.kip, a.config.Topic, a.config.CoreTopic)
 
 	// Create the adaptor proxy to handle request between olt and onu
-	//a.adapterProxy = com.NewAdapterProxy(a.kip, "brcm_openomci_onu", a.config.CoreTopic)
-	backend := &db.Backend{
-		Client:     a.kvClient,
-		StoreType:  a.config.KVStoreType,
-		Host:       a.config.KVStoreHost,
-		Port:       a.config.KVStorePort,
-		Timeout:    a.config.KVStoreTimeout,
-		PathPrefix: "service/voltha",
-	}
-	a.adapterProxy = com.NewAdapterProxy(a.kip, "openolt", a.config.CoreTopic, backend)
+	a.adapterProxy = com.NewAdapterProxy(a.kip, "openolt", a.config.CoreTopic, cm.Backend)
 
 	// Create the event proxy to post events to KAFKA
 	a.eventProxy = com.NewEventProxy(com.MsgClient(a.kafkaClient), com.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))
@@ -139,17 +130,17 @@ func (a *adapter) start(ctx context.Context) error {
 	// Create the open ONU interface adapter
 	if a.iAdapter, err = a.startVolthaInterfaceAdapter(ctx, a.kip, a.coreProxy, a.adapterProxy, a.eventProxy,
 		a.config); err != nil {
-		log.Fatal("error-starting-VolthaInterfaceAdapter for OpenOnt")
+		logger.Fatalw("error-starting-volthaInterfaceAdapter for OpenOnt", log.Fields{"error": err})
 	}
 
 	// Register the core request handler
 	if err = a.setupRequestHandler(ctx, a.instanceID, a.iAdapter); err != nil {
-		log.Fatal("error-setting-core-request-handler")
+		logger.Fatalw("error-setting-core-request-handler", log.Fields{"error": err})
 	}
 
 	// Register this adapter to the Core - retries indefinitely
 	if err = a.registerWithCore(ctx, -1); err != nil {
-		log.Fatal("error-registering-with-core")
+		logger.Fatalw("error-registering-with-core", log.Fields{"error": err})
 	}
 
 	// check the readiness and liveliness and update the probe status
@@ -168,25 +159,23 @@ func (a *adapter) stop(ctx context.Context) {
 	if a.kvClient != nil {
 		// Release all reservations
 		if err := a.kvClient.ReleaseAllReservations(ctx); err != nil {
-			log.Infow("fail-to-release-all-reservations", log.Fields{"error": err})
+			logger.Infow("fail-to-release-all-reservations", log.Fields{"error": err})
 		}
 		// Close the DB connection
 		a.kvClient.Close()
 	}
 
-	// TODO:  More cleanup
+	if a.kip != nil {
+		a.kip.Stop()
+	}
 }
 
 // #############################################
 // Adapter Utility methods ##### begin #########
 
-func (a *adapter) getAdapterInstance() string {
-	return a.instanceID
-}
-
 func newKVClient(storeType, address string, timeout int) (kvstore.Client, error) {
 
-	log.Infow("kv-store-type", log.Fields{"store": storeType})
+	logger.Infow("kv-store-type", log.Fields{"store": storeType})
 	switch storeType {
 	case "consul":
 		return kvstore.NewConsulClient(address, timeout)
@@ -198,7 +187,7 @@ func newKVClient(storeType, address string, timeout int) (kvstore.Client, error)
 
 func newKafkaClient(clientType, host string, port int) (kafka.Client, error) {
 
-	log.Infow("common-client-type", log.Fields{"client": clientType})
+	logger.Infow("common-client-type", log.Fields{"client": clientType})
 	switch clientType {
 	case "sarama":
 		return kafka.NewSaramaClient(
@@ -219,7 +208,7 @@ func (a *adapter) setKVClient() error {
 	client, err := newKVClient(a.config.KVStoreType, addr, a.config.KVStoreTimeout)
 	if err != nil {
 		a.kvClient = nil
-		log.Error(err)
+		logger.Errorw("error-starting-KVClient", log.Fields{"error": err})
 		return err
 	}
 	a.kvClient = client
@@ -227,7 +216,7 @@ func (a *adapter) setKVClient() error {
 }
 
 func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (kafka.InterContainerProxy, error) {
-	log.Infow("starting-intercontainer-messaging-proxy", log.Fields{"host": a.config.KafkaAdapterHost,
+	logger.Infow("starting-intercontainer-messaging-proxy", log.Fields{"host": a.config.KafkaAdapterHost,
 		"port": a.config.KafkaAdapterPort, "topic": a.config.Topic})
 	var err error
 	kip := kafka.NewInterContainerProxy(
@@ -235,11 +224,11 @@ func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (ka
 		kafka.InterContainerPort(a.config.KafkaAdapterPort),
 		kafka.MsgClient(a.kafkaClient),
 		kafka.DefaultTopic(&kafka.Topic{Name: a.config.Topic}))
-	var count uint8 = 0
+	count := 0
 	for {
 		if err = kip.Start(); err != nil {
-			log.Warnw("error-starting-messaging-proxy", log.Fields{"error": err, "retry": retries, "count": count})
-			if retries == int(count) {
+			logger.Warnw("error-starting-messaging-proxy", log.Fields{"error": err, "retry": retries, "count": count})
+			if retries == count {
 				return nil, err
 			}
 			count++
@@ -250,30 +239,9 @@ func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (ka
 		}
 	}
 	probe.UpdateStatusFromContext(ctx, "container-proxy", probe.ServiceStatusRunning)
-	log.Info("common-messaging-proxy-created")
+	logger.Info("common-messaging-proxy-created")
 	return kip, nil
 }
-
-/*
-func (a *adapter) startOpenOLT(ctx context.Context, kip kafka.InterContainerProxy,
-	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy,
-	cfg *config.AdapterFlags) (*ac.OpenOLT, error) {
-	log.Info("starting-open-olt")
-	var err error
-	sOLT := ac.NewOpenOLT(ctx, a.kip, cp, ap, ep, cfg)
-
-	if err = sOLT.Start(ctx); err != nil {
-		log.Fatalw("error-starting-messaging-proxy", log.Fields{"error": err})
-		return nil, err
-	}
-
-	log.Info("open-olt-started")
-	return sOLT, nil
-}
-func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, kip kafka.InterContainerProxy,
-	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy,
-	cfg *config.AdapterFlags) (adapters.IAdapter, error) {
-*/
 
 func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, kip kafka.InterContainerProxy,
 	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy,
@@ -282,46 +250,44 @@ func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, kip kafka.Int
 	sAcONU := ac.NewOpenONUAC(ctx, a.kip, cp, ap, ep, cfg)
 
 	if err = sAcONU.Start(ctx); err != nil {
-		log.Fatalw("error-starting-messaging-proxy", log.Fields{"error": err})
+		logger.Fatalw("error-starting-OpenOnuAdapterCore", log.Fields{"error": err})
 		return nil, err
 	}
 
-	log.Info("open-ont-adaptercore-started")
+	logger.Info("open-ont-OpenOnuAdapterCore-started")
 	return sAcONU, nil
 }
 
 func (a *adapter) setupRequestHandler(ctx context.Context, coreInstanceID string, iadapter adapters.IAdapter) error {
-	log.Info("setting-request-handler")
+	logger.Info("setting-request-handler")
 	requestProxy := com.NewRequestHandlerProxy(coreInstanceID, iadapter, a.coreProxy)
 	if err := a.kip.SubscribeWithRequestHandlerInterface(kafka.Topic{Name: a.config.Topic}, requestProxy); err != nil {
-		log.Errorw("request-handler-setup-failed", log.Fields{"error": err})
+		logger.Errorw("request-handler-setup-failed", log.Fields{"error": err})
 		return err
 
 	}
 	probe.UpdateStatusFromContext(ctx, "core-request-handler", probe.ServiceStatusRunning)
-	log.Info("request-handler-setup-done")
+	logger.Info("request-handler-setup-done")
 	return nil
 }
 
 func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
-	log.Info("registering-with-core")
-	/*
-		adapterDescription := &voltha.Adapter{Id: "openolt", // Unique name for the device type
-			Vendor:  "VOLTHA OpenOLT",
-			Version: version.VersionInfo.Version}
-		types := []*voltha.DeviceType{{Id: "openolt",
-			Adapter:                     "openolt", // Name of the adapter that handles device type
-			AcceptsBulkFlowUpdate:       false,     // Currently openolt adapter does not support bulk flow handling
-			AcceptsAddRemoveFlowUpdates: true}}
-	*/
+	adapterID := fmt.Sprintf("brcm_openomci_onu_%d", a.config.CurrentReplica)
+	logger.Infow("registering-with-core", log.Fields{
+		"adapterID":      adapterID,
+		"currentReplica": a.config.CurrentReplica,
+		"totalReplicas":  a.config.TotalReplicas,
+	})
 	adapterDescription := &voltha.Adapter{
-		Id: "brcm_openomci_onu", // Unique name for the device type ->exact type required for OLT comm????
+		Id:      adapterID, // Unique name for the device type ->exact type required for OLT comm????
 		Vendor:  "VOLTHA OpenONUGo",
 		Version: version.VersionInfo.Version,
+		// TODO once we'll be ready to support multiple versions of the adapter
+		// the Endpoint will have to change to `brcm_openomci_onu_<currentReplica`>
 		Endpoint:       "brcm_openomci_onu",
 		Type:           "brcm_openomci_onu",
-		CurrentReplica: 1,
-		TotalReplicas:  1,
+		CurrentReplica: int32(a.config.CurrentReplica),
+		TotalReplicas:  int32(a.config.TotalReplicas),
 	}
 	types := []*voltha.DeviceType{{Id: "brcm_openomci_onu",
 		VendorIds:                   []string{"OPEN", "ALCL", "BRCM", "TWSH", "ALPH", "ISKT", "SFAA", "BBSM", "SCOM"},
@@ -332,7 +298,7 @@ func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 	count := 0
 	for {
 		if err := a.coreProxy.RegisterAdapter(context.TODO(), adapterDescription, deviceTypes); err != nil {
-			log.Warnw("registering-with-core-failed", log.Fields{"error": err})
+			logger.Warnw("registering-with-core-failed", log.Fields{"error": err})
 			if retries == count {
 				return err
 			}
@@ -344,7 +310,7 @@ func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 		}
 	}
 	probe.UpdateStatusFromContext(ctx, "register-with-core", probe.ServiceStatusRunning)
-	log.Info("registered-with-core")
+	logger.Info("registered-with-core")
 	return nil
 }
 
@@ -390,7 +356,7 @@ func (a *adapter) checkKvStoreReadiness(ctx context.Context) {
 			}
 		case <-timeoutTimer.C:
 			// Check the status of the kv-store
-			log.Info("kv-store liveliness-recheck")
+			logger.Info("kv-store liveliness-recheck")
 			if a.kvClient.IsConnectionUp(ctx) {
 				kvStoreChannel <- true
 			} else {
@@ -414,8 +380,8 @@ func (a *adapter) checkKafkaReadiness(ctx context.Context) {
 		select {
 		case healthiness := <-healthinessChannel:
 			if !healthiness {
-				// log.Fatal will call os.Exit(1) to terminate
-				log.Fatal("Kafka service has become unhealthy")
+				// logger.Fatal will call os.Exit(1) to terminate
+				logger.Fatal("Kafka service has become unhealthy")
 			}
 		case liveliness := <-livelinessChannel:
 			if !liveliness {
@@ -432,13 +398,13 @@ func (a *adapter) checkKafkaReadiness(ctx context.Context) {
 				<-timeoutTimer.C
 			}
 		case <-timeoutTimer.C:
-			log.Info("kafka-proxy-liveness-recheck")
+			logger.Info("kafka-proxy-liveness-recheck")
 			// send the liveness probe in a goroutine; we don't want to deadlock ourselves as
 			// the liveness probe may wait (and block) writing to our channel.
 			err := a.kafkaClient.SendLiveness()
 			if err != nil {
 				// Catch possible error case if sending liveness after Sarama has been stopped.
-				log.Warnw("error-kafka-send-liveness", log.Fields{"error": err})
+				logger.Warnw("error-kafka-send-liveness", log.Fields{"error": err})
 			}
 		}
 	}
@@ -446,6 +412,18 @@ func (a *adapter) checkKafkaReadiness(ctx context.Context) {
 
 // Adapter Utility methods ##### end   #########
 // #############################################
+
+func getVerifiedCodeVersion() string {
+	if version.VersionInfo.Version == "unknown-version" {
+		content, err := ioutil.ReadFile("VERSION")
+		if err == nil {
+			return (string(content))
+		} else {
+			logger.Error("'VERSION'-file not readable")
+		}
+	}
+	return version.VersionInfo.Version
+}
 
 func printVersion(appName string) {
 	fmt.Println(appName)
@@ -477,7 +455,7 @@ func waitForExit(ctx context.Context) int {
 	go func() {
 		select {
 		case <-ctx.Done():
-			log.Infow("Adapter run aborted due to internal errors", log.Fields{"context": "done"})
+			logger.Infow("Adapter run aborted due to internal errors", log.Fields{"context": "done"})
 			exitChannel <- 2
 		case s := <-signalChannel:
 			switch s {
@@ -485,10 +463,10 @@ func waitForExit(ctx context.Context) int {
 				syscall.SIGINT,
 				syscall.SIGTERM,
 				syscall.SIGQUIT:
-				log.Infow("closing-signal-received", log.Fields{"signal": s})
+				logger.Infow("closing-signal-received", log.Fields{"signal": s})
 				exitChannel <- 0
 			default:
-				log.Infow("unexpected-signal-received", log.Fields{"signal": s})
+				logger.Infow("unexpected-signal-received", log.Fields{"signal": s})
 				exitChannel <- 1
 			}
 		}
@@ -502,27 +480,29 @@ func main() {
 	start := time.Now()
 
 	cf := config.NewAdapterFlags()
-	defaultAppName := cf.InstanceID + "_" + version.GetCodeVersion()
+	defaultAppName := cf.InstanceID + "_" + getVerifiedCodeVersion()
 	cf.ParseCommandArguments()
 
 	// Setup logging
 
-	loglevel, err := log.StringToLogLevel(cf.LogLevel)
+	logLevel, err := log.StringToLogLevel(cf.LogLevel)
 	if err != nil {
-		log.Fatalf("Cannot setup logging, %s", err)
+		logger.Fatalf("Cannot setup logging, %s", err)
 	}
 
 	// Setup default logger - applies for packages that do not have specific logger set
-	if _, err := log.SetDefaultLogger(log.JSON, loglevel, log.Fields{"instanceId": cf.InstanceID}); err != nil {
+	if _, err := log.SetDefaultLogger(log.JSON, logLevel, log.Fields{"instanceId": cf.InstanceID}); err != nil {
 		log.With(log.Fields{"error": err}).Fatal("Cannot setup logging")
 	}
 
-	// Update all loggers (provisionned via init) with a common field
+	// Update all loggers (provisioned via init) with a common field
 	if err := log.UpdateAllLoggers(log.Fields{"instanceId": cf.InstanceID}); err != nil {
-		log.With(log.Fields{"error": err}).Fatal("Cannot setup logging")
+		logger.With(log.Fields{"error": err}).Fatal("Cannot setup logging")
 	}
 
-	log.SetAllLogLevel(loglevel)
+	log.SetAllLogLevel(logLevel)
+
+	realMain() //fatal on httpListen(0,6060) ...
 
 	defer log.CleanUp()
 
@@ -531,9 +511,9 @@ func main() {
 		printVersion(defaultAppName)
 		return
 	} else {
-		log.Infow("config", log.Fields{"StartName": defaultAppName})
-		log.Infow("config", log.Fields{"BuildVersion": version.VersionInfo.String("  ")})
-		log.Infow("config", log.Fields{"Arguments": os.Args[1:]})
+		logger.Infow("config", log.Fields{"StartName": defaultAppName})
+		logger.Infow("config", log.Fields{"BuildVersion": version.VersionInfo.String("  ")})
+		logger.Infow("config", log.Fields{"Arguments": os.Args[1:]})
 	}
 
 	// Print banner if specified
@@ -541,18 +521,18 @@ func main() {
 		printBanner()
 	}
 
-	log.Infow("config", log.Fields{"config": *cf})
+	logger.Infow("config", log.Fields{"config": *cf})
 
 	ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
+	defer cancel()
 
 	ad := newAdapter(cf)
 
 	p := &probe.Probe{}
-	log.Infow("resources", log.Fields{"Context": ctx, "Adapter": ad.getAdapterInstance(), "ProbeCoreState": p.GetStatus("register-with-core")})
+	logger.Infow("resources", log.Fields{"Context": ctx, "Adapter": ad.instanceID, "ProbeCoreState": p.GetStatus("register-with-core")})
 
 	go p.ListenAndServe(fmt.Sprintf("%s:%d", ad.config.ProbeHost, ad.config.ProbePort))
-	log.Infow("probeState", log.Fields{"ProbeCoreState": p.GetStatus("register-with-core")})
+	logger.Infow("probeState", log.Fields{"ProbeCoreState": p.GetStatus("register-with-core")})
 
 	probeCtx := context.WithValue(ctx, probe.ProbeContextKey, p)
 
@@ -566,12 +546,12 @@ func main() {
 	}()
 
 	code := waitForExit(ctx)
-	log.Infow("received-a-closing-signal", log.Fields{"code": code})
+	logger.Infow("received-a-closing-signal", log.Fields{"code": code})
 
 	// Cleanup before leaving
 	ad.stop(ctx)
 
 	elapsed := time.Since(start)
-	log.Infow("run-time", log.Fields{"Name": "openadapter", "time": elapsed / time.Microsecond})
-	//log.Infow("run-time", log.Fields{"instanceId": ad.config.InstanceID, "time": elapsed / time.Second})
+	logger.Infow("run-time", log.Fields{"Name": "openadapter", "time": elapsed / time.Microsecond})
+	//logger.Infow("run-time", log.Fields{"instanceId": ad.config.InstanceID, "time": elapsed / time.Second})
 }

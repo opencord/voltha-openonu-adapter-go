@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//Package adaptercoreont provides the utility for onu devices, flows and statistics
-package adaptercoreont
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
+package adaptercoreonu
 
 import (
 	gp "github.com/google/gopacket"
