@@ -73,4 +73,4 @@ LABEL org.label-schema.schema-version=1.0 \
       org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date \
       org.opencord.vcs-dirty=$org_opencord_vcs_dirty
 
-CMD [ '/app/openonu' ]
+ENTRYPOINT [ "/app/openonu" ]

@@ -324,5 +324,9 @@ func (oo *OpenONUAC) Start_omci_test(device *voltha.Device, request *voltha.Omci
 	return nil, errors.New("unImplemented")
 }
 
+func (oo *OpenONUAC) Get_ext_value(deviceID string, device *voltha.Device, valueparam voltha.ValueType_Type) (*voltha.ReturnValues, error) {
+	return nil, errors.New("unImplemented")
+}
+
 // Adapter interface required methods ################ end #########
 // #################################################################

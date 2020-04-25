@@ -432,8 +432,8 @@ func (dh *DeviceHandler) doStateConnected(e *fsm.Event) {
 	var err error
 	err = errors.New("Device FSM: function not implemented yet!")
 	e.Cancel(err)
-	return
 	logger.Debug("doStateConnected-done")
+	return
 }
 
 // doStateUp handle the onu up indication and update to voltha core
@@ -443,8 +443,8 @@ func (dh *DeviceHandler) doStateUp(e *fsm.Event) {
 	var err error
 	err = errors.New("Device FSM: function not implemented yet!")
 	e.Cancel(err)
-	return
 	logger.Debug("doStateUp-done")
+	return
 
 	/*
 		// Synchronous call to update device state - this method is run in its own go routine
@@ -517,8 +517,8 @@ func (dh *DeviceHandler) doStateDown(e *fsm.Event) {
 	*/
 	err = errors.New("Device FSM: function not implemented yet!")
 	e.Cancel(err)
-	return
 	logger.Debug("doStateDown-done")
+	return
 }
 
 // DeviceHandler StateMachine related state transition methods ##### end #########
