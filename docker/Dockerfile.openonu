@@ -17,8 +17,11 @@
 
 FROM golang:1.13.8-alpine3.11 AS build-env
 
+# Install required packages
+RUN apk add --no-cache build-base=0.5-r1
+
 # Prepare directory structure
-WORKDIR /go/src
+WORKDIR /go/src/github.com/opencord/voltha-openonu-adapter-go
 
 # Copy common files.
 COPY . .
@@ -32,8 +35,6 @@ ARG org_opencord_vcs_dirty=unknown
 
 # Build openonu
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
-ENV GO111MODULE=on
-ENV CGO_ENABLED=0
 RUN go build -mod=vendor -o /go/bin/openonu \
 	-ldflags \
 	"-X github.com/opencord/voltha-lib-go/v3/pkg/version.version=$org_label_schema_version \
@@ -43,7 +44,7 @@ RUN go build -mod=vendor -o /go/bin/openonu \
 	 -X github.com/opencord/voltha-lib-go/v3/pkg/version.os=$(go env GOHOSTOS) \
 	 -X github.com/opencord/voltha-lib-go/v3/pkg/version.arch=$(go env GOHOSTARCH) \
 	 -X github.com/opencord/voltha-lib-go/v3/pkg/version.buildTime=$org_label_schema_build_date" \
-	 cmd/openonu-adapter/main.go cmd/openonu-adapter/main_test.go cmd/openonu-adapter/common.go cmd/openonu-adapter/profile.go
+	 ./cmd/openonu-adapter/
 
 # -------------
 # Image creation stage
@@ -72,5 +73,3 @@ LABEL org.label-schema.schema-version=1.0 \
       org.label-schema.build-date=$org_label_schema_build_date \
       org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date \
       org.opencord.vcs-dirty=$org_opencord_vcs_dirty
-
-ENTRYPOINT [ "/app/openonu" ]
