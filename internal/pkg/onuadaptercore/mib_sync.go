@@ -42,6 +42,8 @@ func (onuDeviceEntry *OnuDeviceEntry) logStateChange(e *fsm.Event) {
 func (onuDeviceEntry *OnuDeviceEntry) enterStartingState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start processing MibSync-msgs in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 
+	onuDeviceEntry.pOnuDB = NewOnuDeviceDB(context.TODO(), onuDeviceEntry)
+
 	// create channel and start go routine for processing of MibSync messages
 	onuDeviceEntry.MibSyncChan = make(chan Message, 2048)
 	go onuDeviceEntry.ProcessMibSyncMessages()
@@ -162,13 +164,13 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 			logger.Error("Omci Msg layer could not be assigned")
 			return
 		}
-		logger.Debugw("MibUploadResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.PDevOmciCC.deviceID, "data-fields": msgObj})
+		logger.Debugw("MibUploadResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
 		/* to be verified / reworked !!! */
 		onuDeviceEntry.PDevOmciCC.uploadNoOfCmds = msgObj.NumberOfCommands
 		if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 			onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 		} else {
-			logger.Error("Invalid number of commands received for:", log.Fields{"deviceId": onuDeviceEntry.PDevOmciCC.deviceID, "uploadNoOfCmds": onuDeviceEntry.PDevOmciCC.uploadNoOfCmds})
+			logger.Error("Invalid number of commands received for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "uploadNoOfCmds": onuDeviceEntry.PDevOmciCC.uploadNoOfCmds})
 			//TODO right action?
 			onuDeviceEntry.MibSyncFsm.Event("timeout")
 		}
@@ -183,8 +185,10 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 			logger.Error("Omci Msg layer could not be assigned")
 			return
 		}
-		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.PDevOmciCC.deviceID, "data-fields": msgObj})
-		// TODO !!! content evaluation ?????
+		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
+
+		onuDeviceEntry.pOnuDB.StoreMe(msgObj)
+
 		if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 			onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 		} else {

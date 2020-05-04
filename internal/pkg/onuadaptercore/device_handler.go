@@ -22,6 +22,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,7 +32,9 @@ import (
 	"github.com/looplab/fsm"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
+	vc "github.com/opencord/voltha-protos/v3/go/common"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
+	of "github.com/opencord/voltha-protos/v3/go/openflow_13"
 	oop "github.com/opencord/voltha-protos/v3/go/openolt"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 )
@@ -43,6 +47,28 @@ const (
 )
 */
 
+//Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
+const (
+	pon           = voltha.EventSubCategory_PON
+	olt           = voltha.EventSubCategory_OLT
+	ont           = voltha.EventSubCategory_ONT
+	onu           = voltha.EventSubCategory_ONU
+	nni           = voltha.EventSubCategory_NNI
+	service       = voltha.EventCategory_SERVICE
+	security      = voltha.EventCategory_SECURITY
+	equipment     = voltha.EventCategory_EQUIPMENT
+	processing    = voltha.EventCategory_PROCESSING
+	environment   = voltha.EventCategory_ENVIRONMENT
+	communication = voltha.EventCategory_COMMUNICATION
+)
+
+const (
+	cEventObjectType = "ONU"
+)
+const (
+	cOnuActivatedEvent = "ONU_ACTIVATED"
+)
+
 //DeviceHandler will interact with the ONU ? device.
 type DeviceHandler struct {
 	deviceID         string
@@ -52,6 +78,8 @@ type DeviceHandler struct {
 	logicalDeviceID  string
 	ProxyAddressID   string
 	ProxyAddressType string
+	parentId         string
+	ponPortNumber    uint32
 
 	coreProxy       adapterif.CoreProxy
 	AdapterProxy    adapterif.AdapterProxy
@@ -62,6 +90,7 @@ type DeviceHandler struct {
 	pOnuOmciDevice  *OnuDeviceEntry
 	exitChannel     chan int
 	lockDevice      sync.RWMutex
+	pOnuIndication  *oop.OnuIndication
 
 	//Client        oop.OpenoltClient
 	//clientCon     *grpc.ClientConn
@@ -76,34 +105,8 @@ type DeviceHandler struct {
 	stopCollector      chan bool
 	stopHeartbeatCheck chan bool
 	activePorts        sync.Map
-	uniEntityMap       map[uint16]*OnuUniPort
+	uniEntityMap       map[uint32]*OnuUniPort
 }
-
-/*
-//OnuDevice represents ONU related info
-type OnuDevice struct {
-	deviceID      string
-	deviceType    string
-	serialNumber  string
-	onuID         uint32
-	intfID        uint32
-	proxyDeviceID string
-	uniPorts      map[uint32]struct{}
-}
-
-//NewOnuDevice creates a new Onu Device
-func NewOnuDevice(devID, deviceTp, serialNum string, onuID, intfID uint32, proxyDevID string) *OnuDevice {
-	var device OnuDevice
-	device.deviceID = devID
-	device.deviceType = deviceTp
-	device.serialNumber = serialNum
-	device.onuID = onuID
-	device.intfID = intfID
-	device.proxyDeviceID = proxyDevID
-	device.uniPorts = make(map[uint32]struct{})
-	return &device
-}
-*/
 
 //NewDeviceHandler creates a new device handler
 func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy, device *voltha.Device, adapter *OpenONUAC) *DeviceHandler {
@@ -124,7 +127,7 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
 	dh.activePorts = sync.Map{}
 	//TODO initialize the support classes.
-	dh.uniEntityMap = make(map[uint16]*OnuUniPort)
+	dh.uniEntityMap = make(map[uint32]*OnuUniPort)
 
 	// Device related state machine
 	dh.pDeviceStateFsm = fsm.NewFSM(
@@ -207,9 +210,7 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	switch msgType {
 	case ic.InterAdapterMessageType_OMCI_REQUEST:
 		{
-			/* TOBECHECKED: I assume, ONU Adapter receives the message hier already 'unmarshalled'? else: (howTo?)*/
 			msgBody := msg.GetBody()
-
 			omciMsg := &ic.InterAdapterOmciMessage{}
 			if err := ptypes.UnmarshalAny(msgBody, omciMsg); err != nil {
 				logger.Warnw("cannot-unmarshal-omci-msg-body", log.Fields{"error": err})
@@ -225,9 +226,7 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 		}
 	case ic.InterAdapterMessageType_ONU_IND_REQUEST:
 		{
-			/* TOBECHECKED: I assume, ONU Adapter receives the message hier already 'unmarshalled'? else: see above omci block */
 			msgBody := msg.GetBody()
-
 			onu_indication := &oop.OnuIndication{}
 			if err := ptypes.UnmarshalAny(msgBody, onu_indication); err != nil {
 				logger.Warnw("cannot-unmarshal-onu-indication-msg-body", log.Fields{"error": err})
@@ -287,6 +286,53 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	return nil
 }
 
+func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
+	portNo int64) (*ic.PortCapability, error) {
+	logger.Debugw("GetOfpPortInfo start", log.Fields{"deviceID": device.Id, "portNo": portNo})
+
+	//function body as per OLTAdapter handler code
+	// adapted with values from py dapter code
+	if pUniPort, exist := dh.uniEntityMap[uint32(portNo)]; exist {
+		var macOctets [6]uint8
+		macOctets[5] = 0x08
+		macOctets[4] = uint8(dh.ponPortNumber >> 8)
+		macOctets[3] = uint8(dh.ponPortNumber)
+		macOctets[2] = uint8(portNo >> 16)
+		macOctets[1] = uint8(portNo >> 8)
+		macOctets[0] = uint8(portNo)
+		hwAddr := genMacFromOctets(macOctets)
+		capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
+		name := device.SerialNumber + "-" + strconv.FormatUint(uint64(pUniPort.macBpNo), 10)
+		ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
+		if pUniPort.operState == vc.OperStatus_ACTIVE {
+			ofUniPortState = of.OfpPortState_OFPPS_LIVE
+		}
+		logger.Debugw("setting LogicalPort", log.Fields{"with-name": name,
+			"withUniPort": pUniPort.name, "withMacBase": hwAddr, "OperState": ofUniPortState})
+
+		return &ic.PortCapability{
+			Port: &voltha.LogicalPort{
+				OfpPort: &of.OfpPort{
+					Name: name,
+					//HwAddr:     macAddressToUint32Array(dh.device.MacAddress),
+					HwAddr:     macAddressToUint32Array(hwAddr),
+					Config:     0,
+					State:      uint32(ofUniPortState),
+					Curr:       capacity,
+					Advertised: capacity,
+					Peer:       capacity,
+					CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+					MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+				},
+				DeviceId:     device.Id,
+				DevicePortNo: uint32(portNo),
+			},
+		}, nil
+	}
+	logger.Warnw("No UniPort found - abort", log.Fields{"for PortNo": uint32(portNo)})
+	return nil, errors.New("UniPort not found")
+}
+
 //  DeviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
@@ -303,31 +349,24 @@ func (dh *DeviceHandler) doStateInit(e *fsm.Event) {
 	logger.Debug("doStateInit-started")
 	var err error
 
-	/*
-		var err error
-		dh.clientCon, err = grpc.Dial(dh.device.GetHostAndPort(), grpc.WithInsecure(), grpc.WithBlock())
-		if err != nil {
-			logger.Errorw("Failed to dial device", log.Fields{"DeviceId": dh.deviceID, "HostAndPort": dh.device.GetHostAndPort(), "err": err})
-			return err
-		}
-		return nil
-	*/
-
 	// populate what we know.  rest comes later after mib sync
 	dh.device.Root = false
 	dh.device.Vendor = "OpenONU"
 	dh.device.Model = "go"
 	dh.device.Reason = "activating-onu"
-	dh.logicalDeviceID = dh.deviceID
 
+	dh.logicalDeviceID = dh.deviceID // really needed - what for ??? //TODO!!!
 	dh.coreProxy.DeviceUpdate(context.TODO(), dh.device)
+
+	dh.parentId = dh.device.ParentId
+	dh.ponPortNumber = dh.device.ParentPortNo
 
 	// store proxy parameters for later communication - assumption: invariant, else they have to be requested dynamically!!
 	dh.ProxyAddressID = dh.device.ProxyAddress.GetDeviceId()
 	dh.ProxyAddressType = dh.device.ProxyAddress.GetDeviceType()
 	logger.Debugw("device-updated", log.Fields{"deviceID": dh.deviceID, "proxyAddressID": dh.ProxyAddressID,
 		"proxyAddressType": dh.ProxyAddressType, "SNR": dh.device.SerialNumber,
-		"ParentId": dh.device.ParentId, "ParentPortNo": dh.device.ParentPortNo})
+		"ParentId": dh.parentId, "ParentPortNo": dh.ponPortNumber})
 
 	/*
 		self._pon = PonPort.create(self, self._pon_port_number)
@@ -339,18 +378,18 @@ func (dh *DeviceHandler) doStateInit(e *fsm.Event) {
 				   )
 	*/
 	logger.Debug("adding-pon-port")
-	pPonPortNo := uint32(1)
-	if dh.device.ParentPortNo != 0 {
-		pPonPortNo = dh.device.ParentPortNo
+	var ponPortNo uint32 = 1
+	if dh.ponPortNumber != 0 {
+		ponPortNo = dh.ponPortNumber
 	}
 
 	pPonPort := &voltha.Port{
-		PortNo:     pPonPortNo,
-		Label:      fmt.Sprintf("pon-%d", pPonPortNo),
+		PortNo:     ponPortNo,
+		Label:      fmt.Sprintf("pon-%d", ponPortNo),
 		Type:       voltha.Port_PON_ONU,
 		OperStatus: voltha.OperStatus_ACTIVE,
-		Peers: []*voltha.Port_PeerPort{{DeviceId: dh.device.ParentId, // Peer device  is OLT
-			PortNo: dh.device.ParentPortNo}}, // Peer port is parent's port number
+		Peers: []*voltha.Port_PeerPort{{DeviceId: dh.parentId, // Peer device  is OLT
+			PortNo: ponPortNo}}, // Peer port is parent's port number
 	}
 	if err = dh.coreProxy.PortCreated(context.TODO(), dh.deviceID, pPonPort); err != nil {
 		logger.Fatalf("Device FSM: PortCreated-failed-%s", err)
@@ -463,10 +502,10 @@ func (dh *DeviceHandler) doStateDown(e *fsm.Event) {
 	logger.Debug("doStateDown-started")
 	var err error
 
-	device, err := dh.coreProxy.GetDevice(context.TODO(), dh.device.Id, dh.device.Id)
-	if err != nil || device == nil {
+	device := dh.device
+	if device == nil {
 		/*TODO: needs to handle error scenarios */
-		logger.Errorw("Failed to fetch device device", log.Fields{"err": err})
+		logger.Error("Failed to fetch handler device")
 		e.Cancel(err)
 		return
 	}
@@ -573,18 +612,28 @@ func (dh *DeviceHandler) Add_OnuDeviceEntry(ctx context.Context) error {
 
 // doStateInit provides the device update to the core
 func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
-	logger.Debug("create_interface-started - not yet fully implemented (only device state update)")
+	logger.Debugw("create_interface-started", log.Fields{"OnuId": onuind.GetOnuId(),
+		"OnuIntfId": onuind.GetIntfId(), "OnuSerialNumber": onuind.GetSerialNumber()})
+
+	dh.pOnuIndication = onuind // let's revise if storing the pointer is sufficient...
 
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVATING); err != nil {
 		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
 	}
 
-	device, err := dh.coreProxy.GetDevice(context.TODO(), dh.device.Id, dh.device.Id)
-	if err != nil || device == nil {
-		/*TODO: needs to handle error scenarios */
-		logger.Errorw("Failed to fetch device device at creating If", log.Fields{"err": err})
-		return errors.New("Voltha Device not found")
-	}
+	// It does not look to me as if makes sense to work with the real core device here, (not the stored clone)?
+	// in this code the GetDevice would just make a check if the DeviceID's Device still exists in core
+	// in python code it looks as the started onu_omci_device might have been updated with some new instance state of the core device
+	// but I would not know why, and the go code anyway dows not work with the device directly anymore in the OnuDeviceEntry
+	// so let's just try to keep it simple ...
+	/*
+			device, err := dh.coreProxy.GetDevice(context.TODO(), dh.device.Id, dh.device.Id)
+		    if err != nil || device == nil {
+					//TODO: needs to handle error scenarios
+				logger.Errorw("Failed to fetch device device at creating If", log.Fields{"err": err})
+				return errors.New("Voltha Device not found")
+			}
+	*/
 
 	dh.GetOnuDeviceEntry().Start(context.TODO())
 	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "starting-openomci"); err != nil {
@@ -739,19 +788,25 @@ func (dh *DeviceHandler) update_interface(onuind *oop.OnuIndication) error {
 
 func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 	if dev_Event == MibDatabaseSync {
-		logger.Debug("MibInSync event: update dev state to 'MibSync complete'")
+		logger.Debugw("MibInSync event: update dev state to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
 		//initiate DevStateUpdate
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
 			logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{"deviceID": dh.deviceID, "error": err})
 		}
 
+		for i := uint16(0); i < dh.GetOnuDeviceEntry().pOnuDB.unigMeCount; i++ {
+			mgmtEntityId, _ := dh.GetOnuDeviceEntry().pOnuDB.unigMe[i].GetAttribute("ManagedEntityId")
+			logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID, "UnigMe EntityID": mgmtEntityId})
+			dh.addUniPort(mgmtEntityId.(uint16), i, UniPPTP)
+		}
+
 		// fixed assumption about PPTP/UNI-G ONU-config
 		// to be replaced by DB parsing of MibUpload data TODO!!!
 		// parameters are: InstanceNo, running UniNo, type
-		dh.addUniPort(257, 0, UniPPTP)
-		dh.addUniPort(258, 1, UniPPTP)
-		dh.addUniPort(259, 2, UniPPTP)
-		dh.addUniPort(260, 3, UniPPTP)
+		// dh.addUniPort(257, 0, UniPPTP)
+		// dh.addUniPort(258, 1, UniPPTP)
+		// dh.addUniPort(259, 2, UniPPTP)
+		// dh.addUniPort(260, 3, UniPPTP)
 
 		// start the MibDownload (assumed here to be done via some FSM again - open //TODO!!!)
 		/* the mib-download code may look something like that:
@@ -778,46 +833,126 @@ func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 		//shortcut code to fake download-done!!!:
 		go dh.GetOnuDeviceEntry().transferSystemEvent(MibDownloadDone)
 	} else if dev_Event == MibDownloadDone {
-		logger.Debug("MibDownloadDone event: update dev state to 'Oper.Active'")
+		logger.Debugw("MibDownloadDone event: update dev state to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
 		//initiate DevStateUpdate
 		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
 			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
 			logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
 		}
-		logger.Debug("MibDownloadDone Event: update dev reasone to 'initial-mib-downloaded'")
+		logger.Debug("MibDownloadDone Event: update dev reason to 'initial-mib-downloaded'")
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
 			logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
 				log.Fields{"deviceID": dh.deviceID, "error": err})
 		}
 
-		//TODO !!! following activities according to python code:
-		/*
-			yield self.enable_ports()
-			self._mib_download_task = None
-			yield self.onu_active_event()  -> with 'OnuActiveEvent' !!! might be this is required for ONOS visibility??
-		*/
+		go dh.enableUniPortStateUpdate(dh.deviceID) //cmp python yield self.enable_ports()
+
+		raisedTs := time.Now().UnixNano()
+		go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
 	} else {
-		logger.Warnw("unhandled-device-event", log.Fields{"event": dev_Event})
+		logger.Warnw("unhandled-device-event", log.Fields{"deviceID": dh.deviceID, "event": dev_Event})
 	}
 }
 
 func (dh *DeviceHandler) addUniPort(a_uniInstNo uint16, a_uniId uint16, a_portType UniPortType) {
-	if _, present := dh.uniEntityMap[a_uniInstNo]; present {
+	// parameters are IntfId, OnuId, uniId
+	uniNo := MkUniPortNum(dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(),
+		uint32(a_uniId))
+	if _, present := dh.uniEntityMap[uniNo]; present {
 		logger.Warnw("onuUniPort-add: Port already exists", log.Fields{"for InstanceId": a_uniInstNo})
 	} else {
-		//TODO: need to find the ONU intfId and OnuId, using hard coded values for single ONU test!!!
-		// parameters are IntfId, OnuId, uniId
-		uni_no := MkUniPortNum(0, 1, uint32(a_uniId))
 		//with arguments a_uniId, a_portNo, a_portType
-		pUniPort := NewOnuUniPort(a_uniId, uni_no, a_uniInstNo, a_portType)
+		pUniPort := NewOnuUniPort(a_uniId, uniNo, a_uniInstNo, a_portType)
 		if pUniPort == nil {
 			logger.Warnw("onuUniPort-add: Could not create Port", log.Fields{"for InstanceId": a_uniInstNo})
 		} else {
-			dh.uniEntityMap[a_uniInstNo] = pUniPort
+			//store UniPort with the System-PortNumber key
+			dh.uniEntityMap[uniNo] = pUniPort
 			// create announce the UniPort to the core as VOLTHA Port object
-			if err := pUniPort.CreateVolthaPort(dh); err != nil {
-				logger.Infow("onuUniPort-added", log.Fields{"for InstanceId": a_uniInstNo})
-			} //error looging already within UniPort method
+			if err := pUniPort.CreateVolthaPort(dh); err == nil {
+				logger.Infow("onuUniPort-added", log.Fields{"for PortNo": uniNo})
+			} //error logging already within UniPort method
 		}
 	}
+}
+
+// Enable listen on UniPortState changes and update core port state accordingly
+func (dh *DeviceHandler) enableUniPortStateUpdate(a_deviceID string) {
+	// TODO!!!: In py code the PPTP UNI states are updated based on event notifications (from where?)
+	//   these notifcations are handled in port_state_handler() to transfer core states ACTIVE or UNKNOWN
+	//   For VEIP ports enale_ports() directly sets ACTIVE (forced)
+	// to shortcut processing temporarily here we set the OperState ACTIVE here forced generally for the moment
+	for uniNo, uniPort := range dh.uniEntityMap {
+		logger.Infow("onuUniPort-forced-OperState-ACTIVE", log.Fields{"for PortNo": uniNo})
+		uniPort.SetOperState(vc.OperStatus_ACTIVE)
+		//maybe also use getter funvtions on uniPort - perhaps later ...
+		go dh.coreProxy.PortStateUpdate(context.TODO(), a_deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+	}
+}
+
+// ONU_Active/Inactive announcement on system KAFKA bus
+// tried to re-use procedure of oltUpDownIndication from openolt_eventmgr.go with used values from Py code
+func (dh *DeviceHandler) sendOnuOperStateEvent(a_OperState vc.OperStatus_Types, a_deviceID string, raisedTs int64) {
+	var de voltha.DeviceEvent
+	eventContext := make(map[string]string)
+	//Populating event context
+	//  assume giving ParentId in GetDevice twice really gives the ParentDevice (there is no GetParentDevice()...)
+	parentDevice, err := dh.coreProxy.GetDevice(context.TODO(), dh.parentId, dh.parentId)
+	if err != nil || parentDevice == nil {
+		logger.Errorw("Failed to fetch parent device for OnuEvent",
+			log.Fields{"parentId": dh.parentId, "err": err})
+	}
+	oltSerialNumber := parentDevice.SerialNumber
+
+	eventContext["pon-id"] = strconv.FormatUint(uint64(dh.pOnuIndication.IntfId), 10)
+	eventContext["onu-id"] = strconv.FormatUint(uint64(dh.pOnuIndication.OnuId), 10)
+	eventContext["serial-number"] = dh.device.SerialNumber
+	eventContext["olt_serial_number"] = oltSerialNumber
+	eventContext["device_id"] = a_deviceID
+	eventContext["registration_id"] = a_deviceID //py: string(device_id)??
+	logger.Debugw("prepare ONU_ACTIVATED event",
+		log.Fields{"DeviceId": a_deviceID, "EventContext": eventContext})
+
+	/* Populating device event body */
+	de.Context = eventContext
+	de.ResourceId = a_deviceID
+	if a_OperState == voltha.OperStatus_ACTIVE {
+		de.DeviceEventName = fmt.Sprintf("%s_%s", cOnuActivatedEvent, "RAISE_EVENT")
+		de.Description = fmt.Sprintf("%s Event - %s - %s",
+			cEventObjectType, cOnuActivatedEvent, "Raised")
+	} else {
+		de.DeviceEventName = fmt.Sprintf("%s_%s", cOnuActivatedEvent, "CLEAR_EVENT")
+		de.Description = fmt.Sprintf("%s Event - %s - %s",
+			cEventObjectType, cOnuActivatedEvent, "Cleared")
+	}
+	/* Send event to KAFKA */
+	if err := dh.EventProxy.SendDeviceEvent(&de, equipment, pon, raisedTs); err != nil {
+		logger.Warnw("could not send ONU_ACTIVATED event",
+			log.Fields{"DeviceId": a_deviceID, "error": err})
+	}
+	logger.Debugw("ONU_ACTIVATED event sent to KAFKA",
+		log.Fields{"DeviceId": a_deviceID, "with-EventName": de.DeviceEventName})
+}
+
+/* *********************************************************** */
+
+func genMacFromOctets(a_octets [6]uint8) string {
+	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x",
+		a_octets[5], a_octets[4], a_octets[3],
+		a_octets[2], a_octets[1], a_octets[0])
+}
+
+//copied from OLT Adapter: unify centrally ?
+func macAddressToUint32Array(mac string) []uint32 {
+	slist := strings.Split(mac, ":")
+	result := make([]uint32, len(slist))
+	var err error
+	var tmp int64
+	for index, val := range slist {
+		if tmp, err = strconv.ParseInt(val, 16, 32); err != nil {
+			return []uint32{1, 2, 3, 4, 5, 6}
+		}
+		result[index] = uint32(tmp)
+	}
+	return result
 }
