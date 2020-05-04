@@ -78,7 +78,7 @@ func NewOnuUniPort(a_uniId uint16, a_portNo uint32, a_InstNo uint16,
 	return &onuUniPort
 }
 
-//Start starts (logs) the omci agent
+//creates the Voltha port based on ONU UNI Port
 func (oo *OnuUniPort) CreateVolthaPort(a_pDeviceHandler *DeviceHandler) error {
 	logger.Debug("adding-uni-port")
 	pUniPort := &voltha.Port{
@@ -104,4 +104,9 @@ func (oo *OnuUniPort) CreateVolthaPort(a_pDeviceHandler *DeviceHandler) error {
 		return errors.New("create Voltha UniPort failed")
 	}
 	return nil
+}
+
+//mofify OperState of the the UniPort
+func (oo *OnuUniPort) SetOperState(a_NewOperState vc.OperStatus_Types) {
+	oo.operState = a_NewOperState
 }

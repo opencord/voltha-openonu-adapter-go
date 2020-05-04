@@ -167,8 +167,17 @@ func (oo *OpenONUAC) Get_ofp_device_info(device *voltha.Device) (*ic.SwitchCapab
 
 //Get_ofp_port_info returns OFP port information for the given device
 func (oo *OpenONUAC) Get_ofp_port_info(device *voltha.Device, portNo int64) (*ic.PortCapability, error) {
-	logger.Errorw("device-handler-not-set", log.Fields{"deviceId": device.Id})
-	return nil, errors.New("device-handler-not-set")
+	//this method expects a return value to be sent to the core
+	// and internal processing should not take that long
+	// so it makes no sense to try to work asynchronously here
+	logger.Infow("get-ofp-port-info started", log.Fields{"deviceId": device.Id, "portNo": portNo})
+	// basically the same code as in openOlt.go - unify???
+	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+		return handler.GetOfpPortInfo(device, portNo)
+		// error treatment might be more sophisticated, but indeed it would be logged within handler
+	}
+	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found for deviceId %s", device.Id))
+	//return nil, olterrors.NewErrNotFound("device-handler", log.Fields{"device-id": device.Id}, nil)
 }
 
 //Process_inter_adapter_message sends messages to a target device (between adapters)

@@ -62,6 +62,7 @@ type OnuDeviceEntry struct {
 	adapterProxy      adapterif.AdapterProxy
 	started           bool
 	PDevOmciCC        *OmciCC
+	pOnuDB            *OnuDeviceDB
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func() error
 	supportedFsms OmciDeviceFsms
