@@ -878,15 +878,22 @@ func (dh *DeviceHandler) addUniPort(a_uniInstNo uint16, a_uniId uint16, a_portTy
 
 // Enable listen on UniPortState changes and update core port state accordingly
 func (dh *DeviceHandler) enableUniPortStateUpdate(a_deviceID string) {
-	// TODO!!!: In py code the PPTP UNI states are updated based on event notifications (from where?)
-	//   these notifcations are handled in port_state_handler() to transfer core states ACTIVE or UNKNOWN
-	//   For VEIP ports enale_ports() directly sets ACTIVE (forced)
-	// to shortcut processing temporarily here we set the OperState ACTIVE here forced generally for the moment
+	//  py code was updated 2003xx to activate the real ONU UNI ports per OMCI (VEIP or PPTP)
+	//    but towards core only the first port active state is signalled
+	//    with following remark:
+	//       # TODO: for now only support the first UNI given no requirement for multiple uni yet. Also needed to reduce flow
+	//       #  load on the core
+
+	// dh.lock_ports(false) ONU port activation via OMCI //TODO!!! not yet supported
+
 	for uniNo, uniPort := range dh.uniEntityMap {
-		logger.Infow("onuUniPort-forced-OperState-ACTIVE", log.Fields{"for PortNo": uniNo})
-		uniPort.SetOperState(vc.OperStatus_ACTIVE)
-		//maybe also use getter funvtions on uniPort - perhaps later ...
-		go dh.coreProxy.PortStateUpdate(context.TODO(), a_deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+		// only if this port is validated for operState transfer}
+		if (1<<uniPort.uniId)&ActiveUniPortStateUpdateMask == (1 << uniPort.uniId) {
+			logger.Infow("onuUniPort-forced-OperState-ACTIVE", log.Fields{"for PortNo": uniNo})
+			uniPort.SetOperState(vc.OperStatus_ACTIVE)
+			//maybe also use getter functions on uniPort - perhaps later ...
+			go dh.coreProxy.PortStateUpdate(context.TODO(), a_deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+		}
 	}
 }
 
