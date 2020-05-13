@@ -54,6 +54,28 @@ type activityDescr struct {
 }
 type OmciDeviceFsms map[string]activityDescr
 
+type AdapterFsm struct {
+	fsmName  string
+	deviceID string
+	commChan chan Message
+	pFsm     *fsm.FSM
+}
+
+func NewAdapterFsm(a_name string, a_deviceID string, a_commChannel chan Message) *AdapterFsm {
+	aFsm := &AdapterFsm{
+		fsmName:  a_name,
+		deviceID: a_deviceID,
+		commChan: a_commChannel,
+	}
+	return aFsm
+}
+
+//Start starts (logs) the omci agent
+func (oo *AdapterFsm) logFsmStateChange(e *fsm.Event) {
+	logger.Debugw("FSM state change", log.Fields{"device-id": oo.deviceID, "FSM name": oo.fsmName,
+		"event name": string(e.Event), "src state": string(e.Src), "dst state": string(e.Dst)})
+}
+
 //OntDeviceEntry structure holds information about the attached FSM'as and their communication
 type OnuDeviceEntry struct {
 	deviceID          string
@@ -66,10 +88,18 @@ type OnuDeviceEntry struct {
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func() error
 	supportedFsms OmciDeviceFsms
-	MibSyncFsm    *fsm.FSM
-	MibSyncChan   chan Message
 	devState      OnuDeviceEvent
+	// for mibUpload
 	mibAuditDelay uint16
+	//MibSyncFsm    *fsm.FSM
+	//MibSyncChan   chan Message
+	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
+	// for mibDownload
+	//MibDownloadFsm  *fsm.FSM
+	//MibDownloadChan chan Message
+	pMibDownloadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
+	//remark: general usage of pAdapterFsm would require generalization of commChan  usage and internal event setting
+	//  within the FSM event procedures
 }
 
 //OnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -119,8 +149,10 @@ func NewOnuDeviceEntry(ctx context.Context,
 	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
 	logger.Debugw("MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
 
-	// Omci related Mib sync state machine
-	onuDeviceEntry.MibSyncFsm = fsm.NewFSM(
+	// Omci related Mib upload sync state machine
+	mibUploadChan := make(chan Message, 2048)
+	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", device_id, mibUploadChan)
+	onuDeviceEntry.pMibUploadFsm.pFsm = fsm.NewFSM(
 		"disabled",
 		fsm.Events{
 
@@ -154,7 +186,7 @@ func NewOnuDeviceEntry(ctx context.Context,
 		},
 
 		fsm.Callbacks{
-			"enter_state":                func(e *fsm.Event) { onuDeviceEntry.logStateChange(e) },
+			"enter_state":                func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
 			"enter_starting":             func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
 			"enter_loading_mib_template": func(e *fsm.Event) { onuDeviceEntry.enterLoadingMibTemplateState(e) },
 			"enter_uploading":            func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
@@ -165,6 +197,35 @@ func NewOnuDeviceEntry(ctx context.Context,
 			"enter_in_sync":              func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
 		},
 	)
+	// Omci related Mib download state machine
+	mibDownloadChan := make(chan Message, 2048)
+	onuDeviceEntry.pMibDownloadFsm = NewAdapterFsm("MibDownload", device_id, mibDownloadChan)
+	onuDeviceEntry.pMibDownloadFsm.pFsm = fsm.NewFSM(
+		"disabled",
+		fsm.Events{
+
+			{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
+
+			{Name: "download_mib", Src: []string{"starting"}, Dst: "downloading"},
+
+			{Name: "success", Src: []string{"downloading"}, Dst: "downloaded"},
+
+			{Name: "timeout", Src: []string{"downloading"}, Dst: "starting"},
+
+			{Name: "restart", Src: []string{"starting", "downloading", "downloaded"}, Dst: "disabled"},
+		},
+
+		fsm.Callbacks{
+			"enter_state":       func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
+			"enter_starting":    func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
+			"enter_downloading": func(e *fsm.Event) { onuDeviceEntry.enterDownloadingState(e) },
+			"enter_downloaded":  func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
+		},
+	)
+	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
+		logger.Error("MibDownloadFsm could not be instantiated!!")
+		// some specifc error treatment - or waiting for crash ???
+	}
 
 	// Alarm Synchronization Database
 	//self._alarm_db = None

@@ -35,17 +35,11 @@ import (
 	//"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
-func (onuDeviceEntry *OnuDeviceEntry) logStateChange(e *fsm.Event) {
-	logger.Debugw("MibSync FSM", log.Fields{"event name": string(e.Event), "src state": string(e.Src), "dst state": string(e.Dst), "device-id": onuDeviceEntry.deviceID})
-}
-
 func (onuDeviceEntry *OnuDeviceEntry) enterStartingState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start processing MibSync-msgs in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 
 	onuDeviceEntry.pOnuDB = NewOnuDeviceDB(context.TODO(), onuDeviceEntry)
 
-	// create channel and start go routine for processing of MibSync messages
-	onuDeviceEntry.MibSyncChan = make(chan Message, 2048)
 	go onuDeviceEntry.ProcessMibSyncMessages()
 }
 
@@ -92,7 +86,7 @@ loop:
 		// case <-ctx.Done():
 		// 	logger.Info("MibSync Msg", log.Fields{"Message handling canceled via context for device-id": onuDeviceEntry.deviceID})
 		// 	break loop
-		case message, ok := <-onuDeviceEntry.MibSyncChan:
+		case message, ok := <-onuDeviceEntry.pMibUploadFsm.commChan:
 			if !ok {
 				logger.Info("MibSync Msg", log.Fields{"Message couldn't be read from channel for device-id": onuDeviceEntry.deviceID})
 				break loop
@@ -113,7 +107,7 @@ loop:
 	}
 	logger.Info("MibSync Msg", log.Fields{"Stopped handling of MibSyncChan for device-id": onuDeviceEntry.deviceID})
 	// TODO: only this action?
-	onuDeviceEntry.MibSyncFsm.Event("stop")
+	onuDeviceEntry.pMibUploadFsm.pFsm.Event("stop")
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) handleTestMsg(msg TestMessage) {
@@ -122,8 +116,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleTestMsg(msg TestMessage) {
 
 	switch msg.TestMessageVal {
 	case AnyTriggerForMibSyncUploadMib:
-		onuDeviceEntry.MibSyncFsm.Event("upload_mib")
-		logger.Debugw("MibSync Msg", log.Fields{"state": string(onuDeviceEntry.MibSyncFsm.Current())})
+		onuDeviceEntry.pMibUploadFsm.pFsm.Event("upload_mib")
+		logger.Debugw("MibSync Msg", log.Fields{"state": string(onuDeviceEntry.pMibUploadFsm.pFsm.Current())})
 	default:
 		logger.Warn("MibSync Msg", log.Fields{"Unknown message type received for device-id": onuDeviceEntry.deviceID, "msg.TestMessageVal": msg.TestMessageVal})
 	}
@@ -172,7 +166,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 		} else {
 			logger.Error("Invalid number of commands received for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "uploadNoOfCmds": onuDeviceEntry.PDevOmciCC.uploadNoOfCmds})
 			//TODO right action?
-			onuDeviceEntry.MibSyncFsm.Event("timeout")
+			onuDeviceEntry.pMibUploadFsm.pFsm.Event("timeout")
 		}
 	case omci.MibUploadNextResponseType:
 		msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadNextResponse)
@@ -193,7 +187,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 			onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 		} else {
 			//TODO
-			onuDeviceEntry.MibSyncFsm.Event("success")
+			onuDeviceEntry.pOnuDB.LogMeDb()
+			onuDeviceEntry.pMibUploadFsm.pFsm.Event("success")
 		}
 	}
 }

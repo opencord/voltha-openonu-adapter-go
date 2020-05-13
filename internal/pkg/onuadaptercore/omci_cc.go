@@ -531,7 +531,7 @@ func (oo *OmciCC) receiveMibSyncResponse(omciMsg *omci.OMCI, packet *gp.Packet) 
 		},
 	}
 	//logger.Debugw("Message to be sent into channel:", log.Fields{"mibSyncMsg": mibSyncMsg})
-	(*oo.pOnuDeviceEntry).MibSyncChan <- mibSyncMsg
+	(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan <- mibSyncMsg
 
 	return nil
 }

@@ -30,6 +30,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/looplab/fsm"
+	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	vc "github.com/opencord/voltha-protos/v3/go/common"
@@ -730,53 +731,57 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	// PM related heartbeat??? !!!TODO....
 	//self._heartbeat.enabled = True
 
-	//example how to call FSM - transition up to state "uploading"
-	if dh.GetOnuDeviceEntry().MibSyncFsm.Is("disabled") {
-
-		if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("start"); err != nil {
-			logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
-			return errors.New("Can't go to state starting")
-		} else {
-			logger.Debug("MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
-			//Determine ONU status and start/re-start MIB Synchronization tasks
-			//Determine if this ONU has ever synchronized
-			if true { //TODO: insert valid check
-				if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("load_mib_template"); err != nil {
-					logger.Errorw("MibSyncFsm: Can't go to state loading_mib_template", log.Fields{"err": err})
-					return errors.New("Can't go to state loading_mib_template")
+	//call MibUploadFSM - transition up to state "in_sync"
+	pMibUlFsm := dh.GetOnuDeviceEntry().pMibUploadFsm.pFsm
+	if pMibUlFsm != nil {
+		if pMibUlFsm.Is("disabled") {
+			if err := pMibUlFsm.Event("start"); err != nil {
+				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
+				return errors.New("Can't go to state starting")
+			} else {
+				logger.Debug("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
+				//Determine ONU status and start/re-start MIB Synchronization tasks
+				//Determine if this ONU has ever synchronized
+				if true { //TODO: insert valid check
+					if err := pMibUlFsm.Event("load_mib_template"); err != nil {
+						logger.Errorw("MibSyncFsm: Can't go to state loading_mib_template", log.Fields{"err": err})
+						return errors.New("Can't go to state loading_mib_template")
+					} else {
+						logger.Debug("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
+						//Find and load a mib template. If not found proceed with mib_upload
+						// callbacks to be handled:
+						// Event("success")
+						// Event("timeout")
+						//no mib template found
+						if true { //TODO: insert valid check
+							if err := pMibUlFsm.Event("upload_mib"); err != nil {
+								logger.Errorw("MibSyncFsm: Can't go to state uploading", log.Fields{"err": err})
+								return errors.New("Can't go to state uploading")
+							} else {
+								logger.Debug("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
+								//Begin full MIB data upload, starting with a MIB RESET
+								// callbacks to be handled:
+								// success: e.Event("success")
+								// failure: e.Event("timeout")
+							}
+						}
+					}
 				} else {
-					logger.Debug("MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
-					//Find and load a mib template. If not found proceed with mib_upload
+					pMibUlFsm.Event("examine_mds")
+					logger.Debug("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
+					//Examine the MIB Data Sync
 					// callbacks to be handled:
 					// Event("success")
 					// Event("timeout")
-					//no mib template found
-					if true { //TODO: insert valid check
-						if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("upload_mib"); err != nil {
-							logger.Errorw("MibSyncFsm: Can't go to state uploading", log.Fields{"err": err})
-							return errors.New("Can't go to state uploading")
-						} else {
-							logger.Debug("state of MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
-							//Begin full MIB data upload, starting with a MIB RESET
-							// callbacks to be handled:
-							// success: e.Event("success")
-							// failure: e.Event("timeout")
-						}
-					}
+					// Event("mismatch")
 				}
-			} else {
-				dh.GetOnuDeviceEntry().MibSyncFsm.Event("examine_mds")
-				logger.Debug("state of MibSyncFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
-				//Examine the MIB Data Sync
-				// callbacks to be handled:
-				// Event("success")
-				// Event("timeout")
-				// Event("mismatch")
 			}
+		} else {
+			logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(pMibUlFsm.Current())})
+			return errors.New("wrong state of MibSyncFsm")
 		}
 	} else {
-		logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(dh.GetOnuDeviceEntry().MibSyncFsm.Current())})
-		return errors.New("wrong state of MibSyncFsm")
+		logger.Errorw("MibSyncFsm invalid - cannot be executed!!", log.Fields{"deviceID": dh.deviceID})
 	}
 	return nil
 }
@@ -794,44 +799,50 @@ func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 			logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{"deviceID": dh.deviceID, "error": err})
 		}
 
-		for i := uint16(0); i < dh.GetOnuDeviceEntry().pOnuDB.unigMeCount; i++ {
-			mgmtEntityId, _ := dh.GetOnuDeviceEntry().pOnuDB.unigMe[i].GetAttribute("ManagedEntityId")
-			logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID, "UnigMe EntityID": mgmtEntityId})
-			dh.addUniPort(mgmtEntityId.(uint16), i, UniPPTP)
-		}
-
-		// fixed assumption about PPTP/UNI-G ONU-config
-		// to be replaced by DB parsing of MibUpload data TODO!!!
-		// parameters are: InstanceNo, running UniNo, type
-		// dh.addUniPort(257, 0, UniPPTP)
-		// dh.addUniPort(258, 1, UniPPTP)
-		// dh.addUniPort(259, 2, UniPPTP)
-		// dh.addUniPort(260, 3, UniPPTP)
-
-		// start the MibDownload (assumed here to be done via some FSM again - open //TODO!!!)
-		/* the mib-download code may look something like that:
-		if err := dh.GetOnuDeviceEntry().MibDownloadFsm.Event("start"); err != nil {
-			logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
-			return errors.New("Can't go to state starting")
-		} else {
-			logger.Debug("MibDownloadFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibDownloadFsm.Current())})
-			//Determine ONU status and start/re-start MIB MibDownloadFsm
-			//Determine if this ONU has ever synchronized
-			if true { //TODO: insert valid check
-				if err := dh.GetOnuDeviceEntry().MibSyncFsm.Event("download_mib"); err != nil {
-					logger.Errorw("MibDownloadFsm: Can't go to state 'download_mib'", log.Fields{"err": err})
-					return errors.New("Can't go to state 'download_mib'")
-				} else {
-					//some further processing ???
-					logger.Debug("state of MibDownloadFsm", log.Fields{"state": string(dh.GetOnuDeviceEntry().MibDownloadFsm.Current())})
-					//some further processing ???
-				}
+		unigMap, ok := dh.GetOnuDeviceEntry().pOnuDB.meDb[me.UniGClassID]
+		unigInstKeys := dh.GetOnuDeviceEntry().pOnuDB.GetSortedInstKeys(unigMap)
+		if ok {
+			i := uint16(0)
+			for _, mgmtEntityId := range unigInstKeys {
+				logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID, "UnigMe EntityID": mgmtEntityId})
+				dh.addUniPort(mgmtEntityId, i, UniPPTP)
+				i++
 			}
+		} else {
+			logger.Warnw("No UniG instances found!", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID})
 		}
-		but by now we shortcut the download here and immediately fake the ONU-active state to get the state indication on ONUS!!!:
-		*/
-		//shortcut code to fake download-done!!!:
+
+		/*  real Mib download procedure could look somthing like this:
+		 ***** but for the moment the FSM is still limited (sending no OMCI)  *****
+		 ***** thus never reaches 'downloaded' state                          *****
+		 */
+		pMibDlFsm := dh.GetOnuDeviceEntry().pMibDownloadFsm.pFsm
+		if pMibDlFsm != nil {
+			if pMibDlFsm.Is("disabled") {
+				if err := pMibDlFsm.Event("start"); err != nil {
+					logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
+					// maybe try a FSM restart and then again ... - TODO!!!
+				} else {
+					logger.Debug("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
+					// maybe use more specific states here for the specific download steps ...
+					if err := pMibDlFsm.Event("download_mib"); err != nil {
+						logger.Errorw("MibDownloadFsm: Can't go to state downloading", log.Fields{"err": err})
+					} else {
+						logger.Debug("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
+						//Begin MIB data download
+					}
+				}
+			} else {
+				logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current())})
+			}
+			/***** Mib download started */
+		} else {
+			logger.Errorw("MibDownloadFsm invalid - cannot be executed!!", log.Fields{"deviceID": dh.deviceID})
+		}
+
+		//shortcut code to fake download-done!!!:  TODO!!! to be removed with complete DL FSM
 		go dh.GetOnuDeviceEntry().transferSystemEvent(MibDownloadDone)
+
 	} else if dev_Event == MibDownloadDone {
 		logger.Debugw("MibDownloadDone event: update dev state to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
 		//initiate DevStateUpdate
