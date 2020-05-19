@@ -36,21 +36,23 @@ import (
 
 type UniPortType uint8
 
+// UniPPTP Interface type - re-use values from G.988 TP type definition (directly used in OMCI!)
 const (
-	// Uni Interface type
-	UniPPTP UniPortType = 0 // relates to PPTP
-	UniVEIP UniPortType = 1 // relates to VEIP
+	// UniPPTP relates to PPTP
+	UniPPTP UniPortType = 1 // relates to PPTP
+	// UniPPTP relates to VEIP
+	UniVEIP UniPortType = 11 // relates to VEIP
 )
 
-//OntDeviceEntry structure holds information about the attached FSM'as and their communication
+//OnuUniPort structure holds information about the ONU attached Uni Ports
 type OnuUniPort struct {
 	enabled    bool
 	name       string
 	portNo     uint32
 	portType   UniPortType
 	ofpPortNo  string
-	uniId      uint16
-	macBpNo    uint16
+	uniId      uint8
+	macBpNo    uint8
 	entityId   uint16
 	adminState vc.AdminState_Types
 	operState  vc.OperStatus_Types
@@ -58,7 +60,7 @@ type OnuUniPort struct {
 }
 
 //NewOnuUniPort returns a new instance of a OnuUniPort
-func NewOnuUniPort(a_uniId uint16, a_portNo uint32, a_InstNo uint16,
+func NewOnuUniPort(a_uniId uint8, a_portNo uint32, a_InstNo uint16,
 	a_portType UniPortType) *OnuUniPort {
 	logger.Infow("init-onuUniPort", log.Fields{"uniId": a_uniId,
 		"portNo": a_portNo, "InstNo": a_InstNo, "type": a_portType})

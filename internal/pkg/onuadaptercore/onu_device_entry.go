@@ -100,6 +100,7 @@ type OnuDeviceEntry struct {
 	pMibDownloadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
 	//remark: general usage of pAdapterFsm would require generalization of commChan  usage and internal event setting
 	//  within the FSM event procedures
+	omciMessageReceived chan bool //seperate channel needed by DownloadFsm
 }
 
 //OnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -186,7 +187,7 @@ func NewOnuDeviceEntry(ctx context.Context,
 		},
 
 		fsm.Callbacks{
-			"enter_state":                func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
+			"enter_state":                func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
 			"enter_starting":             func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
 			"enter_loading_mib_template": func(e *fsm.Event) { onuDeviceEntry.enterLoadingMibTemplateState(e) },
 			"enter_uploading":            func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
@@ -206,20 +207,32 @@ func NewOnuDeviceEntry(ctx context.Context,
 
 			{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
 
-			{Name: "download_mib", Src: []string{"starting"}, Dst: "downloading"},
+			{Name: "create_gal", Src: []string{"starting"}, Dst: "creatingGal"},
+			{Name: "rx_gal_resp", Src: []string{"creatingGal"}, Dst: "settingOnu2g"},
+			{Name: "rx_onu2g_resp", Src: []string{"settingOnu2g"}, Dst: "bridgeInit"},
+			// the bridge state is used for multi ME config for alle UNI related ports
+			// maybe such could be reflected in the state machine as well (port number parametrized)
+			// but that looks not straightforward here - so we keep it simple here for the beginning(?)
+			{Name: "rx_bridge_resp", Src: []string{"bridgeInit"}, Dst: "downloaded"},
 
-			{Name: "success", Src: []string{"downloading"}, Dst: "downloaded"},
+			{Name: "timeout_simple", Src: []string{"creatingGal", "settingOnu2g"}, Dst: "starting"},
+			{Name: "timeout_bridge", Src: []string{"bridgeInit"}, Dst: "starting"},
 
-			{Name: "timeout", Src: []string{"downloading"}, Dst: "starting"},
-
-			{Name: "restart", Src: []string{"starting", "downloading", "downloaded"}, Dst: "disabled"},
+			{Name: "reset", Src: []string{"starting", "creatingGal", "settingOnu2g",
+				"bridgeInit", "downloaded"}, Dst: "resetting"},
+			// exceptional treatment for all states except "resetting"
+			{Name: "restart", Src: []string{"starting", "creatingGal", "settingOnu2g",
+				"bridgeInit", "downloaded", "resetting"}, Dst: "disabled"},
 		},
 
 		fsm.Callbacks{
-			"enter_state":       func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
-			"enter_starting":    func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
-			"enter_downloading": func(e *fsm.Event) { onuDeviceEntry.enterDownloadingState(e) },
-			"enter_downloaded":  func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
+			"enter_state":        func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
+			"enter_starting":     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
+			"enter_creatingGal":  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(e) },
+			"enter_settingOnu2g": func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(e) },
+			"enter_bridgeInit":   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(e) },
+			"enter_downloaded":   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
+			"enter_resetting":    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(e) },
 		},
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
