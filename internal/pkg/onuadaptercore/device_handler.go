@@ -802,7 +802,7 @@ func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 		unigMap, ok := dh.GetOnuDeviceEntry().pOnuDB.meDb[me.UniGClassID]
 		unigInstKeys := dh.GetOnuDeviceEntry().pOnuDB.GetSortedInstKeys(unigMap)
 		if ok {
-			i := uint16(0)
+			i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
 			for _, mgmtEntityId := range unigInstKeys {
 				logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID, "UnigMe EntityID": mgmtEntityId})
 				dh.addUniPort(mgmtEntityId, i, UniPPTP)
@@ -821,19 +821,20 @@ func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 			if pMibDlFsm.Is("disabled") {
 				if err := pMibDlFsm.Event("start"); err != nil {
 					logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
-					// maybe try a FSM restart and then again ... - TODO!!!
+					// maybe try a FSM reset and then again ... - TODO!!!
 				} else {
 					logger.Debug("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
 					// maybe use more specific states here for the specific download steps ...
-					if err := pMibDlFsm.Event("download_mib"); err != nil {
-						logger.Errorw("MibDownloadFsm: Can't go to state downloading", log.Fields{"err": err})
+					if err := pMibDlFsm.Event("create_gal"); err != nil {
+						logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"err": err})
 					} else {
 						logger.Debug("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
-						//Begin MIB data download
+						//Begin MIB data download (running autonomously)
 					}
 				}
 			} else {
 				logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current())})
+				// maybe try a FSM reset and then again ... - TODO!!!
 			}
 			/***** Mib download started */
 		} else {
@@ -841,7 +842,8 @@ func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 		}
 
 		//shortcut code to fake download-done!!!:  TODO!!! to be removed with complete DL FSM
-		go dh.GetOnuDeviceEntry().transferSystemEvent(MibDownloadDone)
+		//- removed now - should be generated out of the FSM now
+		//go dh.GetOnuDeviceEntry().transferSystemEvent(MibDownloadDone)
 
 	} else if dev_Event == MibDownloadDone {
 		logger.Debugw("MibDownloadDone event: update dev state to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
@@ -865,7 +867,7 @@ func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
 	}
 }
 
-func (dh *DeviceHandler) addUniPort(a_uniInstNo uint16, a_uniId uint16, a_portType UniPortType) {
+func (dh *DeviceHandler) addUniPort(a_uniInstNo uint16, a_uniId uint8, a_portType UniPortType) {
 	// parameters are IntfId, OnuId, uniId
 	uniNo := MkUniPortNum(dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(),
 		uint32(a_uniId))

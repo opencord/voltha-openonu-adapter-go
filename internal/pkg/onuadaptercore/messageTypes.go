@@ -44,6 +44,7 @@ type Message struct {
 
 const (
 	AnyTriggerForMibSyncUploadMib = 0
+	AbortMessageProcessing        = 1
 )
 
 //TODO: place holder to have a second interface variant - to be replaced by real variant later on
