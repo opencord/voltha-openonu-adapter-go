@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "20703ebb_59d901ad",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-19T16:13:24Z",
+      "side": 1,
+      "message": "there is no need to increment a `-dev` version as no artifacts are tagged with it. If you want to differentiate between different -dev versions you can use \"-dev0, -dev1, ...\"\n\nMore info here: https://guide.opencord.org/developer/versioning.html",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 10
+      },
+      "revId": "dd23cc21d6552bf7971f2f0d3399ffc7d403152f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f088774a_b6e1d214",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 820,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-19T16:13:24Z",
+      "side": 1,
+      "message": "is there a possibility to arrive here without having a state machine?",
+      "range": {
+        "startLine": 820,
+        "startChar": 2,
+        "endLine": 820,
+        "endChar": 23
+      },
+      "revId": "dd23cc21d6552bf7971f2f0d3399ffc7d403152f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
