@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "5ef1488b_9358a08b",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-05-20T08:45:51Z",
+      "side": 1,
+      "message": "We are going to consider to define constants for these strings during next refactoring cycle.",
+      "parentUuid": "706d7541_739c24f3",
+      "range": {
+        "startLine": 78,
+        "startChar": 23,
+        "endLine": 78,
+        "endChar": 30
+      },
+      "revId": "ef754849d7d49afb9e760493a93a7c25507e39b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2df0fa17_2e24f842",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 1
@@ -71,6 +95,30 @@
     },
     {
       "key": {
+        "uuid": "ccf02c51_f4e7a647",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-05-20T08:45:51Z",
+      "side": 1,
+      "message": "see previous comment",
+      "parentUuid": "2df0fa17_2e24f842",
+      "range": {
+        "startLine": 101,
+        "startChar": 22,
+        "endLine": 101,
+        "endChar": 32
+      },
+      "revId": "ef754849d7d49afb9e760493a93a7c25507e39b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b6b3a1be_01c2b5d5",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 1
@@ -82,6 +130,30 @@
       "writtenOn": "2020-05-19T14:42:19Z",
       "side": 1,
       "message": "is this a constant already defined that we can use somewhere ? if not extract tit and re-use it",
+      "range": {
+        "startLine": 119,
+        "startChar": 46,
+        "endLine": 119,
+        "endChar": 55
+      },
+      "revId": "ef754849d7d49afb9e760493a93a7c25507e39b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dfd1841f_49a0f468",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-05-20T08:45:51Z",
+      "side": 1,
+      "message": "see previous comment",
+      "parentUuid": "b6b3a1be_01c2b5d5",
       "range": {
         "startLine": 119,
         "startChar": 46,
@@ -128,6 +200,30 @@
       "writtenOn": "2020-05-19T14:42:19Z",
       "side": 1,
       "message": "should we also return the error ?",
+      "range": {
+        "startLine": 746,
+        "startChar": 3,
+        "endLine": 746,
+        "endChar": 13
+      },
+      "revId": "ef754849d7d49afb9e760493a93a7c25507e39b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8e11ab5c_e958c5ae",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 746,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-05-20T08:45:51Z",
+      "side": 1,
+      "message": "The nil-pointer to *me.ManagedEntity documents the error to the caller.",
+      "parentUuid": "aca71b35_89b8d853",
       "range": {
         "startLine": 746,
         "startChar": 3,
