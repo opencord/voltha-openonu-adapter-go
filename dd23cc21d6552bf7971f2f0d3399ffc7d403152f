@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3795431c_8c0dc0dd",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-05-20T09:18:20Z",
+      "side": 1,
+      "message": "Ok, understood. We are going to fall-back to version 0.0.1-dev\u003cpost-def-version\u003e for the next delivery and use the \"post-dev-version\" for our internal version control until the first official version will be released.",
+      "parentUuid": "20703ebb_59d901ad",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 10
+      },
+      "revId": "dd23cc21d6552bf7971f2f0d3399ffc7d403152f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f088774a_b6e1d214",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
