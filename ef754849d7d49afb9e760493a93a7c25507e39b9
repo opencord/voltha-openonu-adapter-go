@@ -72,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "ba3b894e_928e18ec",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-05-20T16:04:04Z",
+      "side": 1,
+      "message": "related story has been defined: https://jira.opencord.org/browse/VOL-3119",
+      "parentUuid": "5ef1488b_9358a08b",
+      "range": {
+        "startLine": 78,
+        "startChar": 23,
+        "endLine": 78,
+        "endChar": 30
+      },
+      "revId": "ef754849d7d49afb9e760493a93a7c25507e39b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2df0fa17_2e24f842",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 1
