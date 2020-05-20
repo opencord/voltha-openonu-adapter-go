@@ -45,6 +45,30 @@
       "revId": "dd23cc21d6552bf7971f2f0d3399ffc7d403152f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6cc4c023_5a66ab0c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 820,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-20T08:37:13Z",
+      "side": 1,
+      "message": "Of course there always is - but just in rare cases like memory leakage. So it is just more a \u0027pro-forma\u0027 check, but I would rather leave it as it is - shouldn\u0027t have too much impact on run-time...",
+      "parentUuid": "f088774a_b6e1d214",
+      "range": {
+        "startLine": 820,
+        "startChar": 2,
+        "endLine": 820,
+        "endChar": 23
+      },
+      "revId": "dd23cc21d6552bf7971f2f0d3399ffc7d403152f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
