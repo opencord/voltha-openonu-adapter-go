@@ -287,6 +287,34 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	return nil
 }
 
+func (dh *DeviceHandler) DisableDevice(device *voltha.Device) {
+	logger.Debug("disable-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	// and disable port
+	// yield self.disable_ports(lock_ports=True, device_disabled=True)
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "OmciAdminLock"); err != nil {
+		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	}
+
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
+		voltha.OperStatus_UNKNOWN); err != nil {
+		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	}
+}
+
+func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
+	logger.Debug("reenable-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
+		voltha.OperStatus_ACTIVE); err != nil {
+		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	}
+
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "InitialMibDownloaded"); err != nil {
+		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	}
+	// and enable port
+	// yield self.enable_ports(device)
+}
+
 func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
 	portNo int64) (*ic.PortCapability, error) {
 	logger.Debugw("GetOfpPortInfo start", log.Fields{"deviceID": device.Id, "portNo": portNo})
