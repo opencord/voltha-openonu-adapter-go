@@ -226,12 +226,24 @@ func (oo *OpenONUAC) Abandon_device(device *voltha.Device) error {
 
 //Disable_device disables the given device
 func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
-	return errors.New("unImplemented")
+	logger.Debug("Disable_device", device.Id)
+	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+		go handler.DisableDevice(device)
+		return nil
+	}
+	logger.Warn("no handler found for reenable device 'device.Id'")
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Reenable_device enables the olt device after disable
 func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
-	return errors.New("unImplemented")
+	logger.Debug("Reenable_device", device.Id)
+	if handler:= oo.getDeviceHandler(device.Id); handler != nil {
+        go handler.ReenableDevice(device)
+        return nil
+	}
+	logger.Warn("no handler found for reenable device 'device.Id'")
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Reboot_device reboots the given device
