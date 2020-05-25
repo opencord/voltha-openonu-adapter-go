@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "30fb6c28_2348c3cc",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-25T12:56:33Z",
+      "side": 1,
+      "message": "disable port? This is in accordance with Python adapter code. But is there no device specific activity? So the assumption of the device enable/disable activity is just to enable/disable the ONU Ports?",
+      "revId": "fce57b1dfd2e509a5f6caffae579c2ea13493de3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a5304534_d397353c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 299,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-25T12:56:33Z",
+      "side": 1,
+      "message": "This is according to python adapter code. So for teh Moment I think it is ok.\nBut generally the ConnStatus could as well be \u0027Unknown\u0027 or \u0027Unreachable\u0027 (which would require acc. state storage within the handler) and the OperStatus could as well be \u0027Discovered\u0027 or \u0027Activating\u0027",
+      "revId": "fce57b1dfd2e509a5f6caffae579c2ea13493de3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e73ba36d_528e829f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-25T12:56:33Z",
+      "side": 1,
+      "message": "I am not sure, if the given ConnStatus and OperStatus is sufficient here. For fist implementation it may be ok.",
+      "revId": "fce57b1dfd2e509a5f6caffae579c2ea13493de3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "25765c68_fad2ea6d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 312,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-25T12:56:33Z",
+      "side": 1,
+      "message": "MibDownloaded is not necessarily the correct state - depends on configuration history.",
+      "revId": "fce57b1dfd2e509a5f6caffae579c2ea13493de3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "783bf635_3ea8ec7d",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-25T12:56:33Z",
+      "side": 1,
+      "message": "Perhaps better uses Warnw with logfields for device.Id",
+      "revId": "fce57b1dfd2e509a5f6caffae579c2ea13493de3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "587befd8_ea702a9a",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-05-25T12:56:33Z",
+      "side": 1,
+      "message": "see above: Perhaps better uses Warnw with logfields for device.Id",
+      "revId": "fce57b1dfd2e509a5f6caffae579c2ea13493de3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
