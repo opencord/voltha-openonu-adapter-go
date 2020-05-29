@@ -195,7 +195,8 @@ func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) 
 		//   and are by now not reported to the calling party (to force what reaction there?)
 		return nil
 	}
-	logger.Warn("no handler found for received Inter-Proxy-message 'ToDeviceId'")
+	logger.Warnw("no handler found for received Inter-Proxy-message", log.Fields{
+		"msgToDeviceId": targetDevice})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
 }
 
@@ -226,23 +227,23 @@ func (oo *OpenONUAC) Abandon_device(device *voltha.Device) error {
 
 //Disable_device disables the given device
 func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
-	logger.Debug("Disable_device", device.Id)
+	logger.Debugw("Disable_device", log.Fields{"deviceId": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		go handler.DisableDevice(device)
 		return nil
 	}
-	logger.Warn("no handler found for reenable device 'device.Id'")
+	logger.Warnw("no handler found for device-disable", log.Fields{"deviceId": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
-//Reenable_device enables the olt device after disable
+//Reenable_device enables the onu device after disable
 func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
-	logger.Debug("Reenable_device", device.Id)
+	logger.Debugw("Reenable_device", log.Fields{"deviceId": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		go handler.ReenableDevice(device)
 		return nil
 	}
-	logger.Warn("no handler found for reenable device 'device.Id'")
+	logger.Warnw("no handler found for device-reenable", log.Fields{"deviceId": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
@@ -251,7 +252,7 @@ func (oo *OpenONUAC) Reboot_device(device *voltha.Device) error {
 	return errors.New("unImplemented")
 }
 
-//Self_test_device unimplented
+//Self_test_device unimplemented
 func (oo *OpenONUAC) Self_test_device(device *voltha.Device) error {
 	return errors.New("unImplemented")
 }
@@ -321,18 +322,13 @@ func (oo *OpenONUAC) Revert_image_update(device *voltha.Device, request *voltha.
 	return nil, errors.New("unImplemented")
 }
 
-// Enable_port to Enable PON/NNI interface
+// Enable_port to Enable PON/NNI interface - seems not to be used/required according to python code
 func (oo *OpenONUAC) Enable_port(deviceID string, port *voltha.Port) error {
 	return errors.New("unImplemented")
 }
 
-// Disable_port to Disable pon/nni interface
+// Disable_port to Disable pon/nni interface  - seems not to be used/required according to python code
 func (oo *OpenONUAC) Disable_port(deviceID string, port *voltha.Port) error {
-	return errors.New("unImplemented")
-}
-
-// enableDisablePort to Disable pon or Enable PON interface
-func (oo *OpenONUAC) enableDisablePort(deviceID string, port *voltha.Port, enablePort bool) error {
 	return errors.New("unImplemented")
 }
 

@@ -19,18 +19,26 @@ package adaptercoreonu
 
 import (
 	"context"
-	//"errors"
+	"errors"
+
 	//"sync"
 	//"time"
 
 	"github.com/looplab/fsm"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v3/pkg/db"
 
 	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
 	//"github.com/opencord/voltha-protos/v3/go/openflow_13"
 	//"github.com/opencord/voltha-protos/v3/go/voltha"
+)
+
+const (
+	KvstoreTimeout             = 5 //in seconds
+	BasePathMibTemplateKvStore = "service/voltha/omci_mibs/templates"
+	SuffixMibTemplateKvStore   = "%s/%s/%s"
 )
 
 type OnuDeviceEvent int
@@ -41,8 +49,11 @@ const (
 	MibDatabaseSync      OnuDeviceEvent = 1 // MIB database sync (upload done)
 	OmciCapabilitiesDone OnuDeviceEvent = 2 // OMCI ME and message type capabilities known
 	MibDownloadDone      OnuDeviceEvent = 3 // MIB database sync (upload done)
-	PortLinkUp           OnuDeviceEvent = 4 // Port link state change
-	PortLinkDw           OnuDeviceEvent = 5 // Port link state change
+	UniLockStateDone     OnuDeviceEvent = 4 // Uni ports admin set to lock
+	UniUnlockStateDone   OnuDeviceEvent = 5 // Uni ports admin set to unlock
+	UniAdminStateDone    OnuDeviceEvent = 6 // Uni ports admin set done - general
+	PortLinkUp           OnuDeviceEvent = 7 // Port link state change
+	PortLinkDw           OnuDeviceEvent = 8 // Port link state change
 	// Add other events here as needed (alarms separate???)
 )
 
@@ -78,25 +89,29 @@ func (oo *AdapterFsm) logFsmStateChange(e *fsm.Event) {
 
 //OntDeviceEntry structure holds information about the attached FSM'as and their communication
 type OnuDeviceEntry struct {
-	deviceID          string
-	baseDeviceHandler *DeviceHandler
-	coreProxy         adapterif.CoreProxy
-	adapterProxy      adapterif.AdapterProxy
-	started           bool
-	PDevOmciCC        *OmciCC
-	pOnuDB            *OnuDeviceDB
+	deviceID           string
+	baseDeviceHandler  *DeviceHandler
+	coreProxy          adapterif.CoreProxy
+	adapterProxy       adapterif.AdapterProxy
+	started            bool
+	PDevOmciCC         *OmciCC
+	pOnuDB             *OnuDeviceDB
+	mibTemplateKVStore *db.Backend
+	vendorID           string
+	serialNumber       string
+	equipmentID        string
+	activeSwVersion    string
+	macAddress         string
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func() error
 	supportedFsms OmciDeviceFsms
 	devState      OnuDeviceEvent
 	// for mibUpload
 	mibAuditDelay uint16
-	//MibSyncFsm    *fsm.FSM
-	//MibSyncChan   chan Message
+
+	// for mibUpload
 	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
 	// for mibDownload
-	//MibDownloadFsm  *fsm.FSM
-	//MibDownloadChan chan Message
 	pMibDownloadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
 	//remark: general usage of pAdapterFsm would require generalization of commChan  usage and internal event setting
 	//  within the FSM event procedures
@@ -105,8 +120,7 @@ type OnuDeviceEntry struct {
 
 //OnuDeviceEntry returns a new instance of a OnuDeviceEntry
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
-func NewOnuDeviceEntry(ctx context.Context,
-	device_id string, device_Handler *DeviceHandler,
+func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string, kVStorePort int, kvStoreType string, device_Handler *DeviceHandler,
 	core_proxy adapterif.CoreProxy, adapter_proxy adapterif.AdapterProxy,
 	supported_Fsms_Ptr *OmciDeviceFsms) *OnuDeviceEntry {
 	logger.Infow("init-onuDeviceEntry", log.Fields{"deviceId": device_id})
@@ -240,6 +254,11 @@ func NewOnuDeviceEntry(ctx context.Context,
 		// some specifc error treatment - or waiting for crash ???
 	}
 
+	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.SetKVClient(kvStoreType, kVStoreHost, kVStorePort, BasePathMibTemplateKvStore)
+	if onuDeviceEntry.mibTemplateKVStore == nil {
+		logger.Error("Failed to setup mibTemplateKVStore")
+	}
+
 	// Alarm Synchronization Database
 	//self._alarm_db = None
 	//self._alarm_database_cls = support_classes['alarm-synchronizer']['database']
@@ -252,11 +271,13 @@ func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 
 	oo.PDevOmciCC = NewOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
 		oo.coreProxy, oo.adapterProxy)
+	if oo.PDevOmciCC == nil {
+		logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device": oo.deviceID})
+		return errors.New("Could not create devOmciCc")
+	}
 
-	//TODO .....
-	//mib_db.start()
 	oo.started = true
-	logger.Info("OnuDeviceEntry-started, but not yet mib_db!!!")
+	logger.Info("OnuDeviceEntry-started")
 	return nil
 }
 
@@ -277,7 +298,7 @@ func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
 	if dev_Event == MibDatabaseSync {
 		if oo.devState < MibDatabaseSync { //devState has not been synced yet
 			oo.devState = MibDatabaseSync
-			go oo.baseDeviceHandler.DeviceStateUpdate(dev_Event)
+			go oo.baseDeviceHandler.DeviceProcStatusUpdate(dev_Event)
 			//TODO!!! device control: next step: start MIB capability verification from here ?!!!
 		} else {
 			logger.Debugw("mibinsync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
@@ -285,7 +306,7 @@ func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
 	} else if dev_Event == MibDownloadDone {
 		if oo.devState < MibDownloadDone { //devState has not been synced yet
 			oo.devState = MibDownloadDone
-			go oo.baseDeviceHandler.DeviceStateUpdate(dev_Event)
+			go oo.baseDeviceHandler.DeviceProcStatusUpdate(dev_Event)
 		} else {
 			logger.Debugw("mibdownloaddone-event was already seen - ignored", log.Fields{"state": oo.devState})
 		}
