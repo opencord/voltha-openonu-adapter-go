@@ -73,7 +73,10 @@ func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, exec_Channel cha
 		// without yet checking the received response automatically here (might be improved ??)
 		tid := oo.pDevOmciCC.GetNextTid(false)
 		onu2gBaseGet, _ := oo.CreateOnu2gBaseGet(tid)
-		omciRxCallbackPair := CallbackPair{tid, oo.ReceiveOmciVerifyResponse}
+		omciRxCallbackPair := CallbackPair{
+			cbKey:   tid,
+			cbEntry: CallbackPairEntry{nil, oo.ReceiveOmciVerifyResponse},
+		}
 
 		logger.Debugw("performOmciTest-start sending frame", log.Fields{"for deviceId": oo.deviceID})
 		// send with default timeout and normal prio
@@ -109,8 +112,8 @@ func (oo *OmciTestRequest) CreateOnu2gBaseGet(tid uint16) ([]byte, error) {
 	return pkt, nil
 }
 
-//supply a response handler
-func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(omciMsg *omci.OMCI, packet *gp.Packet) error {
+//supply a response handler - in this testobject the message is evaluated directly, no response channel used
+func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
 
 	logger.Debugw("verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": omciMsg.TransactionID, "DeviceIdent": omciMsg.DeviceIdentifier})

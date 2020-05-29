@@ -22,11 +22,11 @@ import (
 	"github.com/opencord/omci-lib-go"
 )
 
-type MessageType int
+type MessageType uint8
 
 const (
-	TestMsg MessageType = 0
-	OMCI    MessageType = 1
+	TestMsg MessageType = iota
+	OMCI
 )
 
 func (m MessageType) String() string {
@@ -42,14 +42,19 @@ type Message struct {
 	Data interface{}
 }
 
+type TestMessageType uint8
+
 const (
-	AnyTriggerForMibSyncUploadMib = 0
-	AbortMessageProcessing        = 1
+	noOperation TestMessageType = iota
+	LoadMibTemplateOk
+	LoadMibTemplateFailed
+	TimeOutOccurred
+	AbortMessageProcessing
 )
 
 //TODO: place holder to have a second interface variant - to be replaced by real variant later on
 type TestMessage struct {
-	TestMessageVal uint32
+	TestMessageVal TestMessageType
 }
 
 type OmciMessage struct {

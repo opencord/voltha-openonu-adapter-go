@@ -92,9 +92,9 @@ type DeviceHandler struct {
 	exitChannel     chan int
 	lockDevice      sync.RWMutex
 	pOnuIndication  *oop.OnuIndication
+	pLockStateFsm   *LockStateFsm
+	pUnlockStateFsm *LockStateFsm
 
-	//Client        oop.OpenoltClient
-	//clientCon     *grpc.ClientConn
 	//flowMgr       *OpenOltFlowMgr
 	//eventMgr      *OpenOltEventMgr
 	//resourceMgr   *rsrcMgr.OpenOltResourceMgr
@@ -174,12 +174,12 @@ func (dh *DeviceHandler) stop(ctx context.Context) {
 func (dh *DeviceHandler) AdoptDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw("Adopt_device", log.Fields{"deviceID": device.Id, "Address": device.GetHostAndPort()})
 
-	logger.Debug("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
+	logger.Debugw("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
 	if dh.pDeviceStateFsm.Is("null") {
 		if err := dh.pDeviceStateFsm.Event("DeviceInit"); err != nil {
 			logger.Errorw("Device FSM: Can't go to state DeviceInit", log.Fields{"err": err})
 		}
-		logger.Debug("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
+		logger.Debugw("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
 	} else {
 		logger.Debug("AdoptDevice: Agent/device init already done")
 	}
@@ -287,32 +287,52 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 	return nil
 }
 
+//DisableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
 func (dh *DeviceHandler) DisableDevice(device *voltha.Device) {
-	logger.Debug("disable-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
-	// and disable port
-	// yield self.disable_ports(lock_ports=True, device_disabled=True)
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "OmciAdminLock"); err != nil {
-		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	logger.Debugw("disable-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+
+	// disable UNI ports/ONU
+	// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
+	//     here the result of the processing is not checked (trusted in background) *****
+	if dh.pLockStateFsm == nil {
+		dh.createUniLockFsm(true, UniAdminStateDone)
+	} else { //LockStateFSM already init
+		dh.pLockStateFsm.SetSuccessEvent(UniAdminStateDone)
+		dh.runUniLockFsm(true)
 	}
 
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
+		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	}
+	// TODO!!! ConnectStatus and OperStatus to be set here could be more accurate, for now just ...
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
 		voltha.OperStatus_UNKNOWN); err != nil {
 		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
 	}
 }
 
+//ReenableDevice unlocks the ONU and its UNI/VEIP ports (admin unlock via OMCI)
 func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
-	logger.Debug("reenable-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	logger.Debugw("reenable-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	// TODO!!! ConnectStatus and OperStatus to be set here could be more accurate, for now just ...
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
 		voltha.OperStatus_ACTIVE); err != nil {
 		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
 	}
 
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "InitialMibDownloaded"); err != nil {
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
 		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
 	}
-	// and enable port
-	// yield self.enable_ports(device)
+
+	// enable ONU/UNI ports
+	// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
+	//     here the result of the processing is not checked (trusted in background) *****
+	if dh.pUnlockStateFsm == nil {
+		dh.createUniLockFsm(false, UniAdminStateDone)
+	} else { //UnlockStateFSM already init
+		dh.pLockStateFsm.SetSuccessEvent(UniAdminStateDone)
+		dh.runUniLockFsm(false)
+	}
 }
 
 func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
@@ -627,7 +647,8 @@ func (dh *DeviceHandler) Add_OnuDeviceEntry(ctx context.Context) error {
 		   we omit that here first (declaration unclear) -> todo at Adapter specialization ...*/
 		/* also no 'clock' argument - usage open ...*/
 		/* and no alarm_db yet (oo.alarm_db)  */
-		deviceEntry = NewOnuDeviceEntry(ctx, dh.deviceID, dh, dh.coreProxy, dh.AdapterProxy,
+		deviceEntry = NewOnuDeviceEntry(ctx, dh.deviceID, dh.pOpenOnuAc.KVStoreHost, dh.pOpenOnuAc.KVStorePort, dh.pOpenOnuAc.KVStoreType,
+			dh, dh.coreProxy, dh.AdapterProxy,
 			dh.pOpenOnuAc.pSupportedFsms) //nil as FSM pointer would yield deviceEntry internal defaults ...
 		//error treatment possible //TODO!!!
 		dh.SetOnuDeviceEntry(deviceEntry)
@@ -767,36 +788,17 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
 				return errors.New("Can't go to state starting")
 			} else {
-				logger.Debug("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
+				logger.Debugw("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 				//Determine ONU status and start/re-start MIB Synchronization tasks
 				//Determine if this ONU has ever synchronized
 				if true { //TODO: insert valid check
 					if err := pMibUlFsm.Event("load_mib_template"); err != nil {
 						logger.Errorw("MibSyncFsm: Can't go to state loading_mib_template", log.Fields{"err": err})
 						return errors.New("Can't go to state loading_mib_template")
-					} else {
-						logger.Debug("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
-						//Find and load a mib template. If not found proceed with mib_upload
-						// callbacks to be handled:
-						// Event("success")
-						// Event("timeout")
-						//no mib template found
-						if true { //TODO: insert valid check
-							if err := pMibUlFsm.Event("upload_mib"); err != nil {
-								logger.Errorw("MibSyncFsm: Can't go to state uploading", log.Fields{"err": err})
-								return errors.New("Can't go to state uploading")
-							} else {
-								logger.Debug("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
-								//Begin full MIB data upload, starting with a MIB RESET
-								// callbacks to be handled:
-								// success: e.Event("success")
-								// failure: e.Event("timeout")
-							}
-						}
 					}
 				} else {
 					pMibUlFsm.Event("examine_mds")
-					logger.Debug("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
+					logger.Debugw("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 					//Examine the MIB Data Sync
 					// callbacks to be handled:
 					// Event("success")
@@ -819,75 +821,122 @@ func (dh *DeviceHandler) update_interface(onuind *oop.OnuIndication) error {
 	return nil
 }
 
-func (dh *DeviceHandler) DeviceStateUpdate(dev_Event OnuDeviceEvent) {
-	if dev_Event == MibDatabaseSync {
-		logger.Debugw("MibInSync event: update dev state to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
-		//initiate DevStateUpdate
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
-			logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{"deviceID": dh.deviceID, "error": err})
-		}
-
-		unigMap, ok := dh.GetOnuDeviceEntry().pOnuDB.meDb[me.UniGClassID]
-		unigInstKeys := dh.GetOnuDeviceEntry().pOnuDB.GetSortedInstKeys(unigMap)
-		if ok {
-			i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
-			for _, mgmtEntityId := range unigInstKeys {
-				logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID, "UnigMe EntityID": mgmtEntityId})
-				dh.addUniPort(mgmtEntityId, i, UniPPTP)
-				i++
+func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
+	switch dev_Event {
+	case MibDatabaseSync:
+		{
+			logger.Infow("MibInSync event: update dev state to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
+			//initiate DevStateUpdate
+			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
+				logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{
+					"deviceID": dh.deviceID, "error": err})
 			}
-		} else {
-			logger.Warnw("No UniG instances found!", log.Fields{"deviceId": dh.GetOnuDeviceEntry().deviceID})
-		}
 
-		/*  real Mib download procedure could look somthing like this:
-		 ***** but for the moment the FSM is still limited (sending no OMCI)  *****
-		 ***** thus never reaches 'downloaded' state                          *****
-		 */
-		pMibDlFsm := dh.GetOnuDeviceEntry().pMibDownloadFsm.pFsm
-		if pMibDlFsm != nil {
-			if pMibDlFsm.Is("disabled") {
-				if err := pMibDlFsm.Event("start"); err != nil {
-					logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
-					// maybe try a FSM reset and then again ... - TODO!!!
-				} else {
-					logger.Debug("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
-					// maybe use more specific states here for the specific download steps ...
-					if err := pMibDlFsm.Event("create_gal"); err != nil {
-						logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"err": err})
-					} else {
-						logger.Debug("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
-						//Begin MIB data download (running autonomously)
-					}
+			unigMap, ok := dh.GetOnuDeviceEntry().pOnuDB.meDb[me.UniGClassID]
+			unigInstKeys := dh.GetOnuDeviceEntry().pOnuDB.GetSortedInstKeys(unigMap)
+			i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
+			if ok {
+				for _, mgmtEntityId := range unigInstKeys {
+					logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{
+						"deviceId": dh.deviceID, "UnigMe EntityID": mgmtEntityId})
+					dh.addUniPort(mgmtEntityId, i, UniPPTP)
+					i++
 				}
 			} else {
-				logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current())})
-				// maybe try a FSM reset and then again ... - TODO!!!
+				logger.Debugw("No UniG instances found", log.Fields{"deviceId": dh.deviceID})
 			}
-			/***** Mib download started */
-		} else {
-			logger.Errorw("MibDownloadFsm invalid - cannot be executed!!", log.Fields{"deviceID": dh.deviceID})
-		}
-	} else if dev_Event == MibDownloadDone {
-		logger.Debugw("MibDownloadDone event: update dev state to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
-		//initiate DevStateUpdate
-		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
-			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
-			logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
-		}
-		logger.Debug("MibDownloadDone Event: update dev reason to 'initial-mib-downloaded'")
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
-			logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
-				log.Fields{"deviceID": dh.deviceID, "error": err})
-		}
+			veipMap, ok := dh.GetOnuDeviceEntry().pOnuDB.meDb[me.VirtualEthernetInterfacePointClassID]
+			veipInstKeys := dh.GetOnuDeviceEntry().pOnuDB.GetSortedInstKeys(veipMap)
+			if ok {
+				for _, mgmtEntityId := range veipInstKeys {
+					logger.Debugw("Add VEIP acc. to stored VEIP instance:", log.Fields{
+						"deviceId": dh.deviceID, "VEIP EntityID": mgmtEntityId})
+					dh.addUniPort(mgmtEntityId, i, UniVEIP)
+					i++
+				}
+			} else {
+				logger.Debugw("No VEIP instances found", log.Fields{"deviceId": dh.deviceID})
+			}
+			if i == 0 {
+				logger.Warnw("No PPTP instances found", log.Fields{"deviceId": dh.deviceID})
+			}
 
-		go dh.enableUniPortStateUpdate(dh.deviceID) //cmp python yield self.enable_ports()
+			// Init Uni Ports to Admin locked state
+			// maybe not really needed here as UNI ports should be locked by default, but still left as available in python code
+			// *** should generate UniLockStateDone event *****
+			if dh.pLockStateFsm == nil {
+				dh.createUniLockFsm(true, UniLockStateDone)
+			} else { //LockStateFSM already init
+				dh.pLockStateFsm.SetSuccessEvent(UniLockStateDone)
+				dh.runUniLockFsm(true)
+			}
+		}
+	case UniLockStateDone:
+		{
+			logger.Infow("UniLockStateDone event: Starting MIB download", log.Fields{"deviceID": dh.deviceID})
+			/*  Mib download procedure -
+			***** should run over 'downloaded' state and generate MibDownloadDone event *****
+			 */
+			pMibDlFsm := dh.GetOnuDeviceEntry().pMibDownloadFsm.pFsm
+			if pMibDlFsm != nil {
+				if pMibDlFsm.Is("disabled") {
+					if err := pMibDlFsm.Event("start"); err != nil {
+						logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
+						// maybe try a FSM reset and then again ... - TODO!!!
+					} else {
+						logger.Debugw("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
+						// maybe use more specific states here for the specific download steps ...
+						if err := pMibDlFsm.Event("create_gal"); err != nil {
+							logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"err": err})
+						} else {
+							logger.Debugw("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
+							//Begin MIB data download (running autonomously)
+						}
+					}
+				} else {
+					logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current())})
+					// maybe try a FSM reset and then again ... - TODO!!!
+				}
+				/***** Mib download started */
+			} else {
+				logger.Errorw("MibDownloadFsm invalid - cannot be executed!!", log.Fields{"deviceID": dh.deviceID})
+			}
+		}
+	case MibDownloadDone:
+		{
+			logger.Infow("MibDownloadDone event: update dev state to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
+			//initiate DevStateUpdate
+			if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
+				voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
+				logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+			}
+			logger.Debug("MibDownloadDone Event: update dev reason to 'initial-mib-downloaded'")
+			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
+				logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
+					log.Fields{"deviceID": dh.deviceID, "error": err})
+			}
 
-		raisedTs := time.Now().UnixNano()
-		go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
-	} else {
-		logger.Warnw("unhandled-device-event", log.Fields{"deviceID": dh.deviceID, "event": dev_Event})
-	}
+			// *** should generate UniUnlockStateDone event *****
+			if dh.pUnlockStateFsm == nil {
+				dh.createUniLockFsm(false, UniUnlockStateDone)
+			} else { //UnlockStateFSM already init
+				dh.pUnlockStateFsm.SetSuccessEvent(UniUnlockStateDone)
+				dh.runUniLockFsm(false)
+			}
+		}
+	case UniUnlockStateDone:
+		{
+			go dh.enableUniPortStateUpdate(dh.deviceID) //cmp python yield self.enable_ports()
+
+			logger.Infow("UniUnlockStateDone event: Sending OnuUp event", log.Fields{"deviceID": dh.deviceID})
+			raisedTs := time.Now().UnixNano()
+			go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
+		}
+	default:
+		{
+			logger.Warnw("unhandled-device-event", log.Fields{"deviceID": dh.deviceID, "event": dev_Event})
+		}
+	} //switch
 }
 
 func (dh *DeviceHandler) addUniPort(a_uniInstNo uint16, a_uniId uint8, a_portType UniPortType) {
@@ -920,7 +969,7 @@ func (dh *DeviceHandler) enableUniPortStateUpdate(a_deviceID string) {
 	//       # TODO: for now only support the first UNI given no requirement for multiple uni yet. Also needed to reduce flow
 	//       #  load on the core
 
-	// dh.lock_ports(false) ONU port activation via OMCI //TODO!!! not yet supported
+	// lock_ports(false) as done in py code here is shifted to separate call from devicevent processing
 
 	for uniNo, uniPort := range dh.uniEntityMap {
 		// only if this port is validated for operState transfer}
@@ -975,6 +1024,73 @@ func (dh *DeviceHandler) sendOnuOperStateEvent(a_OperState vc.OperStatus_Types, 
 	}
 	logger.Debugw("ONU_ACTIVATED event sent to KAFKA",
 		log.Fields{"DeviceId": a_deviceID, "with-EventName": de.DeviceEventName})
+}
+
+// createUniLockFsm initialises and runs the UniLock FSM to transfer teh OMCi related commands for port lock/unlock
+func (dh *DeviceHandler) createUniLockFsm(aAdminState bool, devEvent OnuDeviceEvent) {
+	chLSFsm := make(chan Message, 2048)
+	var sFsmName string
+	if aAdminState == true {
+		logger.Infow("createLockStateFSM", log.Fields{"deviceID": dh.deviceID})
+		sFsmName = "LockStateFSM"
+	} else {
+		logger.Infow("createUnlockStateFSM", log.Fields{"deviceID": dh.deviceID})
+		sFsmName = "UnLockStateFSM"
+	}
+	pLSFsm := NewLockStateFsm(dh.GetOnuDeviceEntry().PDevOmciCC, aAdminState, devEvent,
+		sFsmName, dh.deviceID, chLSFsm)
+	if pLSFsm != nil {
+		if aAdminState == true {
+			dh.pLockStateFsm = pLSFsm
+		} else {
+			dh.pUnlockStateFsm = pLSFsm
+		}
+		dh.runUniLockFsm(aAdminState)
+	} else {
+		logger.Errorw("LockStateFSM could not be created - abort!!", log.Fields{"deviceID": dh.deviceID})
+	}
+}
+
+// runUniLockFsm starts the UniLock FSM to transfer the OMCI related commands for port lock/unlock
+func (dh *DeviceHandler) runUniLockFsm(aAdminState bool) {
+	/*  Uni Port lock/unlock procedure -
+	 ***** should run via 'adminDone' state and generate the argument requested event *****
+	 */
+	var pLSStatemachine *fsm.FSM
+	if aAdminState == true {
+		pLSStatemachine = dh.pLockStateFsm.pAdaptFsm.pFsm
+		//make sure the opposite FSM is not running and if so, terminate it as not relevant anymore
+		if (dh.pUnlockStateFsm != nil) &&
+			(dh.pUnlockStateFsm.pAdaptFsm.pFsm.Current() != "disabled") {
+			dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event("reset")
+		}
+	} else {
+		pLSStatemachine = dh.pUnlockStateFsm.pAdaptFsm.pFsm
+		//make sure the opposite FSM is not running and if so, terminate it as not relevant anymore
+		if (dh.pLockStateFsm != nil) &&
+			(dh.pLockStateFsm.pAdaptFsm.pFsm.Current() != "disabled") {
+			dh.pLockStateFsm.pAdaptFsm.pFsm.Event("reset")
+		}
+	}
+	if pLSStatemachine != nil {
+		if pLSStatemachine.Is("disabled") {
+			if err := pLSStatemachine.Event("start"); err != nil {
+				logger.Warnw("LockStateFSM: can't start", log.Fields{"err": err})
+				// maybe try a FSM reset and then again ... - TODO!!!
+			} else {
+				/***** LockStateFSM started */
+				logger.Debugw("LockStateFSM started", log.Fields{
+					"state": pLSStatemachine.Current(), "deviceID": dh.deviceID})
+			}
+		} else {
+			logger.Warnw("wrong state of LockStateFSM - want: disabled", log.Fields{
+				"have": pLSStatemachine.Current(), "deviceID": dh.deviceID})
+			// maybe try a FSM reset and then again ... - TODO!!!
+		}
+	} else {
+		logger.Errorw("LockStateFSM StateMachine invalid - cannot be executed!!", log.Fields{"deviceID": dh.deviceID})
+		// maybe try a FSM reset and then again ... - TODO!!!
+	}
 }
 
 /* *********************************************************** */
