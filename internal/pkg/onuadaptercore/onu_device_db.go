@@ -21,7 +21,6 @@ import (
 	"context"
 	"sort"
 
-	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 )
@@ -46,11 +45,7 @@ func NewOnuDeviceDB(ctx context.Context, a_pOnuDeviceEntry *OnuDeviceEntry) *Onu
 	return &onuDeviceDB
 }
 
-func (onuDeviceDB *OnuDeviceDB) StoreMe(a_pMibUpResp *omci.MibUploadNextResponse) {
-
-	meClassId := a_pMibUpResp.ReportedME.GetClassID()
-	meEntityId := a_pMibUpResp.ReportedME.GetEntityID()
-	meAttributes := a_pMibUpResp.ReportedME.GetAttributeValueMap()
+func (onuDeviceDB *OnuDeviceDB) StoreMe(meClassId me.ClassID, meEntityId uint16, meAttributes me.AttributeValueMap) {
 
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassId {

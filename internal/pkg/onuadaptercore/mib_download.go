@@ -41,7 +41,6 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDLStartingState(e *fsm.Event) {
 	}
 	// start go routine for processing of MibDownload messages
 	go onuDeviceEntry.ProcessMibDownloadMessages()
-	//possibly include a further MibReset here in order to enforce reset of incomplete set data ...(TODO?)
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterCreatingGalState(e *fsm.Event) {
@@ -61,7 +60,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterSettingOnu2gState(e *fsm.Event) {
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterBridgeInitState(e *fsm.Event) {
-	logger.Debugw("MibDownload FSM - starting bridge config loop", log.Fields{
+	logger.Infow("MibDownload FSM - starting bridge config port loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	go onuDeviceEntry.performInitialBridgeSetup()
 }
@@ -86,13 +85,13 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(e *fsm.Event) {
 	pMibDlFsm := onuDeviceEntry.pMibDownloadFsm
 	if pMibDlFsm != nil {
 		// abort running message processing
-		mibSyncMsg := Message{
+		fsmAbortMsg := Message{
 			Type: TestMsg,
 			Data: TestMessage{
 				TestMessageVal: AbortMessageProcessing,
 			},
 		}
-		pMibDlFsm.commChan <- mibSyncMsg
+		pMibDlFsm.commChan <- fsmAbortMsg
 
 		//try to restart the FSM to 'disabled'
 		// see DownloadedState: decouple event transfer
@@ -206,12 +205,6 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				logger.Error("Omci Msg layer could not be assigned for SetResponse")
 				return
 			}
-			logger.Debugw("SetResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
-			if msgObj.Result != me.Success {
-				logger.Errorw("Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-				return
-			}
 			logger.Debugw("SetResponse Data", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
 				logger.Errorw("Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
@@ -233,9 +226,6 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 					//so far that was the only MibDownlad Set Element ...
 				}
 			}
-
-			// TODO!!!: further needed processing here ....
-
 		} //SetResponseType
 	default:
 		{
@@ -247,7 +237,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 
 func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 	for uniNo, uniPort := range onuDeviceEntry.baseDeviceHandler.uniEntityMap {
-		logger.Infow("Starting IntialBridgeSetup", log.Fields{
+		logger.Debugw("Starting IntialBridgeSetup", log.Fields{
 			"deviceId": onuDeviceEntry.deviceID, "for PortNo": uniNo})
 
 		//create MBSP
