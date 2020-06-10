@@ -340,7 +340,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 		}
 
 		//verify response
-		err := oFsm.WaitforOmciResponse(meInstance)
+		err := oFsm.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Errorw("PPTP Admin State set failed, aborting LockState set!",
 				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
@@ -355,12 +355,12 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 	return
 }
 
-func (oFsm *LockStateFsm) WaitforOmciResponse(a_pMeInstance *me.ManagedEntity) error {
+func (oFsm *LockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) error {
 	select {
 	// maybe be also some outside cancel (but no context modelled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-	case <-time.After(3 * time.Second):
+	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("LockStateFSM uni-set timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 		return errors.New("LockStateFsm uni-set timeout")
 	case success := <-oFsm.omciLockResponseReceived:

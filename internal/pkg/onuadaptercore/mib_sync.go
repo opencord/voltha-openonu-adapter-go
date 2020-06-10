@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/looplab/fsm"
 
@@ -95,7 +96,13 @@ func (onuDeviceEntry *OnuDeviceEntry) enterLoadingMibTemplateState(e *fsm.Event)
 	if err == nil {
 		if Value != nil {
 			logger.Debugf("MibSync FSM - MibTemplate read: Key: %s, Value: %s  %s", Value.Key, Value.Value)
-			mibTmpBytes, _ := kvstore.ToByte(Value.Value)
+
+			// swap out tokens with specific data
+			mibTmpString, _ := kvstore.ToString(Value.Value)
+			mibTmpString2 := strings.Replace(mibTmpString, "%SERIAL_NUMBER%", onuDeviceEntry.serialNumber, -1)
+			mibTmpString = strings.Replace(mibTmpString2, "%MAC_ADDRESS%", onuDeviceEntry.macAddress, -1)
+			mibTmpBytes := []byte(mibTmpString)
+			logger.Debugf("MibSync FSM - MibTemplate tokens swapped out: %s", mibTmpBytes)
 
 			var fistLevelMap map[string]interface{}
 			if err = json.Unmarshal(mibTmpBytes, &fistLevelMap); err != nil {

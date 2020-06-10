@@ -286,6 +286,7 @@ func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
 	logger.Info("stopping-OnuDeviceEntry")
 	oo.started = false
 	//oo.exitChannel <- 1
+	// maybe also the omciCC should be stopped here - for now not as no real processing is expected here - maybe needs consolidation
 	logger.Info("OnuDeviceEntry-stopped")
 	return nil
 }

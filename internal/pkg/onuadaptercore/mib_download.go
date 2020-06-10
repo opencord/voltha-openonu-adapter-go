@@ -245,7 +245,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 			context.TODO(), uniPort, ConstDefaultOmciTimeout, true)
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
 		//verify response
-		err := onuDeviceEntry.WaitforOmciResponse(meInstance)
+		err := onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at MBSP, aborting MIB Download!")
 			onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
@@ -257,7 +257,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 			context.TODO(), uniPort, ConstDefaultOmciTimeout, true)
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
 		//verify response
-		err = onuDeviceEntry.WaitforOmciResponse(meInstance)
+		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at MBPCD, aborting MIB Download!")
 			onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
@@ -269,7 +269,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 			context.TODO(), uniPort, ConstDefaultOmciTimeout, true)
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
 		//verify response
-		err = onuDeviceEntry.WaitforOmciResponse(meInstance)
+		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at EVTOCD, aborting MIB Download!")
 			onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
@@ -283,12 +283,12 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 	return
 }
 
-func (onuDeviceEntry *OnuDeviceEntry) WaitforOmciResponse(a_pMeInstance *me.ManagedEntity) error {
+func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(apMeInstance *me.ManagedEntity) error {
 	select {
 	// maybe be also some outside cancel (but no context modelled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Info("MibDownload-bridge-init message reception canceled", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-	case <-time.After(3 * time.Second):
+	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("MibDownload-bridge-init timeout", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 		return errors.New("MibDownloadBridgeInit timeout")
 	case success := <-onuDeviceEntry.omciMessageReceived:
