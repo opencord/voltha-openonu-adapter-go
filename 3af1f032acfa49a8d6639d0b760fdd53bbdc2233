@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ffc99d39_32c2b416",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-06-13T13:50:59Z",
+      "side": 1,
+      "message": "Why should we have two different reasons of the device?",
+      "range": {
+        "startLine": 428,
+        "startChar": 0,
+        "endLine": 428,
+        "endChar": 1
+      },
+      "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
