@@ -22,6 +22,30 @@
       "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b03e082c_3ec00be9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-06-15T08:25:39Z",
+      "side": 1,
+      "message": "fyi: Michael is on vacation for the next two weeks. But you are right dh.device.Reason seems to be redundant - but it does no harm. @Michael: please have a look at it, when you are back.",
+      "parentUuid": "ffc99d39_32c2b416",
+      "range": {
+        "startLine": 428,
+        "startChar": 0,
+        "endLine": 428,
+        "endChar": 1
+      },
+      "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
