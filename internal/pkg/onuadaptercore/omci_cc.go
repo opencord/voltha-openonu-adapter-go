@@ -1031,3 +1031,44 @@ func (oo *OmciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 		return nil
 	}
 }
+
+func (oo *OmciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap,
+	timeout int, highPrio bool) *me.ManagedEntity {
+
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw("send get-request-msg", log.Fields{"classID": classID, "deviceId": oo.deviceID, "SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	meParams := me.ParamData{
+		EntityID:   entityID,
+		Attributes: requestedAttributes,
+	}
+	meInstance, omciErr := me.LoadManagedEntityDefinition(classID, meParams)
+	if omciErr.GetError() == nil {
+		meClassIdName := meInstance.GetName()
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorf("Cannot encode instance for get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "deviceId": oo.deviceID})
+			return nil
+		}
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "deviceId": oo.deviceID})
+			return nil
+		}
+		omciRxCallbackPair := CallbackPair{
+			cbKey:   tid,
+			cbEntry: CallbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
+		}
+		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send get-request-msg", log.Fields{"meClassIdName": meClassIdName, "Err": err, "deviceId": oo.deviceID})
+			return nil
+		} else {
+			logger.Debugw("send get-request-msg done", log.Fields{"meClassIdName": meClassIdName, "deviceId": oo.deviceID})
+			return meInstance
+		}
+	} else {
+		logger.Errorw("Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		return nil
+	}
+}
