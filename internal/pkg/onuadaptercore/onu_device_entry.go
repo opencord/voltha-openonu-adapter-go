@@ -88,6 +88,22 @@ func (oo *AdapterFsm) logFsmStateChange(e *fsm.Event) {
 }
 
 //OntDeviceEntry structure holds information about the attached FSM'as and their communication
+
+const (
+	FirstSwImageMeId  = 0
+	SecondSwImageMeId = 1
+)
+const OnugMeId = 0
+const Onu2gMeId = 0
+const IpHostConfigDataMeId = 1
+const OnugSerialNumberLen = 8
+const OmciMacAddressLen = 6
+
+type SwImages struct {
+	version  string
+	isActive uint8
+}
+
 type OnuDeviceEntry struct {
 	deviceID           string
 	baseDeviceHandler  *DeviceHandler
@@ -100,6 +116,7 @@ type OnuDeviceEntry struct {
 	vendorID           string
 	serialNumber       string
 	equipmentID        string
+	swImages           [SecondSwImageMeId + 1]SwImages
 	activeSwVersion    string
 	macAddress         string
 	//lockDeviceEntries           sync.RWMutex
@@ -173,11 +190,18 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 
 			{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
 
-			{Name: "load_mib_template", Src: []string{"starting"}, Dst: "loading_mib_template"},
-			{Name: "upload_mib", Src: []string{"loading_mib_template"}, Dst: "uploading"},
+			{Name: "reset_mib", Src: []string{"starting"}, Dst: "resetting_mib"},
+			{Name: "get_vendor_and_serial", Src: []string{"resetting_mib"}, Dst: "getting_vendor_and_serial"},
+			{Name: "get_equipment_id", Src: []string{"getting_vendor_and_serial"}, Dst: "getting_equipment_id"},
+			{Name: "get_first_sw_version", Src: []string{"getting_equipment_id"}, Dst: "getting_first_sw_version"},
+			{Name: "get_second_sw_version", Src: []string{"getting_first_sw_version"}, Dst: "getting_second_sw_version"},
+			{Name: "get_mac_address", Src: []string{"getting_second_sw_version"}, Dst: "getting_mac_address"},
+			{Name: "get_mib_template", Src: []string{"getting_mac_address"}, Dst: "getting_mib_template"},
+
+			{Name: "upload_mib", Src: []string{"getting_mib_template"}, Dst: "uploading"},
 			{Name: "examine_mds", Src: []string{"starting"}, Dst: "examining_mds"},
 
-			{Name: "success", Src: []string{"loading_mib_template"}, Dst: "in_sync"},
+			{Name: "success", Src: []string{"getting_mib_template"}, Dst: "in_sync"},
 			{Name: "success", Src: []string{"uploading"}, Dst: "in_sync"},
 
 			{Name: "success", Src: []string{"examining_mds"}, Dst: "in_sync"},
@@ -195,21 +219,29 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 			{Name: "success", Src: []string{"resynchronizing"}, Dst: "in_sync"},
 			{Name: "diffs_found", Src: []string{"resynchronizing"}, Dst: "out_of_sync"},
 
-			{Name: "timeout", Src: []string{"loading_mib_template", "uploading", "resynchronizing", "examining_mds", "in_sync", "out_of_sync", "auditing"}, Dst: "starting"},
+			{Name: "timeout", Src: []string{"reset_mib", "get_vendor_and_serial", "get_equipment_id", "get_first_sw_version", "get_mac_address",
+				"get_mib_template", "uploading", "resynchronizing", "examining_mds", "in_sync", "out_of_sync", "auditing"}, Dst: "starting"},
 
-			{Name: "stop", Src: []string{"starting", "loading_mib_template", "uploading", "resynchronizing", "examining_mds", "in_sync", "out_of_sync", "auditing"}, Dst: "disabled"},
+			{Name: "stop", Src: []string{"starting", "reset_mib", "get_vendor_and_serial", "get_equipment_id", "get_first_sw_version", "get_mac_address",
+				"get_mib_template", "uploading", "resynchronizing", "examining_mds", "in_sync", "out_of_sync", "auditing"}, Dst: "disabled"},
 		},
 
 		fsm.Callbacks{
-			"enter_state":                func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
-			"enter_starting":             func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
-			"enter_loading_mib_template": func(e *fsm.Event) { onuDeviceEntry.enterLoadingMibTemplateState(e) },
-			"enter_uploading":            func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
-			"enter_examining_mds":        func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
-			"enter_resynchronizing":      func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
-			"enter_auditing":             func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
-			"enter_out_of_sync":          func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
-			"enter_in_sync":              func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
+			"enter_state":                     func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
+			"enter_starting":                  func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
+			"enter_resetting_mib":             func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
+			"enter_getting_vendor_and_serial": func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
+			"enter_getting_equipment_id":      func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIdState(e) },
+			"enter_getting_first_sw_version":  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
+			"enter_getting_second_sw_version": func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
+			"enter_getting_mac_address":       func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
+			"enter_getting_mib_template":      func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(e) },
+			"enter_uploading":                 func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
+			"enter_examining_mds":             func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
+			"enter_resynchronizing":           func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
+			"enter_auditing":                  func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
+			"enter_out_of_sync":               func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
+			"enter_in_sync":                   func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
 		},
 	)
 	// Omci related Mib download state machine
