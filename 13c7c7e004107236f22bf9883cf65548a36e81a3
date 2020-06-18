@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "da501578_4fea5f05",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-06-18T11:42:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "08614e93_0fdc3fba",
+      "range": {
+        "startLine": 76,
+        "startChar": 1,
+        "endLine": 77,
+        "endChar": 37
+      },
+      "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f32d70f4_ae1d48b9",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2020-06-17T15:36:46Z",
       "side": 1,
       "message": "what happens if one of the two calls fails and the completion never happens ? do we hold the lock indefinitely ?\nalso I believe here you are never releasing the lock explicitly.\n\nthe indefinite wait applies also for the other elements added to the following lines.",
+      "range": {
+        "startLine": 316,
+        "startChar": 0,
+        "endLine": 321,
+        "endChar": 27
+      },
+      "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "44de3816_b18f832d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 321,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-06-18T11:42:14Z",
+      "side": 1,
+      "message": "Going to comment out the WIP for VOL-3038 to give Michael a chance to incorporate review comment after his vacation.",
+      "parentUuid": "f32d70f4_ae1d48b9",
       "range": {
         "startLine": 316,
         "startChar": 0,
