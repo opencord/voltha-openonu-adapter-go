@@ -46,6 +46,23 @@
       "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a52c19f0_839e4ed3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-06-30T14:03:56Z",
+      "side": 1,
+      "message": "Yes - it may seem a bit superfluous at this point. On the other hand this is the only point were we set both the device.Reason and deviceReason at the same time. Throughout the rest of the code only deviceReason is then used for optimized access to the device reason. At this specific code point we need to set device.Reason as well for basic initialization of the device in the subsequent DeviceUpdate() call. At other code points when only the reason is updated the specific method DeviceReasonUpdate() is used, which anyway makes no use of the cloned device (and device.Reason).",
+      "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
