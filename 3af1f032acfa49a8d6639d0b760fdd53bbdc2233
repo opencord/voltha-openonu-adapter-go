@@ -63,6 +63,24 @@
       "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "46b6f685_642d236e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-30T14:54:44Z",
+      "side": 1,
+      "message": "This begs the question of why is there a device.Reason in the first place if it\u0027s basically never used ?",
+      "parentUuid": "a52c19f0_839e4ed3",
+      "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
