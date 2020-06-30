@@ -93,6 +93,30 @@
       "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2a6b9c2b_b8a1d5c9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-06-30T15:27:22Z",
+      "side": 1,
+      "message": "The design by contract here is, that all of the \u0027waiter functions\u0027 always must return and may not run endlessly.\nNow - you are right, that might be difficult with ongoing implementation with respect to ETCD access and the needed routines for the OMCI transfer of the configuration. But as long as no real danger of stucking in these functions is visible I would leave the implementation that simple. Moreover the control for ensuring the return must then be within the \u0027waiter functions\u0027 itself, e.g. by some extra success channel/timeout wait selection and critical processing in a further background. As long as possible I would try to avoid that. \nMoreover then the next question would be, how to react on some timeout here, meaning the setting of the TP config can\u0027t be trusted (such could be part of a more sophisticated error treatment implemented later as already generally discussed).\nRelease of the lock is done in waitForTpCompletion() - as stated in the comment.\nSo I will activate the code within next releases again (and attention must be laid on forced return of the \u0027waiter functions\u0027 then).",
+      "parentUuid": "44de3816_b18f832d",
+      "range": {
+        "startLine": 316,
+        "startChar": 0,
+        "endLine": 321,
+        "endChar": 27
+      },
+      "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
