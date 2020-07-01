@@ -81,6 +81,23 @@
       "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1bfe3575_56ed6350",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-01T07:12:26Z",
+      "side": 1,
+      "message": "It is not never used, but just here as part of the voltha device clone that is used below in the DeviceUpdate. So I think it is all fine here.",
+      "revId": "3af1f032acfa49a8d6639d0b760fdd53bbdc2233",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
