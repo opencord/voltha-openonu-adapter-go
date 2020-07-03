@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
@@ -41,11 +42,13 @@ type OpenONUAC struct {
 	adapterProxy                adapterif.AdapterProxy
 	eventProxy                  adapterif.EventProxy
 	kafkaICProxy                kafka.InterContainerProxy
+	kvClient                    kvstore.Client
 	config                      *config.AdapterFlags
 	numOnus                     int
 	KVStoreHost                 string
 	KVStorePort                 int
 	KVStoreType                 string
+	KVStoreTimeout              time.Duration
 	exitChannel                 chan int
 	HeartbeatCheckInterval      time.Duration
 	HeartbeatFailReportInterval time.Duration
@@ -57,7 +60,7 @@ type OpenONUAC struct {
 //NewOpenONUAC returns a new instance of OpenONU_AC
 func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy,
-	eventProxy adapterif.EventProxy, cfg *config.AdapterFlags) *OpenONUAC {
+	eventProxy adapterif.EventProxy, kvClient kvstore.Client, cfg *config.AdapterFlags) *OpenONUAC {
 	var openOnuAc OpenONUAC
 	openOnuAc.exitChannel = make(chan int, 1)
 	openOnuAc.deviceHandlers = make(map[string]*DeviceHandler)
@@ -67,9 +70,11 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.coreProxy = coreProxy
 	openOnuAc.adapterProxy = adapterProxy
 	openOnuAc.eventProxy = eventProxy
+	openOnuAc.kvClient = kvClient
 	openOnuAc.KVStoreHost = cfg.KVStoreHost
 	openOnuAc.KVStorePort = cfg.KVStorePort
 	openOnuAc.KVStoreType = cfg.KVStoreType
+	openOnuAc.KVStoreTimeout = cfg.KVStoreTimeout
 	openOnuAc.HeartbeatCheckInterval = cfg.HeartbeatCheckInterval
 	openOnuAc.HeartbeatFailReportInterval = cfg.HeartbeatFailReportInterval
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
@@ -166,19 +171,8 @@ func (oo *OpenONUAC) Get_ofp_device_info(device *voltha.Device) (*ic.SwitchCapab
 }
 
 //Get_ofp_port_info returns OFP port information for the given device
-func (oo *OpenONUAC) Get_ofp_port_info(device *voltha.Device, portNo int64) (*ic.PortCapability, error) {
-	//this method expects a return value to be sent to the core
-	// and internal processing should not take that long
-	// so it makes no sense to try to work asynchronously here
-	logger.Infow("get-ofp-port-info started", log.Fields{"deviceId": device.Id, "portNo": portNo})
-	// basically the same code as in openOlt.go - unify???
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
-		return handler.GetOfpPortInfo(device, portNo)
-		// error treatment might be more sophisticated, but indeed it would be logged within handler
-	}
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found for deviceId %s", device.Id))
-	//return nil, olterrors.NewErrNotFound("device-handler", log.Fields{"device-id": device.Id}, nil)
-}
+//200630: method removed as per [VOL-3202]: OF port info is now to be delivered within UniPort create
+// cmp changes in onu_uni_port.go::CreateVolthaPort()
 
 //Process_inter_adapter_message sends messages to a target device (between adapters)
 func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) error {

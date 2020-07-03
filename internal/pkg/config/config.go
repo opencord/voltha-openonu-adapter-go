@@ -33,7 +33,7 @@ const (
 	defaultKafkaclusterhost     = "10.100.198.220"
 	defaultKafkaclusterport     = 9092
 	defaultKvstoretype          = EtcdStoreName
-	defaultKvstoretimeout       = 5 //in seconds
+	defaultKvstoretimeout       = 5 * time.Second
 	defaultKvstorehost          = "localhost"
 	defaultKvstoreport          = 2379 // Consul = 8500; Etcd = 2379
 	defaultLoglevel             = "WARN"
@@ -66,7 +66,7 @@ type AdapterFlags struct {
 	KafkaClusterHost            string
 	KafkaClusterPort            int
 	KVStoreType                 string
-	KVStoreTimeout              int // in seconds
+	KVStoreTimeout              time.Duration
 	KVStoreHost                 string
 	KVStorePort                 int
 	Topic                       string
@@ -147,7 +147,7 @@ func (so *AdapterFlags) ParseCommandArguments() {
 	flag.StringVar(&(so.KVStoreType), "kv_store_type", defaultKvstoretype, help)
 
 	help = fmt.Sprintf("The default timeout when making a kv store request")
-	flag.IntVar(&(so.KVStoreTimeout), "kv_store_request_timeout", defaultKvstoretimeout, help)
+	flag.DurationVar(&(so.KVStoreTimeout), "kv_store_request_timeout", defaultKvstoretimeout, help)
 
 	help = fmt.Sprintf("KV store host")
 	flag.StringVar(&(so.KVStoreHost), "kv_store_host", defaultKvstorehost, help)

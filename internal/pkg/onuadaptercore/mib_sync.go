@@ -34,7 +34,6 @@ import (
 	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v3/pkg/db"
 	"github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
@@ -134,7 +133,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 	}
 
 	meStoredFromTemplate := false
-	path := fmt.Sprintf(SuffixMibTemplateKvStore, onuDeviceEntry.vendorID, onuDeviceEntry.equipmentID, onuDeviceEntry.activeSwVersion)
+	path := fmt.Sprintf(cSuffixMibTemplateKvStore, onuDeviceEntry.vendorID, onuDeviceEntry.equipmentID, onuDeviceEntry.activeSwVersion)
 	logger.Debugw("MibSync FSM - MibTemplate - etcd search string", log.Fields{"path": path})
 	Value, err := onuDeviceEntry.mibTemplateKVStore.Get(context.TODO(), path)
 	if err == nil {
@@ -442,41 +441,6 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 		//
 		onuDeviceEntry.pMibUploadFsm.pFsm.Event("stop")
 	}
-}
-
-func (onuDeviceEntry *OnuDeviceEntry) newKVClient(storeType string, address string, timeout int) (kvstore.Client, error) {
-	logger.Infow("kv-store-type", log.Fields{"store": storeType})
-	switch storeType {
-	case "consul":
-		return kvstore.NewConsulClient(address, timeout)
-	case "etcd":
-		return kvstore.NewEtcdClient(address, timeout, log.FatalLevel)
-	}
-	return nil, errors.New("unsupported-kv-store")
-}
-
-func (onuDeviceEntry *OnuDeviceEntry) SetKVClient(backend string, Host string, Port int, BasePathKvStore string) *db.Backend {
-	logger.Debugw("SetKVClient with params:", log.Fields{"backend": backend, "Host": Host, "Port": Port,
-		"BasePathKvStore": BasePathKvStore, "deviceId": onuDeviceEntry.deviceID})
-
-	addr := Host + ":" + strconv.Itoa(Port)
-	// TODO : Make sure direct call to NewBackend is working fine with backend , currently there is some
-	// issue between kv store and backend , core is not calling NewBackend directly
-	kvClient, err := onuDeviceEntry.newKVClient(backend, addr, KvstoreTimeout)
-	if err != nil {
-		logger.Fatalw("Failed to init KV client\n", log.Fields{"err": err})
-		return nil
-	}
-
-	kvbackend := &db.Backend{
-		Client:     kvClient,
-		StoreType:  backend,
-		Host:       Host,
-		Port:       Port,
-		Timeout:    KvstoreTimeout,
-		PathPrefix: BasePathKvStore}
-
-	return kvbackend
 }
 
 func IsSupportedClassId(meClassId me.ClassID) bool {
