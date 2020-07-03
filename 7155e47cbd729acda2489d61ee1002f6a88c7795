@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4e7f56fb_5b1a991b",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-03T14:43:46Z",
+      "side": 1,
+      "message": "I\u0027m unsure what this error means, it\u0027s in a few places and I\u0027d like to understand better. Does it yield the fact that you can\u0027t store the tech profile to ETCD ? if this is the case I think it\u0027s ok not having this as error, because even slower, the system could still function with no issues by during the full expanse with the ONU, no ? if that is the case a warn should probably be enough, or even info. \nin any case I\u0027d have a message like Failed to setup techProfileKVStore -- can\u0027t write tech profile to etcd",
+      "revId": "7155e47cbd729acda2489d61ee1002f6a88c7795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fbb9a016_14785337",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-03T14:43:46Z",
+      "side": 1,
+      "message": "for consistency use Debugw + fields",
+      "revId": "7155e47cbd729acda2489d61ee1002f6a88c7795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1491d502_34d2af61",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-03T14:43:46Z",
+      "side": 1,
+      "message": "Errorw",
+      "revId": "7155e47cbd729acda2489d61ee1002f6a88c7795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
