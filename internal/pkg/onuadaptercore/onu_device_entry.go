@@ -36,9 +36,8 @@ import (
 )
 
 const (
-	KvstoreTimeout             = 5 //in seconds
-	BasePathMibTemplateKvStore = "service/voltha/omci_mibs/templates"
-	SuffixMibTemplateKvStore   = "%s/%s/%s"
+	cBasePathMibTemplateKvStore = "service/voltha/omci_mibs/templates"
+	cSuffixMibTemplateKvStore   = "%s/%s/%s"
 )
 
 type OnuDeviceEvent int
@@ -286,9 +285,9 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 		// some specifc error treatment - or waiting for crash ???
 	}
 
-	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.SetKVClient(kvStoreType, kVStoreHost, kVStorePort, BasePathMibTemplateKvStore)
+	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.SetBackend(cBasePathMibTemplateKvStore)
 	if onuDeviceEntry.mibTemplateKVStore == nil {
-		logger.Error("Failed to setup mibTemplateKVStore")
+		logger.Errorw("Failed to setup mibTemplateKVStore", log.Fields{"deviceID": device_id})
 	}
 
 	// Alarm Synchronization Database

@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -32,10 +31,10 @@ import (
 	"github.com/looplab/fsm"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v3/pkg/db"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	vc "github.com/opencord/voltha-protos/v3/go/common"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
-	of "github.com/opencord/voltha-protos/v3/go/openflow_13"
 	oop "github.com/opencord/voltha-protos/v3/go/openolt"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 )
@@ -70,27 +69,6 @@ const (
 	cOnuActivatedEvent = "ONU_ACTIVATED"
 )
 
-type resourceEntry int
-
-const (
-	cResourceGemPort resourceEntry = 1
-	cResourceTcont   resourceEntry = 2
-)
-
-type OnuSerialNumber struct {
-	VendorId       []byte
-	VendorSpecific []byte
-}
-
-type onuPersistentData struct {
-	persOnuID      uint32
-	persIntfID     uint32
-	persSnr        OnuSerialNumber
-	persAdminState string
-	persOperState  string
-	persUniTpPath  map[uint32]string
-}
-
 //DeviceHandler will interact with the ONU ? device.
 type DeviceHandler struct {
 	deviceID         string
@@ -107,14 +85,12 @@ type DeviceHandler struct {
 	AdapterProxy adapterif.AdapterProxy
 	EventProxy   adapterif.EventProxy
 
-	tpProcMutex        sync.RWMutex
-	sOnuPersistentData onuPersistentData
-
 	pOpenOnuAc      *OpenONUAC
 	pDeviceStateFsm *fsm.FSM
 	pPonPort        *voltha.Port
 	deviceEntrySet  chan bool //channel for DeviceEntry set event
 	pOnuOmciDevice  *OnuDeviceEntry
+	pOnuTP          *OnuUniTechProf
 	exitChannel     chan int
 	lockDevice      sync.RWMutex
 	pOnuIndication  *oop.OnuIndication
@@ -147,8 +123,6 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	dh.DeviceType = cloned.Type
 	dh.adminState = "up"
 	dh.device = cloned
-	dh.tpProcMutex = sync.RWMutex{}
-	dh.sOnuPersistentData.persUniTpPath = make(map[uint32]string)
 	dh.pOpenOnuAc = adapter
 	dh.exitChannel = make(chan int, 1)
 	dh.lockDevice = sync.RWMutex{}
@@ -181,6 +155,7 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 			"before_DeviceDownInd":    func(e *fsm.Event) { dh.doStateDown(e) },
 		},
 	)
+
 	return &dh
 }
 
@@ -287,85 +262,106 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				return errors.New("InvalidOperState")
 			}
 		}
-	// TODO: temporarily commented out - see https://gerrit.opencord.org/#/c/19330/
-	// case ic.InterAdapterMessageType_TECH_PROFILE_DOWNLOAD_REQUEST:
-	// 	{
-	// 		msgBody := msg.GetBody()
-	// 		techProfMsg := &ic.InterAdapterTechProfileDownloadMessage{}
-	// 		if err := ptypes.UnmarshalAny(msgBody, techProfMsg); err != nil {
-	// 			logger.Warnw("cannot-unmarshal-techprof-msg-body", log.Fields{
-	// 				"deviceID": dh.deviceID, "error": err})
-	// 			return err
-	// 		}
-	// 		// we have to lock access to TechProfile processing based on different messageType calls or
-	// 		// even to fast subsequent calls of the same messageType
-	// 		dh.tpProcMutex.Lock()
-	// 		// lock hangs as long as below decoupled or other related TechProfile processing is active
-	// 		if bTpModify := dh.updateOnuUniTpPath(techProfMsg.UniId, techProfMsg.Path); bTpModify == true {
-	// 			//	if there has been some change for some uni TechProfilePath
-	// 			//in order to allow concurrent calls to other dh instances we do not wait for execution here
-	// 			//but doing so we can not indicate problems to the caller (who does what with that then?)
-	// 			//by now we just assume straightforward successful execution
-	// 			//TODO!!! Generally: In this scheme it would be good to have some means to indicate
-	// 			//  possible problems to the caller later autonomously
+	case ic.InterAdapterMessageType_TECH_PROFILE_DOWNLOAD_REQUEST:
+		{
+			if dh.pOnuTP == nil {
+				//should normally not happen ...
+				logger.Warnw("onuTechProf instance not set up for DLMsg request - ignoring request",
+					log.Fields{"deviceID": dh.deviceID})
+				return errors.New("TechProfile DLMsg request while onuTechProf instance not setup")
+			}
 
-	// 			// some code to coordinate TP 'run to completion'
-	// 			// attention: completion and wg.Add is assumed to be doen in both routines,
-	// 			// no timeout control so far (needed)
-	// 			var wg sync.WaitGroup
-	// 			wg.Add(2) // for the 2 go routines to finish
-	// 			go dh.configureUniTp(techProfMsg.UniId, techProfMsg.Path, &wg)
-	// 			go dh.updateOnuTpPathKvStore(&wg)
-	// 			//the wait.. function is responsible for tpProcMutex.Unlock()
-	// 			go dh.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
-	// 		} else {
-	// 			dh.tpProcMutex.Unlock()
-	// 		}
-	// 	}
-	// case ic.InterAdapterMessageType_DELETE_GEM_PORT_REQUEST:
-	// 	{
-	// 		msgBody := msg.GetBody()
-	// 		delGemPortMsg := &ic.InterAdapterDeleteGemPortMessage{}
-	// 		if err := ptypes.UnmarshalAny(msgBody, delGemPortMsg); err != nil {
-	// 			logger.Warnw("cannot-unmarshal-delete-gem-msg-body", log.Fields{
-	// 				"deviceID": dh.deviceID, "error": err})
-	// 			return err
-	// 		}
+			msgBody := msg.GetBody()
+			techProfMsg := &ic.InterAdapterTechProfileDownloadMessage{}
+			if err := ptypes.UnmarshalAny(msgBody, techProfMsg); err != nil {
+				logger.Warnw("cannot-unmarshal-techprof-msg-body", log.Fields{
+					"deviceID": dh.deviceID, "error": err})
+				return err
+			}
 
-	// 		//compare TECH_PROFILE_DOWNLOAD_REQUEST
-	// 		dh.tpProcMutex.Lock()
-	// 		var wg sync.WaitGroup
-	// 		wg.Add(1) // for the 1 go routine to finish
-	// 		go dh.deleteTpRessource(delGemPortMsg.UniId, delGemPortMsg.TpPath,
-	// 			cResourceGemPort, delGemPortMsg.GemPortId, &wg)
-	// 		//the wait.. function is responsible for tpProcMutex.Unlock()
-	// 		go dh.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
-	// 	}
-	// case ic.InterAdapterMessageType_DELETE_TCONT_REQUEST:
-	// 	{
-	// 		msgBody := msg.GetBody()
-	// 		delTcontMsg := &ic.InterAdapterDeleteTcontMessage{}
-	// 		if err := ptypes.UnmarshalAny(msgBody, delTcontMsg); err != nil {
-	// 			logger.Warnw("cannot-unmarshal-delete-tcont-msg-body", log.Fields{
-	// 				"deviceID": dh.deviceID, "error": err})
-	// 			return err
-	// 		}
+			// we have to lock access to TechProfile processing based on different messageType calls or
+			// even to fast subsequent calls of the same messageType
+			dh.pOnuTP.lockTpProcMutex()
+			// lock hangs as long as below decoupled or other related TechProfile processing is active
+			if bTpModify := dh.pOnuTP.updateOnuUniTpPath(techProfMsg.UniId, techProfMsg.Path); bTpModify == true {
+				//	if there has been some change for some uni TechProfilePath
+				//in order to allow concurrent calls to other dh instances we do not wait for execution here
+				//but doing so we can not indicate problems to the caller (who does what with that then?)
+				//by now we just assume straightforward successful execution
+				//TODO!!! Generally: In this scheme it would be good to have some means to indicate
+				//  possible problems to the caller later autonomously
 
-	// 		//compare TECH_PROFILE_DOWNLOAD_REQUEST
-	// 		dh.tpProcMutex.Lock()
-	// 		if bTpModify := dh.updateOnuUniTpPath(delTcontMsg.UniId, ""); bTpModify == true {
-	// 			var wg sync.WaitGroup
-	// 			wg.Add(2) // for the 1 go routine to finish
-	// 			go dh.deleteTpRessource(delTcontMsg.UniId, delTcontMsg.TpPath,
-	// 				cResourceTcont, delTcontMsg.AllocId, &wg)
-	// 			// Removal of the tcont/alloc id mapping represents the removal of the tech profile
-	// 			go dh.updateOnuTpPathKvStore(&wg)
-	// 			//the wait.. function is responsible for tpProcMutex.Unlock()
-	// 			go dh.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
-	// 		} else {
-	// 			dh.tpProcMutex.Unlock()
-	// 		}
-	// 	}
+				// some code to coordinate TP 'run to completion'
+				// attention: completion and wg.Add is assumed to be done in both routines,
+				// no timeout control so far (needed)
+				var wg sync.WaitGroup
+				wg.Add(2) // for the 2 go routines to finish
+				go dh.pOnuTP.configureUniTp(techProfMsg.UniId, techProfMsg.Path, &wg)
+				go dh.pOnuTP.updateOnuTpPathKvStore(&wg)
+				//the wait.. function is responsible for tpProcMutex.Unlock()
+				go dh.pOnuTP.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
+			} else {
+				dh.pOnuTP.unlockTpProcMutex()
+			}
+		}
+	case ic.InterAdapterMessageType_DELETE_GEM_PORT_REQUEST:
+		{
+			if dh.pOnuTP == nil {
+				//should normally not happen ...
+				logger.Warnw("onuTechProf instance not set up for DelGem request - ignoring request",
+					log.Fields{"deviceID": dh.deviceID})
+				return errors.New("TechProfile DelGem request while onuTechProf instance not setup")
+			}
+
+			msgBody := msg.GetBody()
+			delGemPortMsg := &ic.InterAdapterDeleteGemPortMessage{}
+			if err := ptypes.UnmarshalAny(msgBody, delGemPortMsg); err != nil {
+				logger.Warnw("cannot-unmarshal-delete-gem-msg-body", log.Fields{
+					"deviceID": dh.deviceID, "error": err})
+				return err
+			}
+
+			//compare TECH_PROFILE_DOWNLOAD_REQUEST
+			dh.pOnuTP.lockTpProcMutex()
+			var wg sync.WaitGroup
+			wg.Add(1) // for the 1 go routine to finish
+			go dh.pOnuTP.deleteTpRessource(delGemPortMsg.UniId, delGemPortMsg.TpPath,
+				cResourceGemPort, delGemPortMsg.GemPortId, &wg)
+			//the wait.. function is responsible for tpProcMutex.Unlock()
+			go dh.pOnuTP.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
+		}
+	case ic.InterAdapterMessageType_DELETE_TCONT_REQUEST:
+		{
+			if dh.pOnuTP == nil {
+				//should normally not happen ...
+				logger.Warnw("onuTechProf instance not set up for DelTcont request - ignoring request",
+					log.Fields{"deviceID": dh.deviceID})
+				return errors.New("TechProfile DelTcont request while onuTechProf instance not setup")
+			}
+
+			msgBody := msg.GetBody()
+			delTcontMsg := &ic.InterAdapterDeleteTcontMessage{}
+			if err := ptypes.UnmarshalAny(msgBody, delTcontMsg); err != nil {
+				logger.Warnw("cannot-unmarshal-delete-tcont-msg-body", log.Fields{
+					"deviceID": dh.deviceID, "error": err})
+				return err
+			}
+
+			//compare TECH_PROFILE_DOWNLOAD_REQUEST
+			dh.pOnuTP.lockTpProcMutex()
+			if bTpModify := dh.pOnuTP.updateOnuUniTpPath(delTcontMsg.UniId, ""); bTpModify == true {
+				var wg sync.WaitGroup
+				wg.Add(2) // for the 1 go routine to finish
+				go dh.pOnuTP.deleteTpRessource(delTcontMsg.UniId, delTcontMsg.TpPath,
+					cResourceTcont, delTcontMsg.AllocId, &wg)
+				// Removal of the tcont/alloc id mapping represents the removal of the tech profile
+				go dh.pOnuTP.updateOnuTpPathKvStore(&wg)
+				//the wait.. function is responsible for tpProcMutex.Unlock()
+				go dh.pOnuTP.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
+			} else {
+				dh.pOnuTP.unlockTpProcMutex()
+			}
+		}
 	default:
 		{
 			logger.Errorw("inter-adapter-unhandled-type", log.Fields{
@@ -373,35 +369,6 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 			return errors.New("unimplemented")
 		}
 	}
-
-	/* form py code:
-	   elif request.header.type == InterAdapterMessageType.TECH_PROFILE_DOWNLOAD_REQUEST:
-	       tech_msg = InterAdapterTechProfileDownloadMessage()
-	       request.body.Unpack(tech_msg)
-	       self.logger.debug('inter-adapter-recv-tech-profile', tech_msg=tech_msg)
-
-	       self.load_and_configure_tech_profile(tech_msg.uni_id, tech_msg.path)
-
-	   elif request.header.type == InterAdapterMessageType.DELETE_GEM_PORT_REQUEST:
-	       del_gem_msg = InterAdapterDeleteGemPortMessage()
-	       request.body.Unpack(del_gem_msg)
-	       self.logger.debug('inter-adapter-recv-del-gem', gem_del_msg=del_gem_msg)
-
-	       self.delete_tech_profile(uni_id=del_gem_msg.uni_id,
-	                                gem_port_id=del_gem_msg.gem_port_id,
-	                                tp_path=del_gem_msg.tp_path)
-
-	   elif request.header.type == InterAdapterMessageType.DELETE_TCONT_REQUEST:
-	       del_tcont_msg = InterAdapterDeleteTcontMessage()
-	       request.body.Unpack(del_tcont_msg)
-	       self.logger.debug('inter-adapter-recv-del-tcont', del_tcont_msg=del_tcont_msg)
-
-	       self.delete_tech_profile(uni_id=del_tcont_msg.uni_id,
-	                                alloc_id=del_tcont_msg.alloc_id,
-	                                tp_path=del_tcont_msg.tp_path)
-	   else:
-	       self.logger.error("inter-adapter-unhandled-type", request=request)
-	*/
 	return nil
 }
 
@@ -463,54 +430,6 @@ func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
 		dh.pUnlockStateFsm.SetSuccessEvent(UniAdminStateDone)
 		dh.runUniLockFsm(false)
 	}
-}
-
-//GetOfpPortInfo returns the Voltha PortCapabilty with the logical port
-func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
-	portNo int64) (*ic.PortCapability, error) {
-	logger.Debugw("GetOfpPortInfo start", log.Fields{"deviceID": device.Id, "portNo": portNo})
-
-	//function body as per OLTAdapter handler code
-	// adapted with values from py dapter code
-	if pUniPort, exist := dh.uniEntityMap[uint32(portNo)]; exist {
-		var macOctets [6]uint8
-		macOctets[5] = 0x08
-		macOctets[4] = uint8(dh.ponPortNumber >> 8)
-		macOctets[3] = uint8(dh.ponPortNumber)
-		macOctets[2] = uint8(portNo >> 16)
-		macOctets[1] = uint8(portNo >> 8)
-		macOctets[0] = uint8(portNo)
-		hwAddr := genMacFromOctets(macOctets)
-		capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
-		name := device.SerialNumber + "-" + strconv.FormatUint(uint64(pUniPort.macBpNo), 10)
-		ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
-		if pUniPort.operState == vc.OperStatus_ACTIVE {
-			ofUniPortState = of.OfpPortState_OFPPS_LIVE
-		}
-		logger.Debugw("setting LogicalPort", log.Fields{"with-name": name,
-			"withUniPort": pUniPort.name, "withMacBase": hwAddr, "OperState": ofUniPortState})
-
-		return &ic.PortCapability{
-			Port: &voltha.LogicalPort{
-				OfpPort: &of.OfpPort{
-					Name: name,
-					//HwAddr:     macAddressToUint32Array(dh.device.MacAddress),
-					HwAddr:     macAddressToUint32Array(hwAddr),
-					Config:     0,
-					State:      uint32(ofUniPortState),
-					Curr:       capacity,
-					Advertised: capacity,
-					Peer:       capacity,
-					CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-					MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-				},
-				DeviceId:     device.Id,
-				DevicePortNo: uint32(portNo),
-			},
-		}, nil
-	}
-	logger.Warnw("No UniPort found - abort", log.Fields{"for PortNo": uint32(portNo)})
-	return nil, errors.New("UniPort not found")
 }
 
 //  DeviceHandler methods that implement the adapters interface requests## end #########
@@ -772,10 +691,12 @@ func (dh *DeviceHandler) GetOnuDeviceEntry(aWait bool) *OnuDeviceEntry {
 }
 
 //SetOnuDeviceEntry sets the ONU device entry within the handler
-func (dh *DeviceHandler) SetOnuDeviceEntry(pDeviceEntry *OnuDeviceEntry) error {
+func (dh *DeviceHandler) SetOnuDeviceEntry(
+	apDeviceEntry *OnuDeviceEntry, apOnuTp *OnuUniTechProf) error {
 	dh.lockDevice.Lock()
 	defer dh.lockDevice.Unlock()
-	dh.pOnuOmciDevice = pDeviceEntry
+	dh.pOnuOmciDevice = apDeviceEntry
+	dh.pOnuTP = apOnuTp
 	return nil
 }
 
@@ -789,11 +710,13 @@ func (dh *DeviceHandler) AddOnuDeviceEntry(ctx context.Context) error {
 		   we omit that here first (declaration unclear) -> todo at Adapter specialization ...*/
 		/* also no 'clock' argument - usage open ...*/
 		/* and no alarm_db yet (oo.alarm_db)  */
-		deviceEntry = NewOnuDeviceEntry(ctx, dh.deviceID, dh.pOpenOnuAc.KVStoreHost, dh.pOpenOnuAc.KVStorePort, dh.pOpenOnuAc.KVStoreType,
+		deviceEntry = NewOnuDeviceEntry(ctx, dh.deviceID, dh.pOpenOnuAc.KVStoreHost,
+			dh.pOpenOnuAc.KVStorePort, dh.pOpenOnuAc.KVStoreType,
 			dh, dh.coreProxy, dh.AdapterProxy,
 			dh.pOpenOnuAc.pSupportedFsms) //nil as FSM pointer would yield deviceEntry internal defaults ...
+		onuTechProfProc := NewOnuUniTechProf(ctx, dh.deviceID, dh)
 		//error treatment possible //TODO!!!
-		dh.SetOnuDeviceEntry(deviceEntry)
+		dh.SetOnuDeviceEntry(deviceEntry, onuTechProfProc)
 		// fire deviceEntry ready event to spread to possibly waiting processing
 		dh.deviceEntrySet <- true
 		logger.Infow("onuDeviceEntry-added", log.Fields{"for deviceId": dh.deviceID})
@@ -818,7 +741,7 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	// It does not look to me as if makes sense to work with the real core device here, (not the stored clone)?
 	// in this code the GetDevice would just make a check if the DeviceID's Device still exists in core
 	// in python code it looks as the started onu_omci_device might have been updated with some new instance state of the core device
-	// but I would not know why, and the go code anyway dows not work with the device directly anymore in the OnuDeviceEntry
+	// but I would not know why, and the go code anyway does not work with the device directly anymore in the OnuDeviceEntry
 	// so let's just try to keep it simple ...
 	/*
 			device, err := dh.coreProxy.GetDevice(context.TODO(), dh.device.Id, dh.device.Id)
@@ -1348,101 +1271,18 @@ func (dh *DeviceHandler) runUniLockFsm(aAdminState bool) {
 	}
 }
 
-/* **** Traffic Profile related processing  **********/
-// updateOnuUniTpPath verifies and updates changes in the dh.onuUniTpPath
-func (dh *DeviceHandler) updateOnuUniTpPath(aUniID uint32, aPathString string) bool {
-	/* within some specific InterAdapter processing request write/read access to data is ensured to be sequentially,
-	   as also the complete sequence is ensured to 'run to  completion' before some new request is accepted
-	   no specific concurrency protection to sOnuPersistentData is required here
-	*/
-	if existingPath, present := dh.sOnuPersistentData.persUniTpPath[aUniID]; present {
-		// uni entry already exists
-		//logger.Debugw(" already exists", log.Fields{"for InstanceId": a_uniInstNo})
-		if existingPath != aPathString {
-			if aPathString == "" {
-				//existing entry to be deleted
-				logger.Debugw("UniTp path delete", log.Fields{
-					"deviceID": dh.deviceID, "uniID": aUniID, "path": aPathString})
-				delete(dh.sOnuPersistentData.persUniTpPath, aUniID)
-			} else {
-				//existing entry to be modified
-				logger.Debugw("UniTp path modify", log.Fields{
-					"deviceID": dh.deviceID, "uniID": aUniID, "path": aPathString})
-				dh.sOnuPersistentData.persUniTpPath[aUniID] = aPathString
-			}
-			return true
-		}
-		//entry already exists
-		logger.Debugw("UniTp path already exists", log.Fields{
-			"deviceID": dh.deviceID, "uniID": aUniID, "path": aPathString})
-		return false
-	} else {
-		//uni entry does not exist
-		if aPathString == "" {
-			//delete request in non-existing state , accept as no change
-			logger.Debugw("UniTp path already removed", log.Fields{
-				"deviceID": dh.deviceID, "uniID": aUniID})
-			return false
-		}
-		//new entry to be set
-		logger.Debugw("New UniTp path set", log.Fields{
-			"deviceID": dh.deviceID, "uniID": aUniID, "path": aPathString})
-		dh.sOnuPersistentData.persUniTpPath[aUniID] = aPathString
-		return true
-	}
-}
+//SetBackend provides a DB backend for the specified path on the existing KV client
+func (dh *DeviceHandler) SetBackend(aBasePathKvStore string) *db.Backend {
+	addr := dh.pOpenOnuAc.KVStoreHost + ":" + strconv.Itoa(dh.pOpenOnuAc.KVStorePort)
+	logger.Debugw("SetKVStoreBackend", log.Fields{"IpTarget": addr,
+		"BasePathKvStore": aBasePathKvStore, "deviceId": dh.deviceID})
+	kvbackend := &db.Backend{
+		Client:    dh.pOpenOnuAc.kvClient,
+		StoreType: dh.pOpenOnuAc.KVStoreType,
+		/* address config update acc. to [VOL-2736] */
+		Address:    addr,
+		Timeout:    dh.pOpenOnuAc.KVStoreTimeout,
+		PathPrefix: aBasePathKvStore}
 
-func (dh *DeviceHandler) configureUniTp(aUniID uint32, aPathString string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	logger.Debugw("this would configure the Uni according to TpPath", log.Fields{
-		"deviceID": dh.deviceID, "uniID": aUniID, "path": aPathString})
-	//TODO!!!
-	//this processing requires reading of the TechProfile config data from KV-Store,
-	//  to evaluate the configuration and to start the corresponding OMCI configuation of the UNI port
-}
-
-func (dh *DeviceHandler) updateOnuTpPathKvStore(wg *sync.WaitGroup) {
-	defer wg.Done()
-	logger.Debugw("this would update the ONU's TpPath in KVStore", log.Fields{
-		"deviceID": dh.deviceID})
-	//TODO!!!
-	//make use of dh.sOnuPersistentData to store the TpPath to KVStore
-}
-
-// deleteTpRessource removes ressources from the ONU's specified Uni
-func (dh *DeviceHandler) deleteTpRessource(aUniID uint32, aPathString string,
-	aRessource resourceEntry, aEntryID uint32, wg *sync.WaitGroup) {
-	defer wg.Done()
-	logger.Debugw("this would remove TP resources from ONU's UNI", log.Fields{
-		"deviceID": dh.deviceID, "uniID": aUniID, "path": aPathString, "ressource": aRessource})
-	//TODO!!!
-}
-
-func (dh *DeviceHandler) waitForTpCompletion(wg *sync.WaitGroup) {
-	wg.Wait()
-	logger.Debug("some TechProfile Processing completed")
-	dh.tpProcMutex.Unlock() //allow further TP related processing
-}
-
-/* *********************************************************** */
-
-func genMacFromOctets(aOctets [6]uint8) string {
-	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x",
-		aOctets[5], aOctets[4], aOctets[3],
-		aOctets[2], aOctets[1], aOctets[0])
-}
-
-//copied from OLT Adapter: unify centrally ?
-func macAddressToUint32Array(mac string) []uint32 {
-	slist := strings.Split(mac, ":")
-	result := make([]uint32, len(slist))
-	var err error
-	var tmp int64
-	for index, val := range slist {
-		if tmp, err = strconv.ParseInt(val, 16, 32); err != nil {
-			return []uint32{1, 2, 3, 4, 5, 6}
-		}
-		result[index] = uint32(tmp)
-	}
-	return result
+	return kvbackend
 }
