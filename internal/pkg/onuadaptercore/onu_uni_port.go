@@ -20,7 +20,9 @@ package adaptercoreonu
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 
 	//"sync"
 	//"time"
@@ -28,10 +30,8 @@ import (
 	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	vc "github.com/opencord/voltha-protos/v3/go/common"
+	of "github.com/opencord/voltha-protos/v3/go/openflow_13"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
-	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
-	//"github.com/opencord/voltha-protos/v3/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
 type UniPortType uint8
@@ -80,9 +80,37 @@ func NewOnuUniPort(a_uniId uint8, a_portNo uint32, a_InstNo uint16,
 	return &onuUniPort
 }
 
-//creates the Voltha port based on ONU UNI Port
-func (oo *OnuUniPort) CreateVolthaPort(a_pDeviceHandler *DeviceHandler) error {
-	logger.Debug("adding-uni-port")
+//CreateVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
+func (oo *OnuUniPort) CreateVolthaPort(apDeviceHandler *DeviceHandler) error {
+	logger.Debugw("creating-voltha-uni-port", log.Fields{
+		"deviceID": apDeviceHandler.device.Id, "portNo": oo.portNo})
+	//200630: per [VOL-3202] OF port info is now to be delivered within UniPort create
+	//  not doing so crashes rw_core processing (at least still in 200630 version)
+	name := apDeviceHandler.device.SerialNumber + "-" + strconv.FormatUint(uint64(oo.macBpNo), 10)
+	var macOctets [6]uint8
+	macOctets[5] = 0x08
+	//ponPortNumber was copied from device.ParentPortNo
+	macOctets[4] = uint8(apDeviceHandler.ponPortNumber >> 8)
+	macOctets[3] = uint8(apDeviceHandler.ponPortNumber)
+	macOctets[2] = uint8(oo.portNo >> 16)
+	macOctets[1] = uint8(oo.portNo >> 8)
+	macOctets[0] = uint8(oo.portNo)
+	hwAddr := genMacFromOctets(macOctets)
+	ofHwAddr := macAddressToUint32Array(hwAddr)
+	capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
+	ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
+	/* as the VOLTHA port create is only called directly after Uni Port create
+	   the OfPortOperState is always Down
+	   Note: this way the OfPortOperState won't ever change (directly in adapter)
+	   maybe that was already always the case, but looks a bit weird - to be kept in mind ...
+		if pUniPort.operState == vc.OperStatus_ACTIVE {
+			ofUniPortState = of.OfpPortState_OFPPS_LIVE
+		}
+	*/
+	logger.Debugw("ofPort values", log.Fields{
+		"forUniPortName": oo.name, "forMacBase": hwAddr,
+		"name": name, "hwAddr": ofHwAddr, "OperState": ofUniPortState})
+
 	pUniPort := &voltha.Port{
 		PortNo:     oo.portNo,
 		Label:      oo.name,
@@ -90,25 +118,59 @@ func (oo *OnuUniPort) CreateVolthaPort(a_pDeviceHandler *DeviceHandler) error {
 		AdminState: oo.adminState,
 		OperStatus: oo.operState,
 		// obviously empty peer setting
+		OfpPort: &of.OfpPort{
+			Name:       name,
+			HwAddr:     ofHwAddr,
+			Config:     0,
+			State:      uint32(ofUniPortState),
+			Curr:       capacity,
+			Advertised: capacity,
+			Peer:       capacity,
+			CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+			MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+		},
 	}
 	if pUniPort != nil {
-		if err := a_pDeviceHandler.coreProxy.PortCreated(context.TODO(),
-			a_pDeviceHandler.deviceID, pUniPort); err != nil {
+		if err := apDeviceHandler.coreProxy.PortCreated(context.TODO(),
+			apDeviceHandler.deviceID, pUniPort); err != nil {
 			logger.Fatalf("adding-uni-port: create-VOLTHA-Port-failed-%s", err)
 			return err
 		}
-		logger.Infow("Voltha onuUniPort-added", log.Fields{"for PortNo": oo.portNo})
+		logger.Infow("Voltha onuUniPort-added", log.Fields{
+			"deviceID": apDeviceHandler.device.Id, "PortNo": oo.portNo})
 		oo.pPort = pUniPort
 		oo.operState = vc.OperStatus_DISCOVERED
 	} else {
-		logger.Warnw("could not create Voltha UniPort - nil pointer",
-			log.Fields{"for PortNo": oo.portNo})
+		logger.Warnw("could not create Voltha UniPort", log.Fields{
+			"deviceID": apDeviceHandler.device.Id, "PortNo": oo.portNo})
 		return errors.New("create Voltha UniPort failed")
 	}
 	return nil
 }
 
-//mofify OperState of the the UniPort
-func (oo *OnuUniPort) SetOperState(a_NewOperState vc.OperStatus_Types) {
-	oo.operState = a_NewOperState
+//SetOperState modifies OperState of the the UniPort
+func (oo *OnuUniPort) SetOperState(aNewOperState vc.OperStatus_Types) {
+	oo.operState = aNewOperState
+}
+
+// uni port related utility functions (so far only used here)
+func genMacFromOctets(aOctets [6]uint8) string {
+	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x",
+		aOctets[5], aOctets[4], aOctets[3],
+		aOctets[2], aOctets[1], aOctets[0])
+}
+
+//copied from OLT Adapter: unify centrally ?
+func macAddressToUint32Array(mac string) []uint32 {
+	slist := strings.Split(mac, ":")
+	result := make([]uint32, len(slist))
+	var err error
+	var tmp int64
+	for index, val := range slist {
+		if tmp, err = strconv.ParseInt(val, 16, 32); err != nil {
+			return []uint32{1, 2, 3, 4, 5, 6}
+		}
+		result[index] = uint32(tmp)
+	}
+	return result
 }
