@@ -99,7 +99,9 @@ func (a *adapter) start(ctx context.Context) error {
 	}
 
 	// Setup Log Config
-	cm := conf.NewConfigManager(a.kvClient, a.config.KVStoreType, a.config.KVStoreHost, a.config.KVStorePort, a.config.KVStoreTimeout)
+	/* address config update acc. to [VOL-2736] */
+	addr := a.config.KVStoreHost + ":" + strconv.Itoa(a.config.KVStorePort)
+	cm := conf.NewConfigManager(a.kvClient, a.config.KVStoreType, addr, a.config.KVStoreTimeout)
 	go conf.StartLogLevelConfigProcessing(cm, ctx)
 
 	// Setup Kafka Client
@@ -173,8 +175,7 @@ func (a *adapter) stop(ctx context.Context) {
 // #############################################
 // Adapter Utility methods ##### begin #########
 
-func newKVClient(storeType, address string, timeout int) (kvstore.Client, error) {
-
+func newKVClient(storeType, address string, timeout time.Duration) (kvstore.Client, error) {
 	logger.Infow("kv-store-type", log.Fields{"store": storeType})
 	switch storeType {
 	case "consul":
@@ -188,11 +189,13 @@ func newKVClient(storeType, address string, timeout int) (kvstore.Client, error)
 func newKafkaClient(clientType, host string, port int) (kafka.Client, error) {
 
 	logger.Infow("common-client-type", log.Fields{"client": clientType})
+	/* address config update acc. to [VOL-2736] */
+	addr := host + ":" + strconv.Itoa(port)
+
 	switch clientType {
 	case "sarama":
 		return kafka.NewSaramaClient(
-			kafka.Host(host),
-			kafka.Port(port),
+			kafka.Address(addr),
 			kafka.ProducerReturnOnErrors(true),
 			kafka.ProducerReturnOnSuccess(true),
 			kafka.ProducerMaxRetries(6),
@@ -219,9 +222,10 @@ func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (ka
 	logger.Infow("starting-intercontainer-messaging-proxy", log.Fields{"host": a.config.KafkaAdapterHost,
 		"port": a.config.KafkaAdapterPort, "topic": a.config.Topic})
 	var err error
+	/* address config update acc. to [VOL-2736] */
+	addr := a.config.KafkaAdapterHost + ":" + strconv.Itoa(a.config.KafkaAdapterPort)
 	kip := kafka.NewInterContainerProxy(
-		kafka.InterContainerHost(a.config.KafkaAdapterHost),
-		kafka.InterContainerPort(a.config.KafkaAdapterPort),
+		kafka.InterContainerAddress(addr),
 		kafka.MsgClient(a.kafkaClient),
 		kafka.DefaultTopic(&kafka.Topic{Name: a.config.Topic}))
 	count := 0
@@ -247,7 +251,7 @@ func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, kip kafka.Int
 	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy,
 	cfg *config.AdapterFlags) (*ac.OpenONUAC, error) {
 	var err error
-	sAcONU := ac.NewOpenONUAC(ctx, a.kip, cp, ap, ep, cfg)
+	sAcONU := ac.NewOpenONUAC(ctx, a.kip, cp, ap, ep, a.kvClient, cfg)
 
 	if err = sAcONU.Start(ctx); err != nil {
 		logger.Fatalw("error-starting-OpenOnuAdapterCore", log.Fields{"error": err})
