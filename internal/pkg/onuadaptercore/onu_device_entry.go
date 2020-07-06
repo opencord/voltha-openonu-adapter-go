@@ -193,6 +193,8 @@ type OnuDeviceEntry struct {
 	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
 	// for mibDownload
 	pMibDownloadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
+	//for ONU reboot
+	pReboot *AdapterFsm
 	//remark: general usage of pAdapterFsm would require generalization of commChan  usage and internal event setting
 	//  within the FSM event procedures
 	omciMessageReceived chan bool //seperate channel needed by DownloadFsm
@@ -386,6 +388,16 @@ func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
 	//oo.exitChannel <- 1
 	// maybe also the omciCC should be stopped here - for now not as no real processing is expected here - maybe needs consolidation
 	logger.Info("OnuDeviceEntry-stopped")
+	return nil
+}
+
+func (oo *OnuDeviceEntry) Reboot(ctx context.Context) error {
+	logger.Info("reboot-OnuDeviceEntry")
+	if err := oo.PDevOmciCC.sendReboot(context.TODO(), ConstDefaultOmciTimeout, true); err != nil {
+		logger.Errorw("onu didn't reboot", log.Fields{"for device": oo.deviceID})
+		return err
+	}
+	logger.Info("OnuDeviceEntry-reboot")
 	return nil
 }
 
