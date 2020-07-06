@@ -156,6 +156,24 @@
       "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7383c0b7_a47daa1c",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-07-06T08:03:00Z",
+      "side": 1,
+      "message": "I should add a \"If check\"  to this return.",
+      "parentUuid": "5b9b5464_070ee980",
+      "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
