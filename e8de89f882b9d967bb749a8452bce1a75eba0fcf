@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "05b351b7_2097c417",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 468,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-06T07:03:08Z",
+      "side": 1,
+      "message": "I\u0027d return an error from the method here, similar to other methods.",
+      "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6c80d7f_c7adb83a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-06T07:03:08Z",
+      "side": 1,
+      "message": "return nil, err",
+      "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ccb1462_449f3d30",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 477,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-06T07:03:08Z",
+      "side": 1,
+      "message": "return err, nil",
+      "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9e8c89e9_706fa321",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 480,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-06T07:03:08Z",
+      "side": 1,
+      "message": "return err, nil",
+      "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b9b5464_070ee980",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-06T07:03:08Z",
+      "side": 1,
+      "message": "this actually returns an error, school be before the return at line 330",
+      "revId": "e8de89f882b9d967bb749a8452bce1a75eba0fcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
