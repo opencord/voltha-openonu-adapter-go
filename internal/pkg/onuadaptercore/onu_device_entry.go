@@ -323,6 +323,15 @@ func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
 	return nil
 }
 
+func (oo *OnuDeviceEntry) Reboot(ctx context.Context) error {
+	logger.Info("reboot-OnuDeviceEntry")
+	if err := oo.PDevOmciCC.sendReboot(context.TODO(), ConstDefaultOmciTimeout, true); err != nil {
+		logger.Errorw("onu didn't reboot", log.Fields{"for device": oo.deviceID})
+		return err
+	}
+	logger.Info("OnuDeviceEntry-reboot")
+	return nil
+}
 //Relay the InSync message via Handler to Rw core - Status update
 func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
 	logger.Debugw("relaying system-event", log.Fields{"Event": dev_Event})
