@@ -25,7 +25,6 @@ import (
 	"errors"
 	"strconv"
 	"sync"
-
 	//"time"
 
 	"github.com/google/gopacket"
@@ -67,6 +66,17 @@ type CallbackPairEntry struct {
 type CallbackPair struct {
 	cbKey   uint16
 	cbEntry CallbackPairEntry
+}
+
+type RebootCallbackPairEntry struct {
+	cbRespChannel chan bool
+	cbFunction    func(*omci.OMCI, *gp.Packet, chan Message) error
+}
+
+//CallbackPair to be used for ReceiveCallback init
+type RebootCallbackPair struct {
+	cbKey   uint16
+	cbEntry RebootCallbackPairEntry
 }
 
 type omciTransferStructure struct {
@@ -579,6 +589,40 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 		cbEntry: CallbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
 	}
 	return oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+}
+
+func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, onuDeviceEntry *OnuDeviceEntry) error {
+	logger.Debugw("send Reboot-msg to:", log.Fields{"deviceId": oo.deviceID})
+	request := &omci.RebootRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuGClassID,
+		},
+	}
+	tid := oo.GetNextTid(highPrio)
+	pkt, err := serialize(omci.RebootRequestType, request, tid)
+	if err != nil {
+		logger.Errorw("Cannot serialize RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	omciRxCallbackPair := CallbackPair{
+		cbKey:   tid,
+		cbEntry: CallbackPairEntry{onuDeviceEntry.omciRebootMessageReceived, oo.receiveOmciResponse},
+	}
+
+	err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil{
+		logger.Errorw("Cannot send RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	err = onuDeviceEntry.waitForRebootResponse()
+	if err != nil {
+		logger.Error("InitialBridgeSetup failed at MBSP, aborting MIB Download!")
+		onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+		return err
+	}
+	return nil
 }
 
 func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool) error {

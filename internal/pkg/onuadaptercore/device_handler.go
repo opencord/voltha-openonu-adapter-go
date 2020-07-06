@@ -432,6 +432,74 @@ func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
 	}
 }
 
+func (dh *DeviceHandler) RebootDevice(device *voltha.Device) error {
+	logger.Debugw("reboot-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	if device.ConnectStatus != voltha.ConnectStatus_REACHABLE {
+		logger.Errorw("device-unreachable", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+		return errors.New("device-unreachable")
+	}
+	dh.pOnuOmciDevice.Reboot(context.TODO())
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_UNREACHABLE,
+		voltha.OperStatus_DISCOVERED); err != nil {
+		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+		return err
+	}
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "rebooting-onu"); err != nil {
+		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+		return err
+	}
+	dh.deviceReason = "rebooting-onu"
+	return nil
+}
+
+//GetOfpPortInfo returns the Voltha PortCapabilty with the logical port
+//func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
+//	portNo int64) (*ic.PortCapability, error) {
+//	logger.Debugw("GetOfpPortInfo start", log.Fields{"deviceID": device.Id, "portNo": portNo})
+
+//function body as per OLTAdapter handler code
+// adapted with values from py dapter code
+//	if pUniPort, exist := dh.uniEntityMap[uint32(portNo)]; exist {
+//		var macOctets [6]uint8
+//		macOctets[5] = 0x08
+//		macOctets[4] = uint8(dh.ponPortNumber >> 8)
+//		macOctets[3] = uint8(dh.ponPortNumber)
+//		macOctets[2] = uint8(portNo >> 16)
+//		macOctets[1] = uint8(portNo >> 8)
+//		macOctets[0] = uint8(portNo)
+//		hwAddr := genMacFromOctets(macOctets)
+//		capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
+//		name := device.SerialNumber + "-" + strconv.FormatUint(uint64(pUniPort.macBpNo), 10)
+//		ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
+//		if pUniPort.operState == vc.OperStatus_ACTIVE {
+//			ofUniPortState = of.OfpPortState_OFPPS_LIVE
+//		}
+//		logger.Debugw("setting LogicalPort", log.Fields{"with-name": name,
+//			"withUniPort": pUniPort.name, "withMacBase": hwAddr, "OperState": ofUniPortState})
+
+//		return &ic.PortCapability{
+//			Port: &voltha.LogicalPort{
+//				OfpPort: &of.OfpPort{
+//					Name: name,
+//					//HwAddr:     macAddressToUint32Array(dh.device.MacAddress),
+//					HwAddr:     macAddressToUint32Array(hwAddr),
+//					Config:     0,
+//					State:      uint32(ofUniPortState),
+//					Curr:       capacity,
+//					Advertised: capacity,
+//					Peer:       capacity,
+//					CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+//					MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+//				},
+//				DeviceId:     device.Id,
+//				DevicePortNo: uint32(portNo),
+//			},
+//		}, nil
+//	}
+//	logger.Warnw("No UniPort found - abort", log.Fields{"for PortNo": uint32(portNo)})
+//	return nil, errors.New("UniPort not found")
+//}
+
 //  DeviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
