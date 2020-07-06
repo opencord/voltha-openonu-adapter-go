@@ -465,6 +465,26 @@ func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
 	}
 }
 
+func (dh *DeviceHandler) RebootDevice(device *voltha.Device) error {
+	logger.Debugw("reboot-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	if device.ConnectStatus != voltha.ConnectStatus_REACHABLE {
+		logger.Errorw("device-unreachable", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+		return errors.New("device-unreachable")
+	}
+	dh.pOnuOmciDevice.Reboot(context.TODO())
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_UNREACHABLE,
+		voltha.OperStatus_DISCOVERED); err != nil {
+		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+		return err
+	}
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "rebooting-onu"); err != nil {
+		logger.Errorw("error-updating-reason-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+		return err
+	}
+	dh.deviceReason = "rebooting-onu"
+	return nil
+}
+
 //GetOfpPortInfo returns the Voltha PortCapabilty with the logical port
 func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
 	portNo int64) (*ic.PortCapability, error) {

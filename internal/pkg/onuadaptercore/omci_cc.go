@@ -581,6 +581,27 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 	return oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 }
 
+func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool) error {
+	logger.Debugw("send Reboot-msg to:", log.Fields{"deviceId": oo.deviceID})
+	request := &omci.RebootRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuGClassID,
+		},
+	}
+	tid := oo.GetNextTid(highPrio)
+	pkt, err := serialize(omci.MibResetRequestType, request, tid)
+	if err != nil {
+		logger.Errorw("Cannot serialize RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	omciRxCallbackPair := CallbackPair{
+		cbKey:   tid,
+		cbEntry: CallbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse},
+	}
+	return oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+}
+
 func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
 	logger.Debugw("send MibUpload-msg to:", log.Fields{"deviceId": oo.deviceID})
 	request := &omci.MibUploadRequest{
