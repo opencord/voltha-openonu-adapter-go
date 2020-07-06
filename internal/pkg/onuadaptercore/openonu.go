@@ -243,7 +243,13 @@ func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
 
 //Reboot_device reboots the given device
 func (oo *OpenONUAC) Reboot_device(device *voltha.Device) error {
-	return errors.New("unImplemented")
+	logger.Debugw("Reboot-device", log.Fields{"deviceId": device.Id})
+	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+		go handler.RebootDevice(device)
+		return nil
+	}
+	logger.Warnw("no handler found for device-reboot", log.Fields{"deviceId": device.Id})
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-#{device.Id}"))
 }
 
 //Self_test_device unimplemented
