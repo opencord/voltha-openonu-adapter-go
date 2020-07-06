@@ -25,7 +25,6 @@ import (
 	"errors"
 	"strconv"
 	"sync"
-
 	//"time"
 
 	"github.com/google/gopacket"
@@ -579,6 +578,40 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 		cbEntry: CallbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
 	}
 	return oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+}
+
+func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, responseChannel chan Message) error {
+	logger.Debugw("send Reboot-msg to:", log.Fields{"deviceId": oo.deviceID})
+	request := &omci.RebootRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuGClassID,
+		},
+	}
+	tid := oo.GetNextTid(highPrio)
+	pkt, err := serialize(omci.RebootRequestType, request, tid)
+	if err != nil {
+		logger.Errorw("Cannot serialize RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	omciRxCallbackPair := CallbackPair{
+		cbKey:   tid,
+		cbEntry: CallbackPairEntry{oo.pOnuDeviceEntry.omciRebootMessageReceivedChannel, oo.receiveOmciResponse},
+	}
+
+	err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw("Cannot send RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	err = oo.pOnuDeviceEntry.waitForRebootResponse(responseChannel)
+	if err != nil {
+		logger.Error("aborting ONU Reboot!")
+		oo.pOnuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+		return err
+	}
+	return nil
 }
 
 func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
