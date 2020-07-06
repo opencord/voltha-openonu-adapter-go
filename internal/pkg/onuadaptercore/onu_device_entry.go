@@ -20,6 +20,9 @@ package adaptercoreonu
 import (
 	"context"
 	"errors"
+	"github.com/opencord/omci-lib-go"
+	me "github.com/opencord/omci-lib-go/generated"
+	"time"
 
 	//"sync"
 	//"time"
@@ -131,7 +134,8 @@ type OnuDeviceEntry struct {
 	pMibDownloadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
 	//remark: general usage of pAdapterFsm would require generalization of commChan  usage and internal event setting
 	//  within the FSM event procedures
-	omciMessageReceived chan bool //seperate channel needed by DownloadFsm
+	omciMessageReceived       chan bool    //seperate channel needed by DownloadFsm
+	omciRebootMessageReceived chan Message // channel needed by Reboot request
 }
 
 //OnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -320,6 +324,47 @@ func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
 	// maybe also the omciCC should be stopped here - for now not as no real processing is expected here - maybe needs consolidation
 	logger.Info("OnuDeviceEntry-stopped")
 	return nil
+}
+
+func (oo *OnuDeviceEntry) Reboot(ctx context.Context) error {
+	logger.Info("reboot-OnuDeviceEntry")
+	if err := oo.PDevOmciCC.sendReboot(context.TODO(), ConstDefaultOmciTimeout, true, oo); err != nil {
+		logger.Errorw("onu didn't reboot", log.Fields{"for device": oo.deviceID})
+		return err
+	}
+	logger.Info("OnuDeviceEntry-reboot")
+	return nil
+}
+
+func (oo *OnuDeviceEntry) waitForRebootResponse() error {
+	select {
+	case <-time.After(3 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+		logger.Warnw("Reboot timeout", log.Fields{"for device-id": oo.deviceID})
+		return errors.New("RebootTimeout")
+	case data := <-oo.omciRebootMessageReceived:
+		switch data.Data.(OmciMessage).OmciMsg.MessageType {
+		case omci.RebootResponseType:
+			{
+				msgLayer := (*data.Data.(OmciMessage).OmciPacket).Layer(omci.LayerTypeRebootResponse)
+				if msgLayer == nil {
+					return errors.New("Omci Msg layer could not be detected for RebootResponseType")
+				}
+				msgObj, msgOk := msgLayer.(*omci.GetResponse)
+				if !msgOk {
+					return errors.New("Omci Msg layer could not be assigned for RebootResponseType")
+				}
+				logger.Debugw("CreateResponse Data", log.Fields{"deviceId": oo.deviceID, "data-fields": msgObj})
+				if msgObj.Result != me.Success {
+					logger.Errorw("Omci RebootResponseType Error ", log.Fields{"Error": msgObj.Result})
+					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+					return errors.New("Omci RebootResponseType Error")
+				}
+				return nil
+			}
+		}
+		logger.Warnw("Reboot response error", log.Fields{"for device-id": oo.deviceID})
+		return errors.New("RebootResponseError")
+	}
 }
 
 //Relay the InSync message via Handler to Rw core - Status update
