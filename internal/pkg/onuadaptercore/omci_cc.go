@@ -25,6 +25,7 @@ import (
 	"errors"
 	"strconv"
 	"sync"
+	"time"
 
 	//"time"
 
@@ -579,6 +580,55 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 		cbEntry: CallbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
 	}
 	return oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+}
+
+func (onuDeviceEntry *OnuDeviceEntry) waitForRebootResponse() error {
+	select {
+	case <-time.After(3 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+		logger.Warnw("Reboot timeout", log.Fields{"for device-id": onuDeviceEntry.deviceID})
+		return errors.New("RebootTimeout")
+	case success := <-onuDeviceEntry.omciMessageReceived:
+		if success == true {
+			logger.Debug("Reboot response received")
+			return nil
+		}
+		logger.Warnw("Reboot response error", log.Fields{"for device-id": onuDeviceEntry.deviceID})
+		return errors.New("RebootResponseError")
+	}
+}
+
+func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, onuDeviceEntry *OnuDeviceEntry) error {
+	logger.Debugw("send Reboot-msg to:", log.Fields{"deviceId": oo.deviceID})
+	request := &omci.RebootRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuGClassID,
+		},
+	}
+	tid := oo.GetNextTid(highPrio)
+	pkt, err := serialize(omci.RebootRequestType, request, tid)
+	if err != nil {
+		logger.Errorw("Cannot serialize RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	omciRxCallbackPair := CallbackPair{
+		cbKey:   tid,
+		cbEntry: CallbackPairEntry{nil, oo.receiveOmciResponse},
+	}
+
+	err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil{
+		logger.Errorw("Cannot send RebootRequest", log.Fields{
+			"Err": err, "deviceId": oo.deviceID})
+		return err
+	}
+	err = onuDeviceEntry.waitForRebootResponse()
+	if err != nil {
+		logger.Error("InitialBridgeSetup failed at MBSP, aborting MIB Download!")
+		onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+		return err
+	}
+	return nil
 }
 
 func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
