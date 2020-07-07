@@ -117,6 +117,30 @@
       "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9042eacf_35000b20",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 321,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-07T08:37:49Z",
+      "side": 1,
+      "message": "I agree with keeping it simple, what worries me is keeping the lock forever when wg.Wait() never finishes. I\u0027m fine with a timeout in the next issue fo the Code, maybe put a TODO and track in jira.\nif the setting of the TP can\u0027t be trusted I\u0027d say that we need to delete the ONu and treat as a whole new one when a new ONUDiscIndication comes in, thoughts ?",
+      "parentUuid": "2a6b9c2b_b8a1d5c9",
+      "range": {
+        "startLine": 316,
+        "startChar": 0,
+        "endLine": 321,
+        "endChar": 27
+      },
+      "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
