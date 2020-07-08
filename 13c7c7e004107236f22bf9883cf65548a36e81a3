@@ -141,6 +141,30 @@
       "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7b1372fb_0556aafc",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-08T10:07:41Z",
+      "side": 1,
+      "message": "I would not propose to track it with some Jira or even //TODO.\nI could add further comments for the \u0027waiter functions\u0027 that they must be ensured to return in acceptable time, even though that is already implicitly indicated by the wg reference argument (having that argument it is more or less straight forward, that such a routine may not run endlessly - except for the routine that really waits for completion.\nIn case the \u0027waiter functions\u0027 are extended to include asynchronous method calls, at that time clearly the timeout supervision must be integrated. The proposal is to do that at that specific time (and then it is a must and should not be put off).\nA better solution would be a wait group implementation with some implicit timeout, but that is not available in Go (as far as I have searched).\n\nThe other comment refers to problems getting the TP from etcd? I don\u0027t fully understand the proposal: Does it refer to some automatic deletion of the ONU from the adapter (or perhaps an ONU reboot - I would not know how to \u0027delete\u0027 some ONU)? I would not know, how the problems are then resolved when the ONU pops up again. Or does it refer to some manual ONOS-based intervention by the operator, who could also try to clean up etcd related issues - but then the question is, how the operator gets to know about such problems.",
+      "parentUuid": "9042eacf_35000b20",
+      "range": {
+        "startLine": 316,
+        "startChar": 0,
+        "endLine": 321,
+        "endChar": 27
+      },
+      "revId": "13c7c7e004107236f22bf9883cf65548a36e81a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
