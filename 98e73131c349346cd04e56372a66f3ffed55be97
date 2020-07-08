@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "28f9190a_901b1e55",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 484,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-07-08T13:37:18Z",
+      "side": 1,
+      "message": "OLT doesn\u0027t send any indication to ONU Reboot action. OLT just sending OpenDown and OperUp indications to ONU Restart. Reboot is action into ONU device.",
+      "parentUuid": "15577805_21bdfa7d",
+      "revId": "98e73131c349346cd04e56372a66f3ffed55be97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ac21915_5650af40",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 4
