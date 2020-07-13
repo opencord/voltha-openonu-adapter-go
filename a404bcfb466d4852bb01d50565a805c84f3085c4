@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a973516_561c4acc",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-13T07:03:56Z",
+      "side": 1,
+      "message": "Still you have not modified the OMCI CallBack treatment.\nAs stated, routing the response to MibDownloadFsm might have unexpected effects, as the MibDownloadFsm may even not exist.\nGenerally the adapter should be able to handle responses without doing something with that. With current code the reaction on a nil Callback function at the reception would be to throw an error message which is not nice for possible \u0027normal\u0027 behavior.\nMy proposal would be to define a specific garbage callback function to handle untreated responses (if any). If you want I can insert such in an upcoming release and direct your code here to that method then.",
+      "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
