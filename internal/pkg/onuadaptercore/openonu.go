@@ -55,6 +55,7 @@ type OpenONUAC struct {
 	//GrpcTimeoutInterval         time.Duration
 	lockDeviceHandlersMap sync.RWMutex
 	pSupportedFsms        *OmciDeviceFsms
+	kafka.EndpointManager
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -137,6 +138,15 @@ func (oo *OpenONUAC) getDeviceHandler(deviceID string) *DeviceHandler {
 		return agent
 	}
 	return nil
+}
+
+func (oo *OpenONUAC) getAdapterTopic(deviceID string, adapterType string) (*kafka.Topic, error) {
+	endpoint, err := oo.GetEndpoint(deviceID, adapterType)
+	if err != nil {
+		return nil, err
+	}
+
+	return &kafka.Topic{Name: string(endpoint)}, nil
 }
 
 // Adapter interface required methods ############## begin #########
