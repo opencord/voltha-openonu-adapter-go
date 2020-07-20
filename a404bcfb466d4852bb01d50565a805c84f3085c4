@@ -34,6 +34,24 @@
       "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "691d8b37_e014a161",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-07-20T14:52:55Z",
+      "side": 1,
+      "message": "Hi Michael, I changed callback treatment. Can you check it?",
+      "parentUuid": "3fbdc007_2913074c",
+      "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
