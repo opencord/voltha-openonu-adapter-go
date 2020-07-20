@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a1b56401_56f6261d",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2020-07-20T17:00:13Z",
+      "side": 1,
+      "message": "Does openolt-adapter send any message other than InterAdapterMessage to one-adapter? adapterProxy above already have this EndpointManager interface and do the same think that yo have done below.",
+      "revId": "b939ed2fe140c2c7579ca8d0244e50427e70135c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
