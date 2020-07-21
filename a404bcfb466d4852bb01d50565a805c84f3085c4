@@ -52,6 +52,24 @@
       "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cd04dbd7_6f6e0a27",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-21T09:30:06Z",
+      "side": 1,
+      "message": "Sorry, Ozge. The change would probably behave even worse than using the MibDownload FSM and living with an error log from there. Here you just use a pointer to some FSM which is not initialized. The reference to the given commChan is then undefined. So please see our Slack discussion, let me first understand what really needs to be done with the RebootResponse, then I can better help you getting things done.",
+      "parentUuid": "691d8b37_e014a161",
+      "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
