@@ -268,7 +268,9 @@ func (oo *OpenONUAC) Update_flows_bulk(device *voltha.Device, flows *voltha.Flow
 
 //Update_flows_incrementally updates (add/remove) the flows on a given device
 func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device, flows *openflow_13.FlowChanges, groups *openflow_13.FlowGroupChanges, flowMetadata *voltha.FlowMetadata) error {
-	return errors.New("unImplemented")
+	//	return errors.New("unImplemented")
+	// testwise: just acknowledge to see, if that avoids ongoing TechProfile config sequences ...
+	return nil
 }
 
 //Update_pm_config returns PmConfigs nil or error

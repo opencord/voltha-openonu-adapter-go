@@ -53,6 +53,7 @@ const (
 	UniAdminStateDone    OnuDeviceEvent = 6 // Uni ports admin set done - general
 	PortLinkUp           OnuDeviceEvent = 7 // Port link state change
 	PortLinkDw           OnuDeviceEvent = 8 // Port link state change
+	OmciAniConfigDone    OnuDeviceEvent = 9 // AniSide config according to TechProfile done
 	// Add other events here as needed (alarms separate???)
 )
 
