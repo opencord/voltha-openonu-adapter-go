@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b35e4882_40a974a6",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T07:34:26Z",
+      "side": 1,
+      "message": "It is now just a comment you changed compared to patchset 8? So I suppose further changes are to come (maybe in other source files)?",
+      "range": {
+        "startLine": 598,
+        "startChar": 0,
+        "endLine": 598,
+        "endChar": 1
+      },
+      "revId": "4aa59b6f5466df585385188dae0a3ae01b33dd97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
