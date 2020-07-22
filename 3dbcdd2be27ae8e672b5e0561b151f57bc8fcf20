@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "47b1e583_8a938100",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-22T09:29:02Z",
+      "side": 1,
+      "message": "+1, how is this done in python version ? is it hardcoded ? wondering if there is magic for configuration or exponential backoff strategy here.",
+      "parentUuid": "067ea44d_0c02b7a3",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e52edc17_c706d71c",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "TechProfile and flow configuration seem to arrive at OnuAdapter in parallel. Moreover in the Go Adapter we acknowledge the TechProfile configuration already before all the processing is done. So at the point that this process is finished, the flow configuration might also already be stored in the adapter. Also already the python code supported the flow update at this point.",
       "parentUuid": "e52edc17_c706d71c",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6e06c388_098f5336",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-22T09:29:02Z",
+      "side": 1,
+      "message": "I did not get what you mean with \"in the Go Adapter we acknowledge the TechProfile configuration already before all the processing is done\" can you explain ?",
+      "parentUuid": "1b510e74_139e1a41",
       "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -171,6 +207,24 @@
       "side": 1,
       "message": "In this case nil is already the indication for some error, while in a success case the pointer to the meInstance s returned. Also already taken into consideration accordingly by the caller.",
       "parentUuid": "1f989782_c41bf0dd",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "253070bb_31914494",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 671,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-22T09:29:02Z",
+      "side": 1,
+      "message": "as a best practice in go nil return does mean successful run of the method, so please add the error return, otherwise it goes against go code standards and lowers maintainability in the future",
+      "parentUuid": "eb5437f5_c9237036",
       "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
