@@ -89,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "1969dc73_111202cf",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T09:20:59Z",
+      "side": 1,
+      "message": "Yes, maybe somewhere here in comments also only called mapper ...",
+      "parentUuid": "bd793abc_4711b440",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ee1d19aa_d66e7825",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 2
@@ -100,6 +118,24 @@
       "writtenOn": "2020-07-22T08:57:47Z",
       "side": 1,
       "message": "tcont0ID and gemPortXID is same current python code base. Maybe We can apply same approach here.",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e8982324_d6a3147a",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T09:20:59Z",
+      "side": 1,
+      "message": "Yes - valid for first GemPort only of course. I also would not want to leave that scheme - as long as not needed. But at this code position here the T-Cont is referenced, and here the value must be used that the ONU announced in its MibUpload. This still has to be done.",
+      "parentUuid": "ee1d19aa_d66e7825",
       "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
