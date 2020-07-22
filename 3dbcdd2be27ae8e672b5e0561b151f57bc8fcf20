@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "146970cd_cc8b83e4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T10:47:17Z",
+      "side": 1,
+      "message": "Python code is kept much more simple here. All processing is done sequentially. Timeouts are only used for individual OMCI frames to be sent/response to be received.\nThe timeout here is just an internal protection for the used wait group mutex to ensure its release in unexpected blocking situations.",
+      "parentUuid": "47b1e583_8a938100",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e52edc17_c706d71c",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -102,6 +120,24 @@
       "side": 1,
       "message": "I did not get what you mean with \"in the Go Adapter we acknowledge the TechProfile configuration already before all the processing is done\" can you explain ?",
       "parentUuid": "1b510e74_139e1a41",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6bd3a5ae_115a7b1c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T10:47:17Z",
+      "side": 1,
+      "message": "TechProfile config processing as message request from OLT adapter is acknowledged/responded shortly after some basic message content processing. The response allows the OLT adapter to continue with whatever comes next already. The main related processing - meaning the analysis of the TechProfile content and its translation to the required sequence of OMCI messages is done in background (and will take a while to be finished after the response has already been sent).",
+      "parentUuid": "6e06c388_098f5336",
       "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -225,6 +261,24 @@
       "side": 1,
       "message": "as a best practice in go nil return does mean successful run of the method, so please add the error return, otherwise it goes against go code standards and lowers maintainability in the future",
       "parentUuid": "eb5437f5_c9237036",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "df0792de_84276dc3",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 671,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T10:47:17Z",
+      "side": 1,
+      "message": "I would not judge that returning nil pointer is against go code standards, at least I did not see any such comments so far in my web searches. It is legitimate to just a return some nil pointer, of course it requires the corresponding check on the caller side (if needed there). On the caller side (in our adapter code) we have additional comments that indicate some possibility to improve the processing there, but that is not essentially needed (and shifted to later general improvements). \nThe alternative would just be to return an error code and the pointer (which may not be nil if the error code is nil). I am not sure, if that is what you want. For me this is just extra programming effort and unneeded run-time. \nI also do not see any issue with code maintainability here. Users of the omci_cc send functions have just to be aware that the returned pointer might be nil (something that always should be considered).\nIf you still think that simply returning a nil pointer is not a good approach, then more code positions are theoretically affected and should be changed as well, e.g. the creation of new class instances like the handler itself. This then is programming style used also on other components, like the OLT adapter... We should perhaps do that then as part of a separate story.",
+      "parentUuid": "253070bb_31914494",
       "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
