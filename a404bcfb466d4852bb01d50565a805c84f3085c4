@@ -70,6 +70,24 @@
       "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6df2f2a9_1f7e7318",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-07-22T08:38:20Z",
+      "side": 1,
+      "message": "I see. We can discuss this topic in our meeting",
+      "parentUuid": "cd04dbd7_6f6e0a27",
+      "revId": "a404bcfb466d4852bb01d50565a805c84f3085c4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

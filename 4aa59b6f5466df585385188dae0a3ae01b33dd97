@@ -22,6 +22,30 @@
       "revId": "4aa59b6f5466df585385188dae0a3ae01b33dd97",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aae05dc3_e196adf2",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-07-22T08:38:20Z",
+      "side": 1,
+      "message": "Yeah, I just added a comment. I\u0027ll change something after our discussion.",
+      "parentUuid": "b35e4882_40a974a6",
+      "range": {
+        "startLine": 598,
+        "startChar": 0,
+        "endLine": 598,
+        "endChar": 1
+      },
+      "revId": "4aa59b6f5466df585385188dae0a3ae01b33dd97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
