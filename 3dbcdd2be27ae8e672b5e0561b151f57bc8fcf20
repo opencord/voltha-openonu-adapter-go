@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0271bf46_89f4dc9b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-22T08:35:06Z",
+      "side": 1,
+      "message": "should this be 30 for consistency with prior elements ?",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e52edc17_c706d71c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-22T08:35:06Z",
+      "side": 1,
+      "message": "you mean that while this call arrives there could be some pending flow config ? at least in VOLTHA the tech profile configuration is done at the beginning and is kinda \"sed and forget\" I don\u0027t expect this to be changing.",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f989782_c41bf0dd",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 671,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-22T08:35:06Z",
+      "side": 1,
+      "message": "possibly worth returning the error instead of simply logging. valid for all methods in this class.",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
