@@ -291,15 +291,18 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				//TODO!!! Generally: In this scheme it would be good to have some means to indicate
 				//  possible problems to the caller later autonomously
 
-				// some code to coordinate TP 'run to completion'
-				// attention: completion and wg.Add is assumed to be done in both routines,
-				// no timeout control so far (needed)
+				// deadline context to ensure completion of background routines waited for
+				//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
+				deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+				dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
 				var wg sync.WaitGroup
 				wg.Add(2) // for the 2 go routines to finish
-				go dh.pOnuTP.configureUniTp(techProfMsg.UniId, techProfMsg.Path, &wg)
-				go dh.pOnuTP.updateOnuTpPathKvStore(&wg)
+				// attention: deadline completion check and wg.Done is to be done in both routines
+				go dh.pOnuTP.configureUniTp(dctx, techProfMsg.UniId, techProfMsg.Path, &wg)
+				go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
 				//the wait.. function is responsible for tpProcMutex.Unlock()
-				go dh.pOnuTP.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
+				go dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
 			} else {
 				dh.pOnuTP.unlockTpProcMutex()
 			}
@@ -323,12 +326,17 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 
 			//compare TECH_PROFILE_DOWNLOAD_REQUEST
 			dh.pOnuTP.lockTpProcMutex()
+
+			// deadline context to ensure completion of background routines waited for
+			deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
+			dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
-			go dh.pOnuTP.deleteTpRessource(delGemPortMsg.UniId, delGemPortMsg.TpPath,
+			go dh.pOnuTP.deleteTpResource(dctx, delGemPortMsg.UniId, delGemPortMsg.TpPath,
 				cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 			//the wait.. function is responsible for tpProcMutex.Unlock()
-			go dh.pOnuTP.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
+			go dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
 		}
 	case ic.InterAdapterMessageType_DELETE_TCONT_REQUEST:
 		{
@@ -350,14 +358,18 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 			//compare TECH_PROFILE_DOWNLOAD_REQUEST
 			dh.pOnuTP.lockTpProcMutex()
 			if bTpModify := dh.pOnuTP.updateOnuUniTpPath(delTcontMsg.UniId, ""); bTpModify == true {
+				// deadline context to ensure completion of background routines waited for
+				deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
+				dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
 				var wg sync.WaitGroup
-				wg.Add(2) // for the 1 go routine to finish
-				go dh.pOnuTP.deleteTpRessource(delTcontMsg.UniId, delTcontMsg.TpPath,
+				wg.Add(2) // for the 2 go routines to finish
+				go dh.pOnuTP.deleteTpResource(dctx, delTcontMsg.UniId, delTcontMsg.TpPath,
 					cResourceTcont, delTcontMsg.AllocId, &wg)
 				// Removal of the tcont/alloc id mapping represents the removal of the tech profile
-				go dh.pOnuTP.updateOnuTpPathKvStore(&wg)
+				go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
 				//the wait.. function is responsible for tpProcMutex.Unlock()
-				go dh.pOnuTP.waitForTpCompletion(&wg) //let that also run off-line to let the IA messaging return!
+				go dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
 			} else {
 				dh.pOnuTP.unlockTpProcMutex()
 			}
@@ -918,12 +930,18 @@ func (dh *DeviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 				}
 			}
 		default:
-			{ //port lock/unlock FSM's may be active
+			{
+				//port lock/unlock FSM's may be active
 				if dh.pUnlockStateFsm != nil {
 					dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event("reset")
 				}
 				if dh.pLockStateFsm != nil {
 					dh.pLockStateFsm.pAdaptFsm.pFsm.Event("reset")
+				}
+				//techProfile related PonAniConfigFsm FSM may be active
+				// maybe encapsulated as OnuTP method - perhaps later in context of module splitting
+				if dh.pOnuTP.pAniConfigFsm != nil {
+					dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event("reset")
 				}
 			}
 			//TODO!!! care about PM/Alarm processing once started
@@ -974,12 +992,15 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 	switch dev_Event {
 	case MibDatabaseSync:
 		{
-			logger.Infow("MibInSync event: update dev state to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
+			logger.Debugw("MibInSync event received", log.Fields{"deviceID": dh.deviceID})
 			//initiate DevStateUpdate
 			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
 				logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{
 					"deviceID": dh.deviceID, "error": err})
+			} else {
+				logger.Infow("dev reason updated to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
 			}
+			//set internal state anyway - as it was done
 			dh.deviceReason = "discovery-mibsync-complete"
 
 			pDevEntry := dh.GetOnuDeviceEntry(false)
@@ -1059,20 +1080,23 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 		}
 	case MibDownloadDone:
 		{
-			logger.Infow("MibDownloadDone event: update dev state to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
+			logger.Debugw("MibDownloadDone event received", log.Fields{"deviceID": dh.deviceID})
 			//initiate DevStateUpdate
 			if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
 				voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
 				logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+			} else {
+				logger.Debugw("dev state updated to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
 			}
 
-			logger.Debug("MibDownloadDone Event: update dev reason to 'initial-mib-downloaded'")
 			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
 				logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
 					log.Fields{"deviceID": dh.deviceID, "error": err})
+			} else {
+				logger.Infow("dev reason updated to 'initial-mib-downloaded'", log.Fields{"deviceID": dh.deviceID})
 			}
+			//set internal state anyway - as it was done
 			dh.deviceReason = "initial-mib-downloaded"
-
 			// *** should generate UniUnlockStateDone event *****
 			if dh.pUnlockStateFsm == nil {
 				dh.createUniLockFsm(false, UniUnlockStateDone)
@@ -1088,6 +1112,26 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 			logger.Infow("UniUnlockStateDone event: Sending OnuUp event", log.Fields{"deviceID": dh.deviceID})
 			raisedTs := time.Now().UnixNano()
 			go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
+		}
+	case OmciAniConfigDone:
+		{
+			logger.Debugw("OmciAniConfigDone event received", log.Fields{"deviceID": dh.deviceID})
+			//TODO!: it might be needed to check some 'cached' pending flow configuration (vlan setting)
+			//  - to consider with outstanding flow implementation
+			// attention: the device reason update is done based on ONU-UNI-Port related activity
+			//  - which may cause some inconsistency
+			if dh.deviceReason != "tech-profile-config-download-success" {
+				// which may be the case from some previous actvity on another UNI Port of the ONU
+				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-download-success"); err != nil {
+					logger.Errorw("error-DeviceReasonUpdate to 'tech-profile-config-download-success'",
+						log.Fields{"deviceID": dh.deviceID, "error": err})
+				} else {
+					logger.Infow("update dev reason to 'tech-profile-config-download-success'",
+						log.Fields{"deviceID": dh.deviceID})
+				}
+				//set internal state anyway - as it was done
+				dh.deviceReason = "tech-profile-config-download-success"
+			}
 		}
 	default:
 		{
