@@ -179,6 +179,24 @@
     },
     {
       "key": {
+        "uuid": "28a3c0f4_4aa5545d",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-07-22T12:07:04Z",
+      "side": 1,
+      "message": "If we use one name format It\u0027ll be clear for us. But It\u0027s okay for me.",
+      "parentUuid": "1969dc73_111202cf",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ee1d19aa_d66e7825",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 2
