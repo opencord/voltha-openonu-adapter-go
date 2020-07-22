@@ -180,6 +180,24 @@
     },
     {
       "key": {
+        "uuid": "1fa1d1f4_43921d5e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T14:12:24Z",
+      "side": 1,
+      "message": "See comments in line 288 to 292\nIf it is not possible to live with \u0027ok\u0027 response and if we can\u0027t find a way to handle a \u0027late\u0027 error indication\u0027, then we have to skip the concurrent approach here and to do it sequentially. I am not sure what effect this would really have on the system processing time - it depends on how the OLT adapter controls the configuration of the tech profiles for the OnuAdapter (already concurrent in respect to different ONU\u0027s?). \nIn the end sequential treatment would make this processing a bit easier. Perhaps we should make some test evaluation on this - which will take some time for the \u0027sequential\u0027 processing to implement and test within some specific test context ...",
+      "parentUuid": "f4dbb1f1_ed055021",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bd793abc_4711b440",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 2
@@ -351,6 +369,24 @@
       "side": 1,
       "message": "returning a nil pointer to me is ok if there is an error, otherwise we shoudl always return an instance of the object. See https://blog.golang.org/error-handling-and-go \nthe way it\u0027s usually done is that a successful run returns\nelement, nil\nan unseccesfull one instead:\nnil, error\nand the check is\nvalue, err :\u003d function() err !\u003d nil {\n}\nthis way you never consider the pointer of the value but just the error.\nI think that anywhere an error yields a nil return this is the way that needs to be done.",
       "parentUuid": "df0792de_84276dc3",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eb0f79a9_8d6ddc0a",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 671,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-22T14:12:24Z",
+      "side": 1,
+      "message": "Meanwhile I made some short offline tests comparing timing behavior between single and double return functions and inspecting their error indication. Surprisingly there was no real increase in processing time visible with the double return handling (with my rough measurement). \nThat assumed I would agree to modifying this interface, but I would suggest to do it within a different story, modification effort is not that low here.",
+      "parentUuid": "ced692e3_c4150f51",
       "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
