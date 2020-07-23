@@ -216,6 +216,24 @@
     },
     {
       "key": {
+        "uuid": "07ea2461_b6e0a4d2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-23T10:53:15Z",
+      "side": 1,
+      "message": "sounds good, will it come in this patch ?",
+      "parentUuid": "66e06fa9_76c44cd6",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bd793abc_4711b440",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 2
