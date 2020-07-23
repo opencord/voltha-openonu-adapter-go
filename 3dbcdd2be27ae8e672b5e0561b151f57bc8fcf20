@@ -198,6 +198,24 @@
     },
     {
       "key": {
+        "uuid": "66e06fa9_76c44cd6",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-23T06:59:29Z",
+      "side": 1,
+      "message": "As discussed offline - I spent some more thoughts on a more sequential treatment in order to being able to provide the result of all the processing in the InterAdapter message response. Basically now I would stay with the given background processing. The used (looplab) FSM also runs in background and I would not want to start modifications on that (or search some other FSM implementation). So instead I\u0027ll keep the background processing but will delay the answer until the processing is finished to include success/error - first with some internal test version to observe the general timing behavior ...",
+      "parentUuid": "1fa1d1f4_43921d5e",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bd793abc_4711b440",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 2
