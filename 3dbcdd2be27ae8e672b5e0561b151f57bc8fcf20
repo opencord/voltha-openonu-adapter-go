@@ -270,6 +270,24 @@
     },
     {
       "key": {
+        "uuid": "aefb3c63_1ba3aea9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-24T12:29:35Z",
+      "side": 1,
+      "message": "So I\u0027ve done some tests with the change of sending the response after all concerned processing with the techProfile processing itself still in background (as discussed above). Some side statement here: the changed behavior also influences the treatment of the OnuIndication message, which is now also (more or less) treated that way (here a possible OMCI processing for the MibUpload is still not covered by the result supervision - in my point of view also not needed, see according code comment). \nThe changes proved to have no significant influence on the overall system timing behavior. Processing for different ONU\u0027s (devices) still works in parallel and previous code already had secured code fragments to avoid parallel access to TechProfile processing for the same ONU.\nSome improvement could still be considered theoretically by supplying the response message without error indication immediately like it is still in this patch: Theoretically it might be possible to parallelize the processing of TechProfiles for different UNI\u0027s of the ONU. As a consequence also the OMCI configuration for different UNI\u0027s would be mixed up, which should work, but might also show some side effects for some ONU\u0027s. At the moment only one UNI Port is enabled (at least in the BBSIm tests), so that is something I can\u0027t easily test by now. And it would require even further-going changes in the code (and is also not supported by the python code). Maybe can be considered in some future optimization.\n\nHence I\u0027ll update the code with the changed scheme to wait for all concerned processing and include related errors in the response soon.",
+      "parentUuid": "ccc441eb_2a165d55",
+      "revId": "3dbcdd2be27ae8e672b5e0561b151f57bc8fcf20",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bd793abc_4711b440",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 2
