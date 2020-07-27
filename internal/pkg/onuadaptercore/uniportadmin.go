@@ -41,6 +41,27 @@ type LockStateFsm struct {
 	pAdaptFsm                *AdapterFsm
 }
 
+const (
+	// events of lock/unlock UNI port FSM
+	uniEvStart         = "uniEvStart"
+	uniEvStartAdmin    = "uniEvStartAdmin"
+	uniEvRxUnisResp    = "uniEvRxUnisResp"
+	uniEvRxOnugResp    = "uniEvRxOnugResp"
+	uniEvTimeoutSimple = "uniEvTimeoutSimple"
+	uniEvTimeoutUnis   = "uniEvTimeoutUnis"
+	uniEvReset         = "uniEvReset"
+	uniEvRestart       = "uniEvRestart"
+)
+const (
+	// states of lock/unlock UNI port FSM
+	uniStDisabled    = "uniStDisabled"
+	uniStStarting    = "uniStStarting"
+	uniStSettingUnis = "uniStSettingUnis"
+	uniStSettingOnuG = "uniStSettingOnuG"
+	uniStAdminDone   = "uniStAdminDone"
+	uniStResetting   = "uniStResetting"
+)
+
 //NewLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
 func NewLockStateFsm(apDevOmciCC *OmciCC, aAdminState bool, aRequestEvent OnuDeviceEvent,
 	aName string, aDeviceID string, aCommChannel chan Message) *LockStateFsm {
@@ -57,68 +78,68 @@ func NewLockStateFsm(apDevOmciCC *OmciCC, aAdminState bool, aRequestEvent OnuDev
 	}
 	if aAdminState == true { //port locking requested
 		instFsm.pAdaptFsm.pFsm = fsm.NewFSM(
-			"disabled",
+			uniStDisabled,
 			fsm.Events{
 
-				{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
+				{Name: uniEvStart, Src: []string{uniStDisabled}, Dst: uniStStarting},
 
-				{Name: "start_admin", Src: []string{"starting"}, Dst: "settingUnis"},
-				// the settingUnis state is used for multi ME config for alle UNI related ports
+				{Name: uniEvStartAdmin, Src: []string{uniStStarting}, Dst: uniStSettingUnis},
+				// the settingUnis state is used for multi ME config for all UNI related ports
 				// maybe such could be reflected in the state machine as well (port number parametrized)
 				// but that looks not straightforward here - so we keep it simple here for the beginning(?)
-				{Name: "rx_unis_resp", Src: []string{"settingUnis"}, Dst: "settingOnuG"},
-				{Name: "rx_onug_resp", Src: []string{"settingOnuG"}, Dst: "adminDone"},
+				{Name: uniEvRxUnisResp, Src: []string{uniStSettingUnis}, Dst: uniStSettingOnuG},
+				{Name: uniEvRxOnugResp, Src: []string{uniStSettingOnuG}, Dst: uniStAdminDone},
 
-				{Name: "timeout_simple", Src: []string{"settingOnuG"}, Dst: "starting"},
-				{Name: "timeout_unis", Src: []string{"settingUnis"}, Dst: "starting"},
+				{Name: uniEvTimeoutSimple, Src: []string{uniStSettingOnuG}, Dst: uniStStarting},
+				{Name: uniEvTimeoutUnis, Src: []string{uniStSettingUnis}, Dst: uniStStarting},
 
-				{Name: "reset", Src: []string{"starting", "settingOnuG", "settingUnis",
-					"adminDone"}, Dst: "resetting"},
-				// exceptional treatment for all states except "resetting"
-				{Name: "restart", Src: []string{"starting", "settingOnuG", "settingUnis",
-					"adminDone", "resetting"}, Dst: "disabled"},
+				{Name: uniEvReset, Src: []string{uniStStarting, uniStSettingOnuG, uniStSettingUnis,
+					uniStAdminDone}, Dst: uniStResetting},
+				// exceptional treatment for all states except uniStResetting
+				{Name: uniEvRestart, Src: []string{uniStStarting, uniStSettingOnuG, uniStSettingUnis,
+					uniStAdminDone, uniStResetting}, Dst: uniStDisabled},
 			},
 
 			fsm.Callbacks{
-				"enter_state":       func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
-				"enter_starting":    func(e *fsm.Event) { instFsm.enterAdminStartingState(e) },
-				"enter_settingOnuG": func(e *fsm.Event) { instFsm.enterSettingOnuGState(e) },
-				"enter_settingUnis": func(e *fsm.Event) { instFsm.enterSettingUnisState(e) },
-				"enter_adminDone":   func(e *fsm.Event) { instFsm.enterAdminDoneState(e) },
-				"enter_resetting":   func(e *fsm.Event) { instFsm.enterResettingState(e) },
+				"enter_state":                 func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
+				("enter_" + uniStStarting):    func(e *fsm.Event) { instFsm.enterAdminStartingState(e) },
+				("enter_" + uniStSettingOnuG): func(e *fsm.Event) { instFsm.enterSettingOnuGState(e) },
+				("enter_" + uniStSettingUnis): func(e *fsm.Event) { instFsm.enterSettingUnisState(e) },
+				("enter_" + uniStAdminDone):   func(e *fsm.Event) { instFsm.enterAdminDoneState(e) },
+				("enter_" + uniStResetting):   func(e *fsm.Event) { instFsm.enterResettingState(e) },
 			},
 		)
 	} else { //port unlocking requested
 		instFsm.pAdaptFsm.pFsm = fsm.NewFSM(
-			"disabled",
+			uniStDisabled,
 			fsm.Events{
 
-				{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
+				{Name: uniEvStart, Src: []string{uniStDisabled}, Dst: uniStStarting},
 
-				{Name: "start_admin", Src: []string{"starting"}, Dst: "settingOnuG"},
-				{Name: "rx_onug_resp", Src: []string{"settingOnuG"}, Dst: "settingUnis"},
-				// the settingUnis state is used for multi ME config for alle UNI related ports
+				{Name: uniEvStartAdmin, Src: []string{uniStStarting}, Dst: uniStSettingOnuG},
+				{Name: uniEvRxOnugResp, Src: []string{uniStSettingOnuG}, Dst: uniStSettingUnis},
+				// the settingUnis state is used for multi ME config for all UNI related ports
 				// maybe such could be reflected in the state machine as well (port number parametrized)
 				// but that looks not straightforward here - so we keep it simple here for the beginning(?)
-				{Name: "rx_unis_resp", Src: []string{"settingUnis"}, Dst: "adminDone"},
+				{Name: uniEvRxUnisResp, Src: []string{uniStSettingUnis}, Dst: uniStAdminDone},
 
-				{Name: "timeout_simple", Src: []string{"settingOnuG"}, Dst: "starting"},
-				{Name: "timeout_unis", Src: []string{"settingUnis"}, Dst: "starting"},
+				{Name: uniEvTimeoutSimple, Src: []string{uniStSettingOnuG}, Dst: uniStStarting},
+				{Name: uniEvTimeoutUnis, Src: []string{uniStSettingUnis}, Dst: uniStStarting},
 
-				{Name: "reset", Src: []string{"starting", "settingOnuG", "settingUnis",
-					"adminDone"}, Dst: "resetting"},
-				// exceptional treatment for all states except "resetting"
-				{Name: "restart", Src: []string{"starting", "settingOnuG", "settingUnis",
-					"adminDone", "resetting"}, Dst: "disabled"},
+				{Name: uniEvReset, Src: []string{uniStStarting, uniStSettingOnuG, uniStSettingUnis,
+					uniStAdminDone}, Dst: uniStResetting},
+				// exceptional treatment for all states except uniStResetting
+				{Name: uniEvRestart, Src: []string{uniStStarting, uniStSettingOnuG, uniStSettingUnis,
+					uniStAdminDone, uniStResetting}, Dst: uniStDisabled},
 			},
 
 			fsm.Callbacks{
-				"enter_state":       func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
-				"enter_starting":    func(e *fsm.Event) { instFsm.enterAdminStartingState(e) },
-				"enter_settingOnuG": func(e *fsm.Event) { instFsm.enterSettingOnuGState(e) },
-				"enter_settingUnis": func(e *fsm.Event) { instFsm.enterSettingUnisState(e) },
-				"enter_adminDone":   func(e *fsm.Event) { instFsm.enterAdminDoneState(e) },
-				"enter_resetting":   func(e *fsm.Event) { instFsm.enterResettingState(e) },
+				"enter_state":                 func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
+				("enter_" + uniStStarting):    func(e *fsm.Event) { instFsm.enterAdminStartingState(e) },
+				("enter_" + uniStSettingOnuG): func(e *fsm.Event) { instFsm.enterSettingOnuGState(e) },
+				("enter_" + uniStSettingUnis): func(e *fsm.Event) { instFsm.enterSettingUnisState(e) },
+				("enter_" + uniStAdminDone):   func(e *fsm.Event) { instFsm.enterAdminDoneState(e) },
+				("enter_" + uniStResetting):   func(e *fsm.Event) { instFsm.enterResettingState(e) },
 			},
 		)
 	}
@@ -162,7 +183,7 @@ func (oFsm *LockStateFsm) enterAdminStartingState(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("start_admin")
+				a_pAFsm.pFsm.Event(uniEvStartAdmin)
 			}
 		}(pLockStateAFsm)
 	}
@@ -201,7 +222,7 @@ func (oFsm *LockStateFsm) enterAdminDoneState(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("reset")
+				a_pAFsm.pFsm.Event(uniEvReset)
 			}
 		}(pLockStateAFsm)
 	}
@@ -224,7 +245,7 @@ func (oFsm *LockStateFsm) enterResettingState(e *fsm.Event) {
 		// see DownloadedState: decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("restart")
+				a_pAFsm.pFsm.Event(uniEvRestart)
 			}
 		}(pLockStateAFsm)
 	}
@@ -242,7 +263,7 @@ loop:
 			if !ok {
 				logger.Info("LockStateFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				oFsm.pAdaptFsm.pFsm.Event("restart")
+				oFsm.pAdaptFsm.pFsm.Event(uniEvRestart)
 				break loop
 			}
 			logger.Debugw("LockStateFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
@@ -298,7 +319,7 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 			switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 			case "OnuG":
 				{ // let the FSM proceed ...
-					oFsm.pAdaptFsm.pFsm.Event("rx_onug_resp")
+					oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
 				}
 			case "UniG", "VEIP":
 				{ // let the PPTP init proceed by stopping the wait function
@@ -344,14 +365,14 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 		if err != nil {
 			logger.Errorw("PPTP Admin State set failed, aborting LockState set!",
 				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
-			oFsm.pAdaptFsm.pFsm.Event("reset")
+			oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 			return
 		}
 	} //for all UNI ports
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
 	logger.Infow("PPTP config loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event("rx_unis_resp")
+	oFsm.pAdaptFsm.pFsm.Event(uniEvRxUnisResp)
 	return
 }
 

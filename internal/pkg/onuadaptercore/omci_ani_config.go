@@ -33,7 +33,38 @@ import (
 	//"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
-//UniPonAniConfigFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
+const (
+	// events of config PON ANI port FSM
+	aniEvStart           = "uniEvStart"
+	aniEvStartConfig     = "aniEvStartConfig"
+	aniEvRxDot1pmapCresp = "aniEvRxDot1pmapCresp"
+	aniEvRxMbpcdResp     = "aniEvRxMbpcdResp"
+	aniEvRxTcontsResp    = "aniEvRxTcontsResp"
+	aniEvRxGemntcpsResp  = "aniEvRxGemntcpsResp"
+	aniEvRxGemiwsResp    = "aniEvRxGemiwsResp"
+	aniEvRxPrioqsResp    = "aniEvRxPrioqsResp"
+	aniEvRxDot1pmapSresp = "aniEvRxDot1pmapSresp"
+	aniEvTimeoutSimple   = "aniEvTimeoutSimple"
+	aniEvTimeoutMids     = "aniEvTimeoutMids"
+	aniEvReset           = "aniEvReset"
+	aniEvRestart         = "aniEvRestart"
+)
+const (
+	// states of config PON ANI port FSM
+	aniStDisabled            = "aniStDisabled"
+	aniStStarting            = "aniStStarting"
+	aniStCreatingDot1PMapper = "aniStCreatingDot1PMapper"
+	aniStCreatingMBPCD       = "aniStCreatingMBPCD"
+	aniStSettingTconts       = "aniStSettingTconts"
+	aniStCreatingGemNCTPs    = "aniStCreatingGemNCTPs"
+	aniStCreatingGemIWs      = "aniStCreatingGemIWs"
+	aniStSettingPQs          = "aniStSettingPQs"
+	aniStSettingDot1PMapper  = "aniStSettingDot1PMapper"
+	aniStConfigDone          = "aniStConfigDone"
+	aniStResetting           = "aniStResetting"
+)
+
+//UniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type UniPonAniConfigFsm struct {
 	pOmciCC                  *OmciCC
 	pOnuUniPort              *OnuUniPort
@@ -43,6 +74,7 @@ type UniPonAniConfigFsm struct {
 	requestEvent             OnuDeviceEvent
 	omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                *AdapterFsm
+	aniConfigCompleted       bool
 	chSuccess                chan<- uint8
 	procStep                 uint8
 	chanSet                  bool
@@ -55,18 +87,19 @@ type UniPonAniConfigFsm struct {
 	downQueueXID             []uint16
 }
 
-//NewUniPonAniConfigFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
+//NewUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTechProf *OnuUniTechProf,
 	apOnuDB *OnuDeviceDB, aTechProfileID uint16, aRequestEvent OnuDeviceEvent, aName string,
 	aDeviceID string, aCommChannel chan Message) *UniPonAniConfigFsm {
 	instFsm := &UniPonAniConfigFsm{
-		pOmciCC:       apDevOmciCC,
-		pOnuUniPort:   apUniPort,
-		pUniTechProf:  apUniTechProf,
-		pOnuDB:        apOnuDB,
-		techProfileID: aTechProfileID,
-		requestEvent:  aRequestEvent,
-		chanSet:       false,
+		pOmciCC:            apDevOmciCC,
+		pOnuUniPort:        apUniPort,
+		pUniTechProf:       apUniTechProf,
+		pOnuDB:             apOnuDB,
+		techProfileID:      aTechProfileID,
+		requestEvent:       aRequestEvent,
+		aniConfigCompleted: false,
+		chanSet:            false,
 	}
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, aDeviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
@@ -76,49 +109,50 @@ func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTech
 	}
 
 	instFsm.pAdaptFsm.pFsm = fsm.NewFSM(
-		"disabled",
+		aniStDisabled,
 		fsm.Events{
 
-			{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
+			{Name: aniEvStart, Src: []string{aniStDisabled}, Dst: aniStStarting},
 
 			//Note: .1p-Mapper and MBPCD might also have multi instances (per T-Cont) - by now only one 1 T-Cont considered!
-			{Name: "start_config", Src: []string{"starting"}, Dst: "creatingDot1PMapper"},
-			{Name: "rx_dot1pmap_cresp", Src: []string{"creatingDot1PMapper"}, Dst: "creatingMBPCD"},
-			{Name: "rx_mbpcd_resp", Src: []string{"creatingMBPCD"}, Dst: "settingTconts"},
-			{Name: "rx_tconts_resp", Src: []string{"settingTconts"}, Dst: "creatingGemNCTPs"},
+			{Name: aniEvStartConfig, Src: []string{aniStStarting}, Dst: aniStCreatingDot1PMapper},
+			{Name: aniEvRxDot1pmapCresp, Src: []string{aniStCreatingDot1PMapper}, Dst: aniStCreatingMBPCD},
+			{Name: aniEvRxMbpcdResp, Src: []string{aniStCreatingMBPCD}, Dst: aniStSettingTconts},
+			{Name: aniEvRxTcontsResp, Src: []string{aniStSettingTconts}, Dst: aniStCreatingGemNCTPs},
 			// the creatingGemNCTPs state is used for multi ME config if required for all configured/available GemPorts
-			{Name: "rx_gemntcps_resp", Src: []string{"creatingGemNCTPs"}, Dst: "creatingGemIWs"},
+			{Name: aniEvRxGemntcpsResp, Src: []string{aniStCreatingGemNCTPs}, Dst: aniStCreatingGemIWs},
 			// the creatingGemIWs state is used for multi ME config if required for all configured/available GemPorts
-			{Name: "rx_gemiws_resp", Src: []string{"creatingGemIWs"}, Dst: "settingPQs"},
+			{Name: aniEvRxGemiwsResp, Src: []string{aniStCreatingGemIWs}, Dst: aniStSettingPQs},
 			// the settingPQs state is used for multi ME config if required for all configured/available upstream PriorityQueues
-			{Name: "rx_prioqs_resp", Src: []string{"settingPQs"}, Dst: "settingDot1PMapper"},
-			{Name: "rx_dot1pmap_sresp", Src: []string{"settingDot1PMapper"}, Dst: "aniConfigDone"},
+			{Name: aniEvRxPrioqsResp, Src: []string{aniStSettingPQs}, Dst: aniStSettingDot1PMapper},
+			{Name: aniEvRxDot1pmapSresp, Src: []string{aniStSettingDot1PMapper}, Dst: aniStConfigDone},
 
-			{Name: "timeout_simple", Src: []string{
-				"creatingDot1PMapper", "creatingMBPCD", "settingTconts", "settingDot1PMapper"}, Dst: "starting"},
-			{Name: "timeout_mids", Src: []string{
-				"creatingGemNCTPs", "creatingGemIWs", "settingPQs"}, Dst: "starting"},
+			{Name: aniEvTimeoutSimple, Src: []string{
+				aniStCreatingDot1PMapper, aniStCreatingMBPCD, aniStSettingTconts, aniStSettingDot1PMapper}, Dst: aniStStarting},
+			{Name: aniEvTimeoutMids, Src: []string{
+				aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs}, Dst: aniStStarting},
 
-			// exceptional treatment for all states except "resetting"
-			{Name: "reset", Src: []string{"starting", "creatingDot1PMapper", "creatingMBPCD",
-				"settingTconts", "creatingGemNCTPs", "creatingGemIWs", "settingPQs", "settingDot1PMapper",
-				"aniConfigDone"}, Dst: "resetting"},
+			// exceptional treatment for all states except aniStResetting
+			{Name: aniEvReset, Src: []string{aniStStarting, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
+				aniStSettingTconts, aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs, aniStSettingDot1PMapper,
+				aniStConfigDone}, Dst: aniStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
-			{Name: "restart", Src: []string{"resetting"}, Dst: "disabled"},
+			{Name: aniEvRestart, Src: []string{aniStResetting}, Dst: aniStDisabled},
 		},
 
 		fsm.Callbacks{
-			"enter_state":               func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
-			"enter_starting":            func(e *fsm.Event) { instFsm.enterConfigStartingState(e) },
-			"enter_creatingDot1PMapper": func(e *fsm.Event) { instFsm.enterCreatingDot1PMapper(e) },
-			"enter_creatingMBPCD":       func(e *fsm.Event) { instFsm.enterCreatingMBPCD(e) },
-			"enter_settingTconts":       func(e *fsm.Event) { instFsm.enterSettingTconts(e) },
-			"enter_creatingGemNCTPs":    func(e *fsm.Event) { instFsm.enterCreatingGemNCTPs(e) },
-			"enter_creatingGemIWs":      func(e *fsm.Event) { instFsm.enterCreatingGemIWs(e) },
-			"enter_settingPQs":          func(e *fsm.Event) { instFsm.enterSettingPQs(e) },
-			"enter_settingDot1PMapper":  func(e *fsm.Event) { instFsm.enterSettingDot1PMapper(e) },
-			"enter_aniConfigDone":       func(e *fsm.Event) { instFsm.enterAniConfigDone(e) },
-			"enter_resetting":           func(e *fsm.Event) { instFsm.enterResettingState(e) },
+			"enter_state":                         func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
+			("enter_" + aniStStarting):            func(e *fsm.Event) { instFsm.enterConfigStartingState(e) },
+			("enter_" + aniStCreatingDot1PMapper): func(e *fsm.Event) { instFsm.enterCreatingDot1PMapper(e) },
+			("enter_" + aniStCreatingMBPCD):       func(e *fsm.Event) { instFsm.enterCreatingMBPCD(e) },
+			("enter_" + aniStSettingTconts):       func(e *fsm.Event) { instFsm.enterSettingTconts(e) },
+			("enter_" + aniStCreatingGemNCTPs):    func(e *fsm.Event) { instFsm.enterCreatingGemNCTPs(e) },
+			("enter_" + aniStCreatingGemIWs):      func(e *fsm.Event) { instFsm.enterCreatingGemIWs(e) },
+			("enter_" + aniStSettingPQs):          func(e *fsm.Event) { instFsm.enterSettingPQs(e) },
+			("enter_" + aniStSettingDot1PMapper):  func(e *fsm.Event) { instFsm.enterSettingDot1PMapper(e) },
+			("enter_" + aniStConfigDone):          func(e *fsm.Event) { instFsm.enterAniConfigDone(e) },
+			("enter_" + aniStResetting):           func(e *fsm.Event) { instFsm.enterResettingState(e) },
+			("enter_" + aniStDisabled):            func(e *fsm.Event) { instFsm.enterDisabledState(e) },
 		},
 	)
 	if instFsm.pAdaptFsm.pFsm == nil {
@@ -175,7 +209,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 				//TODO!: for now fixed, but target is to use value from MibUpload (mibDB), also TechProf setting dependency may exist!
 				oFsm.downQueueXID = append(oFsm.downQueueXID, 1)
 
-				a_pAFsm.pFsm.Event("start_config")
+				a_pAFsm.pFsm.Event(aniEvStartConfig)
 			}
 		}(pConfigAniStateAFsm)
 	}
@@ -283,8 +317,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 
 func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 
-	//mirror the chanSet state as it will be reset by FSM reset
-	loChanSet := oFsm.chanSet
+	oFsm.aniConfigCompleted = true
 
 	//let's reset the state machine in order to release all resources now
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
@@ -292,27 +325,14 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("reset")
+				a_pAFsm.pFsm.Event(aniEvReset)
 			}
 		}(pConfigAniStateAFsm)
-	}
-
-	logger.Debugw("UniPonAniConfigFsm send dh event notification", log.Fields{
-		"from_State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
-	//use DeviceHandler event notification directly
-	oFsm.pOmciCC.pBaseDeviceHandler.DeviceProcStatusUpdate(oFsm.requestEvent)
-
-	if loChanSet {
-		// indicate processing done to the caller
-		logger.Debugw("UniPonAniConfigFsm processingDone on channel", log.Fields{
-			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
-		oFsm.chSuccess <- oFsm.procStep
 	}
 }
 
 func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
 	logger.Debugw("UniPonAniConfigFsm resetting", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-	oFsm.chanSet = false //reset the internal channel state
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
 	if pConfigAniStateAFsm != nil {
 		// abort running message processing
@@ -327,10 +347,31 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
 		//try to restart the FSM to 'disabled', decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("restart")
+				a_pAFsm.pFsm.Event(aniEvRestart)
 			}
 		}(pConfigAniStateAFsm)
 	}
+}
+
+func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
+	logger.Debugw("UniPonAniConfigFsm enters disabled state", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+
+	if oFsm.aniConfigCompleted {
+		logger.Debugw("UniPonAniConfigFsm send dh event notification", log.Fields{
+			"from_State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
+		//use DeviceHandler event notification directly
+		oFsm.pOmciCC.pBaseDeviceHandler.DeviceProcStatusUpdate(oFsm.requestEvent)
+		oFsm.aniConfigCompleted = false
+	}
+
+	if oFsm.chanSet {
+		// indicate processing done to the caller
+		logger.Debugw("UniPonAniConfigFsm processingDone on channel", log.Fields{
+			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
+		oFsm.chSuccess <- oFsm.procStep
+		oFsm.chanSet = false //reset the internal channel state
+	}
+
 }
 
 func (oFsm *UniPonAniConfigFsm) ProcessOmciAniMessages( /*ctx context.Context*/ ) {
@@ -345,7 +386,7 @@ loop:
 			if !ok {
 				logger.Info("UniPonAniConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				oFsm.pAdaptFsm.pFsm.Event("reset")
+				oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 				break loop
 			}
 			logger.Debugw("UniPonAniConfigFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
@@ -404,11 +445,11 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 				switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 				case "Ieee8021PMapperServiceProfile":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event("rx_dot1pmap_cresp")
+						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCresp)
 					}
 				case "MacBridgePortConfigurationData":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event("rx_mbpcd_resp")
+						oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
 					}
 				case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
 					{ // let aniConfig Multi-Id processing proceed by stopping the wait function
@@ -444,7 +485,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 				switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 				case "TCont":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event("rx_tconts_resp")
+						oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
 					}
 				case "PriorityQueue":
 					{ // let the PrioQueue init proceed by stopping the wait function
@@ -452,7 +493,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 					}
 				case "Ieee8021PMapperServiceProfile":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event("rx_dot1pmap_sresp")
+						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSresp)
 					}
 				}
 			}
@@ -495,14 +536,14 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
 	if err != nil {
 		logger.Errorw("GemNWCtp create failed, aborting AniConfig FSM!",
 			log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": 0}) //running index in loop later!
-		oFsm.pAdaptFsm.pFsm.Event("reset")
+		oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 		return
 	}
 	//for all GemPortID's ports - later
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("GemNWCtp create loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event("rx_gemntcps_resp")
+	oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemntcpsResp)
 	return
 }
 
@@ -534,14 +575,14 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
 	if err != nil {
 		logger.Errorw("GemIwTp create failed, aborting AniConfig FSM!",
 			log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": 0}) //running index in loop later!
-		oFsm.pAdaptFsm.pFsm.Event("reset")
+		oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 		return
 	}
 	//for all GemPortID's ports - later
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("GemIwTp create loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event("rx_gemiws_resp")
+	oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemiwsResp)
 	return
 }
 
@@ -573,14 +614,14 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 	if err != nil {
 		logger.Errorw("PrioQueue set failed, aborting AniConfig FSM!",
 			log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "QueueIndex": 0}) //running index in loop later!
-		oFsm.pAdaptFsm.pFsm.Event("reset")
+		oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 		return
 	}
 	//for all upstream prioQueus - later
 
 	// if Config has been done for all PrioQueue instances let the FSM proceed
 	logger.Debugw("PrioQueue set loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event("rx_prioqs_resp")
+	oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
 	return
 }
 

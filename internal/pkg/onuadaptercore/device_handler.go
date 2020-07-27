@@ -47,6 +47,23 @@ const (
 )
 */
 
+const (
+	// events of Device FSM
+	devEvDeviceInit       = "devEvDeviceInit"
+	devEvGrpcConnected    = "devEvGrpcConnected"
+	devEvGrpcDisconnected = "devEvGrpcDisconnected"
+	devEvDeviceUpInd      = "devEvDeviceUpInd"
+	devEvDeviceDownInd    = "devEvDeviceDownInd"
+)
+const (
+	// states of Device FSM
+	devStNull      = "devStNull"
+	devStDown      = "devStDown"
+	devStInit      = "devStInit"
+	devStConnected = "devStConnected"
+	devStUp        = "devStUp"
+)
+
 //Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
 const (
 	pon           = voltha.EventSubCategory_PON
@@ -136,23 +153,23 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 
 	// Device related state machine
 	dh.pDeviceStateFsm = fsm.NewFSM(
-		"null",
+		devStNull,
 		fsm.Events{
-			{Name: "DeviceInit", Src: []string{"null", "down"}, Dst: "init"},
-			{Name: "GrpcConnected", Src: []string{"init"}, Dst: "connected"},
-			{Name: "GrpcDisconnected", Src: []string{"connected", "down"}, Dst: "init"},
-			{Name: "DeviceUpInd", Src: []string{"connected", "down"}, Dst: "up"},
-			{Name: "DeviceDownInd", Src: []string{"up"}, Dst: "down"},
+			{Name: devEvDeviceInit, Src: []string{devStNull, devStDown}, Dst: devStInit},
+			{Name: devEvGrpcConnected, Src: []string{devStInit}, Dst: devStConnected},
+			{Name: devEvGrpcDisconnected, Src: []string{devStConnected, devStDown}, Dst: devStInit},
+			{Name: devEvDeviceUpInd, Src: []string{devStConnected, devStDown}, Dst: devStUp},
+			{Name: devEvDeviceDownInd, Src: []string{devStUp}, Dst: devStDown},
 		},
 		fsm.Callbacks{
-			"before_event":            func(e *fsm.Event) { dh.logStateChange(e) },
-			"before_DeviceInit":       func(e *fsm.Event) { dh.doStateInit(e) },
-			"after_DeviceInit":        func(e *fsm.Event) { dh.postInit(e) },
-			"before_GrpcConnected":    func(e *fsm.Event) { dh.doStateConnected(e) },
-			"before_GrpcDisconnected": func(e *fsm.Event) { dh.doStateInit(e) },
-			"after_GrpcDisconnected":  func(e *fsm.Event) { dh.postInit(e) },
-			"before_DeviceUpInd":      func(e *fsm.Event) { dh.doStateUp(e) },
-			"before_DeviceDownInd":    func(e *fsm.Event) { dh.doStateDown(e) },
+			"before_event":                      func(e *fsm.Event) { dh.logStateChange(e) },
+			("before_" + devEvDeviceInit):       func(e *fsm.Event) { dh.doStateInit(e) },
+			("after_" + devEvDeviceInit):        func(e *fsm.Event) { dh.postInit(e) },
+			("before_" + devEvGrpcConnected):    func(e *fsm.Event) { dh.doStateConnected(e) },
+			("before_" + devEvGrpcDisconnected): func(e *fsm.Event) { dh.doStateInit(e) },
+			("after_" + devEvGrpcDisconnected):  func(e *fsm.Event) { dh.postInit(e) },
+			("before_" + devEvDeviceUpInd):      func(e *fsm.Event) { dh.doStateUp(e) },
+			("before_" + devEvDeviceDownInd):    func(e *fsm.Event) { dh.doStateDown(e) },
 		},
 	)
 
@@ -180,8 +197,8 @@ func (dh *DeviceHandler) AdoptDevice(ctx context.Context, device *voltha.Device)
 	logger.Debugw("Adopt_device", log.Fields{"deviceID": device.Id, "Address": device.GetHostAndPort()})
 
 	logger.Debugw("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
-	if dh.pDeviceStateFsm.Is("null") {
-		if err := dh.pDeviceStateFsm.Event("DeviceInit"); err != nil {
+	if dh.pDeviceStateFsm.Is(devStNull) {
+		if err := dh.pDeviceStateFsm.Event(devEvDeviceInit); err != nil {
 			logger.Errorw("Device FSM: Can't go to state DeviceInit", log.Fields{"err": err})
 		}
 		logger.Debugw("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
@@ -270,6 +287,11 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 					log.Fields{"deviceID": dh.deviceID})
 				return errors.New("TechProfile DLMsg request while onuTechProf instance not setup")
 			}
+			if (dh.deviceReason == "stopping-openomci") || (dh.deviceReason == "omci-admin-lock") {
+				// I've seen cases for this request, where the device was already stopped
+				logger.Warnw("TechProf stopped: device-unreachable", log.Fields{"deviceId": dh.deviceID})
+				return errors.New("device-unreachable")
+			}
 
 			msgBody := msg.GetBody()
 			techProfMsg := &ic.InterAdapterTechProfileDownloadMessage{}
@@ -296,16 +318,20 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
 				dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
+				dh.pOnuTP.resetProcessingErrorIndication()
 				var wg sync.WaitGroup
 				wg.Add(2) // for the 2 go routines to finish
 				// attention: deadline completion check and wg.Done is to be done in both routines
 				go dh.pOnuTP.configureUniTp(dctx, techProfMsg.UniId, techProfMsg.Path, &wg)
 				go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
 				//the wait.. function is responsible for tpProcMutex.Unlock()
-				go dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
-			} else {
-				dh.pOnuTP.unlockTpProcMutex()
+				err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collet their result
+				return err
 			}
+			// no change, nothing really to do
+			dh.pOnuTP.unlockTpProcMutex()
+			//return success
+			return nil
 		}
 	case ic.InterAdapterMessageType_DELETE_GEM_PORT_REQUEST:
 		{
@@ -331,12 +357,14 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 			deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
 			dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
+			dh.pOnuTP.resetProcessingErrorIndication()
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
 			go dh.pOnuTP.deleteTpResource(dctx, delGemPortMsg.UniId, delGemPortMsg.TpPath,
 				cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 			//the wait.. function is responsible for tpProcMutex.Unlock()
-			go dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
+			err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
+			return err
 		}
 	case ic.InterAdapterMessageType_DELETE_TCONT_REQUEST:
 		{
@@ -362,6 +390,7 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
 				dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
+				dh.pOnuTP.resetProcessingErrorIndication()
 				var wg sync.WaitGroup
 				wg.Add(2) // for the 2 go routines to finish
 				go dh.pOnuTP.deleteTpResource(dctx, delTcontMsg.UniId, delTcontMsg.TpPath,
@@ -369,10 +398,12 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 				go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
 				//the wait.. function is responsible for tpProcMutex.Unlock()
-				go dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
-			} else {
-				dh.pOnuTP.unlockTpProcMutex()
+				err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
+				return err
 			}
+			dh.pOnuTP.unlockTpProcMutex()
+			//return success
+			return nil
 		}
 	default:
 		{
@@ -866,11 +897,16 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 	// PM related heartbeat??? !!!TODO....
 	//self._heartbeat.enabled = True
 
-	//call MibUploadFSM - transition up to state "in_sync"
+	/* Note: Even though FSM calls look 'synchronous' here, FSM is running in background with the effect that possible errors
+	 * 	 within the MibUpload are not notified in the OnuIndication response, this might be acceptable here,
+	 *   as further OltAdapter processing may rely on the deviceReason event 'MibUploadDone' as a result of the FSM processing
+	 *   otherwise some processing synchronisation would be required - cmp. e.g TechProfile processing
+	 */
+	//call MibUploadFSM - transition up to state ulStInSync
 	pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
 	if pMibUlFsm != nil {
-		if pMibUlFsm.Is("disabled") {
-			if err := pMibUlFsm.Event("start"); err != nil {
+		if pMibUlFsm.Is(ulStDisabled) {
+			if err := pMibUlFsm.Event(ulEvStart); err != nil {
 				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
 				return errors.New("Can't go to state starting")
 			} else {
@@ -878,18 +914,18 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 				//Determine ONU status and start/re-start MIB Synchronization tasks
 				//Determine if this ONU has ever synchronized
 				if true { //TODO: insert valid check
-					if err := pMibUlFsm.Event("reset_mib"); err != nil {
+					if err := pMibUlFsm.Event(ulEvResetMib); err != nil {
 						logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"err": err})
 						return errors.New("Can't go to state resetting_mib")
 					}
 				} else {
-					pMibUlFsm.Event("examine_mds")
+					pMibUlFsm.Event(ulEvExamineMds)
 					logger.Debugw("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 					//Examine the MIB Data Sync
 					// callbacks to be handled:
-					// Event("success")
-					// Event("timeout")
-					// Event("mismatch")
+					// Event(ulEvSuccess)
+					// Event(ulEvTimeout)
+					// Event(ulEvMismatch)
 				}
 			}
 		} else {
@@ -919,29 +955,29 @@ func (dh *DeviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 			{ //MIBSync FSM may run
 				pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
 				if pMibUlFsm != nil {
-					pMibUlFsm.Event("stop") //TODO!! verify if MibSyncFsm stop-processing is sufficient (to allow it again afterwards)
+					pMibUlFsm.Event(ulEvStop) //TODO!! verify if MibSyncFsm stop-processing is sufficient (to allow it again afterwards)
 				}
 			}
 		case "discovery-mibsync-complete":
 			{ //MibDownload may run
 				pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
 				if pMibDlFsm != nil {
-					pMibDlFsm.Event("reset")
+					pMibDlFsm.Event(dlEvReset)
 				}
 			}
 		default:
 			{
 				//port lock/unlock FSM's may be active
 				if dh.pUnlockStateFsm != nil {
-					dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event("reset")
+					dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 				}
 				if dh.pLockStateFsm != nil {
-					dh.pLockStateFsm.pAdaptFsm.pFsm.Event("reset")
+					dh.pLockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 				}
 				//techProfile related PonAniConfigFsm FSM may be active
 				// maybe encapsulated as OnuTP method - perhaps later in context of module splitting
 				if dh.pOnuTP.pAniConfigFsm != nil {
-					dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event("reset")
+					dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 				}
 			}
 			//TODO!!! care about PM/Alarm processing once started
@@ -1055,14 +1091,14 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 			 */
 			pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
 			if pMibDlFsm != nil {
-				if pMibDlFsm.Is("disabled") {
-					if err := pMibDlFsm.Event("start"); err != nil {
+				if pMibDlFsm.Is(dlStDisabled) {
+					if err := pMibDlFsm.Event(dlEvStart); err != nil {
 						logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
 						// maybe try a FSM reset and then again ... - TODO!!!
 					} else {
 						logger.Debugw("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
 						// maybe use more specific states here for the specific download steps ...
-						if err := pMibDlFsm.Event("create_gal"); err != nil {
+						if err := pMibDlFsm.Event(dlEvCreateGal); err != nil {
 							logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"err": err})
 						} else {
 							logger.Debugw("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
@@ -1283,20 +1319,20 @@ func (dh *DeviceHandler) runUniLockFsm(aAdminState bool) {
 		pLSStatemachine = dh.pLockStateFsm.pAdaptFsm.pFsm
 		//make sure the opposite FSM is not running and if so, terminate it as not relevant anymore
 		if (dh.pUnlockStateFsm != nil) &&
-			(dh.pUnlockStateFsm.pAdaptFsm.pFsm.Current() != "disabled") {
-			dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event("reset")
+			(dh.pUnlockStateFsm.pAdaptFsm.pFsm.Current() != uniStDisabled) {
+			dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 		}
 	} else {
 		pLSStatemachine = dh.pUnlockStateFsm.pAdaptFsm.pFsm
 		//make sure the opposite FSM is not running and if so, terminate it as not relevant anymore
 		if (dh.pLockStateFsm != nil) &&
-			(dh.pLockStateFsm.pAdaptFsm.pFsm.Current() != "disabled") {
-			dh.pLockStateFsm.pAdaptFsm.pFsm.Event("reset")
+			(dh.pLockStateFsm.pAdaptFsm.pFsm.Current() != uniStDisabled) {
+			dh.pLockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 		}
 	}
 	if pLSStatemachine != nil {
-		if pLSStatemachine.Is("disabled") {
-			if err := pLSStatemachine.Event("start"); err != nil {
+		if pLSStatemachine.Is(uniStDisabled) {
+			if err := pLSStatemachine.Event(uniEvStart); err != nil {
 				logger.Warnw("LockStateFSM: can't start", log.Fields{"err": err})
 				// maybe try a FSM reset and then again ... - TODO!!!
 			} else {

@@ -74,7 +74,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDownloadedState(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("reset")
+				a_pAFsm.pFsm.Event(dlEvReset)
 			}
 		}(pMibDlFsm)
 	}
@@ -97,7 +97,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(e *fsm.Event) {
 		// see DownloadedState: decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event("restart")
+				a_pAFsm.pFsm.Event(dlEvRestart)
 			}
 		}(pMibDlFsm)
 	}
@@ -115,7 +115,7 @@ loop:
 			if !ok {
 				logger.Info("MibDownload Rx Msg", log.Fields{"Message couldn't be read from channel for device-id": onuDeviceEntry.deviceID})
 				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				onuDeviceEntry.pMibDownloadFsm.pFsm.Event("restart")
+				onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRestart)
 				break loop
 			}
 			logger.Debugw("MibDownload Rx Msg", log.Fields{"Received message for device-id": onuDeviceEntry.deviceID})
@@ -179,7 +179,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
 				case "GalEthernetProfile":
 					{ // let the FSM proceed ...
-						onuDeviceEntry.pMibDownloadFsm.pFsm.Event("rx_gal_resp")
+						onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxGalResp)
 					}
 				case "MacBridgeServiceProfile",
 					"MacBridgePortConfigurationData",
@@ -221,7 +221,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
 				case "Onu2G":
 					{ // let the FSM proceed ...
-						onuDeviceEntry.pMibDownloadFsm.pFsm.Event("rx_onu2g_resp")
+						onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxOnu2gResp)
 					}
 					//so far that was the only MibDownlad Set Element ...
 				}
@@ -248,7 +248,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		err := onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at MBSP, aborting MIB Download!")
-			onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+			onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 
@@ -260,7 +260,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at MBPCD, aborting MIB Download!")
-			onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+			onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 
@@ -272,14 +272,14 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at EVTOCD, aborting MIB Download!")
-			onuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+			onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 	}
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
 	logger.Infow("IntialBridgeSetup finished", log.Fields{"deviceId": onuDeviceEntry.deviceID})
-	onuDeviceEntry.pMibDownloadFsm.pFsm.Event("rx_bridge_resp")
+	onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxBridgeResp)
 	return
 }
 

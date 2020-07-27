@@ -20,6 +20,7 @@ package adaptercoreonu
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -96,6 +97,7 @@ type OnuUniTechProf struct {
 	mapUniTpIndication map[uint32]*tTechProfileIndication //use pointer values to ease assignments to the map
 	mapPonAniConfig    map[uint32]*tMapPonAniConfig       //per UNI: use pointer values to ease assignments to the map
 	pAniConfigFsm      *UniPonAniConfigFsm
+	procResult         error //error indication of processing
 }
 
 //NewOnuUniTechProf returns the instance of a OnuUniTechProf
@@ -110,6 +112,7 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *De
 	onuTP.chTpProcessingStep = make(chan uint8)
 	onuTP.mapUniTpIndication = make(map[uint32]*tTechProfileIndication)
 	onuTP.mapPonAniConfig = make(map[uint32]*tMapPonAniConfig)
+	onuTP.procResult = nil //default assumption processing done with success
 
 	onuTP.techProfileKVStore = aDeviceHandler.SetBackend(cBasePathTechProfileKVStore)
 	if onuTP.techProfileKVStore == nil {
@@ -127,6 +130,12 @@ func (onuTP *OnuUniTechProf) lockTpProcMutex() {
 // unlockTpProcMutex unlocks OnuUniTechProf processing mutex
 func (onuTP *OnuUniTechProf) unlockTpProcMutex() {
 	onuTP.tpProcMutex.Unlock()
+}
+
+// resetProcessingErrorIndication resets the internal error indication
+// need to be called before evaluation of any subsequent processing (given by waitForTpCompletion())
+func (onuTP *OnuUniTechProf) resetProcessingErrorIndication() {
+	onuTP.procResult = nil
 }
 
 // updateOnuUniTpPath verifies and updates changes in the kvStore onuUniTpPath
@@ -171,11 +180,12 @@ func (onuTP *OnuUniTechProf) updateOnuUniTpPath(aUniID uint32, aPathString strin
 	return true
 }
 
-func (onuTP *OnuUniTechProf) waitForTpCompletion(cancel context.CancelFunc, wg *sync.WaitGroup) {
+func (onuTP *OnuUniTechProf) waitForTpCompletion(cancel context.CancelFunc, wg *sync.WaitGroup) error {
 	defer cancel() //ensure termination of context (may be pro forma)
 	wg.Wait()
 	logger.Debug("some TechProfile Processing completed")
 	onuTP.tpProcMutex.Unlock() //allow further TP related processing
+	return onuTP.procResult
 }
 
 // configureUniTp checks existing tp resources to delete and starts the corresponding OMCI configuation of the UNI port
@@ -190,6 +200,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 
 	if onuTP.techProfileKVStore == nil {
 		logger.Debug("techProfileKVStore not set - abort")
+		onuTP.procResult = errors.New("TechProfile config aborted: techProfileKVStore not set")
 		return
 	}
 
@@ -205,6 +216,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 	if pCurrentUniPort == nil {
 		logger.Errorw("TechProfile configuration aborted: requested uniID not found in PortDB",
 			log.Fields{"device-id": onuTP.deviceID, "uniID": aUniID})
+		onuTP.procResult = errors.New("TechProfile config aborted: requested uniID not found")
 		return
 	}
 
@@ -233,6 +245,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 		//timeout or error detected
 		logger.Debugw("tech-profile related configuration aborted on read",
 			log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
+		onuTP.procResult = errors.New("TechProfile config aborted: tech-profile read issue")
 		return
 	}
 
@@ -245,20 +258,25 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 				//timeout or error detected
 				logger.Debugw("tech-profile related configuration aborted on set",
 					log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
+				onuTP.procResult = errors.New("TechProfile config aborted: Omci AniSideConfig failed")
 				//this issue here means that the AniConfigFsm has not finished succesfully
 				//which requires to reset it to allow for new usage, e.g. also on a different UNI
 				//(without that it would be reset on device down indication latest)
-				onuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event("reset")
+				onuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 				return
 			}
 		} else {
 			// strange: UNI entry exists, but no ANI data, maybe such situation should be cleared up (if observed)
 			logger.Debugw("no Tcont/Gem data for this UNI found - abort", log.Fields{
 				"deviceID": onuTP.deviceID, "uniID": aUniID})
+			onuTP.procResult = errors.New("TechProfile config aborted: no Tcont/Gem data found for this UNI")
+			return
 		}
 	} else {
 		logger.Debugw("no PonAni data for this UNI found - abort", log.Fields{
 			"deviceID": onuTP.deviceID, "uniID": aUniID})
+		onuTP.procResult = errors.New("TechProfile config aborted: no AniSide data found for this UNI")
+		return
 	}
 }
 
@@ -267,6 +285,7 @@ func (onuTP *OnuUniTechProf) updateOnuTpPathKvStore(ctx context.Context, wg *syn
 	logger.Debugw("this would update the ONU's TpPath in KVStore", log.Fields{
 		"deviceID": onuTP.deviceID})
 	//TODO!!!
+	// set onuTP.procResult in case of errors!! cmp. configureUniTp
 	//make use of onuTP.sOnuPersistentData to store the TpPath to KVStore - as background routine
 	/*
 		var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpProcessingStep
@@ -395,10 +414,15 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 		// default profile defines "Hybrid" - which probably comes down to WRR with some weigthts for SP
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.schedPolicy = 2 //for G.988 WRR
 	}
+	loNumGemPorts := tpInst.NumGemPorts
+	loGemPortRead := false
 	for pos, content := range tpInst.UpstreamGemPortAttributeList {
-		if pos == 1 {
-			logger.Debugw("PonAniConfig abort GemPortList - still only one Gemport supported",
-				log.Fields{"device-id": onuTP.deviceID})
+		if pos == 0 {
+			loGemPortRead = true
+		}
+		if uint32(pos) == loNumGemPorts {
+			logger.Debugw("PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
+				log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
 			break
 		}
 		// a downstream GemPort should always exist (only downstream for MC)
@@ -415,6 +439,12 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueSchedPolicy = content.SchedulingPolicy
 		//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueWeight = uint8(content.Weight)
+	}
+	if loGemPortRead == false {
+		logger.Errorw("no GemPort could be read from TechProfile",
+			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
+		onuTP.chTpProcessingStep <- 0 //error indication
+		return
 	}
 	//TODO!! MC (downstream) GemPorts can be set using DownstreamGemPortAttributeList seperately
 
@@ -489,10 +519,10 @@ func (onuTP *OnuUniTechProf) runAniConfigFsm(aProcessingStep uint8) {
 	var pACStatemachine *fsm.FSM
 	pACStatemachine = onuTP.pAniConfigFsm.pAdaptFsm.pFsm
 	if pACStatemachine != nil {
-		if pACStatemachine.Is("disabled") {
+		if pACStatemachine.Is(aniStDisabled) {
 			//FSM init requirement to get informed abou FSM completion! (otherwise timeout of the TechProf config)
 			onuTP.pAniConfigFsm.SetFsmCompleteChannel(onuTP.chTpProcessingStep, aProcessingStep)
-			if err := pACStatemachine.Event("start"); err != nil {
+			if err := pACStatemachine.Event(aniEvStart); err != nil {
 				logger.Warnw("AniConfigFSM: can't start", log.Fields{"err": err})
 				// maybe try a FSM reset and then again ... - TODO!!!
 			} else {

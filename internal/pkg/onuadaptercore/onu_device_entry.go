@@ -36,6 +36,68 @@ import (
 )
 
 const (
+	// events of MibUpload FSM
+	ulEvStart              = "ulEvStart"
+	ulEvResetMib           = "ulEvResetMib"
+	ulEvGetVendorAndSerial = "ulEvGetVendorAndSerial"
+	ulEvGetEquipmentId     = "ulEvGetEquipmentId"
+	ulEvGetFirstSwVersion  = "ulEvGetFirstSwVersion"
+	ulEvGetSecondSwVersion = "ulEvGetSecondSwVersion"
+	ulEvGetMacAddress      = "ulEvGetMacAddress"
+	ulEvGetMibTemplate     = "ulEvGetMibTemplate"
+	ulEvUploadMib          = "ulEvUploadMib"
+	ulEvExamineMds         = "ulEvExamineMds"
+	ulEvSuccess            = "ulEvSuccess"
+	ulEvMismatch           = "ulEvMismatch"
+	ulEvAuditMib           = "ulEvAuditMib"
+	ulEvForceResync        = "ulEvForceResync"
+	ulEvDiffsFound         = "ulEvDiffsFound"
+	ulEvTimeout            = "ulEvTimeout"
+	ulEvStop               = "ulEvStop"
+)
+const (
+	// states of MibUpload FSM
+	ulStDisabled               = "ulStDisabled"
+	ulStStarting               = "ulStStarting"
+	ulStResettingMib           = "ulStResettingMib"
+	ulStGettingVendorAndSerial = "ulStGettingVendorAndSerial"
+	ulStGettingEquipmentId     = "ulStGettingEquipmentId"
+	ulStGettingFirstSwVersion  = "ulStGettingFirstSwVersion"
+	ulStGettingSecondSwVersion = "ulStGettingSecondSwVersion"
+	ulStGettingMacAddress      = "ulStGettingMacAddress"
+	ulStGettingMibTemplate     = "ulStGettingMibTemplate"
+	ulStUploading              = "ulStUploading"
+	ulStInSync                 = "ulStInSync"
+	ulStExaminingMds           = "ulStExaminingMds"
+	ulStResynchronizing        = "ulStResynchronizing"
+	ulStAuditing               = "ulStAuditing"
+	ulStOutOfSync              = "ulStOutOfSync"
+)
+
+const (
+	// events of MibDownload FSM
+	dlEvStart         = "dlEvStart"
+	dlEvCreateGal     = "dlEvCreateGal"
+	dlEvRxGalResp     = "dlEvRxGalResp"
+	dlEvRxOnu2gResp   = "dlEvRxOnu2gResp"
+	dlEvRxBridgeResp  = "dlEvRxBridgeResp"
+	dlEvTimeoutSimple = "dlEvTimeoutSimple"
+	dlEvTimeoutBridge = "dlEvTimeoutBridge"
+	dlEvReset         = "dlEvReset"
+	dlEvRestart       = "dlEvRestart"
+)
+const (
+	// states of MibDownload FSM
+	dlStDisabled     = "dlStDisabled"
+	dlStStarting     = "dlStStarting"
+	dlStCreatingGal  = "dlStCreatingGal"
+	dlStSettingOnu2g = "dlStSettingOnu2g"
+	dlStBridgeInit   = "dlStBridgeInit"
+	dlStDownloaded   = "dlStDownloaded"
+	dlStResetting    = "dlStResetting"
+)
+
+const (
 	cBasePathMibTemplateKvStore = "service/voltha/omci_mibs/templates"
 	cSuffixMibTemplateKvStore   = "%s/%s/%s"
 )
@@ -125,6 +187,7 @@ type OnuDeviceEntry struct {
 	devState      OnuDeviceEvent
 	// for mibUpload
 	mibAuditDelay uint16
+	mibDebugLevel string
 
 	// for mibUpload
 	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
@@ -181,104 +244,107 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
 	logger.Debugw("MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
 
+	onuDeviceEntry.mibDebugLevel = "normal" //set to "verbose" if you want to have all output, possibly later also per config option!
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
 	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", device_id, mibUploadChan)
 	onuDeviceEntry.pMibUploadFsm.pFsm = fsm.NewFSM(
-		"disabled",
+		ulStDisabled,
 		fsm.Events{
 
-			{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
+			{Name: ulEvStart, Src: []string{ulStDisabled}, Dst: ulStStarting},
 
-			{Name: "reset_mib", Src: []string{"starting"}, Dst: "resetting_mib"},
-			{Name: "get_vendor_and_serial", Src: []string{"resetting_mib"}, Dst: "getting_vendor_and_serial"},
-			{Name: "get_equipment_id", Src: []string{"getting_vendor_and_serial"}, Dst: "getting_equipment_id"},
-			{Name: "get_first_sw_version", Src: []string{"getting_equipment_id"}, Dst: "getting_first_sw_version"},
-			{Name: "get_second_sw_version", Src: []string{"getting_first_sw_version"}, Dst: "getting_second_sw_version"},
-			{Name: "get_mac_address", Src: []string{"getting_second_sw_version"}, Dst: "getting_mac_address"},
-			{Name: "get_mib_template", Src: []string{"getting_mac_address"}, Dst: "getting_mib_template"},
+			{Name: ulEvResetMib, Src: []string{ulStStarting}, Dst: ulStResettingMib},
+			{Name: ulEvGetVendorAndSerial, Src: []string{ulStResettingMib}, Dst: ulStGettingVendorAndSerial},
+			{Name: ulEvGetEquipmentId, Src: []string{ulStGettingVendorAndSerial}, Dst: ulStGettingEquipmentId},
+			{Name: ulEvGetFirstSwVersion, Src: []string{ulStGettingEquipmentId}, Dst: ulStGettingFirstSwVersion},
+			{Name: ulEvGetSecondSwVersion, Src: []string{ulStGettingFirstSwVersion}, Dst: ulStGettingSecondSwVersion},
+			{Name: ulEvGetMacAddress, Src: []string{ulStGettingSecondSwVersion}, Dst: ulStGettingMacAddress},
+			{Name: ulEvGetMibTemplate, Src: []string{ulStGettingMacAddress}, Dst: ulStGettingMibTemplate},
 
-			{Name: "upload_mib", Src: []string{"getting_mib_template"}, Dst: "uploading"},
-			{Name: "examine_mds", Src: []string{"starting"}, Dst: "examining_mds"},
+			{Name: ulEvUploadMib, Src: []string{ulStGettingMibTemplate}, Dst: ulStUploading},
+			{Name: ulEvExamineMds, Src: []string{ulStStarting}, Dst: ulStExaminingMds},
 
-			{Name: "success", Src: []string{"getting_mib_template"}, Dst: "in_sync"},
-			{Name: "success", Src: []string{"uploading"}, Dst: "in_sync"},
+			{Name: ulEvSuccess, Src: []string{ulStGettingMibTemplate}, Dst: ulStInSync},
+			{Name: ulEvSuccess, Src: []string{ulStUploading}, Dst: ulStInSync},
 
-			{Name: "success", Src: []string{"examining_mds"}, Dst: "in_sync"},
-			{Name: "mismatch", Src: []string{"examining_mds"}, Dst: "resynchronizing"},
+			{Name: ulEvSuccess, Src: []string{ulStExaminingMds}, Dst: ulStInSync},
+			{Name: ulEvMismatch, Src: []string{ulStExaminingMds}, Dst: ulStResynchronizing},
 
-			{Name: "audit_mib", Src: []string{"in_sync"}, Dst: "auditing"},
+			{Name: ulEvAuditMib, Src: []string{ulStInSync}, Dst: ulStAuditing},
 
-			{Name: "success", Src: []string{"out_of_sync"}, Dst: "in_sync"},
-			{Name: "audit_mib", Src: []string{"out_of_sync"}, Dst: "auditing"},
+			{Name: ulEvSuccess, Src: []string{ulStOutOfSync}, Dst: ulStInSync},
+			{Name: ulEvAuditMib, Src: []string{ulStOutOfSync}, Dst: ulStAuditing},
 
-			{Name: "success", Src: []string{"auditing"}, Dst: "in_sync"},
-			{Name: "mismatch", Src: []string{"auditing"}, Dst: "resynchronizing"},
-			{Name: "force_resync", Src: []string{"auditing"}, Dst: "resynchronizing"},
+			{Name: ulEvSuccess, Src: []string{ulStAuditing}, Dst: ulStInSync},
+			{Name: ulEvMismatch, Src: []string{ulStAuditing}, Dst: ulStResynchronizing},
+			{Name: ulEvForceResync, Src: []string{ulStAuditing}, Dst: ulStResynchronizing},
 
-			{Name: "success", Src: []string{"resynchronizing"}, Dst: "in_sync"},
-			{Name: "diffs_found", Src: []string{"resynchronizing"}, Dst: "out_of_sync"},
+			{Name: ulEvSuccess, Src: []string{ulStResynchronizing}, Dst: ulStInSync},
+			{Name: ulEvDiffsFound, Src: []string{ulStResynchronizing}, Dst: ulStOutOfSync},
 
-			{Name: "timeout", Src: []string{"reset_mib", "get_vendor_and_serial", "get_equipment_id", "get_first_sw_version", "get_mac_address",
-				"get_mib_template", "uploading", "resynchronizing", "examining_mds", "in_sync", "out_of_sync", "auditing"}, Dst: "starting"},
+			{Name: ulEvTimeout, Src: []string{ulStResettingMib, ulStGettingVendorAndSerial, ulStGettingEquipmentId, ulStGettingFirstSwVersion,
+				ulStGettingSecondSwVersion, ulStGettingMacAddress, ulStGettingMibTemplate, ulStUploading, ulStResynchronizing, ulStExaminingMds,
+				ulStInSync, ulStOutOfSync, ulStAuditing}, Dst: ulStStarting},
 
-			{Name: "stop", Src: []string{"starting", "reset_mib", "get_vendor_and_serial", "get_equipment_id", "get_first_sw_version", "get_mac_address",
-				"get_mib_template", "uploading", "resynchronizing", "examining_mds", "in_sync", "out_of_sync", "auditing"}, Dst: "disabled"},
+			{Name: ulEvStop, Src: []string{ulStStarting, ulStResettingMib, ulStGettingVendorAndSerial, ulStGettingEquipmentId, ulStGettingFirstSwVersion,
+				ulStGettingSecondSwVersion, ulStGettingMacAddress, ulStGettingMibTemplate, ulStUploading, ulStResynchronizing, ulStExaminingMds,
+				ulStInSync, ulStOutOfSync, ulStAuditing}, Dst: ulStDisabled},
 		},
 
 		fsm.Callbacks{
-			"enter_state":                     func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
-			"enter_starting":                  func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
-			"enter_resetting_mib":             func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
-			"enter_getting_vendor_and_serial": func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
-			"enter_getting_equipment_id":      func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIdState(e) },
-			"enter_getting_first_sw_version":  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
-			"enter_getting_second_sw_version": func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
-			"enter_getting_mac_address":       func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
-			"enter_getting_mib_template":      func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(e) },
-			"enter_uploading":                 func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
-			"enter_examining_mds":             func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
-			"enter_resynchronizing":           func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
-			"enter_auditing":                  func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
-			"enter_out_of_sync":               func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
-			"enter_in_sync":                   func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
+			"enter_state":                           func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
+			("enter_" + ulStStarting):               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
+			("enter_" + ulStResettingMib):           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
+			("enter_" + ulStGettingVendorAndSerial): func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
+			("enter_" + ulStGettingEquipmentId):     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIdState(e) },
+			("enter_" + ulStGettingFirstSwVersion):  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
+			("enter_" + ulStGettingSecondSwVersion): func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
+			("enter_" + ulStGettingMacAddress):      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
+			("enter_" + ulStGettingMibTemplate):     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(e) },
+			("enter_" + ulStUploading):              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
+			("enter_" + ulStExaminingMds):           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
+			("enter_" + ulStResynchronizing):        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
+			("enter_" + ulStAuditing):               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
+			("enter_" + ulStOutOfSync):              func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
+			("enter_" + ulStInSync):                 func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
 		},
 	)
 	// Omci related Mib download state machine
 	mibDownloadChan := make(chan Message, 2048)
 	onuDeviceEntry.pMibDownloadFsm = NewAdapterFsm("MibDownload", device_id, mibDownloadChan)
 	onuDeviceEntry.pMibDownloadFsm.pFsm = fsm.NewFSM(
-		"disabled",
+		dlStDisabled,
 		fsm.Events{
 
-			{Name: "start", Src: []string{"disabled"}, Dst: "starting"},
+			{Name: dlEvStart, Src: []string{dlStDisabled}, Dst: dlStStarting},
 
-			{Name: "create_gal", Src: []string{"starting"}, Dst: "creatingGal"},
-			{Name: "rx_gal_resp", Src: []string{"creatingGal"}, Dst: "settingOnu2g"},
-			{Name: "rx_onu2g_resp", Src: []string{"settingOnu2g"}, Dst: "bridgeInit"},
+			{Name: dlEvCreateGal, Src: []string{dlStStarting}, Dst: dlStCreatingGal},
+			{Name: dlEvRxGalResp, Src: []string{dlStCreatingGal}, Dst: dlStSettingOnu2g},
+			{Name: dlEvRxOnu2gResp, Src: []string{dlStSettingOnu2g}, Dst: dlStBridgeInit},
 			// the bridge state is used for multi ME config for alle UNI related ports
 			// maybe such could be reflected in the state machine as well (port number parametrized)
 			// but that looks not straightforward here - so we keep it simple here for the beginning(?)
-			{Name: "rx_bridge_resp", Src: []string{"bridgeInit"}, Dst: "downloaded"},
+			{Name: dlEvRxBridgeResp, Src: []string{dlStBridgeInit}, Dst: dlStDownloaded},
 
-			{Name: "timeout_simple", Src: []string{"creatingGal", "settingOnu2g"}, Dst: "starting"},
-			{Name: "timeout_bridge", Src: []string{"bridgeInit"}, Dst: "starting"},
+			{Name: dlEvTimeoutSimple, Src: []string{dlStCreatingGal, dlStSettingOnu2g}, Dst: dlStStarting},
+			{Name: dlEvTimeoutBridge, Src: []string{dlStBridgeInit}, Dst: dlStStarting},
 
-			{Name: "reset", Src: []string{"starting", "creatingGal", "settingOnu2g",
-				"bridgeInit", "downloaded"}, Dst: "resetting"},
-			// exceptional treatment for all states except "resetting"
-			{Name: "restart", Src: []string{"starting", "creatingGal", "settingOnu2g",
-				"bridgeInit", "downloaded", "resetting"}, Dst: "disabled"},
+			{Name: dlEvReset, Src: []string{dlStStarting, dlStCreatingGal, dlStSettingOnu2g,
+				dlStBridgeInit, dlStDownloaded}, Dst: dlStResetting},
+			// exceptional treatment for all states except dlStResetting
+			{Name: dlEvRestart, Src: []string{dlStStarting, dlStCreatingGal, dlStSettingOnu2g,
+				dlStBridgeInit, dlStDownloaded, dlStResetting}, Dst: dlStDisabled},
 		},
 
 		fsm.Callbacks{
-			"enter_state":        func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
-			"enter_starting":     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
-			"enter_creatingGal":  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(e) },
-			"enter_settingOnu2g": func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(e) },
-			"enter_bridgeInit":   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(e) },
-			"enter_downloaded":   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
-			"enter_resetting":    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(e) },
+			"enter_state":                 func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
+			("enter_" + dlStStarting):     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
+			("enter_" + dlStCreatingGal):  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(e) },
+			("enter_" + dlStSettingOnu2g): func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(e) },
+			("enter_" + dlStBridgeInit):   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(e) },
+			("enter_" + dlStDownloaded):   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
+			("enter_" + dlStResetting):    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(e) },
 		},
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {

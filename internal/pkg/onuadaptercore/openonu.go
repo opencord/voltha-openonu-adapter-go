@@ -182,12 +182,18 @@ func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) 
 	targetDevice := msg.Header.ToDeviceId
 	//ToDeviceId should address an DeviceHandler instance
 	if handler := oo.getDeviceHandler(targetDevice); handler != nil {
+		/* 200724: modification towards synchronous implementation - possible errors within processing shall be
+		 * 	 in the accordingly delayed response, some timing effect might result in Techprofile processing for multiple UNI's
+		 */
+		return handler.ProcessInterAdapterMessage(msg)
+		/* so far the processing has been in background with according commented error treatment restrictions:
 		go handler.ProcessInterAdapterMessage(msg)
 		// error treatment might be more sophisticated
 		// by now let's just accept the message on 'communication layer'
 		// message content problems have to be evaluated then in the handler
 		//   and are by now not reported to the calling party (to force what reaction there?)
 		return nil
+		*/
 	}
 	logger.Warnw("no handler found for received Inter-Proxy-message", log.Fields{
 		"msgToDeviceId": targetDevice})

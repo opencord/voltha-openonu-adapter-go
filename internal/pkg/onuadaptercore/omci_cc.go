@@ -195,7 +195,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		//  (am extendedFormat message could be destroyed this way!)
 		trailerLenData := rxMsg[42:44]
 		trailerLen := binary.BigEndian.Uint16(trailerLenData)
-		logger.Infow("omci-received-trailer-len", log.Fields{"Length": trailerLen})
+		//logger.Debugw("omci-received-trailer-len", log.Fields{"Length": trailerLen})
 		if trailerLen != 40 { // invalid base Format entry -> autocorrect
 			binary.BigEndian.PutUint16(rxMsg[42:44], 40)
 			logger.Debug("cc-corrected-omci-message: trailer len inserted")
@@ -233,7 +233,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 			return errors.New("Autonomous Omci Message with TranSCorrId != 0 not acccepted")
 		}
 	} else {
-		logger.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
+		//logger.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
 		oo.mutexRxSchedMap.Lock()
 		rxCallbackEntry, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
 		if ok && rxCallbackEntry.cbFunction != nil {

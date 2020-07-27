@@ -52,7 +52,7 @@ func (onuDeviceDB *OnuDeviceDB) StoreMe(meClassId me.ClassID, meEntityId uint16,
 		return
 	}
 
-	logger.Debugw("Search for key data :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID, "meClassId": meClassId, "meEntityId": meEntityId})
+	//logger.Debugw("Search for key data :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID, "meClassId": meClassId, "meEntityId": meEntityId})
 	meInstMap, ok := onuDeviceDB.meDb[meClassId]
 	if !ok {
 		logger.Debugw("meClassId not found - add to db :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID})
