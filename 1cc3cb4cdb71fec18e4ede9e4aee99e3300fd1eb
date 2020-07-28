@@ -91,6 +91,24 @@
     },
     {
       "key": {
+        "uuid": "cab9d8f1_a49b44d3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T15:11:29Z",
+      "side": 1,
+      "message": "Ok, I\u0027d propose to do it in the next gerrit release, not in this context anymore.",
+      "parentUuid": "624f4607_a80f31e7",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dfc469bf_900aac12",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
