@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "624f4607_a80f31e7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T13:07:38Z",
+      "side": 1,
+      "message": "ok, let\u0027s start defining them here, then let\u0027s bring up the discussion through this definition whether to move/re-use.",
+      "parentUuid": "b53b99b5_abaeaafd",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dfc469bf_900aac12",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
@@ -192,6 +210,24 @@
       "side": 1,
       "message": "Unfortunately the log-level \"trace\" wouldn\u0027t help us in our effort to be able to perform detailed logging even under load conditions. \n@Andrea: Before this conversation started, I already added a new story for this - could we keep it as a reminder to spend some further thoughts about this topic? https://jira.opencord.org/browse/VOL-3380 \n\nRegarding my issue with log-level \"trace\": I added VOLTHA_LOG_LEVEL\u003dTRACE to the \"voltha up\" command line to see extensive logs in BBSIM - but it had no effect.",
       "parentUuid": "c883f26f_1f69c7db",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4aa068d8_56037254",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T13:07:38Z",
+      "side": 1,
+      "message": "I see the use case, it\u0027s just that it seems to me somewhat complicated and a lot of code that can go wrong fro something used mainly during development. let\u0027s bring it up in the next meeting.\n\nI\u0027ll leave @Matteo to discuss the BBSIM element.",
+      "parentUuid": "852e28c1_b122b042",
       "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
