@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "b53b99b5_abaeaafd",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T09:18:51Z",
+      "side": 1,
+      "message": "I\u0027m not sure. You would have to follow that up with people responsible for the libs/core/oltAdapter",
+      "parentUuid": "d9a01c66_cc3daa38",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dfc469bf_900aac12",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
@@ -208,6 +226,24 @@
       "side": 1,
       "message": "no, it\u0027s commented, meaning it will never print. so you either remove the // or remove the whole line",
       "parentUuid": "c8e638a4_08f4767d",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f2949df5_d7b7cba4",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T09:18:51Z",
+      "side": 1,
+      "message": "Let\u0027s say it is left here as comment, intention is to being able to activate that log again in case we/someone would like to see that log again ...\nAs long as [Vol-2879] is still unsolved, I would leave that line here at least as comment.",
+      "parentUuid": "d0906330_3a0df8a8",
       "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
