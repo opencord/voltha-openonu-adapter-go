@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ac17c4d2_9edbbba6",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T07:12:28Z",
+      "side": 1,
+      "message": "You mean to use predefined values/constants. Yes we can do so in a next version. As far as I know the real device related device reasons are not defined in the libs neither, as they seem to be used more as free text. Accordingly we would then use adapter internal constants then.",
+      "parentUuid": "89e28908_7f9ffdc1",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dfc469bf_900aac12",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2020-07-27T15:55:19Z",
       "side": 1,
       "message": "shouldn\u0027t this be related to the log level ? who sent this ? can you please clarify.",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a2dda12_7e7b58b6",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T07:12:28Z",
+      "side": 1,
+      "message": "I discussed that with Holger. Think he wanted to open a separate story for that anyway. The problem is, that for me the number of available log levels is to small (error, warning, debug). Holger stated he tried to configure something like \u0027trace\u0027, but failed with that so far. Some of the logs could be removed anyway, but I did not want to do that here, as this is no code originated from me. It was then just an effort to reduce the debug level output to get to the relevant debug entries ...",
+      "parentUuid": "dfc469bf_900aac12",
       "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -70,6 +106,24 @@
     },
     {
       "key": {
+        "uuid": "c8e638a4_08f4767d",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T07:12:28Z",
+      "side": 1,
+      "message": "?? It is uncommented ..",
+      "parentUuid": "7a4e8b3c_338af991",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ffb24c48_be2fbff3",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -87,6 +141,24 @@
     },
     {
       "key": {
+        "uuid": "1e1d405f_22e09640",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T07:12:28Z",
+      "side": 1,
+      "message": "Yes, same as above - it is uncommented - do you request to remove the line?",
+      "parentUuid": "ffb24c48_be2fbff3",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4c40c60_5bf06ce0",
         "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
         "patchSetId": 1
@@ -98,6 +170,24 @@
       "writtenOn": "2020-07-27T15:55:19Z",
       "side": 1,
       "message": "same",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e240ef7f_1f0e0b31",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-07-28T07:12:28Z",
+      "side": 1,
+      "message": "?? yes, same ...",
+      "parentUuid": "a4c40c60_5bf06ce0",
       "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
