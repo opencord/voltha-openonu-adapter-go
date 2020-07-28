@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "e55d2ec2_e163a1c6",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-07-28T08:08:52Z",
+      "side": 1,
+      "message": "\"already existing possibility\"",
+      "parentUuid": "d5009299_3f6e0d05",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8bea2aa4_547f5292",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
