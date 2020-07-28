@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "d9a01c66_cc3daa38",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T09:09:36Z",
+      "side": 1,
+      "message": "I believe it\u0027s actually worth defining them in voltha-lib-go as enum and use them both here and in the OpenOlt adapter, core and voltctl. +1 for follow-up patch.",
+      "parentUuid": "ac17c4d2_9edbbba6",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dfc469bf_900aac12",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
@@ -108,6 +126,24 @@
     },
     {
       "key": {
+        "uuid": "4b4dc921_f9b320f1",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T09:09:36Z",
+      "side": 1,
+      "message": "this clarifies things. No, there is no such \"functional\" log level setting. what you are attempting is ok, but I think it can spiral out of control *very* quickly with so many flags for different functions in the codebase. I\u0027d like to understand the errors you got in `trace` Holger.\nAlso, I\u0027m ok for this in development mode but before official release and with we need to take it out, it\u0027s far too complicated.",
+      "parentUuid": "e55d2ec2_e163a1c6",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8bea2aa4_547f5292",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -160,6 +196,24 @@
     },
     {
       "key": {
+        "uuid": "d0906330_3a0df8a8",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T09:09:36Z",
+      "side": 1,
+      "message": "no, it\u0027s commented, meaning it will never print. so you either remove the // or remove the whole line",
+      "parentUuid": "c8e638a4_08f4767d",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ffb24c48_be2fbff3",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -195,6 +249,24 @@
     },
     {
       "key": {
+        "uuid": "b313c763_71d47f03",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T09:09:36Z",
+      "side": 1,
+      "message": "if you don\u0027t want the log anymore yes. because it\u0027s commented, not uncommented, uncommented would be without the //",
+      "parentUuid": "1e1d405f_22e09640",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4c40c60_5bf06ce0",
         "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
         "patchSetId": 1
@@ -224,6 +296,24 @@
       "side": 1,
       "message": "?? yes, same ...",
       "parentUuid": "a4c40c60_5bf06ce0",
+      "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2fd4a165_39d1d130",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-28T09:09:36Z",
+      "side": 1,
+      "message": "see other replies",
+      "parentUuid": "e240ef7f_1f0e0b31",
       "revId": "1cc3cb4cdb71fec18e4ede9e4aee99e3300fd1eb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
