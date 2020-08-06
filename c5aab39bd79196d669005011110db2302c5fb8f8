@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2a1c65bb_11478c1b",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 584,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "You could perhaps move this method to onu_device_entry.go according to the function scope. Or use omci_cc as scope (with according changes of onuDeviceEntry access",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cce5650d_d154d9ee",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 589,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "used channel: see below comments - use a separate channel\n+ style: perhaps you use the channel as parameter to this method, with the advantage of having that name only at the code block initiating the transfer (and moreover some variable channel here)",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37077753_beb48a17",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 599,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "no need to extend parameters by onuDeviceEntry - use omci_cc member pOnuDeviceEntry as throughout the code here.",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "069869cf_0ec24c31",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 615,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "Using this callback function you can\u0027t use a nil \u0027receive\u0027 channel, and it is also not, what I guess you want to do. Instead of this you have to define and initialize your specific channel (perhaps in onuDeviceEntry) and use this then as parameter here.\nThis channel is then used in your callback function receiveOmciResponse to be sent to the waiting receiver (in your case waitForRebootResponse).",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3a439b31_ac253828",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 624,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "use your specifically created channel as parameter to your waitForResponse() function, compare comment above.",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8128d661_31ae8ee7",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "probably this is the channel you wanted to use in omci_cc sendReboot ...? But you still have to initialize the channel: make(chan ...)",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cc320ea3_6fbca9e8",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 394,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-06T10:29:26Z",
+      "side": 1,
+      "message": "see comment in omci_cc: no need to extend parameters by onuDeviceEntry - use omci_cc member pOnuDeviceEntry as throughout the code here.",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
