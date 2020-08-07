@@ -3,6 +3,7 @@ module test.internal/openadapter
 go 1.13
 
 require (
+	github.com/cevaris/ordered_map v0.0.0-20190319150403-3adeae072e73
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/google/gopacket v1.1.17

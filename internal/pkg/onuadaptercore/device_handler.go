@@ -325,7 +325,7 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				go dh.pOnuTP.configureUniTp(dctx, techProfMsg.UniId, techProfMsg.Path, &wg)
 				go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
 				//the wait.. function is responsible for tpProcMutex.Unlock()
-				err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collet their result
+				err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collect their result
 				return err
 			}
 			// no change, nothing really to do
@@ -473,6 +473,24 @@ func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
 		dh.pUnlockStateFsm.SetSuccessEvent(UniAdminStateDone)
 		dh.runUniLockFsm(false)
 	}
+}
+
+func (dh *DeviceHandler) ReconcileDevice(device *voltha.Device) error {
+	logger.Debugw("reconcile-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	if err := dh.pOnuTP.restoreFromOnuTpPathKvStore(context.TODO()); err != nil {
+		return err
+	}
+	// TODO: further actions - init PON, metrics, reload DB ...
+	return nil
+}
+
+func (dh *DeviceHandler) DeleteDevice(device *voltha.Device) error {
+	logger.Debugw("delete-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
+	if err := dh.pOnuTP.deleteOnuTpPathKvStore(context.TODO()); err != nil {
+		return err
+	}
+	// TODO: further actions - stop metrics and FSMs, remove device ...
+	return nil
 }
 
 //  DeviceHandler methods that implement the adapters interface requests## end #########
@@ -1039,11 +1057,9 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 			//set internal state anyway - as it was done
 			dh.deviceReason = "discovery-mibsync-complete"
 
-			pDevEntry := dh.GetOnuDeviceEntry(false)
-			unigMap, ok := pDevEntry.pOnuDB.meDb[me.UniGClassID]
-			unigInstKeys := pDevEntry.pOnuDB.GetSortedInstKeys(unigMap)
 			i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
-			if ok {
+			pDevEntry := dh.GetOnuDeviceEntry(false)
+			if unigInstKeys := pDevEntry.pOnuDB.GetSortedInstKeys(me.UniGClassID); len(unigInstKeys) > 0 {
 				for _, mgmtEntityId := range unigInstKeys {
 					logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{
 						"deviceId": dh.deviceID, "UnigMe EntityID": mgmtEntityId})
@@ -1053,9 +1069,7 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 			} else {
 				logger.Debugw("No UniG instances found", log.Fields{"deviceId": dh.deviceID})
 			}
-			veipMap, ok := pDevEntry.pOnuDB.meDb[me.VirtualEthernetInterfacePointClassID]
-			veipInstKeys := pDevEntry.pOnuDB.GetSortedInstKeys(veipMap)
-			if ok {
+			if veipInstKeys := pDevEntry.pOnuDB.GetSortedInstKeys(me.VirtualEthernetInterfacePointClassID); len(veipInstKeys) > 0 {
 				for _, mgmtEntityId := range veipInstKeys {
 					logger.Debugw("Add VEIP acc. to stored VEIP instance:", log.Fields{
 						"deviceId": dh.deviceID, "VEIP EntityID": mgmtEntityId})

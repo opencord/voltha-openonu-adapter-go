@@ -170,7 +170,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 											logger.Debugw("MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
 											attributesMap := thirdLevelValue.(map[string]interface{})
 											logger.Debugw("MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
-											onuDeviceEntry.pOnuDB.StoreMe(meClassId, meEntityId, attributesMap)
+											onuDeviceEntry.pOnuDB.PutMe(meClassId, meEntityId, attributesMap)
 											meStoredFromTemplate = true
 										}
 									}
@@ -354,7 +354,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 		meEntityId := msgObj.ReportedME.GetEntityID()
 		meAttributes := msgObj.ReportedME.GetAttributeValueMap()
 
-		onuDeviceEntry.pOnuDB.StoreMe(meClassId, meEntityId, meAttributes)
+		onuDeviceEntry.pOnuDB.PutMe(meClassId, meEntityId, meAttributes)
 
 		if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 			onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)

@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +34,16 @@ import (
 )
 
 const cBasePathTechProfileKVStore = "service/voltha/technology_profiles"
+const cBasePathOnuKVStore = "service/voltha/openonu"
+
+//definitions for TechProfileProcessing - copied from OltAdapter:openolt_flowmgr.go
+//  could perhaps be defined more globally
+const (
+	// BinaryStringPrefix is binary string prefix
+	BinaryStringPrefix = "0b"
+	// BinaryBit1 is binary bit 1 expressed as a character
+	BinaryBit1 = '1'
+)
 
 type resourceEntry int
 
@@ -41,18 +52,18 @@ const (
 	cResourceTcont   resourceEntry = 2
 )
 
-type onuSerialNumber struct {
-	sliceVendorID       []byte
-	sliceVendorSpecific []byte
+type uniPersData struct {
+	PersUniId  uint32 `json:"uni_id"`
+	PersTpPath string `json:"tp_path"`
 }
 
 type onuPersistentData struct {
-	persOnuID      uint32
-	persIntfID     uint32
-	persSnr        onuSerialNumber
-	persAdminState string
-	persOperState  string
-	persUniTpPath  map[uint32]string
+	PersOnuID      uint32        `json:"onu_id"`
+	PersIntfID     uint32        `json:"intf_id"`
+	PersSnr        string        `json:"serial_number"`
+	PersAdminState string        `json:"admin_state"`
+	PersOperState  string        `json:"oper_state"`
+	PersUniTpPath  []uniPersData `json:"uni_config"`
 }
 
 type tTechProfileIndication struct {
@@ -65,11 +76,12 @@ type tcontParamStruct struct {
 	schedPolicy uint8
 }
 type gemPortParamStruct struct {
+	ponOmciCC       bool
 	gemPortID       uint16
 	direction       uint8
 	gemPortEncState uint8
-	usedPbitMap     uint8
-	ponOmciCC       bool
+	prioQueueIndex  uint8
+	pbitString      string
 	discardPolicy   string
 	//could also be a queue specific paramter, not used that way here
 	maxQueueSize     uint16
@@ -91,8 +103,11 @@ type OnuUniTechProf struct {
 	deviceID           string
 	baseDeviceHandler  *DeviceHandler
 	tpProcMutex        sync.RWMutex
+	mapUniTpPath       map[uint32]string
 	sOnuPersistentData onuPersistentData
 	techProfileKVStore *db.Backend
+	onuKVStore         *db.Backend
+	onuKVStorePath     string
 	chTpProcessingStep chan uint8
 	mapUniTpIndication map[uint32]*tTechProfileIndication //use pointer values to ease assignments to the map
 	mapPonAniConfig    map[uint32]*tMapPonAniConfig       //per UNI: use pointer values to ease assignments to the map
@@ -108,7 +123,8 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *De
 	onuTP.deviceID = aDeviceID
 	onuTP.baseDeviceHandler = aDeviceHandler
 	onuTP.tpProcMutex = sync.RWMutex{}
-	onuTP.sOnuPersistentData.persUniTpPath = make(map[uint32]string)
+	onuTP.mapUniTpPath = make(map[uint32]string)
+	onuTP.sOnuPersistentData.PersUniTpPath = make([]uniPersData, 1)
 	onuTP.chTpProcessingStep = make(chan uint8)
 	onuTP.mapUniTpIndication = make(map[uint32]*tTechProfileIndication)
 	onuTP.mapPonAniConfig = make(map[uint32]*tMapPonAniConfig)
@@ -118,6 +134,13 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *De
 	if onuTP.techProfileKVStore == nil {
 		logger.Errorw("Can't access techProfileKVStore - no backend connection to service",
 			log.Fields{"deviceID": aDeviceID, "service": cBasePathTechProfileKVStore})
+	}
+
+	onuTP.onuKVStorePath = onuTP.deviceID
+	onuTP.onuKVStore = aDeviceHandler.SetBackend(cBasePathOnuKVStore)
+	if onuTP.onuKVStore == nil {
+		logger.Errorw("Can't access onuKVStore - no backend connection to service",
+			log.Fields{"deviceID": aDeviceID, "service": cBasePathOnuKVStore})
 	}
 	return &onuTP
 }
@@ -144,7 +167,7 @@ func (onuTP *OnuUniTechProf) updateOnuUniTpPath(aUniID uint32, aPathString strin
 	   as also the complete sequence is ensured to 'run to  completion' before some new request is accepted
 	   no specific concurrency protection to sOnuPersistentData is required here
 	*/
-	if existingPath, present := onuTP.sOnuPersistentData.persUniTpPath[aUniID]; present {
+	if existingPath, present := onuTP.mapUniTpPath[aUniID]; present {
 		// uni entry already exists
 		//logger.Debugw(" already exists", log.Fields{"for InstanceId": a_uniInstNo})
 		if existingPath != aPathString {
@@ -152,12 +175,12 @@ func (onuTP *OnuUniTechProf) updateOnuUniTpPath(aUniID uint32, aPathString strin
 				//existing entry to be deleted
 				logger.Debugw("UniTp path delete", log.Fields{
 					"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
-				delete(onuTP.sOnuPersistentData.persUniTpPath, aUniID)
+				delete(onuTP.mapUniTpPath, aUniID)
 			} else {
 				//existing entry to be modified
 				logger.Debugw("UniTp path modify", log.Fields{
 					"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
-				onuTP.sOnuPersistentData.persUniTpPath[aUniID] = aPathString
+				onuTP.mapUniTpPath[aUniID] = aPathString
 			}
 			return true
 		}
@@ -176,7 +199,7 @@ func (onuTP *OnuUniTechProf) updateOnuUniTpPath(aUniID uint32, aPathString strin
 	//new entry to be set
 	logger.Debugw("New UniTp path set", log.Fields{
 		"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
-	onuTP.sOnuPersistentData.persUniTpPath[aUniID] = aPathString
+	onuTP.mapUniTpPath[aUniID] = aPathString
 	return true
 }
 
@@ -282,19 +305,44 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 
 func (onuTP *OnuUniTechProf) updateOnuTpPathKvStore(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	logger.Debugw("this would update the ONU's TpPath in KVStore", log.Fields{
-		"deviceID": onuTP.deviceID})
-	//TODO!!!
-	// set onuTP.procResult in case of errors!! cmp. configureUniTp
-	//make use of onuTP.sOnuPersistentData to store the TpPath to KVStore - as background routine
-	/*
-		var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpProcessingStep
-		go onuTp.storePersistentData(ctx, processingStep)
-		if !onuTP.waitForTimeoutOrCompletion(ctx, processingStep) {
-			//timeout or error detected
-			return
-		}
-	*/
+
+	if onuTP.onuKVStore == nil {
+		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": onuTP.deviceID})
+		onuTP.procResult = errors.New("ONU/TP-data update aborted: onuKVStore not set")
+		return
+	}
+	var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpProcessingStep
+	go onuTP.storePersistentData(ctx, processingStep)
+	if !onuTP.waitForTimeoutOrCompletion(ctx, processingStep) {
+		//timeout or error detected
+		logger.Debugw("ONU/TP-data not written - abort", log.Fields{"device-id": onuTP.deviceID})
+		onuTP.procResult = errors.New("ONU/TP-data update aborted: during writing process")
+		return
+	}
+}
+
+func (onuTP *OnuUniTechProf) restoreFromOnuTpPathKvStore(ctx context.Context) error {
+	if onuTP.onuKVStore == nil {
+		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": onuTP.deviceID})
+		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", onuTP.deviceID))
+	}
+	if err := onuTP.restorePersistentData(ctx); err != nil {
+		logger.Debugw("ONU/TP-data not read - abort", log.Fields{"device-id": onuTP.deviceID})
+		return err
+	}
+	return nil
+}
+
+func (onuTP *OnuUniTechProf) deleteOnuTpPathKvStore(ctx context.Context) error {
+	if onuTP.onuKVStore == nil {
+		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": onuTP.deviceID})
+		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", onuTP.deviceID))
+	}
+	if err := onuTP.deletePersistentData(ctx); err != nil {
+		logger.Debugw("ONU/TP-data not read - abort", log.Fields{"device-id": onuTP.deviceID})
+		return err
+	}
+	return nil
 }
 
 // deleteTpResource removes Resources from the ONU's specified Uni
@@ -317,6 +365,86 @@ func (onuTP *OnuUniTechProf) deleteTpResource(ctx context.Context,
 }
 
 /* internal methods *********************/
+
+func (onuTP *OnuUniTechProf) storePersistentData(ctx context.Context, aProcessingStep uint8) {
+
+	onuTP.sOnuPersistentData.PersOnuID = onuTP.baseDeviceHandler.pOnuIndication.OnuId
+	onuTP.sOnuPersistentData.PersIntfID = onuTP.baseDeviceHandler.pOnuIndication.IntfId
+	onuTP.sOnuPersistentData.PersSnr = onuTP.baseDeviceHandler.pOnuOmciDevice.serialNumber
+	//TODO: verify usage of these values during restart UC
+	onuTP.sOnuPersistentData.PersAdminState = "up"
+	onuTP.sOnuPersistentData.PersOperState = "active"
+
+	onuTP.sOnuPersistentData.PersUniTpPath = onuTP.sOnuPersistentData.PersUniTpPath[:0]
+
+	for k, v := range onuTP.mapUniTpPath {
+		onuTP.sOnuPersistentData.PersUniTpPath =
+			append(onuTP.sOnuPersistentData.PersUniTpPath, uniPersData{PersUniId: k, PersTpPath: v})
+	}
+	logger.Debugw("Update ONU/TP-data in KVStore", log.Fields{"deviceID": onuTP.deviceID, "onuTP.sOnuPersistentData": onuTP.sOnuPersistentData})
+
+	Value, err := json.Marshal(onuTP.sOnuPersistentData)
+	if err != nil {
+		logger.Errorw("unable to marshal ONU/TP-data", log.Fields{"onuTP.sOnuPersistentData": onuTP.sOnuPersistentData,
+			"device-id": onuTP.deviceID, "err": err})
+		onuTP.chTpProcessingStep <- 0 //error indication
+		return
+	}
+	err = onuTP.onuKVStore.Put(ctx, onuTP.onuKVStorePath, Value)
+	if err != nil {
+		logger.Errorw("unable to write ONU/TP-data into KVstore", log.Fields{"device-id": onuTP.deviceID, "err": err})
+		onuTP.chTpProcessingStep <- 0 //error indication
+		return
+	}
+	onuTP.chTpProcessingStep <- aProcessingStep //done
+}
+
+func (onuTP *OnuUniTechProf) restorePersistentData(ctx context.Context) error {
+
+	onuTP.mapUniTpPath = make(map[uint32]string)
+	onuTP.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", make([]uniPersData, 0)}
+
+	Value, err := onuTP.onuKVStore.Get(ctx, onuTP.onuKVStorePath)
+	if err == nil {
+		if Value != nil {
+			logger.Debugw("ONU/TP-data read",
+				log.Fields{"Key": Value.Key, "device-id": onuTP.deviceID})
+			tpTmpBytes, _ := kvstore.ToByte(Value.Value)
+
+			if err = json.Unmarshal(tpTmpBytes, &onuTP.sOnuPersistentData); err != nil {
+				logger.Errorw("unable to unmarshal ONU/TP-data", log.Fields{"error": err, "device-id": onuTP.deviceID})
+				return fmt.Errorf(fmt.Sprintf("unable-to-unmarshal-ONU/TP-data-%s", onuTP.deviceID))
+			}
+			logger.Debugw("ONU/TP-data", log.Fields{"onuTP.sOnuPersistentData": onuTP.sOnuPersistentData,
+				"device-id": onuTP.deviceID})
+
+			for _, uniData := range onuTP.sOnuPersistentData.PersUniTpPath {
+				onuTP.mapUniTpPath[uniData.PersUniId] = uniData.PersTpPath
+			}
+			logger.Debugw("TpPath map", log.Fields{"onuTP.mapUniTpPath": onuTP.mapUniTpPath,
+				"device-id": onuTP.deviceID})
+		} else {
+			logger.Errorw("no ONU/TP-data found", log.Fields{"path": onuTP.onuKVStorePath, "device-id": onuTP.deviceID})
+			return fmt.Errorf(fmt.Sprintf("no-ONU/TP-data-found-%s", onuTP.deviceID))
+		}
+	} else {
+		logger.Errorw("unable to read from KVstore", log.Fields{"device-id": onuTP.deviceID})
+		return fmt.Errorf(fmt.Sprintf("unable-to-read-from-KVstore-%s", onuTP.deviceID))
+	}
+	return nil
+}
+
+func (onuTP *OnuUniTechProf) deletePersistentData(ctx context.Context) error {
+
+	logger.Debugw("delete ONU/TP-data in KVStore", log.Fields{"deviceID": onuTP.deviceID})
+	err := onuTP.onuKVStore.Delete(ctx, onuTP.onuKVStorePath)
+	if err != nil {
+		logger.Errorw("unable to delete in KVstore", log.Fields{"device-id": onuTP.deviceID, "err": err})
+		return fmt.Errorf(fmt.Sprintf("unable-delete-in-KVstore-%s", onuTP.deviceID))
+	}
+	return nil
+}
+
 func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 	ctx context.Context, aUniID uint32, aPathString string, aProcessingStep uint8) {
 	var tpInst tp.TechProfile
@@ -366,7 +494,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			"profType": onuTP.mapUniTpIndication[aUniID].techProfileType,
 			"profID":   onuTP.mapUniTpIndication[aUniID].techProfileID})
 
-	Value, err := onuTP.techProfileKVStore.Get(context.TODO(), aPathString)
+	Value, err := onuTP.techProfileKVStore.Get(ctx, aPathString)
 	if err == nil {
 		if Value != nil {
 			logger.Debugw("tech-profile read",
@@ -397,13 +525,14 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 		return
 	}
 
-	//for first start assume a 1Tcont1Gem profile, later extend for multi GemPerTcont and MultiTcontMultiGem
+	//default start with 1Tcont1Gem profile, later extend for multi GemPerTcont and perhaps even  MultiTcontMultiGem
 	localMapGemPortParams := make(map[uint16]*gemPortParamStruct)
 	localMapGemPortParams[0] = &gemPortParamStruct{}
 	localMapPonAniConfig := make(map[uint16]*tcontGemList)
 	localMapPonAniConfig[0] = &tcontGemList{tcontParamStruct{}, localMapGemPortParams}
 	onuTP.mapPonAniConfig[aUniID] = (*tMapPonAniConfig)(&localMapPonAniConfig)
 
+	//note: the code is currently restricted to one TCcont per Onu (index [0])
 	//get the relevant values from the profile and store to mapPonAniConfig
 	(*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.allocID = uint16(tpInst.UsScheduler.AllocID)
 	//maybe tCont scheduling not (yet) needed - just to basicaly have it for future
@@ -411,38 +540,60 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 	if tpInst.UsScheduler.QSchedPolicy == "StrictPrio" {
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.schedPolicy = 1 //for the moment fixed value acc. G.988 //TODO: defines!
 	} else {
-		// default profile defines "Hybrid" - which probably comes down to WRR with some weigthts for SP
+		//default profile defines "Hybrid" - which probably comes down to WRR with some weigthts for SP
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.schedPolicy = 2 //for G.988 WRR
 	}
 	loNumGemPorts := tpInst.NumGemPorts
 	loGemPortRead := false
 	for pos, content := range tpInst.UpstreamGemPortAttributeList {
-		if pos == 0 {
-			loGemPortRead = true
-		}
 		if uint32(pos) == loNumGemPorts {
 			logger.Debugw("PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
 				log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
 			break
 		}
-		// a downstream GemPort should always exist (only downstream for MC)
-		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortID = uint16(content.GemportID)
-		// direction can be correlated later with Downstream list, for now just assume bidirectional (upstream never exists alone)
+		if pos == 0 {
+			//at least one upstream GemPort should always exist (else traffic profile makes no sense)
+			loGemPortRead = true
+		} else {
+			//for all further GemPorts we need to extend the mapGemPortParams
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)] = &gemPortParamStruct{}
+		}
+		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortID =
+			uint16(content.GemportID)
+		//direction can be correlated later with Downstream list,
+		//  for now just assume bidirectional (upstream never exists alone)
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].direction = 3 //as defined in G.988
+		// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
+		if 7 < content.PriorityQueue {
+			logger.Errorw("PonAniConfig reject on GemPortList - PrioQueue value invalid",
+				log.Fields{"device-id": onuTP.deviceID, "index": pos, "PrioQueue": content.PriorityQueue})
+			//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
+			delete(onuTP.mapPonAniConfig, aUniID)
+			onuTP.chTpProcessingStep <- 0 //error indication
+			return
+		}
+		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].prioQueueIndex =
+			uint8(content.PriorityQueue)
+		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].pbitString =
+			strings.TrimPrefix(content.PbitMap, BinaryStringPrefix)
 		if content.AesEncryption == "True" {
 			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortEncState = 1
 		} else {
 			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortEncState = 0
 		}
-
-		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].discardPolicy = content.DiscardPolicy
-		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueSchedPolicy = content.SchedulingPolicy
+		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].discardPolicy =
+			content.DiscardPolicy
+		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueSchedPolicy =
+			content.SchedulingPolicy
 		//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
-		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueWeight = uint8(content.Weight)
+		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueWeight =
+			uint8(content.Weight)
 	}
 	if loGemPortRead == false {
-		logger.Errorw("no GemPort could be read from TechProfile",
+		logger.Errorw("PonAniConfig reject - no GemPort could be read from TechProfile",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
+		//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
+		delete(onuTP.mapPonAniConfig, aUniID)
 		onuTP.chTpProcessingStep <- 0 //error indication
 		return
 	}
@@ -450,10 +601,14 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 
 	//logger does not simply output the given structures, just give some example debug values
 	logger.Debugw("PonAniConfig read from TechProfile", log.Fields{
-		"device-id":       onuTP.deviceID,
-		"AllocId":         (*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.allocID,
-		"GemPort":         (*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[0].gemPortID,
-		"QueueScheduling": (*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[0].queueSchedPolicy})
+		"device-id": onuTP.deviceID,
+		"AllocId":   (*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.allocID})
+	for gemIndex, gemEntry := range (*(onuTP.mapPonAniConfig[0]))[0].mapGemPortParams {
+		logger.Debugw("PonAniConfig read from TechProfile", log.Fields{
+			"GemIndex":        gemIndex,
+			"GemPort":         gemEntry.gemPortID,
+			"QueueScheduling": gemEntry.queueSchedPolicy})
+	}
 
 	onuTP.chTpProcessingStep <- aProcessingStep //done
 }

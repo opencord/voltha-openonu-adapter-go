@@ -215,9 +215,18 @@ func (oo *OpenONUAC) Health() (*voltha.HealthStatus, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//Reconcile_device unimplemented
+//Reconcile_device is called once when the adapter needs to re-create device - usually on core restart
 func (oo *OpenONUAC) Reconcile_device(device *voltha.Device) error {
-	return errors.New("unImplemented")
+	logger.Debugw("Reconcile_device", log.Fields{"deviceId": device.Id})
+	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+		if err := handler.ReconcileDevice(device); err != nil {
+			return err
+		}
+	} else {
+		logger.Warnw("no handler found for device-reconcilement", log.Fields{"deviceId": device.Id})
+		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	}
+	return nil
 }
 
 //Abandon_device unimplemented
@@ -257,9 +266,17 @@ func (oo *OpenONUAC) Self_test_device(device *voltha.Device) error {
 	return errors.New("unImplemented")
 }
 
-//Delete_device unimplemented
 func (oo *OpenONUAC) Delete_device(device *voltha.Device) error {
-	return errors.New("unImplemented")
+	logger.Debugw("Delete_device", log.Fields{"deviceId": device.Id})
+	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+		if err := handler.DeleteDevice(device); err != nil {
+			return err
+		}
+	} else {
+		logger.Warnw("no handler found for device-reconcilement", log.Fields{"deviceId": device.Id})
+		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	}
+	return nil
 }
 
 //Get_device_details unimplemented
