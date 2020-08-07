@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cevaris/ordered_map"
 	"github.com/looplab/fsm"
-
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
@@ -64,6 +64,16 @@ const (
 	aniStResetting           = "aniStResetting"
 )
 
+type ponAniGemPortAttribs struct {
+	gemPortID   uint16
+	upQueueID   uint16
+	downQueueID uint16
+	direction   uint8
+	qosPolicy   string
+	weight      uint8
+	pbitString  string
+}
+
 //UniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type UniPonAniConfigFsm struct {
 	pOmciCC                  *OmciCC
@@ -82,9 +92,7 @@ type UniPonAniConfigFsm struct {
 	macBPCD0ID               uint16
 	tcont0ID                 uint16
 	alloc0ID                 uint16
-	gemPortXID               []uint16
-	upQueueXID               []uint16
-	downQueueXID             []uint16
+	gemPortAttribsSlice      []ponAniGemPortAttribs
 }
 
 //NewUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
@@ -187,6 +195,9 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 			<-oFsm.omciMIdsResponseReceived
 		}
 	}
+	//ensure internal slices are empty (which might be set from previous run) - release memory
+	oFsm.gemPortAttribsSlice = nil
+
 	// start go routine for processing of LockState messages
 	go oFsm.ProcessOmciAniMessages()
 
@@ -200,15 +211,88 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 				//index 0 in naming refers to possible usage of multiple instances (later)
 				oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + oFsm.techProfileID
 				oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityId) + oFsm.techProfileID
-				oFsm.tcont0ID = 0x8001 //TODO!: for now fixed, but target is to use value from MibUpload (mibDB)
-				oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].tcontParams.allocID
-				//TODO!! this is just for the first GemPort right now - needs update
-				oFsm.gemPortXID = append(oFsm.gemPortXID,
-					(*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].mapGemPortParams[0].gemPortID)
-				oFsm.upQueueXID = append(oFsm.upQueueXID, 0x8001) //TODO!: for now fixed, but target is to use value from MibUpload (mibDB)
-				//TODO!: for now fixed, but target is to use value from MibUpload (mibDB), also TechProf setting dependency may exist!
-				oFsm.downQueueXID = append(oFsm.downQueueXID, 1)
 
+				// For the time beeing: if there are multiple T-Conts on the ONU the first one from the entityID-ordered list is used
+				// TODO!: if more T-Conts have to be supported (tcontXID!), then use the first instances of the entity-ordered list
+				// or use the py code approach, which might be a bit more complicated, but also more secure, as it
+				// ensures that the selected T-Cont also has queues (which I would assume per definition from ONU, but who knows ...)
+				// so this approach would search the (sorted) upstream PrioQueue list and use the T-Cont (if available) from highest Bytes
+				// or sndHighByte of relatedPort Attribute (T-Cont Reference) and in case of multiple TConts find the next free TContIndex
+				// that way from PrioQueue.relatedPort list
+				if tcontInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.TContClassID); len(tcontInstKeys) > 0 {
+					oFsm.tcont0ID = tcontInstKeys[0]
+					logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
+						"device-id": oFsm.pAdaptFsm.deviceID})
+				} else {
+					logger.Warnw("No TCont instances found", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+				}
+				oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].tcontParams.allocID
+				loGemPortAttribs := ponAniGemPortAttribs{}
+				//for all TechProfile set GemIndices
+				for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].mapGemPortParams {
+					//collect all GemConfigData in a seperate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
+
+					if queueInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
+
+						loGemPortAttribs.gemPortID = gemEntry.gemPortID
+						// MibDb usage: upstream PrioQueue.RelatedPort = xxxxyyyy with xxxx=TCont.Entity(incl. slot) and yyyy=prio
+						// i.e.: search PrioQueue list with xxxx=actual T-Cont.Entity,
+						// from that list use the PrioQueue.Entity with  gemEntry.prioQueueIndex == yyyy (expect 0..7)
+						usQrelPortMask := uint32((((uint32)(oFsm.tcont0ID)) << 16) + uint32(gemEntry.prioQueueIndex))
+
+						// MibDb usage: downstream PrioQueue.RelatedPort = xxyyzzzz with xx=slot, yy=UniPort and zzzz=prio
+						// i.e.: search PrioQueue list with yy=actual pOnuUniPort.uniId,
+						// from that list use the PrioQueue.Entity with gemEntry.prioQueueIndex == zzzz (expect 0..7)
+						// Note: As we do not maintain any slot numbering, slot number will be excluded from seatch pattern.
+						//       Furthermore OMCI Onu port-Id is expected to start with 1 (not 0).
+						dsQrelPortMask := uint32((((uint32)(oFsm.pOnuUniPort.uniId + 1)) << 16) + uint32(gemEntry.prioQueueIndex))
+
+						usQueueFound := false
+						dsQueueFound := false
+						for _, mgmtEntityId := range queueInstKeys {
+							if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityId); meAttributes != nil {
+								returnVal := meAttributes["RelatedPort"]
+								if returnVal != nil {
+									relatedPort := returnVal.(uint32)
+									if relatedPort == usQrelPortMask {
+										loGemPortAttribs.upQueueID = mgmtEntityId
+										logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
+											"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
+										usQueueFound = true
+									} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityId < 0x8000 {
+										loGemPortAttribs.downQueueID = mgmtEntityId
+										logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
+											"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
+										dsQueueFound = true
+									}
+									if usQueueFound && dsQueueFound {
+										break
+									}
+								} else {
+									logger.Warnw("'relatedPort' not found in meAttributes:", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+								}
+							} else {
+								logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
+									"mgmtEntityId": mgmtEntityId, "deviceId": oFsm.pAdaptFsm.deviceID})
+							}
+						}
+					} else {
+						logger.Warnw("No PriorityQueue instances found", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+					}
+					loGemPortAttribs.direction = gemEntry.direction
+					loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
+					loGemPortAttribs.weight = gemEntry.queueWeight
+					loGemPortAttribs.pbitString = gemEntry.pbitString
+
+					logger.Debugw("prio-related GemPort attributes assigned:", log.Fields{
+						"gemPortID":   loGemPortAttribs.gemPortID,
+						"upQueueID":   loGemPortAttribs.upQueueID,
+						"downQueueID": loGemPortAttribs.downQueueID,
+						"pbitString":  loGemPortAttribs.pbitString,
+					})
+
+					oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
+				}
 				a_pAFsm.pFsm.Event(aniEvStartConfig)
 			}
 		}(pConfigAniStateAFsm)
@@ -290,24 +374,102 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 	logger.Debugw("UniPonAniConfigFsm Tx Set::.1pMapper with all PBits set", log.Fields{"EntitytId": 0x8042, /*cmp above*/
 		"toGemIw": 1024 /* cmp above */, "in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 
-	//TODO!! in MultiGemPort constellation the IwTpPtr setting will get variable -f(Prio) based on pUniTechProf
-	logger.Debugw("UniPonAniConfigFsm Tx Set::1pMapper SingleGem", log.Fields{
-		"EntitytId":  strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
-		"GemIwTpPtr": strconv.FormatInt(int64(oFsm.gemPortXID[0]), 16),
-		"in state":   e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
+	logger.Debugw("UniPonAniConfigFsm Tx Set::1pMapper", log.Fields{
+		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
+		"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
+
 	meParams := me.ParamData{
-		EntityID: oFsm.mapperSP0ID,
-		Attributes: me.AttributeValueMap{
-			"InterworkTpPointerForPBitPriority0": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority1": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority2": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority3": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority4": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority5": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority6": oFsm.gemPortXID[0],
-			"InterworkTpPointerForPBitPriority7": oFsm.gemPortXID[0],
-		},
+		EntityID:   oFsm.mapperSP0ID,
+		Attributes: make(me.AttributeValueMap, 0),
 	}
+
+	//assign the GemPorts according to the configured Prio
+	var loPrioGemPortArray [8]uint16
+	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		for i := 0; i < 8; i++ {
+			// "lenOfPbitMap(8) - i + 1" will give i-th pbit value from LSB position in the pbit map string
+			if prio, err := strconv.Atoi(string(gemPortAttribs.pbitString[7-i])); err == nil {
+				if prio == 1 { // Check this p-bit is set
+					if loPrioGemPortArray[i] == 0 {
+						loPrioGemPortArray[i] = gemPortAttribs.gemPortID //gemPortId=EntityID and unique
+					} else {
+						logger.Warnw("UniPonAniConfigFsm PrioString not unique", log.Fields{
+							"device-id": oFsm.pAdaptFsm.deviceID, "IgnoredGemPort": gemPortAttribs.gemPortID,
+							"SetGemPort": loPrioGemPortArray[i]})
+					}
+				}
+			} else {
+				logger.Warnw("UniPonAniConfigFsm PrioString evaluation error", log.Fields{
+					"device-id": oFsm.pAdaptFsm.deviceID, "GemPort": gemPortAttribs.gemPortID,
+					"prioString": gemPortAttribs.pbitString, "position": i})
+			}
+
+		}
+	}
+	var foundIwPtr bool = false
+	if loPrioGemPortArray[0] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio0": strconv.FormatInt(int64(loPrioGemPortArray[0]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority0"] = loPrioGemPortArray[0]
+	}
+	if loPrioGemPortArray[1] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio1": strconv.FormatInt(int64(loPrioGemPortArray[1]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority1"] = loPrioGemPortArray[1]
+	}
+	if loPrioGemPortArray[2] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio2": strconv.FormatInt(int64(loPrioGemPortArray[2]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority2"] = loPrioGemPortArray[2]
+	}
+	if loPrioGemPortArray[3] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio3": strconv.FormatInt(int64(loPrioGemPortArray[3]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority3"] = loPrioGemPortArray[3]
+	}
+	if loPrioGemPortArray[4] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio4": strconv.FormatInt(int64(loPrioGemPortArray[4]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority4"] = loPrioGemPortArray[4]
+	}
+	if loPrioGemPortArray[5] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio5": strconv.FormatInt(int64(loPrioGemPortArray[5]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority5"] = loPrioGemPortArray[5]
+	}
+	if loPrioGemPortArray[6] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio6": strconv.FormatInt(int64(loPrioGemPortArray[6]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority6"] = loPrioGemPortArray[6]
+	}
+	if loPrioGemPortArray[7] != 0 {
+		foundIwPtr = true
+		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+			"IwPtr for Prio7": strconv.FormatInt(int64(loPrioGemPortArray[7]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+		meParams.Attributes["InterworkTpPointerForPBitPriority7"] = loPrioGemPortArray[7]
+	}
+	if foundIwPtr == false {
+		logger.Errorw("UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
+			"device-id": oFsm.pAdaptFsm.deviceID})
+		//let's reset the state machine in order to release all resources now
+		pConfigAniStateAFsm := oFsm.pAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(a_pAFsm *AdapterFsm) {
+				if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+					a_pAFsm.pFsm.Event(aniEvReset)
+				}
+			}(pConfigAniStateAFsm)
+		}
+	}
+
 	meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), ConstDefaultOmciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
@@ -333,6 +495,7 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 
 func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
 	logger.Debugw("UniPonAniConfigFsm resetting", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
 	if pConfigAniStateAFsm != nil {
 		// abort running message processing
@@ -507,39 +670,39 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 }
 
 func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
-	//TODO!! this is just for the first GemPort right now - needs update
-	//   .. for gemPort in range gemPortXID
-	logger.Infow("UniPonAniConfigFsm Tx Create::GemNWCtp", log.Fields{
-		"EntitytId": strconv.FormatInt(int64(oFsm.gemPortXID[0]), 16),
-		"TcontId":   strconv.FormatInt(int64(oFsm.tcont0ID), 16),
-		"device-id": oFsm.pAdaptFsm.deviceID})
-	meParams := me.ParamData{
-		EntityID: oFsm.gemPortXID[0],
-		Attributes: me.AttributeValueMap{
-			"PortId":       oFsm.gemPortXID[0], //same as EntityID
-			"TContPointer": oFsm.tcont0ID,
-			"Direction":    (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].mapGemPortParams[0].direction,
-			//ONU-G.TrafficManagementOption dependency ->PrioQueue or TCont
-			//  TODO!! verify dependency and QueueId in case of Multi-GemPort setup!
-			"TrafficManagementPointerForUpstream": oFsm.upQueueXID[0], //might be different in wrr-only Setup - tcont0ID
-			"PriorityQueuePointerForDownStream":   oFsm.downQueueXID[0],
-		},
-	}
-	meInstance := oFsm.pOmciCC.sendCreateGemNCTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
-		oFsm.pAdaptFsm.commChan, meParams)
-	//accept also nil as (error) return value for writing to LastTx
-	//  - this avoids misinterpretation of new received OMCI messages
-	oFsm.pOmciCC.pLastTxMeInstance = meInstance
+	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
+	for gemIndex, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		logger.Debugw("UniPonAniConfigFsm Tx Create::GemNWCtp", log.Fields{
+			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
+			"TcontId":   strconv.FormatInt(int64(oFsm.tcont0ID), 16),
+			"device-id": oFsm.pAdaptFsm.deviceID})
+		meParams := me.ParamData{
+			EntityID: gemPortAttribs.gemPortID, //unique, same as PortId
+			Attributes: me.AttributeValueMap{
+				"PortId":       gemPortAttribs.gemPortID,
+				"TContPointer": oFsm.tcont0ID,
+				"Direction":    gemPortAttribs.direction,
+				//ONU-G.TrafficManagementOption dependency ->PrioQueue or TCont
+				//  TODO!! verify dependency and QueueId in case of Multi-GemPort setup!
+				"TrafficManagementPointerForUpstream": gemPortAttribs.upQueueID, //might be different in wrr-only Setup - tcont0ID
+				"PriorityQueuePointerForDownStream":   gemPortAttribs.downQueueID,
+			},
+		}
+		meInstance := oFsm.pOmciCC.sendCreateGemNCTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
+			oFsm.pAdaptFsm.commChan, meParams)
+		//accept also nil as (error) return value for writing to LastTx
+		//  - this avoids misinterpretation of new received OMCI messages
+		oFsm.pOmciCC.pLastTxMeInstance = meInstance
 
-	//verify response
-	err := oFsm.waitforOmciResponse()
-	if err != nil {
-		logger.Errorw("GemNWCtp create failed, aborting AniConfig FSM!",
-			log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": 0}) //running index in loop later!
-		oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
-		return
-	}
-	//for all GemPortID's ports - later
+		//verify response
+		err := oFsm.waitforOmciResponse()
+		if err != nil {
+			logger.Errorw("GemNWCtp create failed, aborting AniConfig FSM!",
+				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
+			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
+	} //for all GemPorts of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("GemNWCtp create loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
@@ -548,37 +711,37 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
 }
 
 func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
-	//TODO!! this is just for the first GemPort right now - needs update
-	//   .. for gemPort in range gemPortXID
-	logger.Infow("UniPonAniConfigFsm Tx Create::GemIwTp", log.Fields{
-		"EntitytId": strconv.FormatInt(int64(oFsm.gemPortXID[0]), 16),
-		"SPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
-		"device-id": oFsm.pAdaptFsm.deviceID})
-	meParams := me.ParamData{
-		EntityID: oFsm.gemPortXID[0],
-		Attributes: me.AttributeValueMap{
-			"GemPortNetworkCtpConnectivityPointer": oFsm.gemPortXID[0], //same as EntityID, see above
-			"InterworkingOption":                   5,                  //fixed model:: G.998 .1pMapper
-			"ServiceProfilePointer":                oFsm.mapperSP0ID,
-			"InterworkingTerminationPointPointer":  0, //not used with .1PMapper Mac bridge
-			"GalProfilePointer":                    galEthernetEID,
-		},
-	}
-	meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
-		oFsm.pAdaptFsm.commChan, meParams)
-	//accept also nil as (error) return value for writing to LastTx
-	//  - this avoids misinterpretation of new received OMCI messages
-	oFsm.pOmciCC.pLastTxMeInstance = meInstance
+	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
+	for gemIndex, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		logger.Debugw("UniPonAniConfigFsm Tx Create::GemIwTp", log.Fields{
+			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
+			"SPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
+			"device-id": oFsm.pAdaptFsm.deviceID})
+		meParams := me.ParamData{
+			EntityID: gemPortAttribs.gemPortID,
+			Attributes: me.AttributeValueMap{
+				"GemPortNetworkCtpConnectivityPointer": gemPortAttribs.gemPortID, //same as EntityID, see above
+				"InterworkingOption":                   5,                        //fixed model:: G.998 .1pMapper
+				"ServiceProfilePointer":                oFsm.mapperSP0ID,
+				"InterworkingTerminationPointPointer":  0, //not used with .1PMapper Mac bridge
+				"GalProfilePointer":                    galEthernetEID,
+			},
+		}
+		meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
+			oFsm.pAdaptFsm.commChan, meParams)
+		//accept also nil as (error) return value for writing to LastTx
+		//  - this avoids misinterpretation of new received OMCI messages
+		oFsm.pOmciCC.pLastTxMeInstance = meInstance
 
-	//verify response
-	err := oFsm.waitforOmciResponse()
-	if err != nil {
-		logger.Errorw("GemIwTp create failed, aborting AniConfig FSM!",
-			log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": 0}) //running index in loop later!
-		oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
-		return
-	}
-	//for all GemPortID's ports - later
+		//verify response
+		err := oFsm.waitforOmciResponse()
+		if err != nil {
+			logger.Errorw("GemIwTp create failed, aborting AniConfig FSM!",
+				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
+			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
+	} //for all GemPort's of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("GemIwTp create loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
@@ -587,37 +750,73 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
 }
 
 func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
-	//TODO!! this is just for the first upstream PrioQueue right now - needs update
-	//TODO!! implementation is restricted to WRR setting on the TrafficScheduler/Tcont
-	//  SP setting would allow relatedPort(Prio) setting in case ONU supports config (ONU-2G QOS)
-
-	//   .. for prioQueu in range upQueueXID
-	weight := (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].mapGemPortParams[0].queueWeight
-	logger.Infow("UniPonAniConfigFsm Tx Set::PrioQueue", log.Fields{
-		"EntitytId": strconv.FormatInt(int64(oFsm.upQueueXID[0]), 16),
-		"Weight":    weight,
-		"device-id": oFsm.pAdaptFsm.deviceID})
-	meParams := me.ParamData{
-		EntityID: oFsm.upQueueXID[0],
-		Attributes: me.AttributeValueMap{
-			"Weight": weight,
-		},
+	const cu16StrictPrioWeight uint16 = 0xFFFF
+	//find all upstream PrioQueues related to this T-Cont
+	loQueueMap := ordered_map.NewOrderedMap()
+	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		if gemPortAttribs.qosPolicy == "WRR" {
+			if _, ok := loQueueMap.Get(gemPortAttribs.upQueueID); ok == false {
+				//key does not yet exist
+				loQueueMap.Set(gemPortAttribs.upQueueID, uint16(gemPortAttribs.weight))
+			}
+		} else {
+			loQueueMap.Set(gemPortAttribs.upQueueID, cu16StrictPrioWeight) //use invalid weight value to indicate SP
+		}
 	}
-	meInstance := oFsm.pOmciCC.sendSetPrioQueueVar(context.TODO(), ConstDefaultOmciTimeout, true,
-		oFsm.pAdaptFsm.commChan, meParams)
-	//accept also nil as (error) return value for writing to LastTx
-	//  - this avoids misinterpretation of new received OMCI messages
-	oFsm.pOmciCC.pLastTxMeInstance = meInstance
 
-	//verify response
-	err := oFsm.waitforOmciResponse()
-	if err != nil {
-		logger.Errorw("PrioQueue set failed, aborting AniConfig FSM!",
-			log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "QueueIndex": 0}) //running index in loop later!
-		oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
-		return
-	}
-	//for all upstream prioQueus - later
+	//TODO: assumption here is that ONU data uses SP setting in the T-Cont and WRR in the TrafficScheduler
+	//  if that is not the case, the reverse case could be checked and reacted accordingly or if the
+	//  complete chain is not valid, then some error should be thrown and configuration can be aborted
+	//  or even be finished without correct SP/WRR setting
+
+	//TODO: search for the (WRR)trafficScheduler related to the T-Cont of this queue
+	//By now assume fixed value 0x8000, which is the only announce BBSIM TrafficScheduler,
+	//  even though its T-Cont seems to be wrong ...
+	loTrafficSchedulerEID := 0x8000
+	//for all found queues
+	iter := loQueueMap.IterFunc()
+	for kv, ok := iter(); ok; kv, ok = iter() {
+		queueIndex := (kv.Key).(uint16)
+		meParams := me.ParamData{
+			EntityID:   queueIndex,
+			Attributes: make(me.AttributeValueMap, 0),
+		}
+		if (kv.Value).(uint16) == cu16StrictPrioWeight {
+			//StrictPrio indication
+			logger.Debugw("UniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
+				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+				"device-id": oFsm.pAdaptFsm.deviceID})
+			meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
+		} else {
+			//WRR indication
+			logger.Debugw("UniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
+				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+				"Weight":    kv.Value,
+				"device-id": oFsm.pAdaptFsm.deviceID})
+			meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
+			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
+		}
+		meInstance := oFsm.pOmciCC.sendSetPrioQueueVar(context.TODO(), ConstDefaultOmciTimeout, true,
+			oFsm.pAdaptFsm.commChan, meParams)
+		//accept also nil as (error) return value for writing to LastTx
+		//  - this avoids misinterpretation of new received OMCI messages
+		oFsm.pOmciCC.pLastTxMeInstance = meInstance
+
+		//verify response
+		err := oFsm.waitforOmciResponse()
+		if err != nil {
+			logger.Errorw("PrioQueue set failed, aborting AniConfig FSM!",
+				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
+			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
+
+		//TODO: In case of WRR setting of the GemPort/PrioQueue it might further be necessary to
+		//  write the assigned trafficScheduler with the requested Prio to be considered in the StrictPrio scheduling
+		//  of the (next upstream) assigned T-Cont, which is f(prioQueue[priority]) - in relation to other SP prioQueues
+		//  not yet done because of BBSIM TrafficScheduler issues (and not done in py code as well)
+
+	} //for all upstream prioQueues
 
 	// if Config has been done for all PrioQueue instances let the FSM proceed
 	logger.Debugw("PrioQueue set loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})

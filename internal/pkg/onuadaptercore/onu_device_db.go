@@ -45,7 +45,7 @@ func NewOnuDeviceDB(ctx context.Context, a_pOnuDeviceEntry *OnuDeviceEntry) *Onu
 	return &onuDeviceDB
 }
 
-func (onuDeviceDB *OnuDeviceDB) StoreMe(meClassId me.ClassID, meEntityId uint16, meAttributes me.AttributeValueMap) {
+func (onuDeviceDB *OnuDeviceDB) PutMe(meClassId me.ClassID, meEntityId uint16, meAttributes me.AttributeValueMap) {
 
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassId {
@@ -76,9 +76,22 @@ func (onuDeviceDB *OnuDeviceDB) StoreMe(meClassId me.ClassID, meEntityId uint16,
 	}
 }
 
-func (onuDeviceDB *OnuDeviceDB) GetSortedInstKeys(meInstMap map[uint16]me.AttributeValueMap) []uint16 {
+func (onuDeviceDB *OnuDeviceDB) GetMe(meClassId me.ClassID, meEntityId uint16) me.AttributeValueMap {
+
+	if meAttributes, present := onuDeviceDB.meDb[meClassId][meEntityId]; present {
+		logger.Debugw("ME found:", log.Fields{"meClassId": meClassId, "meEntityId": meEntityId, "meAttributes": meAttributes,
+			"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID})
+		return meAttributes
+	} else {
+		return nil
+	}
+}
+
+func (onuDeviceDB *OnuDeviceDB) GetSortedInstKeys(meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
+
+	meInstMap := onuDeviceDB.meDb[meClassID]
 
 	for k := range meInstMap {
 		meInstKeys = append(meInstKeys, k)
