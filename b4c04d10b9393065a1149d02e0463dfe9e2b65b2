@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8a5e142f_ce487044",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T10:16:27Z",
+      "side": 1,
+      "message": "Following RebootCallback* definitions seem to be obsolete, remove them again",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "159fa88b_447bca3a",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T10:16:27Z",
+      "side": 1,
+      "message": "omciRebootMessageReceived initialization still missing, e.g. in NewOnuDeviceEntry(), compare:\nmibDownloadChan :\u003d make(chan Message, 2048)",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84a9a75f_e445c9df",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T10:16:27Z",
+      "side": 1,
+      "message": "Perhaps better: \"Omci RebootResponse Result Error indication\"...\nCould be later further evaluated e..g. for possible repetition",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "46fa362a_e15362b6",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 433,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T10:16:27Z",
+      "side": 1,
+      "message": "Perhaps better \"Unexpected OmciResponse type received\" ...",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

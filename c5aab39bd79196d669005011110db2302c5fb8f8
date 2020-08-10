@@ -53,6 +53,24 @@
     },
     {
       "key": {
+        "uuid": "e890713a_6f4606d0",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 599,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T10:16:27Z",
+      "side": 1,
+      "message": "\u003e no need to extend parameters by onuDeviceEntry - use omci_cc member pOnuDeviceEntry as throughout the code here.\n\nStill open comment, compare also corresponding onu_device_entry comment",
+      "parentUuid": "37077753_beb48a17",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "069869cf_0ec24c31",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 14
@@ -81,6 +99,24 @@
       "writtenOn": "2020-08-06T10:29:26Z",
       "side": 1,
       "message": "use your specifically created channel as parameter to your waitForResponse() function, compare comment above.",
+      "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c699ce1f_87493eea",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 624,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T10:16:27Z",
+      "side": 1,
+      "message": "\u003e use your specifically created channel as parameter to your waitForResponse() function, compare comment above.\n\nStill valid: would make it clearer, that you wait on this channel here\nonuDeviceEntry.waitForRebootResponse(omciRebootMessageReceived) (with according change in onu_device_entry)",
+      "parentUuid": "3a439b31_ac253828",
       "revId": "c5aab39bd79196d669005011110db2302c5fb8f8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
