@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "10244430_266d3ca8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 477,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T07:25:01Z",
+      "side": 1,
+      "message": "Compare openonu.go comment: err should be returned to caller",
+      "revId": "441a8095057e3f685c286cab6eafe3192d54013c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dac76722_0bd6b5e7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 495,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T07:25:01Z",
+      "side": 1,
+      "message": "Compare openonu.go comment: err should be returned to caller",
+      "revId": "441a8095057e3f685c286cab6eafe3192d54013c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "383b2db7_b76ca77a",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T07:25:01Z",
+      "side": 1,
+      "message": "Core seems to expect some error/success response. To avoid interference of subsequent actions I would recommend to not run the device handler activities in background here and to extend the device handler interface to also return an error code (after completion)",
+      "revId": "441a8095057e3f685c286cab6eafe3192d54013c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "003cd7e5_e6b1a4e5",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-10T07:25:01Z",
+      "side": 1,
+      "message": "Compare Reconcile comment, even though some \u0027deleteDevice\u0027 should more or less always be successful. But execution of \u0027deleteDevice\u0027 should be waited for here anyway.",
+      "revId": "441a8095057e3f685c286cab6eafe3192d54013c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
