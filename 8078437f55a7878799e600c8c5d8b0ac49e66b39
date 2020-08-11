@@ -117,6 +117,30 @@
       "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6da2c8a_68eb1fb2",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-11T10:52:41Z",
+      "side": 1,
+      "message": "You can use the error/success indication of the handler method only in case you call it directly/synchronous (or you have to build a more complicated synchronization). So according the decision to supply the result of the processing to the core I would go with Holger and would remove the background processing here.",
+      "parentUuid": "f9fe3392_3dd64b90",
+      "range": {
+        "startLine": 263,
+        "startChar": 2,
+        "endLine": 263,
+        "endChar": 5
+      },
+      "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "04fe3562_1a9d515e",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 621,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-11T10:52:41Z",
+      "side": 1,
+      "message": "still some wrong copy/paste content within this log.",
+      "revId": "799ef35c365f3549efc2ad92dfabf238996d71fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
