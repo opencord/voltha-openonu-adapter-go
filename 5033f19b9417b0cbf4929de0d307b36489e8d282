@@ -33,6 +33,23 @@
       "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "34883e3a_9ad6cd90",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 609,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-11T12:19:35Z",
+      "side": 1,
+      "message": "As you have it now in the function arguments: use \u0027responseChannel\u0027 for the channel within the CallBackPair.",
+      "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
