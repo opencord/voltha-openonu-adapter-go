@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "55be46b3_ce9cd0ab",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 621,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-11T08:27:35Z",
+      "side": 1,
+      "message": "Please change the comment.",
+      "range": {
+        "startLine": 621,
+        "startChar": 16,
+        "endLine": 621,
+        "endChar": 73
+      },
+      "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff6d3581_ec5b8fb4",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-11T08:27:35Z",
+      "side": 1,
+      "message": "Wasn\u0027t the latest decision to call reboot-function synchronously to be able to report execution status?",
+      "range": {
+        "startLine": 263,
+        "startChar": 2,
+        "endLine": 263,
+        "endChar": 5
+      },
+      "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
