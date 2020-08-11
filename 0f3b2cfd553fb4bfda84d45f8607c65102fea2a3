@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fea9610a_ca7c4de9",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T11:37:41Z",
+      "side": 1,
+      "message": "Actually, I don\u0027t need this line",
+      "parentUuid": "ddde679c_ab3d304d",
+      "revId": "0f3b2cfd553fb4bfda84d45f8607c65102fea2a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d479b443_cd56e98b",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 22
@@ -30,6 +48,24 @@
       "writtenOn": "2020-08-11T10:52:41Z",
       "side": 1,
       "message": "That may work, but looks a bit skewed to me. You should decide if you want to use a \u0027class\u0027 related member variable as defined in line 202, or just this kind of local variable here.Using a local variable is not really nice here, as its life time (hopefully automatically) will get extended until the channel is read from. For me it looks as it makes more sense to use the \u0027class member\u0027 and initialize it in the \u0027constructor\u0027 \u0027New...()). That way no new local variable has to be setup with each new \u0027reboot\u0027 call.",
+      "revId": "0f3b2cfd553fb4bfda84d45f8607c65102fea2a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71f8b80b_3ef48edc",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 398,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T11:37:41Z",
+      "side": 1,
+      "message": "You\u0027re right and I changed it with your suggest.",
+      "parentUuid": "d479b443_cd56e98b",
       "revId": "0f3b2cfd553fb4bfda84d45f8607c65102fea2a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
