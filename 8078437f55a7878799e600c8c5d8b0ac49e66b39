@@ -45,6 +45,30 @@
       "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b68be4c9_a5e2c7b2",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T08:35:26Z",
+      "side": 1,
+      "message": "Yeah, But I checked reboot response device_handler.go. I don\u0027t need to check here.",
+      "parentUuid": "ff6d3581_ec5b8fb4",
+      "range": {
+        "startLine": 263,
+        "startChar": 2,
+        "endLine": 263,
+        "endChar": 5
+      },
+      "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
