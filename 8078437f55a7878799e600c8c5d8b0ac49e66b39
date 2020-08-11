@@ -93,6 +93,30 @@
       "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f9fe3392_3dd64b90",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T10:06:56Z",
+      "side": 1,
+      "message": "If reboot didn\u0027t success then RebootDevice() method will return err. Sure, We can discuss it tomorrow. Maybe, @Michael can give a suggest for us.",
+      "parentUuid": "882c8eca_1f23df8c",
+      "range": {
+        "startLine": 263,
+        "startChar": 2,
+        "endLine": 263,
+        "endChar": 5
+      },
+      "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

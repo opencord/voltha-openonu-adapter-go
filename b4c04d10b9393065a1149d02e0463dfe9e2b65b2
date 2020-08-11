@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "25996154_63dfec15",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T10:06:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "159fa88b_447bca3a",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "84a9a75f_e445c9df",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 18
@@ -53,6 +71,24 @@
     },
     {
       "key": {
+        "uuid": "84aa17fd_e3193767",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T10:06:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "84a9a75f_e445c9df",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "46fa362a_e15362b6",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 18
@@ -64,6 +100,24 @@
       "writtenOn": "2020-08-10T10:16:27Z",
       "side": 1,
       "message": "Perhaps better \"Unexpected OmciResponse type received\" ...",
+      "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9fee91c0_8032a9cf",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 433,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-11T10:06:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "46fa362a_e15362b6",
       "revId": "b4c04d10b9393065a1149d02e0463dfe9e2b65b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
