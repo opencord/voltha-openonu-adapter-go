@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "77e441c8_a57ec7df",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-11T12:13:38Z",
+      "side": 1,
+      "message": "Still valid comment from patch #18: \nFollowing RebootCallback* definitions seem to be obsolete, remove them again",
+      "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9864bf13_02cf9939",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-11T12:13:38Z",
+      "side": 1,
+      "message": "Still valid comment from patch #18: \nno need to extend parameters by onuDeviceEntry - use omci_cc member pOnuDeviceEntry as throughout the code here.\nDoing so requires update of function call in onuDeviceEntry::Reboot of course.",
+      "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
