@@ -69,6 +69,30 @@
       "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "882c8eca_1f23df8c",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-11T09:38:56Z",
+      "side": 1,
+      "message": "But this information won\u0027t reach the caller of Reboot_device(). Perhaps we can have a short discussion about it during ONUGO-meeting tomorrow.",
+      "parentUuid": "b68be4c9_a5e2c7b2",
+      "range": {
+        "startLine": 263,
+        "startChar": 2,
+        "endLine": 263,
+        "endChar": 5
+      },
+      "revId": "8078437f55a7878799e600c8c5d8b0ac49e66b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
