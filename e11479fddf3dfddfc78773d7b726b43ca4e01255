@@ -16,6 +16,24 @@
       "revId": "e11479fddf3dfddfc78773d7b726b43ca4e01255",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "10b88979_539c0780",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 264,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-12T12:14:34Z",
+      "side": 1,
+      "message": "I\u0027ll merge the patch as is. this can be tackled in a separate patch if needed.",
+      "parentUuid": "0607c3c5_a0a9c250",
+      "revId": "e11479fddf3dfddfc78773d7b726b43ca4e01255",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
