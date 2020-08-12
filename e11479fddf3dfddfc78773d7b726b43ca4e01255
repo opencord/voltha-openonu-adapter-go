@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0607c3c5_a0a9c250",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 264,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-12T11:10:28Z",
+      "side": 1,
+      "message": "The only open point left from my side is the question whether it wouldn\u0027t be better to call Reboot_device() synchronously to be able to inform rw-core about errors during reboot-processing. Perhaps we can have a short discussion about it during ONUGO-meeting today.",
+      "revId": "e11479fddf3dfddfc78773d7b726b43ca4e01255",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
