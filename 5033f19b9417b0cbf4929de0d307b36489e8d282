@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3e93ebb4_01f9fefc",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-12T10:42:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "77e441c8_a57ec7df",
+      "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9864bf13_02cf9939",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 24
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "c96922c7_c8985d5e",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-12T10:42:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9864bf13_02cf9939",
+      "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "34883e3a_9ad6cd90",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 24
@@ -47,6 +83,24 @@
       "writtenOn": "2020-08-11T12:19:35Z",
       "side": 1,
       "message": "As you have it now in the function arguments: use \u0027responseChannel\u0027 for the channel within the CallBackPair.",
+      "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8e83aa56_718cee5c",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 609,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-12T10:42:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "34883e3a_9ad6cd90",
       "revId": "5033f19b9417b0cbf4929de0d307b36489e8d282",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
