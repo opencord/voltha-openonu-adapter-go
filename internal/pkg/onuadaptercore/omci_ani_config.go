@@ -253,23 +253,26 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 							if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityId); meAttributes != nil {
 								returnVal := meAttributes["RelatedPort"]
 								if returnVal != nil {
-									relatedPort := returnVal.(uint32)
-									if relatedPort == usQrelPortMask {
-										loGemPortAttribs.upQueueID = mgmtEntityId
-										logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
-											"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
-										usQueueFound = true
-									} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityId < 0x8000 {
-										loGemPortAttribs.downQueueID = mgmtEntityId
-										logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
-											"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
-										dsQueueFound = true
-									}
-									if usQueueFound && dsQueueFound {
-										break
+									if relatedPort, err := oFsm.pOnuDB.GetUint32Attrib(returnVal); err == nil {
+										if relatedPort == usQrelPortMask {
+											loGemPortAttribs.upQueueID = mgmtEntityId
+											logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
+												"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
+											usQueueFound = true
+										} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityId < 0x8000 {
+											loGemPortAttribs.downQueueID = mgmtEntityId
+											logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
+												"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
+											dsQueueFound = true
+										}
+										if usQueueFound && dsQueueFound {
+											break
+										}
+									} else {
+										logger.Warnw("Could not convert attribute value", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
 									}
 								} else {
-									logger.Warnw("'relatedPort' not found in meAttributes:", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+									logger.Warnw("'RelatedPort' not found in meAttributes:", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
 								}
 							} else {
 								logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
@@ -284,11 +287,12 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 					loGemPortAttribs.weight = gemEntry.queueWeight
 					loGemPortAttribs.pbitString = gemEntry.pbitString
 
-					logger.Debugw("prio-related GemPort attributes assigned:", log.Fields{
-						"gemPortID":   loGemPortAttribs.gemPortID,
-						"upQueueID":   loGemPortAttribs.upQueueID,
-						"downQueueID": loGemPortAttribs.downQueueID,
-						"pbitString":  loGemPortAttribs.pbitString,
+					logger.Debugw("prio-related GemPort attributes:", log.Fields{
+						"gemPortID":      loGemPortAttribs.gemPortID,
+						"upQueueID":      loGemPortAttribs.upQueueID,
+						"downQueueID":    loGemPortAttribs.downQueueID,
+						"pbitString":     loGemPortAttribs.pbitString,
+						"prioQueueIndex": gemEntry.prioQueueIndex,
 					})
 
 					oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
