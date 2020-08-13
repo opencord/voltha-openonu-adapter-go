@@ -20,9 +20,10 @@ package adaptercoreonu
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"time"
 
 	//"sync"
 	//"time"
@@ -101,7 +102,7 @@ const (
 )
 
 const (
-	cBasePathMibTemplateKvStore = "service/voltha/omci_mibs/templates"
+	cBasePathMibTemplateKvStore = "service/voltha/omci_mibs/go_templates"
 	cSuffixMibTemplateKvStore   = "%s/%s/%s"
 )
 

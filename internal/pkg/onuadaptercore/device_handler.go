@@ -513,54 +513,6 @@ func (dh *DeviceHandler) RebootDevice(device *voltha.Device) error {
 	return nil
 }
 
-//GetOfpPortInfo returns the Voltha PortCapabilty with the logical port
-//func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
-//	portNo int64) (*ic.PortCapability, error) {
-//	logger.Debugw("GetOfpPortInfo start", log.Fields{"deviceID": device.Id, "portNo": portNo})
-
-//function body as per OLTAdapter handler code
-// adapted with values from py dapter code
-//	if pUniPort, exist := dh.uniEntityMap[uint32(portNo)]; exist {
-//		var macOctets [6]uint8
-//		macOctets[5] = 0x08
-//		macOctets[4] = uint8(dh.ponPortNumber >> 8)
-//		macOctets[3] = uint8(dh.ponPortNumber)
-//		macOctets[2] = uint8(portNo >> 16)
-//		macOctets[1] = uint8(portNo >> 8)
-//		macOctets[0] = uint8(portNo)
-//		hwAddr := genMacFromOctets(macOctets)
-//		capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
-//		name := device.SerialNumber + "-" + strconv.FormatUint(uint64(pUniPort.macBpNo), 10)
-//		ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
-//		if pUniPort.operState == vc.OperStatus_ACTIVE {
-//			ofUniPortState = of.OfpPortState_OFPPS_LIVE
-//		}
-//		logger.Debugw("setting LogicalPort", log.Fields{"with-name": name,
-//			"withUniPort": pUniPort.name, "withMacBase": hwAddr, "OperState": ofUniPortState})
-
-//		return &ic.PortCapability{
-//			Port: &voltha.LogicalPort{
-//				OfpPort: &of.OfpPort{
-//					Name: name,
-//					//HwAddr:     macAddressToUint32Array(dh.device.MacAddress),
-//					HwAddr:     macAddressToUint32Array(hwAddr),
-//					Config:     0,
-//					State:      uint32(ofUniPortState),
-//					Curr:       capacity,
-//					Advertised: capacity,
-//					Peer:       capacity,
-//					CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-//					MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-//				},
-//				DeviceId:     device.Id,
-//				DevicePortNo: uint32(portNo),
-//			},
-//		}, nil
-//	}
-//	logger.Warnw("No UniPort found - abort", log.Fields{"for PortNo": uint32(portNo)})
-//	return nil, errors.New("UniPort not found")
-//}
-
 //  DeviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
