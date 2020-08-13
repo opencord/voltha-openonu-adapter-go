@@ -19,6 +19,8 @@ package adaptercoreonu
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"sort"
 
 	me "github.com/opencord/omci-lib-go/generated"
@@ -84,6 +86,19 @@ func (onuDeviceDB *OnuDeviceDB) GetMe(meClassId me.ClassID, meEntityId uint16) m
 		return meAttributes
 	} else {
 		return nil
+	}
+}
+
+func (onuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32, error) {
+
+	switch reflect.TypeOf(meAttribute).Kind() {
+	case reflect.Float64:
+		//JSON numbers by default are unmarshaled into values of float64 type if type information is not present
+		return uint32(meAttribute.(float64)), nil
+	case reflect.Uint32:
+		return uint32(meAttribute.(uint32)), nil
+	default:
+		return uint32(0), fmt.Errorf(fmt.Sprintf("wrong interface-type received-%s", onuDeviceDB.pOnuDeviceEntry.deviceID))
 	}
 }
 

@@ -166,8 +166,8 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 									logger.Debugw("MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityId": meEntityId})
 									thirdLevelMap := secondLevelValue.(map[string]interface{})
 									for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
-										if thirdLevelKey == "attributes" {
-											logger.Debugw("MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
+										if thirdLevelKey == "Attributes" {
+											logger.Debugw("MibSync FSM - thirdLevelKey refers to Attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
 											attributesMap := thirdLevelValue.(map[string]interface{})
 											logger.Debugw("MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
 											onuDeviceEntry.pOnuDB.PutMe(meClassId, meEntityId, attributesMap)
