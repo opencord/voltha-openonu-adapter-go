@@ -16,6 +16,24 @@
       "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b987aa59_b2aed440",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-14T08:10:01Z",
+      "side": 1,
+      "message": "For an explanation please have a look into template/README.md - keyword: snake_case- vs UpperCamelCase-notation of meAttributes.",
+      "parentUuid": "c45d71dc_e60e66cf",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
