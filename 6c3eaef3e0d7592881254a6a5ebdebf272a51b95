@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c45d71dc_e60e66cf",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-08-14T07:58:05Z",
+      "side": 1,
+      "message": "Why we need another path for a template?",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
