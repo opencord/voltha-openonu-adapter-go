@@ -34,6 +34,40 @@
       "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff18e7d2_d4a84d76",
+        "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-18T09:02:32Z",
+      "side": 1,
+      "message": "T-Cont instance starts with value 0x8000, which is different from MibUpload data of BBSIM. This should result into different OMCI config depending on Mib upload usage or not and may result as well into OMCI configuration errors",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8b1e1600_a647ec90",
+        "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 2634,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-18T09:02:32Z",
+      "side": 1,
+      "message": "I wonder why there are so many traffic schedulers in the MibTemplate. Also they seem to use a modulo 8 spacing for there T-Cont reference, while the first 8 refer to T-Cont 0x8000 - compare comment for T-Cont above.\nThis does not seem to coincide with the BBSIM MibUpload data (which looks wrong anyway, see other Jira discussion)",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
