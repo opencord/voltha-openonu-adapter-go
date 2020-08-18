@@ -110,7 +110,7 @@ type OmciCC struct {
 func NewOmciCC(ctx context.Context, onu_device_entry *OnuDeviceEntry,
 	device_id string, device_handler *DeviceHandler,
 	core_proxy adapterif.CoreProxy, adapter_proxy adapterif.AdapterProxy) *OmciCC {
-	logger.Infow("init-omciCC", log.Fields{"deviceId": device_id})
+	logger.Infow("init-omciCC", log.Fields{"device-id": device_id})
 	var omciCC OmciCC
 	omciCC.enabled = false
 	omciCC.pOnuDeviceEntry = onu_device_entry
@@ -535,11 +535,11 @@ func hexEncode(omciPkt []byte) ([]byte, error) {
 func (oo *OmciCC) receiveOmciResponse(omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
 
 	logger.Debugw("omci-message-response - transfer on omciRespChannel", log.Fields{"omciMsgType": omciMsg.MessageType,
-		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "deviceId": oo.deviceID})
+		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "device-id": oo.deviceID})
 
 	if oo.pOnuDeviceEntry == nil {
 		logger.Errorw("Abort receiving OMCI response, DeviceEntryPointer is nil", log.Fields{
-			"deviceId": oo.deviceID})
+			"device-id": oo.deviceID})
 		return errors.New("DeviceEntryPointer is nil")
 	}
 
@@ -560,7 +560,7 @@ func (oo *OmciCC) receiveOmciResponse(omciMsg *omci.OMCI, packet *gp.Packet, res
 
 func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) error {
 
-	logger.Debugw("send MibReset-msg to:", log.Fields{"deviceId": oo.deviceID})
+	logger.Debugw("send MibReset-msg to:", log.Fields{"device-id": oo.deviceID})
 	request := &omci.MibResetRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -570,7 +570,7 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 	pkt, err := serialize(omci.MibResetRequestType, request, tid)
 	if err != nil {
 		logger.Errorw("Cannot serialize MibResetRequest", log.Fields{
-			"Err": err, "deviceId": oo.deviceID})
+			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
 	omciRxCallbackPair := CallbackPair{
@@ -581,7 +581,7 @@ func (oo *OmciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 }
 
 func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, responseChannel chan Message) error {
-	logger.Debugw("send Reboot-msg to:", log.Fields{"deviceId": oo.deviceID})
+	logger.Debugw("send Reboot-msg to:", log.Fields{"device-id": oo.deviceID})
 	request := &omci.RebootRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuGClassID,
@@ -591,7 +591,7 @@ func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 	pkt, err := serialize(omci.RebootRequestType, request, tid)
 	if err != nil {
 		logger.Errorw("Cannot serialize RebootRequest", log.Fields{
-			"Err": err, "deviceId": oo.deviceID})
+			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
 	omciRxCallbackPair := CallbackPair{
@@ -602,7 +602,7 @@ func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 	err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 	if err != nil {
 		logger.Errorw("Cannot send RebootRequest", log.Fields{
-			"Err": err, "deviceId": oo.deviceID})
+			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
 	err = oo.pOnuDeviceEntry.waitForRebootResponse(responseChannel)
@@ -615,7 +615,7 @@ func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 }
 
 func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
-	logger.Debugw("send MibUpload-msg to:", log.Fields{"deviceId": oo.deviceID})
+	logger.Debugw("send MibUpload-msg to:", log.Fields{"device-id": oo.deviceID})
 	request := &omci.MibUploadRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -625,7 +625,7 @@ func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool)
 	pkt, err := serialize(omci.MibUploadRequestType, request, tid)
 	if err != nil {
 		logger.Errorw("Cannot serialize MibUploadRequest", log.Fields{
-			"Err": err, "deviceId": oo.deviceID})
+			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
 	oo.uploadSequNo = 0
@@ -639,7 +639,7 @@ func (oo *OmciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool)
 }
 
 func (oo *OmciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio bool) error {
-	logger.Debugw("send MibUploadNext-msg to:", log.Fields{"deviceId": oo.deviceID, "uploadSequNo": oo.uploadSequNo})
+	logger.Debugw("send MibUploadNext-msg to:", log.Fields{"device-id": oo.deviceID, "uploadSequNo": oo.uploadSequNo})
 	request := &omci.MibUploadNextRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -650,7 +650,7 @@ func (oo *OmciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio b
 	pkt, err := serialize(omci.MibUploadNextRequestType, request, tid)
 	if err != nil {
 		logger.Errorw("Cannot serialize MibUploadNextRequest", log.Fields{
-			"Err": err, "deviceId": oo.deviceID})
+			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
 	oo.uploadSequNo++
@@ -664,7 +664,7 @@ func (oo *OmciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio b
 
 func (oo *OmciCC) sendCreateGalEthernetProfile(ctx context.Context, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send GalEnetProfile-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send GalEnetProfile-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16)})
 
 	meParams := me.ParamData{
@@ -677,14 +677,14 @@ func (oo *OmciCC) sendCreateGalEthernetProfile(ctx context.Context, timeout int,
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode GalEnetProfileInstance for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize GalEnetProfile create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -695,21 +695,21 @@ func (oo *OmciCC) sendCreateGalEthernetProfile(ctx context.Context, timeout int,
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send GalEnetProfile create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send GalEnetProfile-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate GalEnetProfileInstance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 // might be needed to extend for parameter arguments, here just for setting the ConnectivityMode!!
 func (oo *OmciCC) sendSetOnu2g(ctx context.Context, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send ONU2-G-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send ONU2-G-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16)})
 
 	// ONU-G ME-ID is defined to be 0, but we could verify, if the ONU really supports the desired
@@ -725,14 +725,14 @@ func (oo *OmciCC) sendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode ONU2-G instance for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize ONU2-G set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -743,14 +743,14 @@ func (oo *OmciCC) sendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send ONU2-G set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send ONU2-G-Set-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate ONU2-G", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
@@ -758,7 +758,7 @@ func (oo *OmciCC) sendCreateMBServiceProfile(ctx context.Context,
 	a_pUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
 	instID := macBridgeServiceProfileEID + uint16(a_pUniPort.macBpNo)
-	logger.Debugw("send MBSP-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send MBSP-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
 	meParams := me.ParamData{
@@ -781,14 +781,14 @@ func (oo *OmciCC) sendCreateMBServiceProfile(ctx context.Context,
 			omci.TransactionID(tid), omci.AddDefaults(true))
 		if err != nil {
 			logger.Errorw("Cannot encode MBSP for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize MBSP create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -799,14 +799,14 @@ func (oo *OmciCC) sendCreateMBServiceProfile(ctx context.Context,
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send MBSP create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send MBSP-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate MBSP Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
@@ -814,7 +814,7 @@ func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
 	a_pUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
 	instID := macBridgePortAniEID + a_pUniPort.entityId
-	logger.Debugw("send MBPCD-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send MBPCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
 	meParams := me.ParamData{
@@ -833,14 +833,14 @@ func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
 			omci.TransactionID(tid), omci.AddDefaults(true))
 		if err != nil {
 			logger.Errorw("Cannot encode MBPCD for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize MBPCD create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -851,14 +851,14 @@ func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send MBPCD create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send MBPCD-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate MBPCD Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
@@ -867,7 +867,7 @@ func (oo *OmciCC) sendCreateEVTOConfigData(ctx context.Context,
 	tid := oo.GetNextTid(highPrio)
 	//same entityId is used as for MBSP (see there), but just arbitrary ...
 	instID := macBridgeServiceProfileEID + uint16(a_pUniPort.macBpNo)
-	logger.Debugw("send EVTOCD-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send EVTOCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
 	// compare python adapter code WA VOL-1311: this is not done here!
@@ -890,14 +890,14 @@ func (oo *OmciCC) sendCreateEVTOConfigData(ctx context.Context,
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode EVTOCD for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize EVTOCD create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -908,21 +908,21 @@ func (oo *OmciCC) sendCreateEVTOConfigData(ctx context.Context,
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send EVTOCD create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send EVTOCD-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate EVTOCD Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendSetOnuGLS(ctx context.Context, timeout int,
 	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send ONU-G-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send ONU-G-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16)})
 
 	// ONU-G ME-ID is defined to be 0, no need to perform a DB lookup
@@ -935,14 +935,14 @@ func (oo *OmciCC) sendSetOnuGLS(ctx context.Context, timeout int,
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode ONU-G instance for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize ONU-G set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -953,21 +953,21 @@ func (oo *OmciCC) sendSetOnuGLS(ctx context.Context, timeout int,
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send ONU-G set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send ONU-G-Set-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate ONU-G", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int,
 	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send UNI-G-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send UNI-G-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16)})
 
 	// UNI-G ME-ID is taken from Mib Upload stored OnuUniPort instance (argument)
@@ -980,14 +980,14 @@ func (oo *OmciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode UNI-G instance for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize UNI-G-Set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -998,21 +998,21 @@ func (oo *OmciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send UNIG-G-Set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send UNI-G-Set-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate UNI-G", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int,
 	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send VEIP-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send VEIP-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16)})
 
 	// ONU-G ME-ID is defined to be 0, no need to perform a DB lookup
@@ -1025,14 +1025,14 @@ func (oo *OmciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode VEIP instance for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize VEIP-Set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1043,14 +1043,14 @@ func (oo *OmciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send VEIP-Set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send VEIP-Set-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate VEIP", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
@@ -1058,7 +1058,7 @@ func (oo *OmciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 	timeout int, highPrio bool) *me.ManagedEntity {
 
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send get-request-msg", log.Fields{"classID": classID, "deviceId": oo.deviceID,
+	logger.Debugw("send get-request-msg", log.Fields{"classID": classID, "device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16)})
 
 	meParams := me.ParamData{
@@ -1070,12 +1070,12 @@ func (oo *OmciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		meClassIdName := meInstance.GetName()
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid))
 		if err != nil {
-			logger.Errorf("Cannot encode instance for get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "deviceId": oo.deviceID})
+			logger.Errorf("Cannot encode instance for get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
-			logger.Errorw("Cannot serialize get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "deviceId": oo.deviceID})
+			logger.Errorw("Cannot serialize get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		omciRxCallbackPair := CallbackPair{
@@ -1084,20 +1084,20 @@ func (oo *OmciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		}
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
-			logger.Errorw("Cannot send get-request-msg", log.Fields{"meClassIdName": meClassIdName, "Err": err, "deviceId": oo.deviceID})
+			logger.Errorw("Cannot send get-request-msg", log.Fields{"meClassIdName": meClassIdName, "Err": err, "device-id": oo.deviceID})
 			return nil
 		}
-		logger.Debugw("send get-request-msg done", log.Fields{"meClassIdName": meClassIdName, "deviceId": oo.deviceID})
+		logger.Debugw("send get-request-msg done", log.Fields{"meClassIdName": meClassIdName, "device-id": oo.deviceID})
 		return meInstance
 	}
-	logger.Errorw("Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "deviceId": oo.deviceID})
+	logger.Errorw("Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPrio bool,
 	aInstID uint16, rxChan chan Message) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send .1pMapper-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send .1pMapper-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(aInstID), 16)})
 
 	meParams := me.ParamData{
@@ -1111,14 +1111,14 @@ func (oo *OmciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 			omci.TransactionID(tid), omci.AddDefaults(true))
 		if err != nil {
 			logger.Errorw("Cannot encode .1pMapper for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize .1pMapper create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1129,21 +1129,21 @@ func (oo *OmciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send .1pMapper create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send .1pMapper-create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate .1pMapper", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendCreateMBPConfigDataVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send MBPCD-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send MBPCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -1154,14 +1154,14 @@ func (oo *OmciCC) sendCreateMBPConfigDataVar(ctx context.Context, timeout int, h
 			omci.TransactionID(tid), omci.AddDefaults(true))
 		if err != nil {
 			logger.Errorw("Cannot encode MBPCD for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize MBPCD create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1172,21 +1172,21 @@ func (oo *OmciCC) sendCreateMBPConfigDataVar(ctx context.Context, timeout int, h
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send MBPCD create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send MBPCD-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate MBPCD Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendCreateGemNCTPVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send GemNCTP-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send GemNCTP-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -1197,14 +1197,14 @@ func (oo *OmciCC) sendCreateGemNCTPVar(ctx context.Context, timeout int, highPri
 			omci.TransactionID(tid), omci.AddDefaults(true))
 		if err != nil {
 			logger.Errorw("Cannot encode GemNCTP for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize GemNCTP create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1215,21 +1215,21 @@ func (oo *OmciCC) sendCreateGemNCTPVar(ctx context.Context, timeout int, highPri
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send GemNCTP create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send GemNCTP-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate GemNCTP Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendCreateGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send GemIwTp-Create-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send GemIwTp-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -1240,14 +1240,14 @@ func (oo *OmciCC) sendCreateGemIWTPVar(ctx context.Context, timeout int, highPri
 			omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode GemIwTp for create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize GemIwTp create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1258,21 +1258,21 @@ func (oo *OmciCC) sendCreateGemIWTPVar(ctx context.Context, timeout int, highPri
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send GemIwTp create", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send GemIwTp-Create-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate GemIwTp Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendSetTcontVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send TCont-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send TCont-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -1281,14 +1281,14 @@ func (oo *OmciCC) sendSetTcontVar(ctx context.Context, timeout int, highPrio boo
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode TCont for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize TCont set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1299,21 +1299,21 @@ func (oo *OmciCC) sendSetTcontVar(ctx context.Context, timeout int, highPrio boo
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send TCont set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send TCont-set msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate TCont Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendSetPrioQueueVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send PrioQueue-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send PrioQueue-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -1322,14 +1322,14 @@ func (oo *OmciCC) sendSetPrioQueueVar(ctx context.Context, timeout int, highPrio
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode PrioQueue for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize PrioQueue set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1340,21 +1340,21 @@ func (oo *OmciCC) sendSetPrioQueueVar(ctx context.Context, timeout int, highPrio
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send PrioQueue set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send PrioQueue-set msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate PrioQueue Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OmciCC) sendSetDot1PMapperVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw("send 1PMapper-Set-msg:", log.Fields{"deviceId": oo.deviceID,
+	logger.Debugw("send 1PMapper-Set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -1363,14 +1363,14 @@ func (oo *OmciCC) sendSetDot1PMapperVar(ctx context.Context, timeout int, highPr
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw("Cannot encode 1PMapper for set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw("Cannot serialize 1PMapper set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 
@@ -1381,13 +1381,13 @@ func (oo *OmciCC) sendSetDot1PMapperVar(ctx context.Context, timeout int, highPr
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw("Cannot send 1PMapper set", log.Fields{
-				"Err": err, "deviceId": oo.deviceID})
+				"Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		logger.Debug("send 1PMapper-set msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate 1PMapper Instance", log.Fields{
-		"Err": omciErr.GetError(), "deviceId": oo.deviceID})
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }

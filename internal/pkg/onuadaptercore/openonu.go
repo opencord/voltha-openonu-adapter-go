@@ -152,7 +152,7 @@ func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 		return errors.New("nil-device")
 	}
 	ctx := context.Background()
-	logger.Infow("adopt-device", log.Fields{"deviceId": device.Id})
+	logger.Infow("adopt-device", log.Fields{"device-id": device.Id})
 	var handler *DeviceHandler
 	if handler = oo.getDeviceHandler(device.Id); handler == nil {
 		handler := NewDeviceHandler(oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
@@ -166,7 +166,7 @@ func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 
 //Get_ofp_device_info returns OFP information for the given device
 func (oo *OpenONUAC) Get_ofp_device_info(device *voltha.Device) (*ic.SwitchCapability, error) {
-	logger.Errorw("device-handler-not-set", log.Fields{"deviceId": device.Id})
+	logger.Errorw("device-handler-not-set", log.Fields{"device-id": device.Id})
 	return nil, errors.New("device-handler-not-set")
 }
 
@@ -217,13 +217,13 @@ func (oo *OpenONUAC) Health() (*voltha.HealthStatus, error) {
 
 //Reconcile_device is called once when the adapter needs to re-create device - usually on core restart
 func (oo *OpenONUAC) Reconcile_device(device *voltha.Device) error {
-	logger.Debugw("Reconcile_device", log.Fields{"deviceId": device.Id})
+	logger.Debugw("Reconcile_device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		if err := handler.ReconcileDevice(device); err != nil {
 			return err
 		}
 	} else {
-		logger.Warnw("no handler found for device-reconcilement", log.Fields{"deviceId": device.Id})
+		logger.Warnw("no handler found for device-reconcilement", log.Fields{"device-id": device.Id})
 		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 	}
 	return nil
@@ -236,34 +236,34 @@ func (oo *OpenONUAC) Abandon_device(device *voltha.Device) error {
 
 //Disable_device disables the given device
 func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
-	logger.Debugw("Disable_device", log.Fields{"deviceId": device.Id})
+	logger.Debugw("Disable_device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		go handler.DisableDevice(device)
 		return nil
 	}
-	logger.Warnw("no handler found for device-disable", log.Fields{"deviceId": device.Id})
+	logger.Warnw("no handler found for device-disable", log.Fields{"device-id": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Reenable_device enables the onu device after disable
 func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
-	logger.Debugw("Reenable_device", log.Fields{"deviceId": device.Id})
+	logger.Debugw("Reenable_device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		go handler.ReenableDevice(device)
 		return nil
 	}
-	logger.Warnw("no handler found for device-reenable", log.Fields{"deviceId": device.Id})
+	logger.Warnw("no handler found for device-reenable", log.Fields{"device-id": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Reboot_device reboots the given device
 func (oo *OpenONUAC) Reboot_device(device *voltha.Device) error {
-	logger.Debugw("Reboot-device", log.Fields{"deviceId": device.Id})
+	logger.Debugw("Reboot-device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		go handler.RebootDevice(device)
 		return nil
 	}
-	logger.Warnw("no handler found for device-reboot", log.Fields{"deviceId": device.Id})
+	logger.Warnw("no handler found for device-reboot", log.Fields{"device-id": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-#{device.Id}"))
 }
 
@@ -273,13 +273,13 @@ func (oo *OpenONUAC) Self_test_device(device *voltha.Device) error {
 }
 
 func (oo *OpenONUAC) Delete_device(device *voltha.Device) error {
-	logger.Debugw("Delete_device", log.Fields{"deviceId": device.Id})
+	logger.Debugw("Delete_device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		if err := handler.DeleteDevice(device); err != nil {
 			return err
 		}
 	} else {
-		logger.Warnw("no handler found for device-reconcilement", log.Fields{"deviceId": device.Id})
+		logger.Warnw("no handler found for device-reconcilement", log.Fields{"device-id": device.Id})
 		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 	}
 	return nil

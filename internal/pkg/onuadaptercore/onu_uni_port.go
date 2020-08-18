@@ -83,7 +83,7 @@ func NewOnuUniPort(a_uniId uint8, a_portNo uint32, a_InstNo uint16,
 //CreateVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
 func (oo *OnuUniPort) CreateVolthaPort(apDeviceHandler *DeviceHandler) error {
 	logger.Debugw("creating-voltha-uni-port", log.Fields{
-		"deviceID": apDeviceHandler.device.Id, "portNo": oo.portNo})
+		"device-id": apDeviceHandler.device.Id, "portNo": oo.portNo})
 	//200630: per [VOL-3202] OF port info is now to be delivered within UniPort create
 	//  not doing so crashes rw_core processing (at least still in 200630 version)
 	name := apDeviceHandler.device.SerialNumber + "-" + strconv.FormatUint(uint64(oo.macBpNo), 10)
@@ -137,12 +137,12 @@ func (oo *OnuUniPort) CreateVolthaPort(apDeviceHandler *DeviceHandler) error {
 			return err
 		}
 		logger.Infow("Voltha onuUniPort-added", log.Fields{
-			"deviceID": apDeviceHandler.device.Id, "PortNo": oo.portNo})
+			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
 		oo.pPort = pUniPort
 		oo.operState = vc.OperStatus_DISCOVERED
 	} else {
 		logger.Warnw("could not create Voltha UniPort", log.Fields{
-			"deviceID": apDeviceHandler.device.Id, "PortNo": oo.portNo})
+			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
 		return errors.New("create Voltha UniPort failed")
 	}
 	return nil

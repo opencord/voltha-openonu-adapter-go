@@ -118,7 +118,7 @@ type OnuUniTechProf struct {
 //NewOnuUniTechProf returns the instance of a OnuUniTechProf
 //(one instance per ONU/deviceHandler for all possible UNI's)
 func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *DeviceHandler) *OnuUniTechProf {
-	logger.Infow("init-OnuUniTechProf", log.Fields{"deviceId": aDeviceID})
+	logger.Infow("init-OnuUniTechProf", log.Fields{"device-id": aDeviceID})
 	var onuTP OnuUniTechProf
 	onuTP.deviceID = aDeviceID
 	onuTP.baseDeviceHandler = aDeviceHandler
@@ -133,14 +133,14 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *De
 	onuTP.techProfileKVStore = aDeviceHandler.SetBackend(cBasePathTechProfileKVStore)
 	if onuTP.techProfileKVStore == nil {
 		logger.Errorw("Can't access techProfileKVStore - no backend connection to service",
-			log.Fields{"deviceID": aDeviceID, "service": cBasePathTechProfileKVStore})
+			log.Fields{"device-id": aDeviceID, "service": cBasePathTechProfileKVStore})
 	}
 
 	onuTP.onuKVStorePath = onuTP.deviceID
 	onuTP.onuKVStore = aDeviceHandler.SetBackend(cBasePathOnuKVStore)
 	if onuTP.onuKVStore == nil {
 		logger.Errorw("Can't access onuKVStore - no backend connection to service",
-			log.Fields{"deviceID": aDeviceID, "service": cBasePathOnuKVStore})
+			log.Fields{"device-id": aDeviceID, "service": cBasePathOnuKVStore})
 	}
 	return &onuTP
 }
@@ -174,31 +174,31 @@ func (onuTP *OnuUniTechProf) updateOnuUniTpPath(aUniID uint32, aPathString strin
 			if aPathString == "" {
 				//existing entry to be deleted
 				logger.Debugw("UniTp path delete", log.Fields{
-					"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
+					"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
 				delete(onuTP.mapUniTpPath, aUniID)
 			} else {
 				//existing entry to be modified
 				logger.Debugw("UniTp path modify", log.Fields{
-					"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
+					"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
 				onuTP.mapUniTpPath[aUniID] = aPathString
 			}
 			return true
 		}
 		//entry already exists
 		logger.Debugw("UniTp path already exists", log.Fields{
-			"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
+			"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
 		return false
 	}
 	//uni entry does not exist
 	if aPathString == "" {
 		//delete request in non-existing state , accept as no change
 		logger.Debugw("UniTp path already removed", log.Fields{
-			"deviceID": onuTP.deviceID, "uniID": aUniID})
+			"device-id": onuTP.deviceID, "uniID": aUniID})
 		return false
 	}
 	//new entry to be set
 	logger.Debugw("New UniTp path set", log.Fields{
-		"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
+		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
 	onuTP.mapUniTpPath[aUniID] = aPathString
 	return true
 }
@@ -219,7 +219,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 	aUniID uint32, aPathString string, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
 	logger.Debugw("configure the Uni according to TpPath", log.Fields{
-		"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
+		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
 
 	if onuTP.techProfileKVStore == nil {
 		logger.Debug("techProfileKVStore not set - abort")
@@ -291,13 +291,13 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 		} else {
 			// strange: UNI entry exists, but no ANI data, maybe such situation should be cleared up (if observed)
 			logger.Debugw("no Tcont/Gem data for this UNI found - abort", log.Fields{
-				"deviceID": onuTP.deviceID, "uniID": aUniID})
+				"device-id": onuTP.deviceID, "uniID": aUniID})
 			onuTP.procResult = errors.New("TechProfile config aborted: no Tcont/Gem data found for this UNI")
 			return
 		}
 	} else {
 		logger.Debugw("no PonAni data for this UNI found - abort", log.Fields{
-			"deviceID": onuTP.deviceID, "uniID": aUniID})
+			"device-id": onuTP.deviceID, "uniID": aUniID})
 		onuTP.procResult = errors.New("TechProfile config aborted: no AniSide data found for this UNI")
 		return
 	}
@@ -351,7 +351,7 @@ func (onuTP *OnuUniTechProf) deleteTpResource(ctx context.Context,
 	wg *sync.WaitGroup) {
 	defer wg.Done()
 	logger.Debugw("this would remove TP resources from ONU's UNI", log.Fields{
-		"deviceID": onuTP.deviceID, "uniID": aUniID, "path": aPathString, "Resource": aResource})
+		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString, "Resource": aResource})
 	//TODO!!!
 	//delete the given resource from ONU OMCI config and data base - as background routine
 	/*
@@ -381,7 +381,7 @@ func (onuTP *OnuUniTechProf) storePersistentData(ctx context.Context, aProcessin
 		onuTP.sOnuPersistentData.PersUniTpPath =
 			append(onuTP.sOnuPersistentData.PersUniTpPath, uniPersData{PersUniId: k, PersTpPath: v})
 	}
-	logger.Debugw("Update ONU/TP-data in KVStore", log.Fields{"deviceID": onuTP.deviceID, "onuTP.sOnuPersistentData": onuTP.sOnuPersistentData})
+	logger.Debugw("Update ONU/TP-data in KVStore", log.Fields{"device-id": onuTP.deviceID, "onuTP.sOnuPersistentData": onuTP.sOnuPersistentData})
 
 	Value, err := json.Marshal(onuTP.sOnuPersistentData)
 	if err != nil {
@@ -436,7 +436,7 @@ func (onuTP *OnuUniTechProf) restorePersistentData(ctx context.Context) error {
 
 func (onuTP *OnuUniTechProf) deletePersistentData(ctx context.Context) error {
 
-	logger.Debugw("delete ONU/TP-data in KVStore", log.Fields{"deviceID": onuTP.deviceID})
+	logger.Debugw("delete ONU/TP-data in KVStore", log.Fields{"device-id": onuTP.deviceID})
 	err := onuTP.onuKVStore.Delete(ctx, onuTP.onuKVStorePath)
 	if err != nil {
 		logger.Errorw("unable to delete in KVstore", log.Fields{"device-id": onuTP.deviceID, "err": err})
@@ -631,7 +631,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 	select {
 	case <-ctx.Done():
 		logger.Warnw("processing not completed in-time: force release of TpProcMutex!",
-			log.Fields{"deviceID": onuTP.deviceID, "error": ctx.Err()})
+			log.Fields{"device-id": onuTP.deviceID, "error": ctx.Err()})
 		return false
 	case rxStep := <-onuTP.chTpProcessingStep:
 		if rxStep == aProcessingStep {
@@ -639,7 +639,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 		}
 		//all other values are not accepted - including 0 for error indication
 		logger.Warnw("Invalid processing step received: abort and force release of TpProcMutex!",
-			log.Fields{"deviceID": onuTP.deviceID,
+			log.Fields{"device-id": onuTP.deviceID,
 				"wantedStep": aProcessingStep, "haveStep": rxStep})
 		return false
 	}
@@ -648,11 +648,11 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 // createUniLockFsm initialises and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
 func (onuTP *OnuUniTechProf) createAniConfigFsm(aUniID uint32,
 	apCurrentUniPort *OnuUniPort, devEvent OnuDeviceEvent, aProcessingStep uint8) {
-	logger.Debugw("createAniConfigFsm", log.Fields{"deviceID": onuTP.deviceID})
+	logger.Debugw("createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
 	chAniConfigFsm := make(chan Message, 2048)
 	pDevEntry := onuTP.baseDeviceHandler.GetOnuDeviceEntry(true)
 	if pDevEntry == nil {
-		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"deviceID": onuTP.deviceID})
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": onuTP.deviceID})
 		return
 	}
 	pAniCfgFsm := NewUniPonAniConfigFsm(pDevEntry.PDevOmciCC, apCurrentUniPort, onuTP,
@@ -662,7 +662,7 @@ func (onuTP *OnuUniTechProf) createAniConfigFsm(aUniID uint32,
 		onuTP.pAniConfigFsm = pAniCfgFsm
 		onuTP.runAniConfigFsm(aProcessingStep)
 	} else {
-		logger.Errorw("AniConfigFSM could not be created - abort!!", log.Fields{"deviceID": onuTP.deviceID})
+		logger.Errorw("AniConfigFSM could not be created - abort!!", log.Fields{"device-id": onuTP.deviceID})
 	}
 }
 
@@ -683,15 +683,15 @@ func (onuTP *OnuUniTechProf) runAniConfigFsm(aProcessingStep uint8) {
 			} else {
 				/***** AniConfigFSM started */
 				logger.Debugw("AniConfigFSM started", log.Fields{
-					"state": pACStatemachine.Current(), "deviceID": onuTP.deviceID})
+					"state": pACStatemachine.Current(), "device-id": onuTP.deviceID})
 			}
 		} else {
 			logger.Warnw("wrong state of AniConfigFSM - want: disabled", log.Fields{
-				"have": pACStatemachine.Current(), "deviceID": onuTP.deviceID})
+				"have": pACStatemachine.Current(), "device-id": onuTP.deviceID})
 			// maybe try a FSM reset and then again ... - TODO!!!
 		}
 	} else {
-		logger.Errorw("AniConfigFSM StateMachine invalid - cannot be executed!!", log.Fields{"deviceID": onuTP.deviceID})
+		logger.Errorw("AniConfigFSM StateMachine invalid - cannot be executed!!", log.Fields{"device-id": onuTP.deviceID})
 		// maybe try a FSM reset and then again ... - TODO!!!
 	}
 }

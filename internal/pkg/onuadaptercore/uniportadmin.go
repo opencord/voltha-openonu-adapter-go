@@ -303,7 +303,7 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 			logger.Error("LockStateFsm - Omci Msg layer could not be assigned for SetResponse")
 			return
 		}
-		logger.Debugw("LockStateFsm SetResponse Data", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
+		logger.Debugw("LockStateFsm SetResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
 		if msgObj.Result != me.Success {
 			logger.Errorw("LockStateFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
 			// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
@@ -343,7 +343,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 
 	for uniNo, uniPort := range oFsm.pOmciCC.pBaseDeviceHandler.uniEntityMap {
 		logger.Debugw("Setting PPTP admin state", log.Fields{
-			"deviceId": oFsm.pAdaptFsm.deviceID, "for PortNo": uniNo})
+			"device-id": oFsm.pAdaptFsm.deviceID, "for PortNo": uniNo})
 
 		var meInstance *me.ManagedEntity
 		if uniPort.portType == UniPPTP {
@@ -356,7 +356,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 			oFsm.pOmciCC.pLastTxMeInstance = meInstance
 		} else {
 			logger.Warnw("Unsupported PPTP type - skip",
-				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
 			continue
 		}
 
@@ -364,14 +364,14 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 		err := oFsm.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Errorw("PPTP Admin State set failed, aborting LockState set!",
-				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
 			oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 			return
 		}
 	} //for all UNI ports
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
-	logger.Infow("PPTP config loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+	logger.Infow("PPTP config loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 	oFsm.pAdaptFsm.pFsm.Event(uniEvRxUnisResp)
 	return
 }

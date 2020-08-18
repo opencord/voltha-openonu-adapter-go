@@ -157,7 +157,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				logger.Error("Omci Msg layer could not be assigned for CreateResponse")
 				return
 			}
-			logger.Debugw("CreateResponse Data", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
+			logger.Debugw("CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
 				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
@@ -205,7 +205,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				logger.Error("Omci Msg layer could not be assigned for SetResponse")
 				return
 			}
-			logger.Debugw("SetResponse Data", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
+			logger.Debugw("SetResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
 				logger.Errorw("Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
@@ -238,7 +238,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 	for uniNo, uniPort := range onuDeviceEntry.baseDeviceHandler.uniEntityMap {
 		logger.Debugw("Starting IntialBridgeSetup", log.Fields{
-			"deviceId": onuDeviceEntry.deviceID, "for PortNo": uniNo})
+			"device-id": onuDeviceEntry.deviceID, "for PortNo": uniNo})
 
 		//create MBSP
 		meInstance := onuDeviceEntry.PDevOmciCC.sendCreateMBServiceProfile(
@@ -278,7 +278,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 	}
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
-	logger.Infow("IntialBridgeSetup finished", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+	logger.Infow("IntialBridgeSetup finished", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxBridgeResp)
 	return
 }

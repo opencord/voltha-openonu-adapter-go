@@ -224,7 +224,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 					logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 						"device-id": oFsm.pAdaptFsm.deviceID})
 				} else {
-					logger.Warnw("No TCont instances found", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+					logger.Warnw("No TCont instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				}
 				oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].tcontParams.allocID
 				loGemPortAttribs := ponAniGemPortAttribs{}
@@ -257,27 +257,27 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 									if relatedPort == usQrelPortMask {
 										loGemPortAttribs.upQueueID = mgmtEntityId
 										logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
-											"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
+											"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
 										usQueueFound = true
 									} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityId < 0x8000 {
 										loGemPortAttribs.downQueueID = mgmtEntityId
 										logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
-											"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "deviceId": oFsm.pAdaptFsm.deviceID})
+											"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
 										dsQueueFound = true
 									}
 									if usQueueFound && dsQueueFound {
 										break
 									}
 								} else {
-									logger.Warnw("'relatedPort' not found in meAttributes:", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+									logger.Warnw("'relatedPort' not found in meAttributes:", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 								}
 							} else {
 								logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
-									"mgmtEntityId": mgmtEntityId, "deviceId": oFsm.pAdaptFsm.deviceID})
+									"mgmtEntityId": mgmtEntityId, "device-id": oFsm.pAdaptFsm.deviceID})
 							}
 						}
 					} else {
-						logger.Warnw("No PriorityQueue instances found", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+						logger.Warnw("No PriorityQueue instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 					}
 					loGemPortAttribs.direction = gemEntry.direction
 					loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
@@ -591,7 +591,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 				logger.Error("Omci Msg layer could not be assigned for CreateResponse")
 				return
 			}
-			logger.Debugw("CreateResponse Data", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
+			logger.Debugw("CreateResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
 				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
@@ -633,7 +633,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 				logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be assigned for SetResponse")
 				return
 			}
-			logger.Debugw("UniPonAniConfigFsm SetResponse Data", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
+			logger.Debugw("UniPonAniConfigFsm SetResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
 				logger.Errorw("UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
@@ -698,14 +698,14 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
 		err := oFsm.waitforOmciResponse()
 		if err != nil {
 			logger.Errorw("GemNWCtp create failed, aborting AniConfig FSM!",
-				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
 			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
 		}
 	} //for all GemPorts of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
-	logger.Debugw("GemNWCtp create loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+	logger.Debugw("GemNWCtp create loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 	oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemntcpsResp)
 	return
 }
@@ -737,14 +737,14 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
 		err := oFsm.waitforOmciResponse()
 		if err != nil {
 			logger.Errorw("GemIwTp create failed, aborting AniConfig FSM!",
-				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
 			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
 		}
 	} //for all GemPort's of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
-	logger.Debugw("GemIwTp create loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+	logger.Debugw("GemIwTp create loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 	oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemiwsResp)
 	return
 }
@@ -806,7 +806,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 		err := oFsm.waitforOmciResponse()
 		if err != nil {
 			logger.Errorw("PrioQueue set failed, aborting AniConfig FSM!",
-				log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
 			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
 		}
@@ -819,7 +819,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 	} //for all upstream prioQueues
 
 	// if Config has been done for all PrioQueue instances let the FSM proceed
-	logger.Debugw("PrioQueue set loop finished", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID})
+	logger.Debugw("PrioQueue set loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 	oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
 	return
 }
