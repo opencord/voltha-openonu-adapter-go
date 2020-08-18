@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5a8ec6d7_0facddb0",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 208,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-08-18T07:45:52Z",
+      "side": 1,
+      "message": "I would like to leave the comment of the base version here as a reminder, that something probaly is still to be done here, perhaps some //TODO!!",
+      "revId": "4d29955d74b69301b52c7ea7366ba2624caf98fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
