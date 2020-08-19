@@ -157,7 +157,7 @@ func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 	if handler = oo.getDeviceHandler(device.Id); handler == nil {
 		handler := NewDeviceHandler(oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
 		oo.addDeviceHandlerToMap(ctx, handler)
-		go handler.AdoptDevice(ctx, device)
+		go handler.AdoptOrReconcileDevice(ctx, device)
 		// Launch the creation of the device topic
 		// go oo.createDeviceTopic(device)
 	}
@@ -217,14 +217,22 @@ func (oo *OpenONUAC) Health() (*voltha.HealthStatus, error) {
 
 //Reconcile_device is called once when the adapter needs to re-create device - usually on core restart
 func (oo *OpenONUAC) Reconcile_device(device *voltha.Device) error {
-	logger.Debugw("Reconcile_device", log.Fields{"device-id": device.Id})
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
-		if err := handler.ReconcileDevice(device); err != nil {
-			return err
-		}
+	if device == nil {
+		logger.Warn("voltha-device-is-nil")
+		return errors.New("nil-device")
+	}
+	ctx := context.Background()
+	logger.Infow("Reconcile_device", log.Fields{"device-id": device.Id})
+	var handler *DeviceHandler
+	if handler = oo.getDeviceHandler(device.Id); handler == nil {
+		handler := NewDeviceHandler(oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
+		oo.addDeviceHandlerToMap(ctx, handler)
+		handler.device = device
+		handler.reconciling = true
+		go handler.AdoptOrReconcileDevice(ctx, handler.device)
+		// reconcilement will be continued after onu-device entry is added
 	} else {
-		logger.Warnw("no handler found for device-reconcilement", log.Fields{"device-id": device.Id})
-		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+		return fmt.Errorf(fmt.Sprintf("device-already-reconciled-or-active-%s", device.Id))
 	}
 	return nil
 }
