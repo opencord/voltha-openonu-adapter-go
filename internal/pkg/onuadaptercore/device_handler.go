@@ -127,6 +127,7 @@ type DeviceHandler struct {
 	stopHeartbeatCheck chan bool
 	activePorts        sync.Map
 	uniEntityMap       map[uint32]*OnuUniPort
+	reconciling        bool
 }
 
 //NewDeviceHandler creates a new device handler
@@ -150,6 +151,7 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	dh.activePorts = sync.Map{}
 	//TODO initialize the support classes.
 	dh.uniEntityMap = make(map[uint32]*OnuUniPort)
+	dh.reconciling = false
 
 	// Device related state machine
 	dh.pDeviceStateFsm = fsm.NewFSM(
@@ -192,9 +194,9 @@ func (dh *DeviceHandler) stop(ctx context.Context) {
 // ##########################################################################################
 // DeviceHandler methods that implement the adapters interface requests ##### begin #########
 
-//AdoptDevice adopts the OLT device
-func (dh *DeviceHandler) AdoptDevice(ctx context.Context, device *voltha.Device) {
-	logger.Debugw("Adopt_device", log.Fields{"deviceID": device.Id, "Address": device.GetHostAndPort()})
+//AdoptOrReconcileDevice adopts the OLT device
+func (dh *DeviceHandler) AdoptOrReconcileDevice(ctx context.Context, device *voltha.Device) {
+	logger.Debugw("Adopt_or_reconcile_device", log.Fields{"device-id": device.Id, "Address": device.GetHostAndPort()})
 
 	logger.Debugw("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
 	if dh.pDeviceStateFsm.Is(devStNull) {
@@ -203,7 +205,7 @@ func (dh *DeviceHandler) AdoptDevice(ctx context.Context, device *voltha.Device)
 		}
 		logger.Debugw("Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
 	} else {
-		logger.Debug("AdoptDevice: Agent/device init already done")
+		logger.Debugw("AdoptOrReconcileDevice: Agent/device init already done", log.Fields{"device-id": device.Id})
 	}
 
 	/*
@@ -475,13 +477,53 @@ func (dh *DeviceHandler) ReenableDevice(device *voltha.Device) {
 	}
 }
 
-func (dh *DeviceHandler) ReconcileDevice(device *voltha.Device) error {
-	logger.Debugw("reconcile-device", log.Fields{"DeviceId": device.Id, "SerialNumber": device.SerialNumber})
-	if err := dh.pOnuTP.restoreFromOnuTpPathKvStore(context.TODO()); err != nil {
-		return err
+func (dh *DeviceHandler) ReconcileDeviceOnuInd() {
+	logger.Debugw("Reconciling onu indication", log.Fields{"device-id": dh.deviceID})
+
+	if err := dh.pOnuTP.restoreFromOnuTpPathKvStore(context.TODO()); err == nil {
+		var onu_indication oop.OnuIndication
+
+		onu_indication.IntfId = dh.pOnuTP.sOnuPersistentData.PersIntfID
+		onu_indication.OnuId = dh.pOnuTP.sOnuPersistentData.PersOnuID
+		onu_indication.OperState = dh.pOnuTP.sOnuPersistentData.PersOperState
+		onu_indication.AdminState = dh.pOnuTP.sOnuPersistentData.PersAdminState
+		dh.create_interface(&onu_indication)
+	} else {
+		logger.Errorw("Restoring OnuTp-data failed  - abort reconcilement", log.Fields{"err": err, "device-id": dh.deviceID})
+		dh.reconciling = false
+		return
 	}
-	// TODO: further actions - init PON, metrics, reload DB ...
-	return nil
+}
+
+func (dh *DeviceHandler) ReconcileDeviceTechProf() {
+	logger.Debugw("Reconciling tech profile config", log.Fields{"device-id": dh.deviceID})
+
+	dh.pOnuTP.lockTpProcMutex()
+	// lock hangs as long as below decoupled or other related TechProfile processing is active
+	for _, uniData := range dh.pOnuTP.sOnuPersistentData.PersUniTpPath {
+		//In order to allow concurrent calls to other dh instances we do not wait for execution here
+		//but doing so we can not indicate problems to the caller (who does what with that then?)
+		//by now we just assume straightforward successful execution
+		//TODO!!! Generally: In this scheme it would be good to have some means to indicate
+		//  possible problems to the caller later autonomously
+
+		// deadline context to ensure completion of background routines waited for
+		//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
+		deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+		dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
+		dh.pOnuTP.resetProcessingErrorIndication()
+		var wg sync.WaitGroup
+		wg.Add(1) // for the 1 go routines to finish
+		// attention: deadline completion check and wg.Done is to be done in both routines
+		go dh.pOnuTP.configureUniTp(dctx, uniData.PersUniId, uniData.PersTpPath, &wg)
+		//the wait.. function is responsible for tpProcMutex.Unlock()
+		dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collect their result
+		return
+	}
+	dh.pOnuTP.unlockTpProcMutex()
+	//TODO: reset of reconciling-flag has always to be done in the last ReconcileDevice*() function
+	dh.reconciling = false
 }
 
 func (dh *DeviceHandler) DeleteDevice(device *voltha.Device) error {
@@ -513,54 +555,6 @@ func (dh *DeviceHandler) RebootDevice(device *voltha.Device) error {
 	return nil
 }
 
-//GetOfpPortInfo returns the Voltha PortCapabilty with the logical port
-//func (dh *DeviceHandler) GetOfpPortInfo(device *voltha.Device,
-//	portNo int64) (*ic.PortCapability, error) {
-//	logger.Debugw("GetOfpPortInfo start", log.Fields{"deviceID": device.Id, "portNo": portNo})
-
-//function body as per OLTAdapter handler code
-// adapted with values from py dapter code
-//	if pUniPort, exist := dh.uniEntityMap[uint32(portNo)]; exist {
-//		var macOctets [6]uint8
-//		macOctets[5] = 0x08
-//		macOctets[4] = uint8(dh.ponPortNumber >> 8)
-//		macOctets[3] = uint8(dh.ponPortNumber)
-//		macOctets[2] = uint8(portNo >> 16)
-//		macOctets[1] = uint8(portNo >> 8)
-//		macOctets[0] = uint8(portNo)
-//		hwAddr := genMacFromOctets(macOctets)
-//		capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
-//		name := device.SerialNumber + "-" + strconv.FormatUint(uint64(pUniPort.macBpNo), 10)
-//		ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
-//		if pUniPort.operState == vc.OperStatus_ACTIVE {
-//			ofUniPortState = of.OfpPortState_OFPPS_LIVE
-//		}
-//		logger.Debugw("setting LogicalPort", log.Fields{"with-name": name,
-//			"withUniPort": pUniPort.name, "withMacBase": hwAddr, "OperState": ofUniPortState})
-
-//		return &ic.PortCapability{
-//			Port: &voltha.LogicalPort{
-//				OfpPort: &of.OfpPort{
-//					Name: name,
-//					//HwAddr:     macAddressToUint32Array(dh.device.MacAddress),
-//					HwAddr:     macAddressToUint32Array(hwAddr),
-//					Config:     0,
-//					State:      uint32(ofUniPortState),
-//					Curr:       capacity,
-//					Advertised: capacity,
-//					Peer:       capacity,
-//					CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-//					MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-//				},
-//				DeviceId:     device.Id,
-//				DevicePortNo: uint32(portNo),
-//			},
-//		}, nil
-//	}
-//	logger.Warnw("No UniPort found - abort", log.Fields{"for PortNo": uint32(portNo)})
-//	return nil, errors.New("UniPort not found")
-//}
-
 //  DeviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
@@ -585,7 +579,13 @@ func (dh *DeviceHandler) doStateInit(e *fsm.Event) {
 	dh.deviceReason = "activating-onu"
 
 	dh.logicalDeviceID = dh.deviceID // really needed - what for ??? //TODO!!!
-	dh.coreProxy.DeviceUpdate(context.TODO(), dh.device)
+
+	if !dh.reconciling {
+		dh.coreProxy.DeviceUpdate(context.TODO(), dh.device)
+	} else {
+		logger.Debugw("reconciling - don't notify core about DeviceUpdate",
+			log.Fields{"device-id": dh.deviceID})
+	}
 
 	dh.parentId = dh.device.ParentId
 	dh.ponPortNumber = dh.device.ParentPortNo
@@ -606,24 +606,28 @@ func (dh *DeviceHandler) doStateInit(e *fsm.Event) {
 				   oper_status=self._pon.get_port().oper_status,
 				   )
 	*/
-	logger.Debug("adding-pon-port")
-	var ponPortNo uint32 = 1
-	if dh.ponPortNumber != 0 {
-		ponPortNo = dh.ponPortNumber
-	}
+	if !dh.reconciling {
+		logger.Debug("adding-pon-port")
+		var ponPortNo uint32 = 1
+		if dh.ponPortNumber != 0 {
+			ponPortNo = dh.ponPortNumber
+		}
 
-	pPonPort := &voltha.Port{
-		PortNo:     ponPortNo,
-		Label:      fmt.Sprintf("pon-%d", ponPortNo),
-		Type:       voltha.Port_PON_ONU,
-		OperStatus: voltha.OperStatus_ACTIVE,
-		Peers: []*voltha.Port_PeerPort{{DeviceId: dh.parentId, // Peer device  is OLT
-			PortNo: ponPortNo}}, // Peer port is parent's port number
-	}
-	if err = dh.coreProxy.PortCreated(context.TODO(), dh.deviceID, pPonPort); err != nil {
-		logger.Fatalf("Device FSM: PortCreated-failed-%s", err)
-		e.Cancel(err)
-		return
+		pPonPort := &voltha.Port{
+			PortNo:     ponPortNo,
+			Label:      fmt.Sprintf("pon-%d", ponPortNo),
+			Type:       voltha.Port_PON_ONU,
+			OperStatus: voltha.OperStatus_ACTIVE,
+			Peers: []*voltha.Port_PeerPort{{DeviceId: dh.parentId, // Peer device  is OLT
+				PortNo: ponPortNo}}, // Peer port is parent's port number
+		}
+		if err = dh.coreProxy.PortCreated(context.TODO(), dh.deviceID, pPonPort); err != nil {
+			logger.Fatalf("Device FSM: PortCreated-failed-%s", err)
+			e.Cancel(err)
+			return
+		}
+	} else {
+		logger.Debugw("reconciling - pon-port already added", log.Fields{"device-id": dh.deviceID})
 	}
 	logger.Debug("doStateInit-done")
 }
@@ -644,6 +648,11 @@ func (dh *DeviceHandler) postInit(e *fsm.Event) {
 		return
 	}
 
+	if dh.reconciling {
+		logger.Debugw("Reconciling - onu indication", log.Fields{"device-id": dh.deviceID})
+		go dh.ReconcileDeviceOnuInd()
+		// reconcilement will be continued after mib download is done
+	}
 	/*
 			############################################################################
 			# Setup Alarm handler
@@ -863,9 +872,14 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 
 	dh.pOnuIndication = onuind // let's revise if storing the pointer is sufficient...
 
-	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
-		voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVATING); err != nil {
-		logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+	if !dh.reconciling {
+		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
+			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVATING); err != nil {
+			logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
+		}
+	} else {
+		logger.Debugw("reconciling - don't notify core about DeviceStateUpdate to ACTIVATING",
+			log.Fields{"device-id": dh.deviceID})
 	}
 	// It does not look to me as if makes sense to work with the real core device here, (not the stored clone)?
 	// in this code the GetDevice would just make a check if the DeviceID's Device still exists in core
@@ -888,8 +902,13 @@ func (dh *DeviceHandler) create_interface(onuind *oop.OnuIndication) error {
 		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"deviceID": dh.deviceID})
 		return errors.New("No valid OnuDevice")
 	}
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "starting-openomci"); err != nil {
-		logger.Errorw("error-DeviceReasonUpdate to starting-openomci", log.Fields{"deviceID": dh.deviceID, "error": err})
+	if !dh.reconciling {
+		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "starting-openomci"); err != nil {
+			logger.Errorw("error-DeviceReasonUpdate to starting-openomci", log.Fields{"deviceID": dh.deviceID, "error": err})
+		}
+	} else {
+		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to starting-openomci",
+			log.Fields{"device-id": dh.deviceID})
 	}
 	dh.deviceReason = "starting-openomci"
 
@@ -1115,13 +1134,19 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 	case MibDatabaseSync:
 		{
 			logger.Debugw("MibInSync event received", log.Fields{"deviceID": dh.deviceID})
-			//initiate DevStateUpdate
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
-				logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{
-					"deviceID": dh.deviceID, "error": err})
+			if !dh.reconciling {
+				//initiate DevStateUpdate
+				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
+					logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{
+						"deviceID": dh.deviceID, "error": err})
+				} else {
+					logger.Infow("dev reason updated to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
+				}
 			} else {
-				logger.Infow("dev reason updated to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
+				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to mibsync-complete",
+					log.Fields{"device-id": dh.deviceID})
 			}
+
 			//set internal state anyway - as it was done
 			dh.deviceReason = "discovery-mibsync-complete"
 
@@ -1200,18 +1225,27 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 		{
 			logger.Debugw("MibDownloadDone event received", log.Fields{"deviceID": dh.deviceID})
 			//initiate DevStateUpdate
-			if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
-				voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
-				logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+			if !dh.reconciling {
+				if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
+					voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
+					logger.Errorw("error-updating-device-state", log.Fields{"deviceID": dh.deviceID, "error": err})
+				} else {
+					logger.Debugw("dev state updated to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
+				}
 			} else {
-				logger.Debugw("dev state updated to 'Oper.Active'", log.Fields{"deviceID": dh.deviceID})
+				logger.Debugw("reconciling - don't notify core about DeviceStateUpdate to ACTIVE",
+					log.Fields{"device-id": dh.deviceID})
 			}
-
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
-				logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
-					log.Fields{"deviceID": dh.deviceID, "error": err})
+			if !dh.reconciling {
+				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
+					logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
+						log.Fields{"deviceID": dh.deviceID, "error": err})
+				} else {
+					logger.Infow("dev reason updated to 'initial-mib-downloaded'", log.Fields{"deviceID": dh.deviceID})
+				}
 			} else {
-				logger.Infow("dev reason updated to 'initial-mib-downloaded'", log.Fields{"deviceID": dh.deviceID})
+				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to initial-mib-downloaded",
+					log.Fields{"device-id": dh.deviceID})
 			}
 			//set internal state anyway - as it was done
 			dh.deviceReason = "initial-mib-downloaded"
@@ -1222,14 +1256,23 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 				dh.pUnlockStateFsm.SetSuccessEvent(UniUnlockStateDone)
 				dh.runUniLockFsm(false)
 			}
+			if dh.reconciling {
+				logger.Debugw("Reconciling - restore tech profile", log.Fields{"device-id": dh.device})
+				go dh.ReconcileDeviceTechProf()
+				//TODO: further actions e.g. restore flows, metrics, ...
+			}
 		}
 	case UniUnlockStateDone:
 		{
 			go dh.enableUniPortStateUpdate() //cmp python yield self.enable_ports()
 
-			logger.Infow("UniUnlockStateDone event: Sending OnuUp event", log.Fields{"deviceID": dh.deviceID})
-			raisedTs := time.Now().UnixNano()
-			go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
+			if !dh.reconciling {
+				logger.Infow("UniUnlockStateDone event: Sending OnuUp event", log.Fields{"deviceID": dh.deviceID})
+				raisedTs := time.Now().UnixNano()
+				go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
+			} else {
+				logger.Debugw("reconciling - don't notify core that onu went to active", log.Fields{"device-id": dh.deviceID})
+			}
 		}
 	case OmciAniConfigDone:
 		{
@@ -1240,12 +1283,17 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 			//  - which may cause some inconsistency
 			if dh.deviceReason != "tech-profile-config-download-success" {
 				// which may be the case from some previous actvity on another UNI Port of the ONU
-				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-download-success"); err != nil {
-					logger.Errorw("error-DeviceReasonUpdate to 'tech-profile-config-download-success'",
-						log.Fields{"deviceID": dh.deviceID, "error": err})
+				if !dh.reconciling {
+					if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-download-success"); err != nil {
+						logger.Errorw("error-DeviceReasonUpdate to 'tech-profile-config-download-success'",
+							log.Fields{"deviceID": dh.deviceID, "error": err})
+					} else {
+						logger.Infow("update dev reason to 'tech-profile-config-download-success'",
+							log.Fields{"deviceID": dh.deviceID})
+					}
 				} else {
-					logger.Infow("update dev reason to 'tech-profile-config-download-success'",
-						log.Fields{"deviceID": dh.deviceID})
+					logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to tech-profile-config-download-success",
+						log.Fields{"device-id": dh.deviceID})
 				}
 				//set internal state anyway - as it was done
 				dh.deviceReason = "tech-profile-config-download-success"
@@ -1272,10 +1320,14 @@ func (dh *DeviceHandler) addUniPort(a_uniInstNo uint16, a_uniId uint8, a_portTyp
 		} else {
 			//store UniPort with the System-PortNumber key
 			dh.uniEntityMap[uniNo] = pUniPort
-			// create announce the UniPort to the core as VOLTHA Port object
-			if err := pUniPort.CreateVolthaPort(dh); err == nil {
-				logger.Infow("onuUniPort-added", log.Fields{"for PortNo": uniNo})
-			} //error logging already within UniPort method
+			if !dh.reconciling {
+				// create announce the UniPort to the core as VOLTHA Port object
+				if err := pUniPort.CreateVolthaPort(dh); err == nil {
+					logger.Infow("onuUniPort-added", log.Fields{"for PortNo": uniNo})
+				} //error logging already within UniPort method
+			} else {
+				logger.Debugw("reconciling - onuUniPort already added", log.Fields{"for PortNo": uniNo, "device-id": dh.deviceID})
+			}
 		}
 	}
 }
@@ -1295,8 +1347,12 @@ func (dh *DeviceHandler) enableUniPortStateUpdate() {
 		if (1<<uniPort.uniId)&ActiveUniPortStateUpdateMask == (1 << uniPort.uniId) {
 			logger.Infow("onuUniPort-forced-OperState-ACTIVE", log.Fields{"for PortNo": uniNo})
 			uniPort.SetOperState(vc.OperStatus_ACTIVE)
-			//maybe also use getter functions on uniPort - perhaps later ...
-			go dh.coreProxy.PortStateUpdate(context.TODO(), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+			if !dh.reconciling {
+				//maybe also use getter functions on uniPort - perhaps later ...
+				go dh.coreProxy.PortStateUpdate(context.TODO(), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+			} else {
+				logger.Debugw("reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.deviceID})
+			}
 		}
 	}
 }
