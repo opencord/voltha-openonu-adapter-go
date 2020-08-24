@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "49526c68_5bd31e19",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 483,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "minor nit, usually for convention here we check if the erro is !\u003d nil and handle first the error case, especially because you can avoid having the else statement given the return in the error case.",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eed57492_db57ae1f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 512,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "can this timeout be made configurable ? like a general deadline timeout for all operations in the adapter that pertain to the OMCI messaging.",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "09aa0c2e_a4e265af",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 610,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "add the ponPortNo as field",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dd9a97ab_9349d561",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 877,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "93d678e8_b2e5de81",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 906,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6590f174_a326a4c7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1139,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76528578_ec645532",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1230,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24305886_429eec6d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1240,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "043ae799_e1a6d362",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1285,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:45:02Z",
+      "side": 1,
+      "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
