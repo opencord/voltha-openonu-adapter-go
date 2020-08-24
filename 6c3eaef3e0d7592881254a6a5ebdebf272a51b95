@@ -37,6 +37,40 @@
     },
     {
       "key": {
+        "uuid": "cb0b6c15_1936679f",
+        "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:22:10Z",
+      "side": 1,
+      "message": "are all the spaces in this field correct ?",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "04f0997c_14900564",
+        "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:22:10Z",
+      "side": 1,
+      "message": "same and valid for all occurrences",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ff18e7d2_d4a84d76",
         "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
         "patchSetId": 1
@@ -65,6 +99,23 @@
       "writtenOn": "2020-08-18T09:02:32Z",
       "side": 1,
       "message": "I wonder why there are so many traffic schedulers in the MibTemplate. Also they seem to use a modulo 8 spacing for there T-Cont reference, while the first 8 refer to T-Cont 0x8000 - compare comment for T-Cont above.\nThis does not seem to coincide with the BBSIM MibUpload data (which looks wrong anyway, see other Jira discussion)",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed7209cd_fd36b58e",
+        "filename": "templates/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-24T09:22:10Z",
+      "side": 1,
+      "message": "remove trailing spaces",
       "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
