@@ -16,6 +16,29 @@
       "revId": "4d29955d74b69301b52c7ea7366ba2624caf98fe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3c19f29f_b35f8b3d",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2020-08-24T17:16:44Z",
+      "side": 1,
+      "message": "at some point do we want a consistent syntax for uniID that matches device-id?",
+      "range": {
+        "startLine": 189,
+        "startChar": 33,
+        "endLine": 189,
+        "endChar": 38
+      },
+      "revId": "4d29955d74b69301b52c7ea7366ba2624caf98fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
