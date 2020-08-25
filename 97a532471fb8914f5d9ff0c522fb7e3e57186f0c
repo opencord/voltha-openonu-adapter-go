@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "c6c1a415_47320089",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 512,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T09:57:35Z",
+      "side": 1,
+      "message": "Independent of the solution envisioned: Is it ok to define a new story for that to not further delay merging of the current patch?",
+      "parentUuid": "6dd2a884_24089f12",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "09aa0c2e_a4e265af",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
