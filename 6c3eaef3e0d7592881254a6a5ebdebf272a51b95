@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "fbabcade_afe589a2",
+        "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-25T14:50:19Z",
+      "side": 1,
+      "message": "I think we ought not to touch the existing python stuff, and leave it as it. This is then fine be me.",
+      "parentUuid": "62786693_150b991f",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "04f0997c_14900564",
         "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
         "patchSetId": 1
