@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f03f9c84_eb2655ad",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 483,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T09:23:43Z",
+      "side": 1,
+      "message": "Will be fixed.",
+      "parentUuid": "49526c68_5bd31e19",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "eed57492_db57ae1f",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -30,6 +48,24 @@
       "writtenOn": "2020-08-24T09:45:02Z",
       "side": 1,
       "message": "can this timeout be made configurable ? like a general deadline timeout for all operations in the adapter that pertain to the OMCI messaging.",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6dd2a884_24089f12",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 512,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T09:23:43Z",
+      "side": 1,
+      "message": "Do you have any preference how this should be done - e.g. via helm charts or compile parameter or ...?",
+      "parentUuid": "eed57492_db57ae1f",
       "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "aaf62256_fc62910d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 610,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T09:23:43Z",
+      "side": 1,
+      "message": "Will be fixed.",
+      "parentUuid": "09aa0c2e_a4e265af",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dd9a97ab_9349d561",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -64,6 +118,24 @@
       "writtenOn": "2020-08-24T09:45:02Z",
       "side": 1,
       "message": "you probably ought to return the error here and stop further processing",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c28b52a_66ce9a8a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 877,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T09:23:43Z",
+      "side": 1,
+      "message": "For this handling we still have two open stories in the backlog:\nVOL-3045 \tImplement Error reporting \nVOL-3046 \tReact to error conditions \nFor the current patch, wouldn\u0027t it be sufficient to add \"TODO\" comments referencing to these stories?\n(Reply is valid for the following comments too.)",
+      "parentUuid": "dd9a97ab_9349d561",
       "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
