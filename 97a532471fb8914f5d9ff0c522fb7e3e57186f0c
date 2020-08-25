@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "4cae815b_6a21661c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 512,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-25T14:46:46Z",
+      "side": 1,
+      "message": "yes, totally fine do create a new story. I think the best way is to define a command line parameter that is then passed in through helm chart values.yaml",
+      "parentUuid": "c6c1a415_47320089",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "09aa0c2e_a4e265af",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -119,6 +137,24 @@
       "side": 1,
       "message": "Will be fixed.",
       "parentUuid": "09aa0c2e_a4e265af",
+      "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a1d2916_7685c428",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 610,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-25T14:46:46Z",
+      "side": 1,
+      "message": "yes please do like this",
+      "parentUuid": "aaf62256_fc62910d",
       "revId": "97a532471fb8914f5d9ff0c522fb7e3e57186f0c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
