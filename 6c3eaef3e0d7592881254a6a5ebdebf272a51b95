@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "62786693_150b991f",
+        "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T07:59:27Z",
+      "side": 1,
+      "message": "It is based on the Python-version - the spaces come from there:\n\n       \"expected_equipment_id\": \"                    \",\n        \"actual_equipment_id\": \"                    \",\n\nThe question whether we need to generate a new BBSIM-template for the Python-adapter is still valid (see previous comment).",
+      "parentUuid": "cb0b6c15_1936679f",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "04f0997c_14900564",
         "filename": "templates/BBSM-12345123451234512345-00000000000001-v1.json",
         "patchSetId": 1
@@ -119,6 +137,24 @@
       "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f2506d8_3f53016a",
+        "filename": "templates/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-25T07:59:27Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ed7209cd_fd36b58e",
+      "revId": "6c3eaef3e0d7592881254a6a5ebdebf272a51b95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
