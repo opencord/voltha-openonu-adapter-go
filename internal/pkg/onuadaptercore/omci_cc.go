@@ -25,6 +25,7 @@ import (
 	"errors"
 	"strconv"
 	"sync"
+
 	//"time"
 
 	"github.com/google/gopacket"
@@ -395,6 +396,7 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 	// block parallel omci send requests at least until SendIAP is 'committed'
 	// that should be feasible for an onu instance as on OMCI anyway window size 1 is assumed
 	oo.mutexTxQueue.Lock()
+	defer oo.mutexTxQueue.Unlock()
 	for oo.txQueue.Len() > 0 {
 		queueElement := oo.txQueue.Front() // First element
 		omciTxRequest := queueElement.Value.(omciTransferStructure)
@@ -476,7 +478,6 @@ func (oo *OmciCC) sendNextRequest(ctx context.Context) error {
 		}
 		oo.txQueue.Remove(queueElement) // Dequeue
 	}
-	oo.mutexTxQueue.Unlock()
 	return nil
 }
 
@@ -1388,6 +1389,93 @@ func (oo *OmciCC) sendSetDot1PMapperVar(ctx context.Context, timeout int, highPr
 		return meInstance
 	}
 	logger.Errorw("Cannot generate 1PMapper Instance", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *OmciCC) sendCreateVtfdVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw("send VTFD-Create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVlanTaggingFilterData(params[0])
+	if omciErr.GetError() == nil {
+		//all SetByCreate Parameters (assumed to be) set here, for optimisation no 'AddDefaults'
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode VTFD for create", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize VTFD create", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			cbKey:   tid,
+			cbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send VTFD create", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send VTFD-Create-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate VTFD Instance", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *OmciCC) sendSetEvtocdVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw("send EVTOCD-Set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode EVTOCD for set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize EVTOCD set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			cbKey:   tid,
+			cbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send EVTOCD set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send EVTOCD-set msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate EVTOCD Instance", log.Fields{
 		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }

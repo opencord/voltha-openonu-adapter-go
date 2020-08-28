@@ -37,13 +37,13 @@ const (
 	// events of config PON ANI port FSM
 	aniEvStart           = "uniEvStart"
 	aniEvStartConfig     = "aniEvStartConfig"
-	aniEvRxDot1pmapCresp = "aniEvRxDot1pmapCresp"
+	aniEvRxDot1pmapCResp = "aniEvRxDot1pmapCResp"
 	aniEvRxMbpcdResp     = "aniEvRxMbpcdResp"
 	aniEvRxTcontsResp    = "aniEvRxTcontsResp"
 	aniEvRxGemntcpsResp  = "aniEvRxGemntcpsResp"
 	aniEvRxGemiwsResp    = "aniEvRxGemiwsResp"
 	aniEvRxPrioqsResp    = "aniEvRxPrioqsResp"
-	aniEvRxDot1pmapSresp = "aniEvRxDot1pmapSresp"
+	aniEvRxDot1pmapSResp = "aniEvRxDot1pmapSResp"
 	aniEvTimeoutSimple   = "aniEvTimeoutSimple"
 	aniEvTimeoutMids     = "aniEvTimeoutMids"
 	aniEvReset           = "aniEvReset"
@@ -124,7 +124,7 @@ func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTech
 
 			//Note: .1p-Mapper and MBPCD might also have multi instances (per T-Cont) - by now only one 1 T-Cont considered!
 			{Name: aniEvStartConfig, Src: []string{aniStStarting}, Dst: aniStCreatingDot1PMapper},
-			{Name: aniEvRxDot1pmapCresp, Src: []string{aniStCreatingDot1PMapper}, Dst: aniStCreatingMBPCD},
+			{Name: aniEvRxDot1pmapCResp, Src: []string{aniStCreatingDot1PMapper}, Dst: aniStCreatingMBPCD},
 			{Name: aniEvRxMbpcdResp, Src: []string{aniStCreatingMBPCD}, Dst: aniStSettingTconts},
 			{Name: aniEvRxTcontsResp, Src: []string{aniStSettingTconts}, Dst: aniStCreatingGemNCTPs},
 			// the creatingGemNCTPs state is used for multi ME config if required for all configured/available GemPorts
@@ -133,7 +133,7 @@ func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTech
 			{Name: aniEvRxGemiwsResp, Src: []string{aniStCreatingGemIWs}, Dst: aniStSettingPQs},
 			// the settingPQs state is used for multi ME config if required for all configured/available upstream PriorityQueues
 			{Name: aniEvRxPrioqsResp, Src: []string{aniStSettingPQs}, Dst: aniStSettingDot1PMapper},
-			{Name: aniEvRxDot1pmapSresp, Src: []string{aniStSettingDot1PMapper}, Dst: aniStConfigDone},
+			{Name: aniEvRxDot1pmapSResp, Src: []string{aniStSettingDot1PMapper}, Dst: aniStConfigDone},
 
 			{Name: aniEvTimeoutSimple, Src: []string{
 				aniStCreatingDot1PMapper, aniStCreatingMBPCD, aniStSettingTconts, aniStSettingDot1PMapper}, Dst: aniStStarting},
@@ -199,7 +199,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 	oFsm.gemPortAttribsSlice = nil
 
 	// start go routine for processing of LockState messages
-	go oFsm.ProcessOmciAniMessages()
+	go oFsm.processOmciAniMessages()
 
 	//let the state machine run forward from here directly
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
@@ -226,10 +226,10 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 				} else {
 					logger.Warnw("No TCont instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				}
-				oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].tcontParams.allocID
+				oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniId]))[0].tcontParams.allocID
 				loGemPortAttribs := ponAniGemPortAttribs{}
 				//for all TechProfile set GemIndices
-				for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[uint32(oFsm.pOnuUniPort.uniId)]))[0].mapGemPortParams {
+				for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniId]))[0].mapGemPortParams {
 					//collect all GemConfigData in a seperate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
 
 					if queueInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
@@ -272,7 +272,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 										logger.Warnw("Could not convert attribute value", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 									}
 								} else {
-									logger.Warnw("'relatedPort' not found in meAttributes:", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+									logger.Warnw("'RelatedPort' not found in meAttributes:", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 								}
 							} else {
 								logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
@@ -356,7 +356,6 @@ func (oFsm *UniPonAniConfigFsm) enterSettingTconts(e *fsm.Event) {
 }
 
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemNCTPs(e *fsm.Event) {
-	//TODO!! this is just for the first GemPort right now - needs update
 	logger.Debugw("UniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	go oFsm.performCreatingGemNCTPs()
@@ -530,6 +529,10 @@ func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
 		oFsm.pOmciCC.pBaseDeviceHandler.DeviceProcStatusUpdate(oFsm.requestEvent)
 		oFsm.aniConfigCompleted = false
 	}
+	//store that the UNI related techProfile processing is done for the given Profile and Uni
+	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.uniId, true)
+	//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
+	go oFsm.pOmciCC.pBaseDeviceHandler.verifyUniVlanConfigRequest(oFsm.pOnuUniPort)
 
 	if oFsm.chanSet {
 		// indicate processing done to the caller
@@ -541,7 +544,7 @@ func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
 
 }
 
-func (oFsm *UniPonAniConfigFsm) ProcessOmciAniMessages( /*ctx context.Context*/ ) {
+func (oFsm *UniPonAniConfigFsm) processOmciAniMessages( /*ctx context.Context*/ ) {
 	logger.Debugw("Start UniPonAniConfigFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 loop:
 	for {
@@ -603,16 +606,12 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 			}
 			if msgObj.EntityClass == oFsm.pOmciCC.pLastTxMeInstance.GetClassID() &&
 				msgObj.EntityInstance == oFsm.pOmciCC.pLastTxMeInstance.GetEntityID() {
-				//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
-				// if, then something like:
-				//oFsm.pOnuDB.StoreMe(msgObj)
-
 				// maybe we can use just the same eventName for different state transitions like "forward"
 				//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
 				switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 				case "Ieee8021PMapperServiceProfile":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCresp)
+						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
 					}
 				case "MacBridgePortConfigurationData":
 					{ // let the FSM proceed ...
@@ -660,7 +659,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 					}
 				case "Ieee8021PMapperServiceProfile":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSresp)
+						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
 					}
 				}
 			}
