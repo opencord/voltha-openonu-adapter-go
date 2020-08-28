@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3e71bf7c_984311b8",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "what id\u0027 do before this patch is to release a 0.1.11 without this patch and the move this patch to be a 0.1.12",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "44ca2d07_37897a28",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 324,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "why downsizing form uint32 to unti8 ?",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b5a2d8e_e59d1165",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 438,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "add the port in the error message please.",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "72d3a9af_bb4733a3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 452,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "same",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9815eaed_5b4ac187",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1740,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "add device and flow id to the error",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bd4737e1_67e0d51a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1757,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "should this just be ignored ? I\u0027m wondering if it\u0027s already running we ignore this and we should be good to go no ?",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "09652577_56383286",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1771,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "worth returning an error ?",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "769ce908_67bc0dc7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1815,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "same, worth returning an error from the method ?",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75723aa5_72d90993",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1396,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-28T14:30:05Z",
+      "side": 1,
+      "message": "I woudl return an error here and then when an error arrivers to the method it gets returned, eg.g line 1410",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
