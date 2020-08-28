@@ -110,16 +110,17 @@ type OnuDeviceEvent int
 
 const (
 	// Events of interest to Device Adapters and OpenOMCI State Machines
-	DeviceStatusInit     OnuDeviceEvent = 0 // OnuDeviceEntry default start state
-	MibDatabaseSync      OnuDeviceEvent = 1 // MIB database sync (upload done)
-	OmciCapabilitiesDone OnuDeviceEvent = 2 // OMCI ME and message type capabilities known
-	MibDownloadDone      OnuDeviceEvent = 3 // MIB database sync (upload done)
-	UniLockStateDone     OnuDeviceEvent = 4 // Uni ports admin set to lock
-	UniUnlockStateDone   OnuDeviceEvent = 5 // Uni ports admin set to unlock
-	UniAdminStateDone    OnuDeviceEvent = 6 // Uni ports admin set done - general
-	PortLinkUp           OnuDeviceEvent = 7 // Port link state change
-	PortLinkDw           OnuDeviceEvent = 8 // Port link state change
-	OmciAniConfigDone    OnuDeviceEvent = 9 // AniSide config according to TechProfile done
+	DeviceStatusInit     OnuDeviceEvent = 0  // OnuDeviceEntry default start state
+	MibDatabaseSync      OnuDeviceEvent = 1  // MIB database sync (upload done)
+	OmciCapabilitiesDone OnuDeviceEvent = 2  // OMCI ME and message type capabilities known
+	MibDownloadDone      OnuDeviceEvent = 3  // MIB database sync (upload done)
+	UniLockStateDone     OnuDeviceEvent = 4  // Uni ports admin set to lock
+	UniUnlockStateDone   OnuDeviceEvent = 5  // Uni ports admin set to unlock
+	UniAdminStateDone    OnuDeviceEvent = 6  // Uni ports admin set done - general
+	PortLinkUp           OnuDeviceEvent = 7  // Port link state change
+	PortLinkDw           OnuDeviceEvent = 8  // Port link state change
+	OmciAniConfigDone    OnuDeviceEvent = 9  // AniSide config according to TechProfile done
+	OmciVlanFilterDone   OnuDeviceEvent = 10 // Omci Vlan config according to flowConfig done
 	// Add other events here as needed (alarms separate???)
 )
 

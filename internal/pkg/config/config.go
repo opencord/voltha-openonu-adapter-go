@@ -39,6 +39,7 @@ const (
 	defaultLoglevel             = "WARN"
 	defaultBanner               = false
 	defaultDisplayVersionOnly   = false
+	defaultAccIncrEvto          = false
 	defaultTopic                = "openonu"
 	defaultCoretopic            = "rwcore"
 	defaultEventtopic           = "voltha.events"
@@ -76,6 +77,7 @@ type AdapterFlags struct {
 	OnuNumber                   int
 	Banner                      bool
 	DisplayVersionOnly          bool
+	AccIncrEvto                 bool
 	ProbeHost                   string
 	ProbePort                   int
 	LiveProbeInterval           time.Duration
@@ -106,6 +108,7 @@ func NewAdapterFlags() *AdapterFlags {
 		OnuNumber:                   defaultOnunumber,
 		Banner:                      defaultBanner,
 		DisplayVersionOnly:          defaultDisplayVersionOnly,
+		AccIncrEvto:                 defaultAccIncrEvto,
 		ProbeHost:                   defaultProbeHost,
 		ProbePort:                   defaultProbePort,
 		LiveProbeInterval:           defaultLiveProbeInterval,
@@ -166,6 +169,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("Show version information and exit")
 	flag.BoolVar(&(so.DisplayVersionOnly), "version", defaultDisplayVersionOnly, help)
+
+	help = fmt.Sprintf("Acceptance of incremental EVTOCD configuration")
+	flag.BoolVar(&(so.AccIncrEvto), "accept_incr_evto", defaultAccIncrEvto, help)
 
 	help = fmt.Sprintf("The address on which to listen to answer liveness and readiness probe queries over HTTP.")
 	flag.StringVar(&(so.ProbeHost), "probe_host", defaultProbeHost, help)
