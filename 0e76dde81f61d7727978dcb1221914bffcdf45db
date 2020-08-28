@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ef4f1fef_907a955b",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 484,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-28T11:03:10Z",
+      "side": 1,
+      "message": "Please use UpperCamelCase naming convention (refer to https://github.com/opencord/voltha-openonu-adapter-go/blob/master/templates/BBSM-12345123451234512345-00000000000001-v1.json).",
+      "range": {
+        "startLine": 484,
+        "startChar": 1,
+        "endLine": 484,
+        "endChar": 12
+      },
+      "revId": "0e76dde81f61d7727978dcb1221914bffcdf45db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22752b7a_9219c4cf",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 485,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-28T11:03:10Z",
+      "side": 1,
+      "message": "Please use UpperCamelCase naming convention (refer to https://github.com/opencord/voltha-openonu-adapter-go/blob/master/templates/BBSM-12345123451234512345-00000000000001-v1.json).",
+      "range": {
+        "startLine": 485,
+        "startChar": 1,
+        "endLine": 485,
+        "endChar": 12
+      },
+      "revId": "0e76dde81f61d7727978dcb1221914bffcdf45db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8997c757_2651a242",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-28T11:03:10Z",
+      "side": 1,
+      "message": "Please use UpperCamelCase naming convention (refer to https://github.com/opencord/voltha-openonu-adapter-go/blob/master/templates/BBSM-12345123451234512345-00000000000001-v1.json).",
+      "range": {
+        "startLine": 496,
+        "startChar": 3,
+        "endLine": 496,
+        "endChar": 16
+      },
+      "revId": "0e76dde81f61d7727978dcb1221914bffcdf45db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "db259e3e_f5a5eb2e",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 497,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-28T11:03:10Z",
+      "side": 1,
+      "message": "Please use UpperCamelCase naming convention (refer to https://github.com/opencord/voltha-openonu-adapter-go/blob/master/templates/BBSM-12345123451234512345-00000000000001-v1.json).",
+      "range": {
+        "startLine": 497,
+        "startChar": 3,
+        "endLine": 497,
+        "endChar": 16
+      },
+      "revId": "0e76dde81f61d7727978dcb1221914bffcdf45db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "55b7254c_213ee2ae",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 511,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-08-28T11:03:10Z",
+      "side": 1,
+      "message": "Please use UpperCamelCase naming convention (refer to https://github.com/opencord/voltha-openonu-adapter-go/blob/master/templates/BBSM-12345123451234512345-00000000000001-v1.json).",
+      "range": {
+        "startLine": 511,
+        "startChar": 2,
+        "endLine": 511,
+        "endChar": 16
+      },
+      "revId": "0e76dde81f61d7727978dcb1221914bffcdf45db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
