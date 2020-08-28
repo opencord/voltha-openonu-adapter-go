@@ -64,16 +64,21 @@ func (onuDeviceDB *OnuDeviceDB) PutMe(meClassId me.ClassID, meEntityId uint16, m
 	} else {
 		meAttribs, ok := onuDeviceDB.meDb[meClassId][meEntityId]
 		if !ok {
+			/* verbose logging, avoid in >= debug level
 			logger.Debugw("meEntityId not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+			*/
 			onuDeviceDB.meDb[meClassId][meEntityId] = meAttributes
 		} else {
+			/* verbose logging, avoid in >= debug level
 			logger.Debugw("ME-Instance exists already: merge attribute data :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
-
+			*/
 			for k, v := range meAttributes {
 				meAttribs[k] = v
 			}
 			onuDeviceDB.meDb[meClassId][meEntityId] = meAttribs
+			/* verbose logging, avoid in >= debug level
 			logger.Debugw("ME-Instance updated :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
+			*/
 		}
 	}
 }
@@ -81,8 +86,10 @@ func (onuDeviceDB *OnuDeviceDB) PutMe(meClassId me.ClassID, meEntityId uint16, m
 func (onuDeviceDB *OnuDeviceDB) GetMe(meClassId me.ClassID, meEntityId uint16) me.AttributeValueMap {
 
 	if meAttributes, present := onuDeviceDB.meDb[meClassId][meEntityId]; present {
+		/* verbose logging, avoid in >= debug level
 		logger.Debugw("ME found:", log.Fields{"meClassId": meClassId, "meEntityId": meEntityId, "meAttributes": meAttributes,
 			"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+		*/
 		return meAttributes
 	} else {
 		return nil

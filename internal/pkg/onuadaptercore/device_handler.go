@@ -32,9 +32,13 @@ import (
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v3/pkg/db"
+	flow "github.com/opencord/voltha-lib-go/v3/pkg/flows"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	vc "github.com/opencord/voltha-protos/v3/go/common"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
+	"github.com/opencord/voltha-protos/v3/go/openflow_13"
+	of "github.com/opencord/voltha-protos/v3/go/openflow_13"
+	ofp "github.com/opencord/voltha-protos/v3/go/openflow_13"
 	oop "github.com/opencord/voltha-protos/v3/go/openolt"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 )
@@ -123,11 +127,12 @@ type DeviceHandler struct {
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
 	//metrics            *pmmetrics.PmMetrics
-	stopCollector      chan bool
-	stopHeartbeatCheck chan bool
-	activePorts        sync.Map
-	uniEntityMap       map[uint32]*OnuUniPort
-	reconciling        bool
+	stopCollector       chan bool
+	stopHeartbeatCheck  chan bool
+	activePorts         sync.Map
+	uniEntityMap        map[uint32]*OnuUniPort
+	UniVlanConfigFsmMap map[uint8]*UniVlanConfigFsm
+	reconciling         bool
 }
 
 //NewDeviceHandler creates a new device handler
@@ -151,6 +156,7 @@ func NewDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	dh.activePorts = sync.Map{}
 	//TODO initialize the support classes.
 	dh.uniEntityMap = make(map[uint32]*OnuUniPort)
+	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
 
 	// Device related state machine
@@ -315,7 +321,7 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 				var wg sync.WaitGroup
 				wg.Add(2) // for the 2 go routines to finish
 				// attention: deadline completion check and wg.Done is to be done in both routines
-				go dh.pOnuTP.configureUniTp(dctx, techProfMsg.UniId, techProfMsg.Path, &wg)
+				go dh.pOnuTP.configureUniTp(dctx, uint8(techProfMsg.UniId), techProfMsg.Path, &wg)
 				go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
 				//the wait.. function is responsible for tpProcMutex.Unlock()
 				err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collect their result
@@ -403,6 +409,58 @@ func (dh *DeviceHandler) ProcessInterAdapterMessage(msg *ic.InterAdapterMessage)
 			logger.Errorw("inter-adapter-unhandled-type", log.Fields{
 				"device-id": dh.deviceID, "msgType": msg.Header.Type})
 			return errors.New("unimplemented")
+		}
+	}
+	return nil
+}
+
+//FlowUpdateIncremental removes and/or adds the flow changes on a given device
+func (dh *DeviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.FlowChanges,
+	apOfGroupChanges *openflow_13.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
+
+	//Remove flows
+	if apOfFlowChanges.ToRemove != nil {
+		for _, flowItem := range apOfFlowChanges.ToRemove.Items {
+			logger.Debugw("incremental flow item remove", log.Fields{"deviceId": dh.deviceID,
+				"Item": flowItem})
+		}
+	}
+	if apOfFlowChanges.ToAdd != nil {
+		for _, flowItem := range apOfFlowChanges.ToAdd.Items {
+			if flowItem.GetCookie() == 0 {
+				logger.Debugw("incremental flow add - no cookie - ignore", log.Fields{
+					"deviceId": dh.deviceID})
+				continue
+			}
+			flowInPort := flow.GetInPort(flowItem)
+			if flowInPort == uint32(of.OfpPortNo_OFPP_INVALID) {
+				logger.Errorw("flow inPort invalid", log.Fields{"deviceID": dh.deviceID})
+				return errors.New("flow inPort invalid")
+			} else if flowInPort == dh.ponPortNumber {
+				//this is some downstream flow
+				logger.Debugw("incremental flow ignore downstream", log.Fields{
+					"deviceId": dh.deviceID, "inPort": flowInPort})
+				continue
+			} else {
+				// this is the relevant upstream flow
+				var loUniPort *OnuUniPort
+				if uniPort, exist := dh.uniEntityMap[flowInPort]; exist {
+					loUniPort = uniPort
+				} else {
+					logger.Errorw("flow inPort not found in UniPorts",
+						log.Fields{"deviceID": dh.deviceID, "inPort": flowInPort})
+					return errors.New("flow inPort not found in UniPorts")
+				}
+				flowOutPort := flow.GetOutPort(flowItem)
+				logger.Debugw("incremental flow-add port indications", log.Fields{
+					"deviceId": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
+					"uniPortName": loUniPort.name})
+				err := dh.addFlowItemToUniPort(flowItem, loUniPort)
+				//abort processing in error case
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
@@ -509,7 +567,7 @@ func (dh *DeviceHandler) ReconcileDeviceTechProf() {
 		var wg sync.WaitGroup
 		wg.Add(1) // for the 1 go routines to finish
 		// attention: deadline completion check and wg.Done is to be done in both routines
-		go dh.pOnuTP.configureUniTp(dctx, uniData.PersUniId, uniData.PersTpPath, &wg)
+		go dh.pOnuTP.configureUniTp(dctx, uint8(uniData.PersUniId), uniData.PersTpPath, &wg)
 		//the wait.. function is responsible for tpProcMutex.Unlock()
 		dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collect their result
 		return
@@ -1080,6 +1138,18 @@ func (dh *DeviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 				if dh.pOnuTP.pAniConfigFsm != nil {
 					dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 				}
+				for _, uniPort := range dh.uniEntityMap {
+					//reset the TechProfileConfig Done state for all (active) UNI's
+					dh.pOnuTP.setConfigDone(uniPort.uniId, false)
+					// reset tjhe possibly existing VlanConfigFsm
+					if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniId]; exist {
+						//VlanFilterFsm exists and was already started
+						pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
+						if pVlanFilterStatemachine != nil {
+							pVlanFilterStatemachine.Event(vlanEvReset)
+						}
+					}
+				}
 			}
 			//TODO!!! care about PM/Alarm processing once started
 		}
@@ -1275,8 +1345,6 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 	case OmciAniConfigDone:
 		{
 			logger.Debugw("OmciAniConfigDone event received", log.Fields{"device-id": dh.deviceID})
-			//TODO!: it might be needed to check some 'cached' pending flow configuration (vlan setting)
-			//  - to consider with outstanding flow implementation
 			// attention: the device reason update is done based on ONU-UNI-Port related activity
 			//  - which may cause some inconsistency
 			if dh.deviceReason != "tech-profile-config-download-success" {
@@ -1296,6 +1364,28 @@ func (dh *DeviceHandler) DeviceProcStatusUpdate(dev_Event OnuDeviceEvent) {
 				}
 				//set internal state anyway - as it was done
 				dh.deviceReason = "tech-profile-config-download-success"
+			}
+		}
+	case OmciVlanFilterDone:
+		{
+			logger.Debugw("OmciVlanFilterDone event received",
+				log.Fields{"device-id": dh.deviceID})
+			// attention: the device reason update is done based on ONU-UNI-Port related activity
+			//  - which may cause some inconsistency
+			//			yield self.core_proxy.device_reason_update(self.device_id, 'omci-flows-pushed')
+
+			if dh.deviceReason != "omci-flows-pushed" {
+				// which may be the case from some previous actvity on another UNI Port of the ONU
+				// or even some previous flow add activity on the same port
+				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-pushed"); err != nil {
+					logger.Errorw("error-DeviceReasonUpdate to 'omci-flows-pushed'",
+						log.Fields{"device-id": dh.deviceID, "error": err})
+				} else {
+					logger.Infow("updated dev reason to ''omci-flows-pushed'",
+						log.Fields{"device-id": dh.deviceID})
+				}
+				//set internal state anyway - as it was done
+				dh.deviceReason = "omci-flows-pushed"
 			}
 		}
 	default:
@@ -1415,7 +1505,7 @@ func (dh *DeviceHandler) sendOnuOperStateEvent(a_OperState vc.OperStatus_Types, 
 		log.Fields{"device-id": a_deviceID, "with-EventName": de.DeviceEventName})
 }
 
-// createUniLockFsm initialises and runs the UniLock FSM to transfer teh OMCi related commands for port lock/unlock
+// createUniLockFsm initialises and runs the UniLock FSM to transfer the OMCI related commands for port lock/unlock
 func (dh *DeviceHandler) createUniLockFsm(aAdminState bool, devEvent OnuDeviceEvent) {
 	chLSFsm := make(chan Message, 2048)
 	var sFsmName string
@@ -1502,4 +1592,250 @@ func (dh *DeviceHandler) SetBackend(aBasePathKvStore string) *db.Backend {
 		PathPrefix: aBasePathKvStore}
 
 	return kvbackend
+}
+
+//addFlowItemToUniPort parses the actual flow item to add it to the UniPort
+func (dh *DeviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUniPort *OnuUniPort) error {
+	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
+	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
+	var loAddPcp, loSetPcp uint8
+	/* the TechProfileId is part of the flow Metadata - compare also comment within
+	 * OLT-Adapter:openolt_flowmgr.go
+	 *     Metadata 8 bytes:
+	 *	   Most Significant 2 Bytes = Inner VLAN
+	 *	   Next 2 Bytes = Tech Profile ID(TPID)
+	 *	   Least Significant 4 Bytes = Port ID
+	 *     Flow Metadata carries Tech-Profile (TP) ID and is mandatory in all
+	 *     subscriber related flows.
+	 */
+
+	metadata := flow.GetMetadataFromWriteMetadataAction(apFlowItem)
+	if metadata == 0 {
+		logger.Debugw("FlowAdd invalid metadata - abort",
+			log.Fields{"device-id": dh.deviceID})
+		return errors.New("FlowAdd invalid metadata")
+	}
+	loTpID := flow.GetTechProfileIDFromWriteMetaData(metadata)
+	logger.Debugw("FlowAdd TechProfileId", log.Fields{"device-id": dh.deviceID, "TP-Id": loTpID})
+	for _, field := range flow.GetOfbFields(apFlowItem) {
+		switch field.Type {
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_ETH_TYPE:
+			{
+				logger.Debugw("FlowAdd type EthType", log.Fields{"device-id": dh.deviceID,
+					"EthType": strconv.FormatInt(int64(field.GetEthType()), 16)})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_IP_PROTO:
+			{
+				loIPProto := field.GetIpProto()
+				logger.Debugw("FlowAdd type IpProto", log.Fields{"device-id": dh.deviceID,
+					"IpProto": strconv.FormatInt(int64(loIPProto), 16)})
+				if loIPProto == 2 {
+					// some workaround for TT workflow at proto == 2 (IGMP trap) -> ignore the flow
+					// avoids installing invalid EVTOCD rule
+					logger.Debugw("FlowAdd type IpProto 2: TT workaround: ignore flow",
+						log.Fields{"device-id": dh.deviceID,
+							"IpProto": strconv.FormatInt(int64(loIPProto), 16)})
+					return nil
+				}
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_VID:
+			{
+				loMatchVlan = uint16(field.GetVlanVid())
+				loMatchVlanMask := uint16(field.GetVlanVidMask())
+				if !(loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) &&
+					loMatchVlanMask == uint16(of.OfpVlanId_OFPVID_PRESENT)) {
+					loMatchVlan = loMatchVlan & 0xFFF // not transparent: copy only ID bits
+				}
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"VID": strconv.FormatInt(int64(loMatchVlan), 16)})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_PCP:
+			{
+				loAddPcp = uint8(field.GetVlanPcp())
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"PCP": loAddPcp})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_UDP_DST:
+			{
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"UDP-DST": strconv.FormatInt(int64(field.GetUdpDst()), 16)})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_UDP_SRC:
+			{
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"UDP-SRC": strconv.FormatInt(int64(field.GetUdpSrc()), 16)})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_IPV4_DST:
+			{
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"IPv4-DST": field.GetIpv4Dst()})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_IPV4_SRC:
+			{
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"IPv4-SRC": field.GetIpv4Src()})
+			}
+		case of.OxmOfbFieldTypes_OFPXMT_OFB_METADATA:
+			{
+				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+					"Metadata": field.GetTableMetadata()})
+			}
+			/*
+				default:
+					{
+						//all other entires ignored
+					}
+			*/
+		}
+	} //for all OfbFields
+
+	for _, action := range flow.GetActions(apFlowItem) {
+		switch action.Type {
+		/* not used:
+		case of.OfpActionType_OFPAT_OUTPUT:
+			{
+				logger.Debugw("FlowAdd action type", log.Fields{"device-id": dh.deviceID,
+					"Output": action.GetOutput()})
+			}
+		*/
+		case of.OfpActionType_OFPAT_PUSH_VLAN:
+			{
+				logger.Debugw("FlowAdd action type", log.Fields{"device-id": dh.deviceID,
+					"PushEthType": strconv.FormatInt(int64(action.GetPush().Ethertype), 16)})
+			}
+		case of.OfpActionType_OFPAT_SET_FIELD:
+			{
+				pActionSetField := action.GetSetField()
+				if pActionSetField.Field.OxmClass != of.OfpOxmClass_OFPXMC_OPENFLOW_BASIC {
+					logger.Warnw("FlowAdd action SetField invalid OxmClass (ignored)", log.Fields{"device-id": dh.deviceID,
+						"OxcmClass": pActionSetField.Field.OxmClass})
+				}
+				if pActionSetField.Field.GetOfbField().Type == of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_VID {
+					loSetVlan = uint16(pActionSetField.Field.GetOfbField().GetVlanVid())
+					logger.Debugw("FlowAdd Set VLAN from SetField action", log.Fields{"device-id": dh.deviceID,
+						"SetVlan": strconv.FormatInt(int64(loSetVlan), 16)})
+				} else if pActionSetField.Field.GetOfbField().Type == of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_PCP {
+					loSetPcp = uint8(pActionSetField.Field.GetOfbField().GetVlanPcp())
+					logger.Debugw("FlowAdd Set PCP from SetField action", log.Fields{"device-id": dh.deviceID,
+						"SetPcp": loSetPcp})
+				} else {
+					logger.Warnw("FlowAdd action SetField invalid FieldType", log.Fields{"device-id": dh.deviceID,
+						"Type": pActionSetField.Field.GetOfbField().Type})
+				}
+			}
+			/*
+				default:
+					{
+						//all other entires ignored
+					}
+			*/
+		}
+	} //for all Actions
+
+	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) {
+		logger.Errorw("FlowAdd aborted - SetVlanId undefined, but MatchVid set", log.Fields{
+			"device-id": dh.deviceID, "UniPort": apUniPort.portNo,
+			"set_vid":   strconv.FormatInt(int64(loSetVlan), 16),
+			"match_vid": strconv.FormatInt(int64(loMatchVlan), 16)})
+		return errors.New("FlowAdd Set/Match VlanId inconsistent")
+	}
+	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) {
+		logger.Debugw("FlowAdd vlan-any/copy", log.Fields{"device-id": dh.deviceID})
+		loSetVlan = loMatchVlan //both 'transparent' (copy any)
+	} else {
+		//looks like OMCI value 4097 (copyFromOuter - for Uni double tagged) is not supported here
+		if loSetVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) {
+			// not set to transparent
+			loSetVlan &= 0x0FFF //mask VID bits as prerequiste for vlanConfigFsm
+		}
+		logger.Debugw("FlowAdd vlan-set", log.Fields{"device-id": dh.deviceID})
+	}
+	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniId]; exist {
+		logger.Errorw("FlowAdd aborted - FSM already running", log.Fields{
+			"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
+		return errors.New("FlowAdd FSM already running")
+	}
+	dh.createVlanFilterFsm(apUniPort,
+		loTpID, loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterDone)
+	return nil
+}
+
+// createVlanFilterFsm initialises and runs the VlanFilter FSM to transfer OMCI related VLAN config
+func (dh *DeviceHandler) createVlanFilterFsm(apUniPort *OnuUniPort,
+	aTpID uint16, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent) {
+	chVlanFilterFsm := make(chan Message, 2048)
+
+	pDevEntry := dh.GetOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+
+	pVlanFilterFsm := NewUniVlanConfigFsm(dh, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
+		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", dh.deviceID, chVlanFilterFsm,
+		dh.pOpenOnuAc.AcceptIncrementalEvto, aMatchVlan, aSetVlan, aSetPcp)
+	if pVlanFilterFsm != nil {
+		dh.UniVlanConfigFsmMap[apUniPort.uniId] = pVlanFilterFsm
+		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
+		if pVlanFilterStatemachine != nil {
+			if pVlanFilterStatemachine.Is(vlanStDisabled) {
+				if err := pVlanFilterStatemachine.Event(vlanEvStart); err != nil {
+					logger.Warnw("UniVlanConfigFsm: can't start", log.Fields{"err": err})
+				} else {
+					/***** UniVlanConfigFsm started */
+					logger.Debugw("UniVlanConfigFsm started", log.Fields{
+						"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
+						"UniPort": apUniPort.portNo})
+				}
+			} else {
+				logger.Warnw("wrong state of UniVlanConfigFsm - want: disabled", log.Fields{
+					"have": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID})
+			}
+		} else {
+			logger.Errorw("UniVlanConfigFsm StateMachine invalid - cannot be executed!!", log.Fields{
+				"device-id": dh.deviceID})
+		}
+	} else {
+		logger.Errorw("UniVlanConfigFsm could not be created - abort!!", log.Fields{
+			"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
+	}
+}
+
+//verifyUniVlanConfigRequest checks on existence of flow configuration and starts it accordingly
+func (dh *DeviceHandler) verifyUniVlanConfigRequest(apUniPort *OnuUniPort) {
+	//TODO!! verify and start pending flow configuration
+	//some pending config request my exist in case the UniVlanConfig FSM was already started - with internal data -
+	//but execution was set to 'on hold' as first the TechProfile config had to be applied
+	if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[apUniPort.uniId]; exist {
+		//VlanFilterFsm exists and was already started (assumed to wait for TechProfile execution here)
+		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
+		if pVlanFilterStatemachine != nil {
+			if pVlanFilterStatemachine.Is(vlanStWaitingTechProf) {
+				if err := pVlanFilterStatemachine.Event(vlanEvContinueConfig); err != nil {
+					logger.Warnw("UniVlanConfigFsm: can't continue processing", log.Fields{"err": err})
+				} else {
+					/***** UniVlanConfigFsm continued */
+					logger.Debugw("UniVlanConfigFsm continued", log.Fields{
+						"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
+						"UniPort": apUniPort.portNo})
+				}
+			} else {
+				logger.Debugw("no state of UniVlanConfigFsm to be continued", log.Fields{
+					"have": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID})
+			}
+		} else {
+			logger.Debugw("UniVlanConfigFsm StateMachine does not exist, no flow processing", log.Fields{
+				"device-id": dh.deviceID})
+		}
+
+	} // else: nothing to do
+}
+
+//RemoveVlanFilterFsm deletes the stored pointer to the VlanConfigFsm
+// intention is to provide this method to be called from VlanConfigFsm itself, when resources (and methods!) are cleaned up
+func (dh *DeviceHandler) RemoveVlanFilterFsm(apUniPort *OnuUniPort) {
+	logger.Debugw("remove UniVlanConfigFsm StateMachine", log.Fields{
+		"device-id": dh.deviceID, "uniPort": apUniPort.portNo})
+	//save to do, even if entry dows not exist
+	delete(dh.UniVlanConfigFsmMap, apUniPort.uniId)
 }
