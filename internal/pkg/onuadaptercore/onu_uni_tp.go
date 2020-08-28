@@ -67,8 +67,9 @@ type onuPersistentData struct {
 }
 
 type tTechProfileIndication struct {
-	techProfileType string
-	techProfileID   uint16
+	techProfileType       string
+	techProfileID         uint16
+	techProfileConfigDone bool
 }
 
 type tcontParamStruct struct {
@@ -109,10 +110,11 @@ type OnuUniTechProf struct {
 	onuKVStore         *db.Backend
 	onuKVStorePath     string
 	chTpProcessingStep chan uint8
-	mapUniTpIndication map[uint32]*tTechProfileIndication //use pointer values to ease assignments to the map
-	mapPonAniConfig    map[uint32]*tMapPonAniConfig       //per UNI: use pointer values to ease assignments to the map
+	mapUniTpIndication map[uint8]*tTechProfileIndication //use pointer values to ease assignments to the map
+	mapPonAniConfig    map[uint8]*tMapPonAniConfig       //per UNI: use pointer values to ease assignments to the map
 	pAniConfigFsm      *UniPonAniConfigFsm
 	procResult         error //error indication of processing
+	mutexTPState       sync.Mutex
 }
 
 //NewOnuUniTechProf returns the instance of a OnuUniTechProf
@@ -126,8 +128,8 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *De
 	onuTP.mapUniTpPath = make(map[uint32]string)
 	onuTP.sOnuPersistentData.PersUniTpPath = make([]uniPersData, 1)
 	onuTP.chTpProcessingStep = make(chan uint8)
-	onuTP.mapUniTpIndication = make(map[uint32]*tTechProfileIndication)
-	onuTP.mapPonAniConfig = make(map[uint32]*tMapPonAniConfig)
+	onuTP.mapUniTpIndication = make(map[uint8]*tTechProfileIndication)
+	onuTP.mapPonAniConfig = make(map[uint8]*tMapPonAniConfig)
 	onuTP.procResult = nil //default assumption processing done with success
 
 	onuTP.techProfileKVStore = aDeviceHandler.SetBackend(cBasePathTechProfileKVStore)
@@ -216,7 +218,7 @@ func (onuTP *OnuUniTechProf) waitForTpCompletion(cancel context.CancelFunc, wg *
 // but take care on sequential background processing when needed (logical dependencies)
 //   use waitForTimeoutOrCompletion(ctx, processingStep) for internal synchronisation
 func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
-	aUniID uint32, aPathString string, wg *sync.WaitGroup) {
+	aUniID uint8, aPathString string, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
 	logger.Debugw("configure the Uni according to TpPath", log.Fields{
 		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
@@ -446,7 +448,7 @@ func (onuTP *OnuUniTechProf) deletePersistentData(ctx context.Context) error {
 }
 
 func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
-	ctx context.Context, aUniID uint32, aPathString string, aProcessingStep uint8) {
+	ctx context.Context, aUniID uint8, aPathString string, aProcessingStep uint8) {
 	var tpInst tp.TechProfile
 
 	//store profile type and identifier for later usage within the OMCI identifier and possibly ME setup
@@ -614,7 +616,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 }
 
 func (onuTP *OnuUniTechProf) setAniSideConfigFromTechProfile(
-	ctx context.Context, aUniID uint32, apCurrentUniPort *OnuUniPort, aProcessingStep uint8) {
+	ctx context.Context, aUniID uint8, apCurrentUniPort *OnuUniPort, aProcessingStep uint8) {
 
 	//OMCI transfer of ANI data acc. to mapPonAniConfig
 	// also the FSM's are running in background,
@@ -646,7 +648,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 }
 
 // createUniLockFsm initialises and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
-func (onuTP *OnuUniTechProf) createAniConfigFsm(aUniID uint32,
+func (onuTP *OnuUniTechProf) createAniConfigFsm(aUniID uint8,
 	apCurrentUniPort *OnuUniPort, devEvent OnuDeviceEvent, aProcessingStep uint8) {
 	logger.Debugw("createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
 	chAniConfigFsm := make(chan Message, 2048)
@@ -694,4 +696,26 @@ func (onuTP *OnuUniTechProf) runAniConfigFsm(aProcessingStep uint8) {
 		logger.Errorw("AniConfigFSM StateMachine invalid - cannot be executed!!", log.Fields{"device-id": onuTP.deviceID})
 		// maybe try a FSM reset and then again ... - TODO!!!
 	}
+}
+
+// setConfigDone sets the requested techProfile config state (if possible)
+func (onuTP *OnuUniTechProf) setConfigDone(aUniID uint8, aState bool) {
+	if _, existTP := onuTP.mapUniTpIndication[aUniID]; existTP {
+		onuTP.mutexTPState.Lock()
+		onuTP.mapUniTpIndication[aUniID].techProfileConfigDone = aState
+		onuTP.mutexTPState.Unlock()
+	} //else: the state is just ignored (does not exist)
+}
+
+// getTechProfileDone checks if the Techprofile processing with the requested TechProfile ID was done
+func (onuTP *OnuUniTechProf) getTechProfileDone(aUniID uint8, aTpID uint16) bool {
+	if _, existTP := onuTP.mapUniTpIndication[aUniID]; existTP {
+		if onuTP.mapUniTpIndication[aUniID].techProfileID == aTpID {
+			onuTP.mutexTPState.Lock()
+			defer onuTP.mutexTPState.Unlock()
+			return onuTP.mapUniTpIndication[aUniID].techProfileConfigDone
+		}
+	}
+	//for all other constellations indicate false = Config not done
+	return false
 }

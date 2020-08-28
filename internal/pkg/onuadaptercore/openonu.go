@@ -52,6 +52,7 @@ type OpenONUAC struct {
 	exitChannel                 chan int
 	HeartbeatCheckInterval      time.Duration
 	HeartbeatFailReportInterval time.Duration
+	AcceptIncrementalEvto       bool
 	//GrpcTimeoutInterval         time.Duration
 	lockDeviceHandlersMap sync.RWMutex
 	pSupportedFsms        *OmciDeviceFsms
@@ -77,6 +78,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.KVStoreTimeout = cfg.KVStoreTimeout
 	openOnuAc.HeartbeatCheckInterval = cfg.HeartbeatCheckInterval
 	openOnuAc.HeartbeatFailReportInterval = cfg.HeartbeatFailReportInterval
+	openOnuAc.AcceptIncrementalEvto = cfg.AccIncrEvto
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.lockDeviceHandlersMap = sync.RWMutex{}
 
@@ -304,10 +306,32 @@ func (oo *OpenONUAC) Update_flows_bulk(device *voltha.Device, flows *voltha.Flow
 }
 
 //Update_flows_incrementally updates (add/remove) the flows on a given device
-func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device, flows *openflow_13.FlowChanges, groups *openflow_13.FlowGroupChanges, flowMetadata *voltha.FlowMetadata) error {
-	//	return errors.New("unImplemented")
-	// testwise: just acknowledge to see, if that avoids ongoing TechProfile config sequences ...
-	return nil
+func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device,
+	flows *openflow_13.FlowChanges, groups *openflow_13.FlowGroupChanges, flowMetadata *voltha.FlowMetadata) error {
+	// no point in pushing omci flows if the device isn't reachable
+	if device.ConnectStatus != voltha.ConnectStatus_REACHABLE ||
+		device.AdminState != voltha.AdminState_ENABLED {
+		logger.Warnw("device disabled or offline - skipping flow-update", log.Fields{"deviceId": device.Id})
+		return errors.New("non-matching device state")
+	}
+
+	// For now, there is no support for group changes (as in the actual Py-adapter code)
+	if groups.ToAdd != nil && groups.ToAdd.Items != nil {
+		logger.Debugw("Update-flow-incr: group add not supported (ignored)", log.Fields{"deviceId": device.Id})
+	}
+	if groups.ToRemove != nil && groups.ToRemove.Items != nil {
+		logger.Debugw("Update-flow-incr: group remove not supported (ignored)", log.Fields{"deviceId": device.Id})
+	}
+	if groups.ToUpdate != nil && groups.ToUpdate.Items != nil {
+		logger.Debugw("Update-flow-incr: group update not supported (ignored)", log.Fields{"deviceId": device.Id})
+	}
+
+	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+		err := handler.FlowUpdateIncremental(flows, groups, flowMetadata)
+		return err
+	}
+	logger.Warnw("no handler found for incremental flow update", log.Fields{"deviceId": device.Id})
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Update_pm_config returns PmConfigs nil or error
