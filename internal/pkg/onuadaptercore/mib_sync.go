@@ -29,7 +29,7 @@ import (
 	"github.com/looplab/fsm"
 
 	//"sync"
-	//"time"
+	"time"
 
 	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/omci-lib-go"
@@ -359,8 +359,12 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 		if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 			onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 		} else {
-			//TODO
 			onuDeviceEntry.pOnuDB.LogMeDb()
+			err := onuDeviceEntry.CreateAndPersistMibTemplate()
+			if err != nil {
+				logger.Errorw("MibSync - MibTemplate - Failed to create and persist the mib template", log.Fields{"error": err, "device-id": onuDeviceEntry.deviceID})
+			}
+
 			onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		}
 	case omci.GetResponseType:
@@ -466,6 +470,59 @@ func IsSupportedClassId(meClassId me.ClassID) bool {
 func (onuDeviceEntry *OnuDeviceEntry) MibDbVolatileDict() error {
 	logger.Debug("MibVolatileDict- running from default Entry code")
 	return errors.New("not_implemented")
+}
+
+// CreateAndPersistMibTemplate method creates a mib template for the device id when operator enables the ONU device for the first time.
+// We are creating a placeholder for "SerialNumber" for ME Class ID 6 and 256 and "MacAddress" for ME Class ID 134 in the template
+// and then storing the template into etcd "service/voltha/omci_mibs/templates/verdor_id/equipment_id/software_version" path.
+func (onuDeviceEntry *OnuDeviceEntry) CreateAndPersistMibTemplate() error {
+	path := fmt.Sprintf(cSuffixMibTemplateKvStore, onuDeviceEntry.vendorID, onuDeviceEntry.equipmentID, onuDeviceEntry.activeSwVersion)
+	logger.Debugw("MibSync - MibTemplate - key name", log.Fields{"path": path})
+	currentTime := time.Now()
+
+	templateMap := make(map[string]interface{})
+	templateMap["TemplateName"] = path
+	templateMap["TemplateCreated"] = currentTime.Format("2006-01-02 15:04:05.000000")
+
+	firstLevelMap := onuDeviceEntry.pOnuDB.meDb
+	for firstLevelKey, firstLevelValue := range firstLevelMap {
+		logger.Debugw("MibSync - MibTemplate - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
+		classId := strconv.Itoa(int(firstLevelKey))
+
+		secondLevelMap := make(map[string]interface{})
+		for secondLevelKey, secondLevelValue := range firstLevelValue {
+			thirdLevelMap := make(map[string]interface{})
+			entityId := strconv.Itoa(int(secondLevelKey))
+			thirdLevelMap["Attributes"] = secondLevelValue
+			thirdLevelMap["InstanceId"] = entityId
+			secondLevelMap[entityId] = thirdLevelMap
+			if classId == "6" || classId == "256" {
+				forthLevelMap := map[string]interface{}(thirdLevelMap["Attributes"].(me.AttributeValueMap))
+				delete(forthLevelMap, "SerialNumber")
+				forthLevelMap["SerialNumber"] = "%SERIAL_NUMBER%"
+
+			}
+			if classId == "134" {
+				forthLevelMap := map[string]interface{}(thirdLevelMap["Attributes"].(me.AttributeValueMap))
+				delete(forthLevelMap, "MacAddress")
+				forthLevelMap["MacAddress"] = "%MAC_ADDRESS%"
+			}
+		}
+		secondLevelMap["ClassId"] = classId
+		templateMap[classId] = secondLevelMap
+	}
+	mibTemplate, err := json.Marshal(&templateMap)
+	if err != nil {
+		logger.Errorw("MibSync - MibTemplate - Failed to marshal mibTemplate", log.Fields{"error": err, "device-id": onuDeviceEntry.deviceID})
+		return err
+	}
+	err = onuDeviceEntry.mibTemplateKVStore.Put(context.TODO(), path, string(mibTemplate))
+	if err != nil {
+		logger.Errorw("MibSync - MibTemplate - Failed to store template in etcd", log.Fields{"error": err, "device-id": onuDeviceEntry.deviceID})
+		return err
+	}
+	logger.Debugw("MibSync - MibTemplate - Stored the template to etcd", log.Fields{"device-id": onuDeviceEntry.deviceID})
+	return nil
 }
 
 // func (onuDeviceEntry *OnuDeviceEntry) MibTemplateTask() error {
