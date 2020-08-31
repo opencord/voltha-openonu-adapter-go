@@ -44,7 +44,7 @@ const (
 	ulEvStart              = "ulEvStart"
 	ulEvResetMib           = "ulEvResetMib"
 	ulEvGetVendorAndSerial = "ulEvGetVendorAndSerial"
-	ulEvGetEquipmentId     = "ulEvGetEquipmentId"
+	ulEvGetEquipmentID     = "ulEvGetEquipmentId"
 	ulEvGetFirstSwVersion  = "ulEvGetFirstSwVersion"
 	ulEvGetSecondSwVersion = "ulEvGetSecondSwVersion"
 	ulEvGetMacAddress      = "ulEvGetMacAddress"
@@ -65,7 +65,7 @@ const (
 	ulStStarting               = "ulStStarting"
 	ulStResettingMib           = "ulStResettingMib"
 	ulStGettingVendorAndSerial = "ulStGettingVendorAndSerial"
-	ulStGettingEquipmentId     = "ulStGettingEquipmentId"
+	ulStGettingEquipmentID     = "ulStGettingEquipmentID"
 	ulStGettingFirstSwVersion  = "ulStGettingFirstSwVersion"
 	ulStGettingSecondSwVersion = "ulStGettingSecondSwVersion"
 	ulStGettingMacAddress      = "ulStGettingMacAddress"
@@ -125,9 +125,9 @@ const (
 )
 
 type activityDescr struct {
-	databaseClass   func() error
-	advertiseEvents bool
-	auditDelay      uint16
+	databaseClass func() error
+	//advertiseEvents bool
+	auditDelay uint16
 	//tasks           map[string]func() error
 }
 type OmciDeviceFsms map[string]activityDescr
@@ -157,12 +157,12 @@ func (oo *AdapterFsm) logFsmStateChange(e *fsm.Event) {
 //OntDeviceEntry structure holds information about the attached FSM'as and their communication
 
 const (
-	FirstSwImageMeId  = 0
-	SecondSwImageMeId = 1
+	FirstSwImageMeID  = 0
+	SecondSwImageMeID = 1
 )
-const OnugMeId = 0
-const Onu2gMeId = 0
-const IpHostConfigDataMeId = 1
+const OnugMeID = 0
+const Onu2gMeID = 0
+const IPHostConfigDataMeID = 1
 const OnugSerialNumberLen = 8
 const OmciMacAddressLen = 6
 
@@ -183,7 +183,7 @@ type OnuDeviceEntry struct {
 	vendorID           string
 	serialNumber       string
 	equipmentID        string
-	swImages           [SecondSwImageMeId + 1]SwImages
+	swImages           [SecondSwImageMeID + 1]SwImages
 	activeSwVersion    string
 	macAddress         string
 	//lockDeviceEntries           sync.RWMutex
@@ -232,8 +232,8 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 			"mib-synchronizer": {
 				//mibSyncFsm,        // Implements the MIB synchronization state machine
 				onuDeviceEntry.MibDbVolatileDict, // Implements volatile ME MIB database
-				true,                             // Advertise events on OpenOMCI event bus
-				60,                               // Time to wait between MIB audits.  0 to disable audits.
+				//true,                             // Advertise events on OpenOMCI event bus
+				60, // Time to wait between MIB audits.  0 to disable audits.
 				// map[string]func() error{
 				// 	"mib-upload":    onuDeviceEntry.MibUploadTask,
 				// 	"mib-template":  onuDeviceEntry.MibTemplateTask,
@@ -263,8 +263,8 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 
 			{Name: ulEvResetMib, Src: []string{ulStStarting}, Dst: ulStResettingMib},
 			{Name: ulEvGetVendorAndSerial, Src: []string{ulStResettingMib}, Dst: ulStGettingVendorAndSerial},
-			{Name: ulEvGetEquipmentId, Src: []string{ulStGettingVendorAndSerial}, Dst: ulStGettingEquipmentId},
-			{Name: ulEvGetFirstSwVersion, Src: []string{ulStGettingEquipmentId}, Dst: ulStGettingFirstSwVersion},
+			{Name: ulEvGetEquipmentID, Src: []string{ulStGettingVendorAndSerial}, Dst: ulStGettingEquipmentID},
+			{Name: ulEvGetFirstSwVersion, Src: []string{ulStGettingEquipmentID}, Dst: ulStGettingFirstSwVersion},
 			{Name: ulEvGetSecondSwVersion, Src: []string{ulStGettingFirstSwVersion}, Dst: ulStGettingSecondSwVersion},
 			{Name: ulEvGetMacAddress, Src: []string{ulStGettingSecondSwVersion}, Dst: ulStGettingMacAddress},
 			{Name: ulEvGetMibTemplate, Src: []string{ulStGettingMacAddress}, Dst: ulStGettingMibTemplate},
@@ -290,11 +290,11 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 			{Name: ulEvSuccess, Src: []string{ulStResynchronizing}, Dst: ulStInSync},
 			{Name: ulEvDiffsFound, Src: []string{ulStResynchronizing}, Dst: ulStOutOfSync},
 
-			{Name: ulEvTimeout, Src: []string{ulStResettingMib, ulStGettingVendorAndSerial, ulStGettingEquipmentId, ulStGettingFirstSwVersion,
+			{Name: ulEvTimeout, Src: []string{ulStResettingMib, ulStGettingVendorAndSerial, ulStGettingEquipmentID, ulStGettingFirstSwVersion,
 				ulStGettingSecondSwVersion, ulStGettingMacAddress, ulStGettingMibTemplate, ulStUploading, ulStResynchronizing, ulStExaminingMds,
 				ulStInSync, ulStOutOfSync, ulStAuditing}, Dst: ulStStarting},
 
-			{Name: ulEvStop, Src: []string{ulStStarting, ulStResettingMib, ulStGettingVendorAndSerial, ulStGettingEquipmentId, ulStGettingFirstSwVersion,
+			{Name: ulEvStop, Src: []string{ulStStarting, ulStResettingMib, ulStGettingVendorAndSerial, ulStGettingEquipmentID, ulStGettingFirstSwVersion,
 				ulStGettingSecondSwVersion, ulStGettingMacAddress, ulStGettingMibTemplate, ulStUploading, ulStResynchronizing, ulStExaminingMds,
 				ulStInSync, ulStOutOfSync, ulStAuditing}, Dst: ulStDisabled},
 		},
@@ -304,7 +304,7 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 			("enter_" + ulStStarting):               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
 			("enter_" + ulStResettingMib):           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
 			("enter_" + ulStGettingVendorAndSerial): func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
-			("enter_" + ulStGettingEquipmentId):     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIdState(e) },
+			("enter_" + ulStGettingEquipmentID):     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIDState(e) },
 			("enter_" + ulStGettingFirstSwVersion):  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
 			("enter_" + ulStGettingSecondSwVersion): func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
 			("enter_" + ulStGettingMacAddress):      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
@@ -438,7 +438,7 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 }
 
 //Relay the InSync message via Handler to Rw core - Status update
-func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
+func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) {
 	logger.Debugw("relaying system-event", log.Fields{"Event": dev_Event})
 	// decouple the handler transfer from further processing here
 	// TODO!!! check if really no synch is required within the system e.g. to ensure following steps ..
@@ -460,5 +460,4 @@ func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) error {
 	} else {
 		logger.Warnw("device-event not yet handled", log.Fields{"state": dev_Event})
 	}
-	return nil
 }

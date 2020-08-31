@@ -76,7 +76,7 @@ func NewLockStateFsm(apDevOmciCC *OmciCC, aAdminState bool, aRequestEvent OnuDev
 			"device-id": aDeviceID})
 		return nil
 	}
-	if aAdminState == true { //port locking requested
+	if aAdminState { //port locking requested
 		instFsm.pAdaptFsm.pFsm = fsm.NewFSM(
 			uniStDisabled,
 			fsm.Events{
@@ -183,7 +183,7 @@ func (oFsm *LockStateFsm) enterAdminStartingState(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(uniEvStartAdmin)
+				_ = a_pAFsm.pFsm.Event(uniEvStartAdmin)
 			}
 		}(pLockStateAFsm)
 	}
@@ -191,7 +191,7 @@ func (oFsm *LockStateFsm) enterAdminStartingState(e *fsm.Event) {
 
 func (oFsm *LockStateFsm) enterSettingOnuGState(e *fsm.Event) {
 	var omciAdminState uint8 = 1 //default locked
-	if oFsm.adminState == false {
+	if !oFsm.adminState {
 		omciAdminState = 0
 	}
 	logger.Debugw("LockStateFSM Tx Set::ONU-G:admin", log.Fields{
@@ -222,7 +222,7 @@ func (oFsm *LockStateFsm) enterAdminDoneState(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(uniEvReset)
+				_ = a_pAFsm.pFsm.Event(uniEvReset)
 			}
 		}(pLockStateAFsm)
 	}
@@ -245,7 +245,7 @@ func (oFsm *LockStateFsm) enterResettingState(e *fsm.Event) {
 		// see DownloadedState: decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(uniEvRestart)
+				_ = a_pAFsm.pFsm.Event(uniEvRestart)
 			}
 		}(pLockStateAFsm)
 	}
@@ -255,34 +255,32 @@ func (oFsm *LockStateFsm) ProcessOmciLockMessages( /*ctx context.Context*/ ) {
 	logger.Debugw("Start LockStateFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 loop:
 	for {
-		select {
 		// case <-ctx.Done():
 		// 	logger.Info("MibSync Msg", log.Fields{"Message handling canceled via context for device-id": oFsm.pAdaptFsm.deviceID})
 		// 	break loop
-		case message, ok := <-oFsm.pAdaptFsm.commChan:
-			if !ok {
-				logger.Info("LockStateFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				oFsm.pAdaptFsm.pFsm.Event(uniEvRestart)
+		message, ok := <-oFsm.pAdaptFsm.commChan
+		if !ok {
+			logger.Info("LockStateFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
+			_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRestart)
+			break loop
+		}
+		logger.Debugw("LockStateFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+
+		switch message.Type {
+		case TestMsg:
+			msg, _ := message.Data.(TestMessage)
+			if msg.TestMessageVal == AbortMessageProcessing {
+				logger.Infow("LockStateFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 				break loop
 			}
-			logger.Debugw("LockStateFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-
-			switch message.Type {
-			case TestMsg:
-				msg, _ := message.Data.(TestMessage)
-				if msg.TestMessageVal == AbortMessageProcessing {
-					logger.Infow("LockStateFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-					break loop
-				}
-				logger.Warnw("LockStateFsm unknown TestMessage", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "MessageVal": msg.TestMessageVal})
-			case OMCI:
-				msg, _ := message.Data.(OmciMessage)
-				oFsm.handleOmciLockStateMessage(msg)
-			default:
-				logger.Warn("LockStateFsm Rx unknown message", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
-					"message.Type": message.Type})
-			}
+			logger.Warnw("LockStateFsm unknown TestMessage", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "MessageVal": msg.TestMessageVal})
+		case OMCI:
+			msg, _ := message.Data.(OmciMessage)
+			oFsm.handleOmciLockStateMessage(msg)
+		default:
+			logger.Warn("LockStateFsm Rx unknown message", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
+				"message.Type": message.Type})
 		}
 	}
 	logger.Infow("End LockStateFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
@@ -319,7 +317,7 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 			switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 			case "OnuG":
 				{ // let the FSM proceed ...
-					oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
+					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
 				}
 			case "UniG", "VEIP":
 				{ // let the PPTP init proceed by stopping the wait function
@@ -335,7 +333,7 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 
 func (oFsm *LockStateFsm) performUniPortAdminSet() {
 	var omciAdminState uint8 = 1 //default locked
-	if oFsm.adminState == false {
+	if !oFsm.adminState {
 		omciAdminState = 0
 	}
 	//set UNI-G or VEIP AdminState
@@ -365,27 +363,26 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 		if err != nil {
 			logger.Errorw("PPTP Admin State set failed, aborting LockState set!",
 				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "Port": uniNo})
-			oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 			return
 		}
 	} //for all UNI ports
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
 	logger.Infow("PPTP config loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event(uniEvRxUnisResp)
-	return
+	_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxUnisResp)
 }
 
 func (oFsm *LockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) error {
 	select {
-	// maybe be also some outside cancel (but no context modelled for the moment ...)
+	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("LockStateFSM uni-set timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 		return errors.New("LockStateFsm uni-set timeout")
 	case success := <-oFsm.omciLockResponseReceived:
-		if success == true {
+		if success {
 			logger.Debug("LockStateFSM uni-set response received")
 			return nil
 		}

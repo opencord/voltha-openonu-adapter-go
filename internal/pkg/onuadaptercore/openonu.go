@@ -86,8 +86,8 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 		"mib-synchronizer": {
 			//mibSyncFsm,        // Implements the MIB synchronization state machine
 			MibDbVolatileDictImpl, // Implements volatile ME MIB database
-			true,                  // Advertise events on OpenOMCI event bus
-			cMibAuditDelayImpl,    // Time to wait between MIB audits.  0 to disable audits.
+			//true,                  // Advertise events on OpenOMCI event bus
+			cMibAuditDelayImpl, // Time to wait between MIB audits.  0 to disable audits.
 			// map[string]func() error{
 			// 	"mib-upload":    onuDeviceEntry.MibUploadTask,
 			// 	"mib-template":  onuDeviceEntry.MibTemplateTask,
@@ -126,11 +126,13 @@ func (oo *OpenONUAC) addDeviceHandlerToMap(ctx context.Context, agent *DeviceHan
 	}
 }
 
+/*
 func (oo *OpenONUAC) deleteDeviceHandlerToMap(agent *DeviceHandler) {
 	oo.lockDeviceHandlersMap.Lock()
 	defer oo.lockDeviceHandlersMap.Unlock()
 	delete(oo.deviceHandlers, agent.deviceID)
 }
+*/
 
 func (oo *OpenONUAC) getDeviceHandler(deviceID string) *DeviceHandler {
 	oo.lockDeviceHandlersMap.Lock()

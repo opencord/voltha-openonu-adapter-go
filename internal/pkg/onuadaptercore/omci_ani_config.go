@@ -20,6 +20,7 @@ package adaptercoreonu
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -82,7 +83,7 @@ type UniPonAniConfigFsm struct {
 	pOnuDB                   *OnuDeviceDB
 	techProfileID            uint16
 	requestEvent             OnuDeviceEvent
-	omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
+	omciMIdsResponseReceived chan bool //separate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                *AdapterFsm
 	aniConfigCompleted       bool
 	chSuccess                chan<- uint8
@@ -212,7 +213,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 				oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + oFsm.techProfileID
 				oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityId) + oFsm.techProfileID
 
-				// For the time beeing: if there are multiple T-Conts on the ONU the first one from the entityID-ordered list is used
+				// For the time being: if there are multiple T-Conts on the ONU the first one from the entityID-ordered list is used
 				// TODO!: if more T-Conts have to be supported (tcontXID!), then use the first instances of the entity-ordered list
 				// or use the py code approach, which might be a bit more complicated, but also more secure, as it
 				// ensures that the selected T-Cont also has queues (which I would assume per definition from ONU, but who knows ...)
@@ -230,7 +231,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 				loGemPortAttribs := ponAniGemPortAttribs{}
 				//for all TechProfile set GemIndices
 				for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniId]))[0].mapGemPortParams {
-					//collect all GemConfigData in a seperate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
+					//collect all GemConfigData in a separate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
 
 					if queueInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
 
@@ -249,18 +250,18 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 
 						usQueueFound := false
 						dsQueueFound := false
-						for _, mgmtEntityId := range queueInstKeys {
-							if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityId); meAttributes != nil {
+						for _, mgmtEntityID := range queueInstKeys {
+							if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityID); meAttributes != nil {
 								returnVal := meAttributes["RelatedPort"]
 								if returnVal != nil {
 									if relatedPort, err := oFsm.pOnuDB.GetUint32Attrib(returnVal); err == nil {
 										if relatedPort == usQrelPortMask {
-											loGemPortAttribs.upQueueID = mgmtEntityId
+											loGemPortAttribs.upQueueID = mgmtEntityID
 											logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
 												"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
 											usQueueFound = true
-										} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityId < 0x8000 {
-											loGemPortAttribs.downQueueID = mgmtEntityId
+										} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityID < 0x8000 {
+											loGemPortAttribs.downQueueID = mgmtEntityID
 											logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
 												"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
 											dsQueueFound = true
@@ -276,7 +277,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 								}
 							} else {
 								logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
-									"mgmtEntityId": mgmtEntityId, "device-id": oFsm.pAdaptFsm.deviceID})
+									"mgmtEntityID": mgmtEntityID, "device-id": oFsm.pAdaptFsm.deviceID})
 							}
 						}
 					} else {
@@ -297,7 +298,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 
 					oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
 				}
-				a_pAFsm.pFsm.Event(aniEvStartConfig)
+				_ = a_pAFsm.pFsm.Event(aniEvStartConfig)
 			}
 		}(pConfigAniStateAFsm)
 	}
@@ -383,7 +384,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 
 	meParams := me.ParamData{
 		EntityID:   oFsm.mapperSP0ID,
-		Attributes: make(me.AttributeValueMap, 0),
+		Attributes: make(me.AttributeValueMap),
 	}
 
 	//assign the GemPorts according to the configured Prio
@@ -410,55 +411,18 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 		}
 	}
 	var foundIwPtr bool = false
-	if loPrioGemPortArray[0] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio0": strconv.FormatInt(int64(loPrioGemPortArray[0]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority0"] = loPrioGemPortArray[0]
+	for index, value := range loPrioGemPortArray {
+		if value != 0 {
+			foundIwPtr = true
+			meAttribute := fmt.Sprintf("InterworkTpPointerForPBitPriority%d", index)
+			logger.Debugf("UniPonAniConfigFsm Set::1pMapper", log.Fields{
+				"IwPtr for Prio%d": strconv.FormatInt(int64(value), 16), "device-id": oFsm.pAdaptFsm.deviceID}, index)
+			meParams.Attributes[meAttribute] = value
+
+		}
 	}
-	if loPrioGemPortArray[1] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio1": strconv.FormatInt(int64(loPrioGemPortArray[1]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority1"] = loPrioGemPortArray[1]
-	}
-	if loPrioGemPortArray[2] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio2": strconv.FormatInt(int64(loPrioGemPortArray[2]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority2"] = loPrioGemPortArray[2]
-	}
-	if loPrioGemPortArray[3] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio3": strconv.FormatInt(int64(loPrioGemPortArray[3]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority3"] = loPrioGemPortArray[3]
-	}
-	if loPrioGemPortArray[4] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio4": strconv.FormatInt(int64(loPrioGemPortArray[4]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority4"] = loPrioGemPortArray[4]
-	}
-	if loPrioGemPortArray[5] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio5": strconv.FormatInt(int64(loPrioGemPortArray[5]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority5"] = loPrioGemPortArray[5]
-	}
-	if loPrioGemPortArray[6] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio6": strconv.FormatInt(int64(loPrioGemPortArray[6]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority6"] = loPrioGemPortArray[6]
-	}
-	if loPrioGemPortArray[7] != 0 {
-		foundIwPtr = true
-		logger.Debugw("UniPonAniConfigFsm Set::1pMapper", log.Fields{
-			"IwPtr for Prio7": strconv.FormatInt(int64(loPrioGemPortArray[7]), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-		meParams.Attributes["InterworkTpPointerForPBitPriority7"] = loPrioGemPortArray[7]
-	}
-	if foundIwPtr == false {
+
+	if !foundIwPtr {
 		logger.Errorw("UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
 			"device-id": oFsm.pAdaptFsm.deviceID})
 		//let's reset the state machine in order to release all resources now
@@ -467,7 +431,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 			go func(a_pAFsm *AdapterFsm) {
 				if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-					a_pAFsm.pFsm.Event(aniEvReset)
+					_ = a_pAFsm.pFsm.Event(aniEvReset)
 				}
 			}(pConfigAniStateAFsm)
 		}
@@ -490,7 +454,7 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(aniEvReset)
+				_ = a_pAFsm.pFsm.Event(aniEvReset)
 			}
 		}(pConfigAniStateAFsm)
 	}
@@ -513,7 +477,7 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
 		//try to restart the FSM to 'disabled', decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(aniEvRestart)
+				_ = a_pAFsm.pFsm.Event(aniEvRestart)
 			}
 		}(pConfigAniStateAFsm)
 	}
@@ -548,37 +512,114 @@ func (oFsm *UniPonAniConfigFsm) processOmciAniMessages( /*ctx context.Context*/ 
 	logger.Debugw("Start UniPonAniConfigFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 loop:
 	for {
-		select {
 		// case <-ctx.Done():
 		// 	logger.Info("MibSync Msg", log.Fields{"Message handling canceled via context for device-id": oFsm.pAdaptFsm.deviceID})
 		// 	break loop
-		case message, ok := <-oFsm.pAdaptFsm.commChan:
-			if !ok {
-				logger.Info("UniPonAniConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		message, ok := <-oFsm.pAdaptFsm.commChan
+		if !ok {
+			logger.Info("UniPonAniConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			break loop
+		}
+		logger.Debugw("UniPonAniConfigFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+
+		switch message.Type {
+		case TestMsg:
+			msg, _ := message.Data.(TestMessage)
+			if msg.TestMessageVal == AbortMessageProcessing {
+				logger.Infow("UniPonAniConfigFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 				break loop
 			}
-			logger.Debugw("UniPonAniConfigFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+			logger.Warnw("UniPonAniConfigFsm unknown TestMessage", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "MessageVal": msg.TestMessageVal})
+		case OMCI:
+			msg, _ := message.Data.(OmciMessage)
+			oFsm.handleOmciAniConfigMessage(msg)
+		default:
+			logger.Warn("UniPonAniConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
+				"message.Type": message.Type})
+		}
 
-			switch message.Type {
-			case TestMsg:
-				msg, _ := message.Data.(TestMessage)
-				if msg.TestMessageVal == AbortMessageProcessing {
-					logger.Infow("UniPonAniConfigFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-					break loop
-				}
-				logger.Warnw("UniPonAniConfigFsm unknown TestMessage", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "MessageVal": msg.TestMessageVal})
-			case OMCI:
-				msg, _ := message.Data.(OmciMessage)
-				oFsm.handleOmciAniConfigMessage(msg)
-			default:
-				logger.Warn("UniPonAniConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
-					"message.Type": message.Type})
+	}
+	logger.Infow("End UniPonAniConfigFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+}
+
+func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
+	if msgLayer == nil {
+		logger.Error("Omci Msg layer could not be detected for CreateResponse")
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.CreateResponse)
+	if !msgOk {
+		logger.Error("Omci Msg layer could not be assigned for CreateResponse")
+		return
+	}
+	logger.Debugw("CreateResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
+	if msgObj.Result != me.Success {
+		logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		return
+	}
+	if msgObj.EntityClass == oFsm.pOmciCC.pLastTxMeInstance.GetClassID() &&
+		msgObj.EntityInstance == oFsm.pOmciCC.pLastTxMeInstance.GetEntityID() {
+		// maybe we can use just the same eventName for different state transitions like "forward"
+		//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
+		switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
+		case "Ieee8021PMapperServiceProfile":
+			{ // let the FSM proceed ...
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
+			}
+		case "MacBridgePortConfigurationData":
+			{ // let the FSM proceed ...
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
+			}
+		case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
+			{ // let aniConfig Multi-Id processing proceed by stopping the wait function
+				oFsm.omciMIdsResponseReceived <- true
 			}
 		}
 	}
-	logger.Infow("End UniPonAniConfigFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+}
+
+func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
+	if msgLayer == nil {
+		logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be detected for SetResponse")
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.SetResponse)
+	if !msgOk {
+		logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be assigned for SetResponse")
+		return
+	}
+	logger.Debugw("UniPonAniConfigFsm SetResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
+	if msgObj.Result != me.Success {
+		logger.Errorw("UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		return
+	}
+	if msgObj.EntityClass == oFsm.pOmciCC.pLastTxMeInstance.GetClassID() &&
+		msgObj.EntityInstance == oFsm.pOmciCC.pLastTxMeInstance.GetEntityID() {
+		//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
+		// if, then something like:
+		//oFsm.pOnuDB.StoreMe(msgObj)
+
+		switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
+		case "TCont":
+			{ // let the FSM proceed ...
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
+			}
+		case "PriorityQueue":
+			{ // let the PrioQueue init proceed by stopping the wait function
+				oFsm.omciMIdsResponseReceived <- true
+			}
+		case "Ieee8021PMapperServiceProfile":
+			{ // let the FSM proceed ...
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
+			}
+		}
+	}
 }
 
 func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
@@ -588,81 +629,13 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 	switch msg.OmciMsg.MessageType {
 	case omci.CreateResponseType:
 		{
-			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
-			if msgLayer == nil {
-				logger.Error("Omci Msg layer could not be detected for CreateResponse")
-				return
-			}
-			msgObj, msgOk := msgLayer.(*omci.CreateResponse)
-			if !msgOk {
-				logger.Error("Omci Msg layer could not be assigned for CreateResponse")
-				return
-			}
-			logger.Debugw("CreateResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
-			if msgObj.Result != me.Success {
-				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-				return
-			}
-			if msgObj.EntityClass == oFsm.pOmciCC.pLastTxMeInstance.GetClassID() &&
-				msgObj.EntityInstance == oFsm.pOmciCC.pLastTxMeInstance.GetEntityID() {
-				// maybe we can use just the same eventName for different state transitions like "forward"
-				//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
-				switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
-				case "Ieee8021PMapperServiceProfile":
-					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
-					}
-				case "MacBridgePortConfigurationData":
-					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
-					}
-				case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
-					{ // let aniConfig Multi-Id processing proceed by stopping the wait function
-						oFsm.omciMIdsResponseReceived <- true
-					}
-				}
-			}
+			oFsm.handleOmciAniConfigCreateResponseMessage(msg)
+
 		} //CreateResponseType
 	case omci.SetResponseType:
 		{
-			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
-			if msgLayer == nil {
-				logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be detected for SetResponse")
-				return
-			}
-			msgObj, msgOk := msgLayer.(*omci.SetResponse)
-			if !msgOk {
-				logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be assigned for SetResponse")
-				return
-			}
-			logger.Debugw("UniPonAniConfigFsm SetResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
-			if msgObj.Result != me.Success {
-				logger.Errorw("UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-				return
-			}
-			if msgObj.EntityClass == oFsm.pOmciCC.pLastTxMeInstance.GetClassID() &&
-				msgObj.EntityInstance == oFsm.pOmciCC.pLastTxMeInstance.GetEntityID() {
-				//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
-				// if, then something like:
-				//oFsm.pOnuDB.StoreMe(msgObj)
+			oFsm.handleOmciAniConfigSetResponseMessage(msg)
 
-				switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
-				case "TCont":
-					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
-					}
-				case "PriorityQueue":
-					{ // let the PrioQueue init proceed by stopping the wait function
-						oFsm.omciMIdsResponseReceived <- true
-					}
-				case "Ieee8021PMapperServiceProfile":
-					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
-					}
-				}
-			}
 		} //SetResponseType
 	default:
 		{
@@ -702,15 +675,14 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
 		if err != nil {
 			logger.Errorw("GemNWCtp create failed, aborting AniConfig FSM!",
 				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
-			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
 		}
 	} //for all GemPorts of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("GemNWCtp create loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemntcpsResp)
-	return
+	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemntcpsResp)
 }
 
 func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
@@ -741,15 +713,14 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
 		if err != nil {
 			logger.Errorw("GemIwTp create failed, aborting AniConfig FSM!",
 				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "GemIndex": gemIndex})
-			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
 		}
 	} //for all GemPort's of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("GemIwTp create loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemiwsResp)
-	return
+	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemiwsResp)
 }
 
 func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
@@ -758,7 +729,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 	loQueueMap := ordered_map.NewOrderedMap()
 	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
 		if gemPortAttribs.qosPolicy == "WRR" {
-			if _, ok := loQueueMap.Get(gemPortAttribs.upQueueID); ok == false {
+			if _, ok := loQueueMap.Get(gemPortAttribs.upQueueID); !ok {
 				//key does not yet exist
 				loQueueMap.Set(gemPortAttribs.upQueueID, uint16(gemPortAttribs.weight))
 			}
@@ -782,7 +753,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 		queueIndex := (kv.Key).(uint16)
 		meParams := me.ParamData{
 			EntityID:   queueIndex,
-			Attributes: make(me.AttributeValueMap, 0),
+			Attributes: make(me.AttributeValueMap),
 		}
 		if (kv.Value).(uint16) == cu16StrictPrioWeight {
 			//StrictPrio indication
@@ -810,7 +781,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 		if err != nil {
 			logger.Errorw("PrioQueue set failed, aborting AniConfig FSM!",
 				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
-			oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
 		}
 
@@ -823,25 +794,24 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 
 	// if Config has been done for all PrioQueue instances let the FSM proceed
 	logger.Debugw("PrioQueue set loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
-	return
+	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
 }
 
 func (oFsm *UniPonAniConfigFsm) waitforOmciResponse() error {
 	select {
-	// maybe be also some outside cancel (but no context modelled for the moment ...)
+	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("UniPonAniConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("UniPonAniConfigFsm multi entity timeout")
+		return errors.New("uniPonAniConfigFsm multi entity timeout")
 	case success := <-oFsm.omciMIdsResponseReceived:
-		if success == true {
+		if success {
 			logger.Debug("UniPonAniConfigFsm multi entity response received")
 			return nil
 		}
 		// should not happen so far
 		logger.Warnw("UniPonAniConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("UniPonAniConfigFsm multi entity responseError")
+		return errors.New("uniPonAniConfigFsm multi entity responseError")
 	}
 }
