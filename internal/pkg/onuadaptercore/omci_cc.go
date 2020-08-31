@@ -49,8 +49,9 @@ const ConstDefaultOmciTimeout = 10 // ( 3 ?) Seconds
 const galEthernetEID = uint16(1)
 const maxGemPayloadSize = uint16(48)
 const connectivityModeValue = uint8(5)
-const defaultTPID = uint16(0x8100)
-const broadComDefaultVID = uint16(4091)
+
+//const defaultTPID = uint16(0x8100)
+//const broadComDefaultVID = uint16(4091)
 const macBridgeServiceProfileEID = uint16(0x201) // TODO: most all these need better definition or tuning
 const ieeeMapperServiceProfileEID = uint16(0x8001)
 const macBridgePortAniEID = uint16(0x2102)
@@ -108,17 +109,17 @@ type OmciCC struct {
 
 //NewOmciCC constructor returns a new instance of a OmciCC
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
-func NewOmciCC(ctx context.Context, onu_device_entry *OnuDeviceEntry,
-	device_id string, device_handler *DeviceHandler,
-	core_proxy adapterif.CoreProxy, adapter_proxy adapterif.AdapterProxy) *OmciCC {
-	logger.Infow("init-omciCC", log.Fields{"device-id": device_id})
+func NewOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
+	deviceID string, deviceHandler *DeviceHandler,
+	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy) *OmciCC {
+	logger.Infow("init-omciCC", log.Fields{"device-id": deviceID})
 	var omciCC OmciCC
 	omciCC.enabled = false
-	omciCC.pOnuDeviceEntry = onu_device_entry
-	omciCC.deviceID = device_id
-	omciCC.pBaseDeviceHandler = device_handler
-	omciCC.coreProxy = core_proxy
-	omciCC.adapterProxy = adapter_proxy
+	omciCC.pOnuDeviceEntry = onuDeviceEntry
+	omciCC.deviceID = deviceID
+	omciCC.pBaseDeviceHandler = deviceHandler
+	omciCC.coreProxy = coreProxy
+	omciCC.adapterProxy = adapterProxy
 	omciCC.supportExtMsg = false
 	omciCC.txFrames = 0
 	omciCC.txOnuFrames = 0
@@ -183,7 +184,7 @@ func (oo *OmciCC) ReceiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 				}
 		    }
 	*/
-	return errors.New("ReceiveOnuMessage unimplemented")
+	return errors.New("receiveOnuMessage unimplemented")
 }
 
 // Rx handler for onu messages
@@ -201,8 +202,8 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 			logger.Debug("cc-corrected-omci-message: trailer len inserted")
 		}
 	} else {
-		logger.Errorw("received omci-message to small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
-		return errors.New("RxOmciMessage to small for BaseFormat")
+		logger.Errorw("received omci-message too small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
+		return errors.New("rxOmciMessage too small for BaseFormat")
 	}
 
 	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, gopacket.NoCopy)
@@ -227,27 +228,26 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		logger.Debug("RxMsg is no Omci Response Message")
 		if omciMsg.TransactionID == 0 {
 			return oo.ReceiveOnuMessage(ctx, omciMsg)
-		} else {
-			logger.Errorw("Unexpected TransCorrId != 0  not accepted for autonomous messages",
-				log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload)})
-			return errors.New("Autonomous Omci Message with TranSCorrId != 0 not acccepted")
 		}
+		logger.Errorw("Unexpected TransCorrId != 0  not accepted for autonomous messages",
+			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload)})
+		return errors.New("autonomous Omci Message with TranSCorrId != 0 not acccepted")
+
+	}
+	//logger.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
+	oo.mutexRxSchedMap.Lock()
+	rxCallbackEntry, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
+	if ok && rxCallbackEntry.cbFunction != nil {
+		//disadvantage of decoupling: error verification made difficult, but anyway the question is
+		// how to react on erroneous frame reception, maybe can simply be ignored
+		go rxCallbackEntry.cbFunction(omciMsg, &packet, rxCallbackEntry.cbRespChannel)
+		// having posted the response the request is regarded as 'done'
+		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
+		oo.mutexRxSchedMap.Unlock()
 	} else {
-		//logger.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
-		oo.mutexRxSchedMap.Lock()
-		rxCallbackEntry, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
-		if ok && rxCallbackEntry.cbFunction != nil {
-			//disadvantage of decoupling: error verification made difficult, but anyway the question is
-			// how to react on erroneous frame reception, maybe can simply be ignored
-			go rxCallbackEntry.cbFunction(omciMsg, &packet, rxCallbackEntry.cbRespChannel)
-			// having posted the response the request is regarded as 'done'
-			delete(oo.rxSchedulerMap, omciMsg.TransactionID)
-			oo.mutexRxSchedMap.Unlock()
-		} else {
-			oo.mutexRxSchedMap.Unlock()
-			logger.Error("omci-message-response for not registered transCorrId")
-			return errors.New("could not find registered response handler tor transCorrId")
-		}
+		oo.mutexRxSchedMap.Unlock()
+		logger.Error("omci-message-response for not registered transCorrId")
+		return errors.New("could not find registered response handler tor transCorrId")
 	}
 
 	return nil
@@ -355,7 +355,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 }
 
 func (oo *OmciCC) PublishRxResponseFrame(ctx context.Context, txFrame []byte, rxFrame []byte) error {
-	return errors.New("PublishRxResponseFrame unimplemented")
+	return errors.New("publishRxResponseFrame unimplemented")
 	/*
 		def _publish_rx_frame(self, tx_frame, rx_frame):
 	*/
@@ -486,7 +486,7 @@ func (oo *OmciCC) GetNextTid(highPriority bool) uint16 {
 	if highPriority {
 		oo.mutexTid.Lock()
 		next = oo.hpTid
-		oo.hpTid += 1
+		oo.hpTid++
 		if oo.hpTid < 0x8000 {
 			oo.hpTid = 0x8000
 		}
@@ -494,7 +494,7 @@ func (oo *OmciCC) GetNextTid(highPriority bool) uint16 {
 	} else {
 		oo.mutexHpTid.Lock()
 		next = oo.tid
-		oo.tid += 1
+		oo.tid++
 		if oo.tid >= 0x8000 {
 			oo.tid = 1
 		}
@@ -513,12 +513,12 @@ func serialize(msgType omci.MessageType, request gopacket.SerializableLayer, tid
 	return serializeOmciLayer(omciLayer, request)
 }
 
-func serializeOmciLayer(a_omciLayer *omci.OMCI, a_request gopacket.SerializableLayer) ([]byte, error) {
+func serializeOmciLayer(aOmciLayer *omci.OMCI, aRequest gopacket.SerializableLayer) ([]byte, error) {
 	var options gopacket.SerializeOptions
 	options.FixLengths = true
 
 	buffer := gopacket.NewSerializeBuffer()
-	err := gopacket.SerializeLayers(buffer, options, a_omciLayer, a_request)
+	err := gopacket.SerializeLayers(buffer, options, aOmciLayer, aRequest)
 	if err != nil {
 		logger.Errorw("Could not create goPacket Omci serial buffer", log.Fields{"Err": err})
 		return nil, err
@@ -526,11 +526,13 @@ func serializeOmciLayer(a_omciLayer *omci.OMCI, a_request gopacket.SerializableL
 	return buffer.Bytes(), nil
 }
 
+/*
 func hexEncode(omciPkt []byte) ([]byte, error) {
 	dst := make([]byte, hex.EncodedLen(len(omciPkt)))
 	hex.Encode(dst, omciPkt)
 	return dst, nil
 }
+*/
 
 //supply a response handler for omci response messages to be transferred to the requested FSM
 func (oo *OmciCC) receiveOmciResponse(omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
@@ -541,7 +543,7 @@ func (oo *OmciCC) receiveOmciResponse(omciMsg *omci.OMCI, packet *gp.Packet, res
 	if oo.pOnuDeviceEntry == nil {
 		logger.Errorw("Abort receiving OMCI response, DeviceEntryPointer is nil", log.Fields{
 			"device-id": oo.deviceID})
-		return errors.New("DeviceEntryPointer is nil")
+		return errors.New("deviceEntryPointer is nil")
 	}
 
 	// no further test on SeqNo is done here, assignment from rxScheduler is trusted
@@ -609,7 +611,7 @@ func (oo *OmciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 	err = oo.pOnuDeviceEntry.waitForRebootResponse(responseChannel)
 	if err != nil {
 		logger.Error("aborting ONU Reboot!")
-		oo.pOnuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
+		_ = oo.pOnuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
 		return err
 	}
 	return nil
@@ -756,9 +758,9 @@ func (oo *OmciCC) sendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 }
 
 func (oo *OmciCC) sendCreateMBServiceProfile(ctx context.Context,
-	a_pUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
+	aPUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	instID := macBridgeServiceProfileEID + uint16(a_pUniPort.macBpNo)
+	instID := macBridgeServiceProfileEID + uint16(aPUniPort.macBpNo)
 	logger.Debugw("send MBSP-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
@@ -812,19 +814,19 @@ func (oo *OmciCC) sendCreateMBServiceProfile(ctx context.Context,
 }
 
 func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
-	a_pUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
+	aPUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	instID := macBridgePortAniEID + a_pUniPort.entityId
+	instID := macBridgePortAniEID + aPUniPort.entityId
 	logger.Debugw("send MBPCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"BridgeIdPointer": macBridgeServiceProfileEID + uint16(a_pUniPort.macBpNo),
-			"PortNum":         a_pUniPort.macBpNo,
-			"TpType":          uint8(a_pUniPort.portType),
-			"TpPointer":       a_pUniPort.entityId,
+			"BridgeIdPointer": macBridgeServiceProfileEID + uint16(aPUniPort.macBpNo),
+			"PortNum":         aPUniPort.macBpNo,
+			"TpType":          uint8(aPUniPort.portType),
+			"TpPointer":       aPUniPort.entityId,
 		},
 	}
 	meInstance, omciErr := me.NewMacBridgePortConfigurationData(meParams)
@@ -864,10 +866,10 @@ func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
 }
 
 func (oo *OmciCC) sendCreateEVTOConfigData(ctx context.Context,
-	a_pUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
+	aPUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
 	//same entityId is used as for MBSP (see there), but just arbitrary ...
-	instID := macBridgeServiceProfileEID + uint16(a_pUniPort.macBpNo)
+	instID := macBridgeServiceProfileEID + uint16(aPUniPort.macBpNo)
 	logger.Debugw("send EVTOCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
@@ -875,14 +877,14 @@ func (oo *OmciCC) sendCreateEVTOConfigData(ctx context.Context,
 	//   (setting TPID values for the create would probably anyway be ignored by the omci lib)
 	//    but perhaps we have to be aware of possible problems at get(Next) Request handling for EVTOOCD tables later ...
 	assType := uint8(2) // default AssociationType is PPTPEthUni
-	if a_pUniPort.portType == UniVEIP {
+	if aPUniPort.portType == UniVEIP {
 		assType = uint8(10) // for VEIP
 	}
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
 			"AssociationType":     assType,
-			"AssociatedMePointer": a_pUniPort.entityId,
+			"AssociatedMePointer": aPUniPort.entityId,
 		},
 	}
 	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(meParams)
@@ -1068,15 +1070,15 @@ func (oo *OmciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 	}
 	meInstance, omciErr := me.LoadManagedEntityDefinition(classID, meParams)
 	if omciErr.GetError() == nil {
-		meClassIdName := meInstance.GetName()
+		meClassIDName := meInstance.GetName()
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid))
 		if err != nil {
-			logger.Errorf("Cannot encode instance for get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "device-id": oo.deviceID})
+			logger.Errorf("Cannot encode instance for get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
 		if err != nil {
-			logger.Errorw("Cannot serialize get-request", log.Fields{"meClassIdName": meClassIdName, "Err": err, "device-id": oo.deviceID})
+			logger.Errorw("Cannot serialize get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil
 		}
 		omciRxCallbackPair := CallbackPair{
@@ -1085,10 +1087,10 @@ func (oo *OmciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		}
 		err = oo.Send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
-			logger.Errorw("Cannot send get-request-msg", log.Fields{"meClassIdName": meClassIdName, "Err": err, "device-id": oo.deviceID})
+			logger.Errorw("Cannot send get-request-msg", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil
 		}
-		logger.Debugw("send get-request-msg done", log.Fields{"meClassIdName": meClassIdName, "device-id": oo.deviceID})
+		logger.Debugw("send get-request-msg done", log.Fields{"meClassIDName": meClassIDName, "device-id": oo.deviceID})
 		return meInstance
 	}
 	logger.Errorw("Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "device-id": oo.deviceID})

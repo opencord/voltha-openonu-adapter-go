@@ -45,7 +45,7 @@ import (
 )
 
 type adapter struct {
-	defaultAppName   string
+	//defaultAppName   string
 	instanceID       string
 	config           *config.AdapterFlags
 	iAdapter         adapters.IAdapter // from Voltha interface adapters
@@ -422,9 +422,8 @@ func getVerifiedCodeVersion() string {
 		content, err := ioutil.ReadFile("VERSION")
 		if err == nil {
 			return (string(content))
-		} else {
-			logger.Error("'VERSION'-file not readable")
 		}
+		logger.Error("'VERSION'-file not readable")
 	}
 	return version.VersionInfo.Version
 }
@@ -508,17 +507,17 @@ func main() {
 
 	realMain() //fatal on httpListen(0,6060) ...
 
-	defer log.CleanUp()
-
+	defer func() {
+		_ = log.CleanUp()
+	}()
 	// Print version / build information and exit
 	if cf.DisplayVersionOnly {
 		printVersion(defaultAppName)
 		return
-	} else {
-		logger.Infow("config", log.Fields{"StartName": defaultAppName})
-		logger.Infow("config", log.Fields{"BuildVersion": version.VersionInfo.String("  ")})
-		logger.Infow("config", log.Fields{"Arguments": os.Args[1:]})
 	}
+	logger.Infow("config", log.Fields{"StartName": defaultAppName})
+	logger.Infow("config", log.Fields{"BuildVersion": version.VersionInfo.String("  ")})
+	logger.Infow("config", log.Fields{"Arguments": os.Args[1:]})
 
 	// Print banner if specified
 	if cf.Banner {
