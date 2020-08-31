@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package core Common Logger initialization
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
 package adaptercoreonu
 
 import (

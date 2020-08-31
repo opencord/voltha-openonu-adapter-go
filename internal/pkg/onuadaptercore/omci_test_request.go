@@ -41,7 +41,7 @@ type OmciTestRequest struct {
 	pDevOmciCC   *OmciCC
 	started      bool
 	result       bool
-	exclusive_cc bool
+	exclusiveCc  bool
 	allowFailure bool
 	txSeqNo      uint16
 	verifyDone   chan<- bool
@@ -49,26 +49,26 @@ type OmciTestRequest struct {
 
 //NewOmciTestRequest returns a new instance of OmciTestRequest
 func NewOmciTestRequest(ctx context.Context,
-	device_id string, omci_cc *OmciCC,
-	exclusive bool, allow_failure bool) *OmciTestRequest {
+	deviceID string, omciCc *OmciCC,
+	exclusive bool, allowFailure bool) *OmciTestRequest {
 	logger.Debug("omciTestRequest-init")
 	var omciTestRequest OmciTestRequest
-	omciTestRequest.deviceID = device_id
-	omciTestRequest.pDevOmciCC = omci_cc
+	omciTestRequest.deviceID = deviceID
+	omciTestRequest.pDevOmciCC = omciCc
 	omciTestRequest.started = false
 	omciTestRequest.result = false
-	omciTestRequest.exclusive_cc = exclusive
-	omciTestRequest.allowFailure = allow_failure
+	omciTestRequest.exclusiveCc = exclusive
+	omciTestRequest.allowFailure = allowFailure
 
 	return &omciTestRequest
 }
 
 //
-func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, exec_Channel chan<- bool) {
+func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, execChannel chan<- bool) {
 	logger.Debug("omciTestRequest-start-test")
 
 	if oo.pDevOmciCC != nil {
-		oo.verifyDone = exec_Channel
+		oo.verifyDone = execChannel
 		// test functionality is limited to ONU-2G get request for the moment
 		// without yet checking the received response automatically here (might be improved ??)
 		tid := oo.pDevOmciCC.GetNextTid(false)
@@ -124,7 +124,7 @@ func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(omciMsg *omci.OMCI, packet 
 		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect TransCorrId": omciMsg.TransactionID,
 			"expected": oo.txSeqNo})
 		oo.verifyDone <- false
-		return errors.New("Unexpected TransCorrId")
+		return errors.New("unexpected TransCorrId")
 	}
 	if omciMsg.MessageType == omci.GetResponseType {
 		logger.Debugw("verify-omci-message-response", log.Fields{"correct RespType": omciMsg.MessageType})
@@ -132,7 +132,7 @@ func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(omciMsg *omci.OMCI, packet 
 		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect RespType": omciMsg.MessageType,
 			"expected": omci.GetResponseType})
 		oo.verifyDone <- false
-		return errors.New("Unexpected MessageType")
+		return errors.New("unexpected MessageType")
 	}
 
 	//TODO!!! further tests on the payload should be done here ...

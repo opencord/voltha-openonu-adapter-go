@@ -74,7 +74,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDownloadedState(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(dlEvReset)
+				_ = a_pAFsm.pFsm.Event(dlEvReset)
 			}
 		}(pMibDlFsm)
 	}
@@ -97,7 +97,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(e *fsm.Event) {
 		// see DownloadedState: decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(dlEvRestart)
+				_ = a_pAFsm.pFsm.Event(dlEvRestart)
 			}
 		}(pMibDlFsm)
 	}
@@ -107,35 +107,35 @@ func (onuDeviceEntry *OnuDeviceEntry) ProcessMibDownloadMessages( /*ctx context.
 	logger.Debugw("Start MibDownload Msg processing", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 loop:
 	for {
-		select {
 		// case <-ctx.Done():
 		// 	logger.Info("MibSync Msg", log.Fields{"Message handling canceled via context for device-id": onuDeviceEntry.deviceID})
 		// 	break loop
-		case message, ok := <-onuDeviceEntry.pMibDownloadFsm.commChan:
-			if !ok {
-				logger.Info("MibDownload Rx Msg", log.Fields{"Message couldn't be read from channel for device-id": onuDeviceEntry.deviceID})
-				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRestart)
+		// unless multiple channels are not involved, we should not use select
+		message, ok := <-onuDeviceEntry.pMibDownloadFsm.commChan
+		if !ok {
+			logger.Info("MibDownload Rx Msg", log.Fields{"Message couldn't be read from channel for device-id": onuDeviceEntry.deviceID})
+			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
+			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRestart)
+			break loop
+		}
+		logger.Debugw("MibDownload Rx Msg", log.Fields{"Received message for device-id": onuDeviceEntry.deviceID})
+
+		switch message.Type {
+		case TestMsg:
+			msg, _ := message.Data.(TestMessage)
+			if msg.TestMessageVal == AbortMessageProcessing {
+				logger.Infow("MibDownload abort ProcessMsg", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 				break loop
 			}
-			logger.Debugw("MibDownload Rx Msg", log.Fields{"Received message for device-id": onuDeviceEntry.deviceID})
-
-			switch message.Type {
-			case TestMsg:
-				msg, _ := message.Data.(TestMessage)
-				if msg.TestMessageVal == AbortMessageProcessing {
-					logger.Infow("MibDownload abort ProcessMsg", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-					break loop
-				}
-				logger.Warnw("MibDownload unknown TestMessage", log.Fields{"device-id": onuDeviceEntry.deviceID, "MessageVal": msg.TestMessageVal})
-			case OMCI:
-				msg, _ := message.Data.(OmciMessage)
-				onuDeviceEntry.handleOmciMibDownloadMessage(msg)
-			default:
-				logger.Warn("MibDownload Rx Msg", log.Fields{"Unknown message type received for device-id": onuDeviceEntry.deviceID,
-					"message.Type": message.Type})
-			}
+			logger.Warnw("MibDownload unknown TestMessage", log.Fields{"device-id": onuDeviceEntry.deviceID, "MessageVal": msg.TestMessageVal})
+		case OMCI:
+			msg, _ := message.Data.(OmciMessage)
+			onuDeviceEntry.handleOmciMibDownloadMessage(msg)
+		default:
+			logger.Warn("MibDownload Rx Msg", log.Fields{"Unknown message type received for device-id": onuDeviceEntry.deviceID,
+				"message.Type": message.Type})
 		}
+
 	}
 	logger.Infow("End MibDownload Msg processing", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 }
@@ -179,7 +179,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
 				case "GalEthernetProfile":
 					{ // let the FSM proceed ...
-						onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxGalResp)
+						_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxGalResp)
 					}
 				case "MacBridgeServiceProfile",
 					"MacBridgePortConfigurationData",
@@ -221,7 +221,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
 				case "Onu2G":
 					{ // let the FSM proceed ...
-						onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxOnu2gResp)
+						_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxOnu2gResp)
 					}
 					//so far that was the only MibDownlad Set Element ...
 				}
@@ -248,7 +248,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		err := onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at MBSP, aborting MIB Download!")
-			onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
+			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 
@@ -260,7 +260,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at MBPCD, aborting MIB Download!")
-			onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
+			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 
@@ -272,32 +272,31 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
 			logger.Error("InitialBridgeSetup failed at EVTOCD, aborting MIB Download!")
-			onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
+			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 	}
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
 	logger.Infow("IntialBridgeSetup finished", log.Fields{"device-id": onuDeviceEntry.deviceID})
-	onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxBridgeResp)
-	return
+	_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxBridgeResp)
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(apMeInstance *me.ManagedEntity) error {
 	select {
-	// maybe be also some outside cancel (but no context modelled for the moment ...)
+	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Info("MibDownload-bridge-init message reception canceled", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("MibDownload-bridge-init timeout", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-		return errors.New("MibDownloadBridgeInit timeout")
+		return errors.New("mibDownloadBridgeInit timeout")
 	case success := <-onuDeviceEntry.omciMessageReceived:
-		if success == true {
+		if success {
 			logger.Debug("MibDownload-bridge-init response received")
 			return nil
 		}
 		// should not happen so far
 		logger.Warnw("MibDownload-bridge-init response error", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-		return errors.New("MibDownloadBridgeInit responseError")
+		return errors.New("mibDownloadBridgeInit responseError")
 	}
 }
