@@ -26,7 +26,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/looplab/fsm"
 	"github.com/opencord/voltha-lib-go/v3/pkg/db"
 	"github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
@@ -76,15 +75,15 @@ type tcontParamStruct struct {
 	schedPolicy uint8
 }
 type gemPortParamStruct struct {
-	ponOmciCC       bool
+	//ponOmciCC       bool
 	gemPortID       uint16
 	direction       uint8
 	gemPortEncState uint8
 	prioQueueIndex  uint8
 	pbitString      string
 	discardPolicy   string
-	//could also be a queue specific paramter, not used that way here
-	maxQueueSize     uint16
+	//could also be a queue specific parameter, not used that way here
+	//maxQueueSize     uint16
 	queueSchedPolicy string
 	queueWeight      uint8
 }
@@ -214,7 +213,7 @@ func (onuTP *OnuUniTechProf) waitForTpCompletion(cancel context.CancelFunc, wg *
 // configureUniTp checks existing tp resources to delete and starts the corresponding OMCI configuation of the UNI port
 // all possibly blocking processing must be run in background to allow for deadline supervision!
 // but take care on sequential background processing when needed (logical dependencies)
-//   use waitForTimeoutOrCompletion(ctx, processingStep) for internal synchronisation
+//   use waitForTimeoutOrCompletion(ctx, processingStep) for internal synchronization
 func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 	aUniID uint32, aPathString string, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
@@ -282,10 +281,10 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 				logger.Debugw("tech-profile related configuration aborted on set",
 					log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
 				onuTP.procResult = errors.New("TechProfile config aborted: Omci AniSideConfig failed")
-				//this issue here means that the AniConfigFsm has not finished succesfully
+				//this issue here means that the AniConfigFsm has not finished successfully
 				//which requires to reset it to allow for new usage, e.g. also on a different UNI
 				//(without that it would be reset on device down indication latest)
-				onuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				_ = onuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 				return
 			}
 		} else {
@@ -535,7 +534,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 	//note: the code is currently restricted to one TCcont per Onu (index [0])
 	//get the relevant values from the profile and store to mapPonAniConfig
 	(*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.allocID = uint16(tpInst.UsScheduler.AllocID)
-	//maybe tCont scheduling not (yet) needed - just to basicaly have it for future
+	//maybe tCont scheduling not (yet) needed - just to basically have it for future
 	//  (would only be relevant in case of ONU-2G QOS configuration flexibility)
 	if tpInst.UsScheduler.QSchedPolicy == "StrictPrio" {
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].tcontParams.schedPolicy = 1 //for the moment fixed value acc. G.988 //TODO: defines!
@@ -589,7 +588,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 		(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueWeight =
 			uint8(content.Weight)
 	}
-	if loGemPortRead == false {
+	if !loGemPortRead {
 		logger.Errorw("PonAniConfig reject - no GemPort could be read from TechProfile",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
 		//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
@@ -597,7 +596,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 		onuTP.chTpProcessingStep <- 0 //error indication
 		return
 	}
-	//TODO!! MC (downstream) GemPorts can be set using DownstreamGemPortAttributeList seperately
+	//TODO!! MC (downstream) GemPorts can be set using DownstreamGemPortAttributeList separately
 
 	//logger does not simply output the given structures, just give some example debug values
 	logger.Debugw("PonAniConfig read from TechProfile", log.Fields{
@@ -645,7 +644,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 	}
 }
 
-// createUniLockFsm initialises and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
+// createUniLockFsm initializes and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
 func (onuTP *OnuUniTechProf) createAniConfigFsm(aUniID uint32,
 	apCurrentUniPort *OnuUniPort, devEvent OnuDeviceEvent, aProcessingStep uint8) {
 	logger.Debugw("createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
@@ -671,8 +670,7 @@ func (onuTP *OnuUniTechProf) runAniConfigFsm(aProcessingStep uint8) {
 	/*  Uni related ANI config procedure -
 	 ***** should run via 'aniConfigDone' state and generate the argument requested event *****
 	 */
-	var pACStatemachine *fsm.FSM
-	pACStatemachine = onuTP.pAniConfigFsm.pAdaptFsm.pFsm
+	pACStatemachine := onuTP.pAniConfigFsm.pAdaptFsm.pFsm
 	if pACStatemachine != nil {
 		if pACStatemachine.Is(aniStDisabled) {
 			//FSM init requirement to get informed abou FSM completion! (otherwise timeout of the TechProf config)

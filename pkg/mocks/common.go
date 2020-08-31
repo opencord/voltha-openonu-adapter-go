@@ -21,12 +21,10 @@ import (
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 )
 
-var logger log.Logger
-
 func init() {
 	// Setup this package so that it's log level can be modified at run time
 	var err error
-	logger, err = log.AddPackage(log.JSON, log.ErrorLevel, log.Fields{"pkg": "mocks"})
+	_, err = log.AddPackage(log.JSON, log.ErrorLevel, log.Fields{"pkg": "mocks"})
 	if err != nil {
 		panic(err)
 	}

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package core provides the utility for olt devices, flows and statistics
+//Package adaptercoreonu provides the utility for onu devices, flows and statistics
 package adaptercoreonu
 
 //Attention: this file is more or less a coopy of file olt_platform.go from the voltha-openolt-adapter
@@ -98,8 +98,11 @@ const (
 	bitsForONUID = 8
 	// Number of bits for PON ID
 	bitsForPONID = 8
-	// Number of bits to differentiate between UNI and NNI Logical Port
-	bitsForUNINNIDiff = 1
+	/*
+		// Number of bits to differentiate between UNI and NNI Logical Port
+		bitsForUNINNIDiff = 1
+	*/
+
 	//MaxOnusPerPon is Max number of ONUs on any PON port
 	MaxOnusPerPon = (1 << bitsForONUID)
 	//MaxPonsPerOlt is Max number of PON ports on any OLT

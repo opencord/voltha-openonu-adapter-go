@@ -37,56 +37,55 @@ type OnuDeviceDB struct {
 }
 
 //OnuDeviceDB returns a new instance for a specific ONU_Device_Entry
-func NewOnuDeviceDB(ctx context.Context, a_pOnuDeviceEntry *OnuDeviceEntry) *OnuDeviceDB {
-	logger.Debugw("Init OnuDeviceDB for:", log.Fields{"device-id": a_pOnuDeviceEntry.deviceID})
+func NewOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *OnuDeviceDB {
+	logger.Debugw("Init OnuDeviceDB for:", log.Fields{"device-id": aPOnuDeviceEntry.deviceID})
 	var onuDeviceDB OnuDeviceDB
 	onuDeviceDB.ctx = ctx
-	onuDeviceDB.pOnuDeviceEntry = a_pOnuDeviceEntry
+	onuDeviceDB.pOnuDeviceEntry = aPOnuDeviceEntry
 	onuDeviceDB.meDb = make(MeDbMap)
 
 	return &onuDeviceDB
 }
 
-func (onuDeviceDB *OnuDeviceDB) PutMe(meClassId me.ClassID, meEntityId uint16, meAttributes me.AttributeValueMap) {
+func (onuDeviceDB *OnuDeviceDB) PutMe(meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
 
 	//filter out the OnuData
-	if me.OnuDataClassID == meClassId {
+	if me.OnuDataClassID == meClassID {
 		return
 	}
 
-	//logger.Debugw("Search for key data :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID, "meClassId": meClassId, "meEntityId": meEntityId})
-	meInstMap, ok := onuDeviceDB.meDb[meClassId]
+	//logger.Debugw("Search for key data :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID, "meClassID": meClassID, "meEntityID": meEntityID})
+	meInstMap, ok := onuDeviceDB.meDb[meClassID]
 	if !ok {
-		logger.Debugw("meClassId not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+		logger.Debugw("meClassID not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 		meInstMap = make(map[uint16]me.AttributeValueMap)
-		onuDeviceDB.meDb[meClassId] = meInstMap
-		onuDeviceDB.meDb[meClassId][meEntityId] = meAttributes
+		onuDeviceDB.meDb[meClassID] = meInstMap
+		onuDeviceDB.meDb[meClassID][meEntityID] = meAttributes
 	} else {
-		meAttribs, ok := onuDeviceDB.meDb[meClassId][meEntityId]
+		meAttribs, ok := meInstMap[meEntityID]
 		if !ok {
-			logger.Debugw("meEntityId not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
-			onuDeviceDB.meDb[meClassId][meEntityId] = meAttributes
+			logger.Debugw("meEntityID not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+			meInstMap[meEntityID] = meAttributes
 		} else {
 			logger.Debugw("ME-Instance exists already: merge attribute data :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
 
 			for k, v := range meAttributes {
 				meAttribs[k] = v
 			}
-			onuDeviceDB.meDb[meClassId][meEntityId] = meAttribs
+			meInstMap[meEntityID] = meAttribs
 			logger.Debugw("ME-Instance updated :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
 		}
 	}
 }
 
-func (onuDeviceDB *OnuDeviceDB) GetMe(meClassId me.ClassID, meEntityId uint16) me.AttributeValueMap {
+func (onuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
 
-	if meAttributes, present := onuDeviceDB.meDb[meClassId][meEntityId]; present {
-		logger.Debugw("ME found:", log.Fields{"meClassId": meClassId, "meEntityId": meEntityId, "meAttributes": meAttributes,
+	if meAttributes, present := onuDeviceDB.meDb[meClassID][meEntityID]; present {
+		logger.Debugw("ME found:", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttributes": meAttributes,
 			"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 		return meAttributes
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (onuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32, error) {
@@ -119,9 +118,9 @@ func (onuDeviceDB *OnuDeviceDB) GetSortedInstKeys(meClassID me.ClassID) []uint16
 
 func (onuDeviceDB *OnuDeviceDB) LogMeDb() {
 	logger.Debugw("ME instances stored for :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
-	for meClassId, meInstMap := range onuDeviceDB.meDb {
-		for meEntityId, meAttribs := range meInstMap {
-			logger.Debugw("ME instance: ", log.Fields{"meClassId": meClassId, "meEntityId": meEntityId, "meAttribs": meAttribs, "device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+	for meClassID, meInstMap := range onuDeviceDB.meDb {
+		for meEntityID, meAttribs := range meInstMap {
+			logger.Debugw("ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs, "device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 		}
 	}
 }

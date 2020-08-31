@@ -45,8 +45,7 @@ type Message struct {
 type TestMessageType uint8
 
 const (
-	noOperation TestMessageType = iota
-	LoadMibTemplateOk
+	LoadMibTemplateOk TestMessageType = iota + 1
 	LoadMibTemplateFailed
 	TimeOutOccurred
 	AbortMessageProcessing
