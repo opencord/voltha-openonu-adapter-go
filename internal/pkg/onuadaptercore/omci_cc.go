@@ -816,7 +816,7 @@ func (oo *OmciCC) sendCreateMBServiceProfile(ctx context.Context,
 func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
 	aPUniPort *OnuUniPort, timeout int, highPrio bool) *me.ManagedEntity {
 	tid := oo.GetNextTid(highPrio)
-	instID := macBridgePortAniEID + aPUniPort.entityId
+	instID := macBridgePortAniEID + aPUniPort.entityID
 	logger.Debugw("send MBPCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
 
@@ -826,7 +826,7 @@ func (oo *OmciCC) sendCreateMBPConfigData(ctx context.Context,
 			"BridgeIdPointer": macBridgeServiceProfileEID + uint16(aPUniPort.macBpNo),
 			"PortNum":         aPUniPort.macBpNo,
 			"TpType":          uint8(aPUniPort.portType),
-			"TpPointer":       aPUniPort.entityId,
+			"TpPointer":       aPUniPort.entityID,
 		},
 	}
 	meInstance, omciErr := me.NewMacBridgePortConfigurationData(meParams)
@@ -884,7 +884,7 @@ func (oo *OmciCC) sendCreateEVTOConfigData(ctx context.Context,
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
 			"AssociationType":     assType,
-			"AssociatedMePointer": aPUniPort.entityId,
+			"AssociatedMePointer": aPUniPort.entityID,
 		},
 	}
 	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(meParams)

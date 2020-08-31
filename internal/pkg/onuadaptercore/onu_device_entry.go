@@ -206,16 +206,16 @@ type OnuDeviceEntry struct {
 
 //OnuDeviceEntry returns a new instance of a OnuDeviceEntry
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
-func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string, kVStorePort int, kvStoreType string, device_Handler *DeviceHandler,
-	core_proxy adapterif.CoreProxy, adapter_proxy adapterif.AdapterProxy,
-	supported_Fsms_Ptr *OmciDeviceFsms) *OnuDeviceEntry {
-	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": device_id})
+func NewOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string, kVStorePort int, kvStoreType string, deviceHandler *DeviceHandler,
+	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy,
+	supportedFsmsPtr *OmciDeviceFsms) *OnuDeviceEntry {
+	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": deviceID})
 	var onuDeviceEntry OnuDeviceEntry
 	onuDeviceEntry.started = false
-	onuDeviceEntry.deviceID = device_id
-	onuDeviceEntry.baseDeviceHandler = device_Handler
-	onuDeviceEntry.coreProxy = core_proxy
-	onuDeviceEntry.adapterProxy = adapter_proxy
+	onuDeviceEntry.deviceID = deviceID
+	onuDeviceEntry.baseDeviceHandler = deviceHandler
+	onuDeviceEntry.coreProxy = coreProxy
+	onuDeviceEntry.adapterProxy = adapterProxy
 	onuDeviceEntry.devState = DeviceStatusInit
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan Message, 2048)
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
@@ -223,8 +223,8 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 	//are per ONU Vendor
 	//
 	// MIB Synchronization Database - possible overloading from arguments
-	if supported_Fsms_Ptr != nil {
-		onuDeviceEntry.supportedFsms = *supported_Fsms_Ptr
+	if supportedFsmsPtr != nil {
+		onuDeviceEntry.supportedFsms = *supportedFsmsPtr
 	} else {
 		//var mibSyncFsm = NewMibSynchronizer()
 		// use some internaö defaults, if not defined from outside
@@ -254,7 +254,7 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 	onuDeviceEntry.mibDebugLevel = "normal" //set to "verbose" if you want to have all output, possibly later also per config option!
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
-	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", device_id, mibUploadChan)
+	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", deviceID, mibUploadChan)
 	onuDeviceEntry.pMibUploadFsm.pFsm = fsm.NewFSM(
 		ulStDisabled,
 		fsm.Events{
@@ -319,7 +319,7 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 	)
 	// Omci related Mib download state machine
 	mibDownloadChan := make(chan Message, 2048)
-	onuDeviceEntry.pMibDownloadFsm = NewAdapterFsm("MibDownload", device_id, mibDownloadChan)
+	onuDeviceEntry.pMibDownloadFsm = NewAdapterFsm("MibDownload", deviceID, mibDownloadChan)
 	onuDeviceEntry.pMibDownloadFsm.pFsm = fsm.NewFSM(
 		dlStDisabled,
 		fsm.Events{
@@ -361,7 +361,7 @@ func NewOnuDeviceEntry(ctx context.Context, device_id string, kVStoreHost string
 
 	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.SetBackend(cBasePathMibTemplateKvStore)
 	if onuDeviceEntry.mibTemplateKVStore == nil {
-		logger.Errorw("Failed to setup mibTemplateKVStore", log.Fields{"device-id": device_id})
+		logger.Errorw("Failed to setup mibTemplateKVStore", log.Fields{"device-id": deviceID})
 	}
 
 	// Alarm Synchronization Database
@@ -378,7 +378,7 @@ func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 		oo.coreProxy, oo.adapterProxy)
 	if oo.PDevOmciCC == nil {
 		logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
-		return errors.New("Could not create devOmciCc")
+		return errors.New("could not create devOmciCc")
 	}
 
 	oo.started = true
@@ -410,54 +410,54 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 	select {
 	case <-time.After(3 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("Reboot timeout", log.Fields{"for device-id": oo.deviceID})
-		return errors.New("RebootTimeout")
+		return errors.New("rebootTimeout")
 	case data := <-responseChannel:
 		switch data.Data.(OmciMessage).OmciMsg.MessageType {
 		case omci.RebootResponseType:
 			{
 				msgLayer := (*data.Data.(OmciMessage).OmciPacket).Layer(omci.LayerTypeRebootResponse)
 				if msgLayer == nil {
-					return errors.New("Omci Msg layer could not be detected for RebootResponseType")
+					return errors.New("omci Msg layer could not be detected for RebootResponseType")
 				}
 				msgObj, msgOk := msgLayer.(*omci.GetResponse)
 				if !msgOk {
-					return errors.New("Omci Msg layer could not be assigned for RebootResponseType")
+					return errors.New("omci Msg layer could not be assigned for RebootResponseType")
 				}
 				logger.Debugw("CreateResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 				if msgObj.Result != me.Success {
 					logger.Errorw("Omci RebootResponseType Error ", log.Fields{"Error": msgObj.Result})
 					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-					return errors.New("Omci RebootResponse Result Error indication")
+					return errors.New("omci RebootResponse Result Error indication")
 				}
 				return nil
 			}
 		}
 		logger.Warnw("Reboot response error", log.Fields{"for device-id": oo.deviceID})
-		return errors.New("Unexpected OmciResponse type received")
+		return errors.New("unexpected OmciResponse type received")
 	}
 }
 
 //Relay the InSync message via Handler to Rw core - Status update
-func (oo *OnuDeviceEntry) transferSystemEvent(dev_Event OnuDeviceEvent) {
-	logger.Debugw("relaying system-event", log.Fields{"Event": dev_Event})
+func (oo *OnuDeviceEntry) transferSystemEvent(devEvent OnuDeviceEvent) {
+	logger.Debugw("relaying system-event", log.Fields{"Event": devEvent})
 	// decouple the handler transfer from further processing here
 	// TODO!!! check if really no synch is required within the system e.g. to ensure following steps ..
-	if dev_Event == MibDatabaseSync {
+	if devEvent == MibDatabaseSync {
 		if oo.devState < MibDatabaseSync { //devState has not been synced yet
 			oo.devState = MibDatabaseSync
-			go oo.baseDeviceHandler.DeviceProcStatusUpdate(dev_Event)
+			go oo.baseDeviceHandler.DeviceProcStatusUpdate(devEvent)
 			//TODO!!! device control: next step: start MIB capability verification from here ?!!!
 		} else {
 			logger.Debugw("mibinsync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
 		}
-	} else if dev_Event == MibDownloadDone {
+	} else if devEvent == MibDownloadDone {
 		if oo.devState < MibDownloadDone { //devState has not been synced yet
 			oo.devState = MibDownloadDone
-			go oo.baseDeviceHandler.DeviceProcStatusUpdate(dev_Event)
+			go oo.baseDeviceHandler.DeviceProcStatusUpdate(devEvent)
 		} else {
 			logger.Debugw("mibdownloaddone-event was already seen - ignored", log.Fields{"state": oo.devState})
 		}
 	} else {
-		logger.Warnw("device-event not yet handled", log.Fields{"state": dev_Event})
+		logger.Warnw("device-event not yet handled", log.Fields{"state": devEvent})
 	}
 }

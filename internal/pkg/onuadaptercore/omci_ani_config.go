@@ -181,6 +181,102 @@ func (oFsm *UniPonAniConfigFsm) SetFsmCompleteChannel(aChSuccess chan<- uint8, a
 	oFsm.chanSet = true
 }
 
+func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
+	if aPAFsm != nil && aPAFsm.pFsm != nil {
+		//stick to pythonAdapter numbering scheme
+		//index 0 in naming refers to possible usage of multiple instances (later)
+		oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + oFsm.techProfileID
+		oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityID) + oFsm.techProfileID
+
+		// For the time being: if there are multiple T-Conts on the ONU the first one from the entityID-ordered list is used
+		// TODO!: if more T-Conts have to be supported (tcontXID!), then use the first instances of the entity-ordered list
+		// or use the py code approach, which might be a bit more complicated, but also more secure, as it
+		// ensures that the selected T-Cont also has queues (which I would assume per definition from ONU, but who knows ...)
+		// so this approach would search the (sorted) upstream PrioQueue list and use the T-Cont (if available) from highest Bytes
+		// or sndHighByte of relatedPort Attribute (T-Cont Reference) and in case of multiple TConts find the next free TContIndex
+		// that way from PrioQueue.relatedPort list
+		if tcontInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.TContClassID); len(tcontInstKeys) > 0 {
+			oFsm.tcont0ID = tcontInstKeys[0]
+			logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
+				"device-id": oFsm.pAdaptFsm.deviceID})
+		} else {
+			logger.Warnw("No TCont instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+		}
+		oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniID]))[0].tcontParams.allocID
+		loGemPortAttribs := ponAniGemPortAttribs{}
+		//for all TechProfile set GemIndices
+		for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniID]))[0].mapGemPortParams {
+			//collect all GemConfigData in a separate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
+
+			if queueInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
+
+				loGemPortAttribs.gemPortID = gemEntry.gemPortID
+				// MibDb usage: upstream PrioQueue.RelatedPort = xxxxyyyy with xxxx=TCont.Entity(incl. slot) and yyyy=prio
+				// i.e.: search PrioQueue list with xxxx=actual T-Cont.Entity,
+				// from that list use the PrioQueue.Entity with  gemEntry.prioQueueIndex == yyyy (expect 0..7)
+				usQrelPortMask := uint32((((uint32)(oFsm.tcont0ID)) << 16) + uint32(gemEntry.prioQueueIndex))
+
+				// MibDb usage: downstream PrioQueue.RelatedPort = xxyyzzzz with xx=slot, yy=UniPort and zzzz=prio
+				// i.e.: search PrioQueue list with yy=actual pOnuUniPort.uniID,
+				// from that list use the PrioQueue.Entity with gemEntry.prioQueueIndex == zzzz (expect 0..7)
+				// Note: As we do not maintain any slot numbering, slot number will be excluded from seatch pattern.
+				//       Furthermore OMCI Onu port-Id is expected to start with 1 (not 0).
+				dsQrelPortMask := uint32((((uint32)(oFsm.pOnuUniPort.uniID + 1)) << 16) + uint32(gemEntry.prioQueueIndex))
+
+				usQueueFound := false
+				dsQueueFound := false
+				for _, mgmtEntityID := range queueInstKeys {
+					if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityID); meAttributes != nil {
+						returnVal := meAttributes["RelatedPort"]
+						if returnVal != nil {
+							if relatedPort, err := oFsm.pOnuDB.GetUint32Attrib(returnVal); err == nil {
+								if relatedPort == usQrelPortMask {
+									loGemPortAttribs.upQueueID = mgmtEntityID
+									logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
+										"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+									usQueueFound = true
+								} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityID < 0x8000 {
+									loGemPortAttribs.downQueueID = mgmtEntityID
+									logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
+										"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
+									dsQueueFound = true
+								}
+								if usQueueFound && dsQueueFound {
+									break
+								}
+							} else {
+								logger.Warnw("Could not convert attribute value", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+							}
+						} else {
+							logger.Warnw("'RelatedPort' not found in meAttributes:", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+						}
+					} else {
+						logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
+							"mgmtEntityID": mgmtEntityID, "device-id": oFsm.pAdaptFsm.deviceID})
+					}
+				}
+			} else {
+				logger.Warnw("No PriorityQueue instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+			}
+			loGemPortAttribs.direction = gemEntry.direction
+			loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
+			loGemPortAttribs.weight = gemEntry.queueWeight
+			loGemPortAttribs.pbitString = gemEntry.pbitString
+
+			logger.Debugw("prio-related GemPort attributes:", log.Fields{
+				"gemPortID":      loGemPortAttribs.gemPortID,
+				"upQueueID":      loGemPortAttribs.upQueueID,
+				"downQueueID":    loGemPortAttribs.downQueueID,
+				"pbitString":     loGemPortAttribs.pbitString,
+				"prioQueueIndex": gemEntry.prioQueueIndex,
+			})
+
+			oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
+		}
+		_ = aPAFsm.pFsm.Event(aniEvStartConfig)
+	}
+}
+
 func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 	logger.Debugw("UniPonAniConfigFsm start", log.Fields{"in state": e.FSM.Current(),
 		"device-id": oFsm.pAdaptFsm.deviceID})
@@ -206,101 +302,8 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
 	if pConfigAniStateAFsm != nil {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-		go func(a_pAFsm *AdapterFsm) {
-			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				//stick to pythonAdapter numbering scheme
-				//index 0 in naming refers to possible usage of multiple instances (later)
-				oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + oFsm.techProfileID
-				oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityId) + oFsm.techProfileID
+		go oFsm.prepareAndEnterConfigState(pConfigAniStateAFsm)
 
-				// For the time being: if there are multiple T-Conts on the ONU the first one from the entityID-ordered list is used
-				// TODO!: if more T-Conts have to be supported (tcontXID!), then use the first instances of the entity-ordered list
-				// or use the py code approach, which might be a bit more complicated, but also more secure, as it
-				// ensures that the selected T-Cont also has queues (which I would assume per definition from ONU, but who knows ...)
-				// so this approach would search the (sorted) upstream PrioQueue list and use the T-Cont (if available) from highest Bytes
-				// or sndHighByte of relatedPort Attribute (T-Cont Reference) and in case of multiple TConts find the next free TContIndex
-				// that way from PrioQueue.relatedPort list
-				if tcontInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.TContClassID); len(tcontInstKeys) > 0 {
-					oFsm.tcont0ID = tcontInstKeys[0]
-					logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
-						"device-id": oFsm.pAdaptFsm.deviceID})
-				} else {
-					logger.Warnw("No TCont instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-				}
-				oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniId]))[0].tcontParams.allocID
-				loGemPortAttribs := ponAniGemPortAttribs{}
-				//for all TechProfile set GemIndices
-				for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniId]))[0].mapGemPortParams {
-					//collect all GemConfigData in a separate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
-
-					if queueInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
-
-						loGemPortAttribs.gemPortID = gemEntry.gemPortID
-						// MibDb usage: upstream PrioQueue.RelatedPort = xxxxyyyy with xxxx=TCont.Entity(incl. slot) and yyyy=prio
-						// i.e.: search PrioQueue list with xxxx=actual T-Cont.Entity,
-						// from that list use the PrioQueue.Entity with  gemEntry.prioQueueIndex == yyyy (expect 0..7)
-						usQrelPortMask := uint32((((uint32)(oFsm.tcont0ID)) << 16) + uint32(gemEntry.prioQueueIndex))
-
-						// MibDb usage: downstream PrioQueue.RelatedPort = xxyyzzzz with xx=slot, yy=UniPort and zzzz=prio
-						// i.e.: search PrioQueue list with yy=actual pOnuUniPort.uniId,
-						// from that list use the PrioQueue.Entity with gemEntry.prioQueueIndex == zzzz (expect 0..7)
-						// Note: As we do not maintain any slot numbering, slot number will be excluded from seatch pattern.
-						//       Furthermore OMCI Onu port-Id is expected to start with 1 (not 0).
-						dsQrelPortMask := uint32((((uint32)(oFsm.pOnuUniPort.uniId + 1)) << 16) + uint32(gemEntry.prioQueueIndex))
-
-						usQueueFound := false
-						dsQueueFound := false
-						for _, mgmtEntityID := range queueInstKeys {
-							if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityID); meAttributes != nil {
-								returnVal := meAttributes["RelatedPort"]
-								if returnVal != nil {
-									if relatedPort, err := oFsm.pOnuDB.GetUint32Attrib(returnVal); err == nil {
-										if relatedPort == usQrelPortMask {
-											loGemPortAttribs.upQueueID = mgmtEntityID
-											logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
-												"upQueueID": strconv.FormatInt(int64(loGemPortAttribs.upQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-											usQueueFound = true
-										} else if (relatedPort&0xFFFFFF) == dsQrelPortMask && mgmtEntityID < 0x8000 {
-											loGemPortAttribs.downQueueID = mgmtEntityID
-											logger.Debugw("DownQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
-												"downQueueID": strconv.FormatInt(int64(loGemPortAttribs.downQueueID), 16), "device-id": oFsm.pAdaptFsm.deviceID})
-											dsQueueFound = true
-										}
-										if usQueueFound && dsQueueFound {
-											break
-										}
-									} else {
-										logger.Warnw("Could not convert attribute value", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-									}
-								} else {
-									logger.Warnw("'RelatedPort' not found in meAttributes:", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-								}
-							} else {
-								logger.Warnw("No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
-									"mgmtEntityID": mgmtEntityID, "device-id": oFsm.pAdaptFsm.deviceID})
-							}
-						}
-					} else {
-						logger.Warnw("No PriorityQueue instances found", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-					}
-					loGemPortAttribs.direction = gemEntry.direction
-					loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
-					loGemPortAttribs.weight = gemEntry.queueWeight
-					loGemPortAttribs.pbitString = gemEntry.pbitString
-
-					logger.Debugw("prio-related GemPort attributes:", log.Fields{
-						"gemPortID":      loGemPortAttribs.gemPortID,
-						"upQueueID":      loGemPortAttribs.upQueueID,
-						"downQueueID":    loGemPortAttribs.downQueueID,
-						"pbitString":     loGemPortAttribs.pbitString,
-						"prioQueueIndex": gemEntry.prioQueueIndex,
-					})
-
-					oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
-				}
-				_ = a_pAFsm.pFsm.Event(aniEvStartConfig)
-			}
-		}(pConfigAniStateAFsm)
 	}
 }
 
@@ -429,9 +432,9 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 		pConfigAniStateAFsm := oFsm.pAdaptFsm
 		if pConfigAniStateAFsm != nil {
 			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-			go func(a_pAFsm *AdapterFsm) {
-				if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-					_ = a_pAFsm.pFsm.Event(aniEvReset)
+			go func(aPAFsm *AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.pFsm != nil {
+					_ = aPAFsm.pFsm.Event(aniEvReset)
 				}
 			}(pConfigAniStateAFsm)
 		}
@@ -452,9 +455,9 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
 	if pConfigAniStateAFsm != nil {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-		go func(a_pAFsm *AdapterFsm) {
-			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				_ = a_pAFsm.pFsm.Event(aniEvReset)
+		go func(aPAFsm *AdapterFsm) {
+			if aPAFsm != nil && aPAFsm.pFsm != nil {
+				_ = aPAFsm.pFsm.Event(aniEvReset)
 			}
 		}(pConfigAniStateAFsm)
 	}
@@ -475,9 +478,9 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
 		pConfigAniStateAFsm.commChan <- fsmAbortMsg
 
 		//try to restart the FSM to 'disabled', decouple event transfer
-		go func(a_pAFsm *AdapterFsm) {
-			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				_ = a_pAFsm.pFsm.Event(aniEvRestart)
+		go func(aPAFsm *AdapterFsm) {
+			if aPAFsm != nil && aPAFsm.pFsm != nil {
+				_ = aPAFsm.pFsm.Event(aniEvRestart)
 			}
 		}(pConfigAniStateAFsm)
 	}
@@ -494,7 +497,7 @@ func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
 		oFsm.aniConfigCompleted = false
 	}
 	//store that the UNI related techProfile processing is done for the given Profile and Uni
-	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.uniId, true)
+	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.uniID, true)
 	//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
 	go oFsm.pOmciCC.pBaseDeviceHandler.verifyUniVlanConfigRequest(oFsm.pOnuUniPort)
 

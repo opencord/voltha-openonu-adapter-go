@@ -156,8 +156,8 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 					if uint16ValidNumber, err := strconv.ParseUint(fistLevelKey, 10, 16); err == nil {
 						meClassID := me.ClassID(uint16ValidNumber)
 						logger.Debugw("MibSync FSM - fistLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
-						if IsSupportedClassId(meClassID) {
-							logger.Debugw("MibSync FSM - fistLevelKey is a supported classId", log.Fields{"meClassID": meClassID})
+						if IsSupportedClassID(meClassID) {
+							logger.Debugw("MibSync FSM - fistLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
 							secondLevelMap := firstLevelValue.(map[string]interface{})
 							for secondLevelKey, secondLevelValue := range secondLevelMap {
 								logger.Debugw("MibSync FSM - secondLevelKey", log.Fields{"secondLevelKey": secondLevelKey})
@@ -468,7 +468,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 	}
 }
 
-func IsSupportedClassId(meClassID me.ClassID) bool {
+func IsSupportedClassID(meClassID me.ClassID) bool {
 	for _, v := range supportedClassIds {
 		if v == meClassID {
 			return true
@@ -497,29 +497,29 @@ func (onuDeviceEntry *OnuDeviceEntry) CreateAndPersistMibTemplate() error {
 	firstLevelMap := onuDeviceEntry.pOnuDB.meDb
 	for firstLevelKey, firstLevelValue := range firstLevelMap {
 		logger.Debugw("MibSync - MibTemplate - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
-		classId := strconv.Itoa(int(firstLevelKey))
+		classID := strconv.Itoa(int(firstLevelKey))
 
 		secondLevelMap := make(map[string]interface{})
 		for secondLevelKey, secondLevelValue := range firstLevelValue {
 			thirdLevelMap := make(map[string]interface{})
-			entityId := strconv.Itoa(int(secondLevelKey))
+			entityID := strconv.Itoa(int(secondLevelKey))
 			thirdLevelMap["Attributes"] = secondLevelValue
-			thirdLevelMap["InstanceId"] = entityId
-			secondLevelMap[entityId] = thirdLevelMap
-			if classId == "6" || classId == "256" {
+			thirdLevelMap["InstanceId"] = entityID
+			secondLevelMap[entityID] = thirdLevelMap
+			if classID == "6" || classID == "256" {
 				forthLevelMap := map[string]interface{}(thirdLevelMap["Attributes"].(me.AttributeValueMap))
 				delete(forthLevelMap, "SerialNumber")
 				forthLevelMap["SerialNumber"] = "%SERIAL_NUMBER%"
 
 			}
-			if classId == "134" {
+			if classID == "134" {
 				forthLevelMap := map[string]interface{}(thirdLevelMap["Attributes"].(me.AttributeValueMap))
 				delete(forthLevelMap, "MacAddress")
 				forthLevelMap["MacAddress"] = "%MAC_ADDRESS%"
 			}
 		}
-		secondLevelMap["ClassId"] = classId
-		templateMap[classId] = secondLevelMap
+		secondLevelMap["ClassId"] = classID
+		templateMap[classID] = secondLevelMap
 	}
 	mibTemplate, err := json.Marshal(&templateMap)
 	if err != nil {

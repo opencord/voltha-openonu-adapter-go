@@ -51,29 +51,29 @@ type OnuUniPort struct {
 	portNo     uint32
 	portType   UniPortType
 	ofpPortNo  string
-	uniId      uint8
+	uniID      uint8
 	macBpNo    uint8
-	entityId   uint16
+	entityID   uint16
 	adminState vc.AdminState_Types
 	operState  vc.OperStatus_Types
 	pPort      *voltha.Port
 }
 
 //NewOnuUniPort returns a new instance of a OnuUniPort
-func NewOnuUniPort(a_uniId uint8, a_portNo uint32, a_InstNo uint16,
-	a_portType UniPortType) *OnuUniPort {
-	logger.Infow("init-onuUniPort", log.Fields{"uniId": a_uniId,
-		"portNo": a_portNo, "InstNo": a_InstNo, "type": a_portType})
+func NewOnuUniPort(aUniID uint8, aPortNo uint32, aInstNo uint16,
+	aPortType UniPortType) *OnuUniPort {
+	logger.Infow("init-onuUniPort", log.Fields{"uniID": aUniID,
+		"portNo": aPortNo, "InstNo": aInstNo, "type": aPortType})
 	var onuUniPort OnuUniPort
 	onuUniPort.enabled = false
-	onuUniPort.name = "uni-" + strconv.FormatUint(uint64(a_portNo), 10)
-	onuUniPort.portNo = a_portNo
-	onuUniPort.portType = a_portType
+	onuUniPort.name = "uni-" + strconv.FormatUint(uint64(aPortNo), 10)
+	onuUniPort.portNo = aPortNo
+	onuUniPort.portType = aPortType
 	// so far it seems as here ofpPortNo/Name ist the same as the original port name ...??
 	onuUniPort.ofpPortNo = onuUniPort.name
-	onuUniPort.uniId = a_uniId
-	onuUniPort.macBpNo = a_uniId + 1 //ensure >0 instanceNo
-	onuUniPort.entityId = a_InstNo
+	onuUniPort.uniID = aUniID
+	onuUniPort.macBpNo = aUniID + 1 //ensure >0 instanceNo
+	onuUniPort.entityID = aInstNo
 	onuUniPort.adminState = vc.AdminState_ENABLED //enabled per create
 	onuUniPort.operState = vc.OperStatus_UNKNOWN
 	onuUniPort.pPort = nil // to be set on create

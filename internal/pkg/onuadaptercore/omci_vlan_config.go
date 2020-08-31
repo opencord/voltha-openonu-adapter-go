@@ -231,11 +231,11 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(e *fsm.Event) {
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
 				//stick to pythonAdapter numbering scheme
-				oFsm.vtfdID = macBridgePortAniEID + oFsm.pOnuUniPort.entityId + oFsm.techProfileID
+				oFsm.vtfdID = macBridgePortAniEID + oFsm.pOnuUniPort.entityID + oFsm.techProfileID
 				//cmp also usage in EVTOCDE create in omci_cc
 				oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
 
-				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniId, oFsm.techProfileID) {
+				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniID, oFsm.techProfileID) {
 					// let the vlan processing begin
 					_ = a_pAFsm.pFsm.Event(vlanEvStartConfig)
 				} else {
@@ -705,12 +705,12 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 
 func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
 	select {
-	// maybe be also some outside cancel (but no context modelled for the moment ...)
+	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //AS FOR THE OTHER OMCI FSM's
 		logger.Warnw("UniVlanConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("UniVlanConfigFsm multi entity timeout")
+		return errors.New("uniVlanConfigFsm multi entity timeout")
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
 			logger.Debug("UniVlanConfigFsm multi entity response received")
@@ -718,6 +718,6 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
 		}
 		// should not happen so far
 		logger.Warnw("UniVlanConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("UniVlanConfigFsm multi entity responseError")
+		return errors.New("uniVlanConfigFsm multi entity responseError")
 	}
 }

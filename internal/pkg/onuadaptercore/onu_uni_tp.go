@@ -52,7 +52,7 @@ const (
 )
 
 type uniPersData struct {
-	PersUniId  uint32 `json:"uni_id"`
+	PersUniID  uint32 `json:"uni_id"`
 	PersTpPath string `json:"tp_path"`
 }
 
@@ -226,7 +226,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 
 	if onuTP.techProfileKVStore == nil {
 		logger.Debug("techProfileKVStore not set - abort")
-		onuTP.procResult = errors.New("TechProfile config aborted: techProfileKVStore not set")
+		onuTP.procResult = errors.New("techProfile config aborted: techProfileKVStore not set")
 		return
 	}
 
@@ -234,7 +234,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 	var pCurrentUniPort *OnuUniPort
 	for _, uniPort := range onuTP.baseDeviceHandler.uniEntityMap {
 		// only if this port is validated for operState transfer
-		if uniPort.uniId == uint8(aUniID) {
+		if uniPort.uniID == uint8(aUniID) {
 			pCurrentUniPort = uniPort
 			break //found - end search loop
 		}
@@ -242,7 +242,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 	if pCurrentUniPort == nil {
 		logger.Errorw("TechProfile configuration aborted: requested uniID not found in PortDB",
 			log.Fields{"device-id": onuTP.deviceID, "uniID": aUniID})
-		onuTP.procResult = errors.New("TechProfile config aborted: requested uniID not found")
+		onuTP.procResult = errors.New("techProfile config aborted: requested uniID not found")
 		return
 	}
 
@@ -271,7 +271,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 		//timeout or error detected
 		logger.Debugw("tech-profile related configuration aborted on read",
 			log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
-		onuTP.procResult = errors.New("TechProfile config aborted: tech-profile read issue")
+		onuTP.procResult = errors.New("techProfile config aborted: tech-profile read issue")
 		return
 	}
 
@@ -284,7 +284,7 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 				//timeout or error detected
 				logger.Debugw("tech-profile related configuration aborted on set",
 					log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
-				onuTP.procResult = errors.New("TechProfile config aborted: Omci AniSideConfig failed")
+				onuTP.procResult = errors.New("techProfile config aborted: Omci AniSideConfig failed")
 				//this issue here means that the AniConfigFsm has not finished successfully
 				//which requires to reset it to allow for new usage, e.g. also on a different UNI
 				//(without that it would be reset on device down indication latest)
@@ -295,13 +295,13 @@ func (onuTP *OnuUniTechProf) configureUniTp(ctx context.Context,
 			// strange: UNI entry exists, but no ANI data, maybe such situation should be cleared up (if observed)
 			logger.Debugw("no Tcont/Gem data for this UNI found - abort", log.Fields{
 				"device-id": onuTP.deviceID, "uniID": aUniID})
-			onuTP.procResult = errors.New("TechProfile config aborted: no Tcont/Gem data found for this UNI")
+			onuTP.procResult = errors.New("techProfile config aborted: no Tcont/Gem data found for this UNI")
 			return
 		}
 	} else {
 		logger.Debugw("no PonAni data for this UNI found - abort", log.Fields{
 			"device-id": onuTP.deviceID, "uniID": aUniID})
-		onuTP.procResult = errors.New("TechProfile config aborted: no AniSide data found for this UNI")
+		onuTP.procResult = errors.New("techProfile config aborted: no AniSide data found for this UNI")
 		return
 	}
 }
@@ -311,7 +311,7 @@ func (onuTP *OnuUniTechProf) updateOnuTpPathKvStore(ctx context.Context, wg *syn
 
 	if onuTP.onuKVStore == nil {
 		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": onuTP.deviceID})
-		onuTP.procResult = errors.New("ONU/TP-data update aborted: onuKVStore not set")
+		onuTP.procResult = errors.New("onu/tp-data update aborted: onuKVStore not set")
 		return
 	}
 	var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpKvProcessingStep
@@ -319,7 +319,7 @@ func (onuTP *OnuUniTechProf) updateOnuTpPathKvStore(ctx context.Context, wg *syn
 	if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpKvProcessingStep, processingStep) {
 		//timeout or error detected
 		logger.Debugw("ONU/TP-data not written - abort", log.Fields{"device-id": onuTP.deviceID})
-		onuTP.procResult = errors.New("ONU/TP-data update aborted: during writing process")
+		onuTP.procResult = errors.New("onu/tp-data update aborted: during writing process")
 		return
 	}
 }
@@ -382,7 +382,7 @@ func (onuTP *OnuUniTechProf) storePersistentData(ctx context.Context, aProcessin
 
 	for k, v := range onuTP.mapUniTpPath {
 		onuTP.sOnuPersistentData.PersUniTpPath =
-			append(onuTP.sOnuPersistentData.PersUniTpPath, uniPersData{PersUniId: k, PersTpPath: v})
+			append(onuTP.sOnuPersistentData.PersUniTpPath, uniPersData{PersUniID: k, PersTpPath: v})
 	}
 	logger.Debugw("Update ONU/TP-data in KVStore", log.Fields{"device-id": onuTP.deviceID, "onuTP.sOnuPersistentData": onuTP.sOnuPersistentData})
 
@@ -422,7 +422,7 @@ func (onuTP *OnuUniTechProf) restorePersistentData(ctx context.Context) error {
 				"device-id": onuTP.deviceID})
 
 			for _, uniData := range onuTP.sOnuPersistentData.PersUniTpPath {
-				onuTP.mapUniTpPath[uniData.PersUniId] = uniData.PersTpPath
+				onuTP.mapUniTpPath[uniData.PersUniID] = uniData.PersTpPath
 			}
 			logger.Debugw("TpPath map", log.Fields{"onuTP.mapUniTpPath": onuTP.mapUniTpPath,
 				"device-id": onuTP.deviceID})

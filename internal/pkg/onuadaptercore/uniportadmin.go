@@ -345,11 +345,11 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 
 		var meInstance *me.ManagedEntity
 		if uniPort.portType == UniPPTP {
-			meInstance = oFsm.pOmciCC.sendSetUniGLS(context.TODO(), uniPort.entityId, ConstDefaultOmciTimeout,
+			meInstance = oFsm.pOmciCC.sendSetUniGLS(context.TODO(), uniPort.entityID, ConstDefaultOmciTimeout,
 				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 			oFsm.pOmciCC.pLastTxMeInstance = meInstance
 		} else if uniPort.portType == UniVEIP {
-			meInstance = oFsm.pOmciCC.sendSetVeipLS(context.TODO(), uniPort.entityId, ConstDefaultOmciTimeout,
+			meInstance = oFsm.pOmciCC.sendSetVeipLS(context.TODO(), uniPort.entityID, ConstDefaultOmciTimeout,
 				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 			oFsm.pOmciCC.pLastTxMeInstance = meInstance
 		} else {
