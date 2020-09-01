@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "2a0ca571_b090a3e3",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "this is just a suggestion to have a more formal separation before the flows go in in case we need to refer back to that image. it costs us nothing and it does not have to be working. you can keep the -dev129 once you move to 0.1.12. You need to patches, a very simple one that moves the version to 0.1.11, merge that one and on this one here the number will be 0.1.12-dev129. makes sense ?",
+      "parentUuid": "57db9187_ef5287f2",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "44ca2d07_37897a28",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "internal processing of UniId\u0027s is defined to work on uint8, which in my point of view is completely sufficient.",
       "parentUuid": "44ca2d07_37897a28",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e4abd12c_5102fa51",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 324,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "59a50f86_ee263690",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -107,6 +143,24 @@
     },
     {
       "key": {
+        "uuid": "3c41afaa_786d50c1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 438,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "ok to leave as is",
+      "parentUuid": "b6eaac50_735a1727",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "72d3a9af_bb4733a3",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -136,6 +190,24 @@
       "side": 1,
       "message": "This one I would accept - so insert the port info into the exported error message like done for the looger entry ...",
       "parentUuid": "72d3a9af_bb4733a3",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5db33fb1_d09210aa",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 452,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "yes, that is correct",
+      "parentUuid": "c8881e32_150e16a8",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -177,6 +249,24 @@
     },
     {
       "key": {
+        "uuid": "24b36113_ae6c7523",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1740,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "I think that having the device id costs us nothing and provides better information at a quick glance at higher levels. please create jira and keep track as part of error treatment refactoring, again best done as a next step.",
+      "parentUuid": "04409ad5_14af7a78",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bd4737e1_67e0d51a",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -206,6 +296,24 @@
       "side": 1,
       "message": "Hmm - perhaps we can shift this consideration to VOL-3441 implementation. By now I would favor to inform the caller, that the requested activity is really not done. Only if the already rquested configuration is repeated here we could ignore the request, but this is not really checked here...",
       "parentUuid": "bd4737e1_67e0d51a",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e633878_fe065e0e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1757,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "please put a TODO reference 3441, fine to keep as is, but will need removing to parallel execution of workflows (e.g. TT)",
+      "parentUuid": "932ac9dd_9bcc4f90",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -311,6 +419,24 @@
       "side": 1,
       "message": "The original intention here was - as sometimes noted in comments as well - to admit nil as a valid return result in case of processing errors. As a result this was used to ensure that according problem detection and error handling is applied likewise no response was received from OMCI. This way we did not need to provide a seperate error treatment. But as I looked the code up again, even this might not be working correctly, as we use further methods on the the expected ME instance, which may fail in case of nil- usage. So using current implementation we might need to implement further checks on the received nil/MeInstance.\nBut yes, some comments already suggest to use a \u0027fast\u0027 error detection and treatment (and not to wait for the OMCI timeout) (which always is accompanied by the question what to do in these cases :-)).\nI\u0027d suggest to update these send functions interface to use the dual return scheme again and directly react on some error code in the caller function - but as this would generally concern many functions here (this is just one example) I\u0027d propose to follow that up in a separate story (or in the end it is part of still intended error treatment improvements).",
       "parentUuid": "75723aa5_72d90993",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eb5fc1ab_3f80b3a5",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1396,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:31:13Z",
+      "side": 1,
+      "message": "ok, please do open jira to keep track of this technical debt. I\u0027d like to get to that erro refactoring sooner rather than later. Possibly after finishing omci-flows-pushed state",
+      "parentUuid": "4192468a_432bffd4",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
