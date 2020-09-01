@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "57db9187_ef5287f2",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "?? So far as I know we still have no real productive \u0027release\u0027 version. We still use the dev version for internal numbering on feature progress.",
+      "parentUuid": "3e71bf7c_984311b8",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "44ca2d07_37897a28",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2020-08-28T14:30:05Z",
       "side": 1,
       "message": "why downsizing form uint32 to unti8 ?",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "59a50f86_ee263690",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 324,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "internal processing of UniId\u0027s is defined to work on uint8, which in my point of view is completely sufficient.",
+      "parentUuid": "44ca2d07_37897a28",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "b6eaac50_735a1727",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 438,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "Does that really make sense? The wrong port number can only be ...OFPP_INVALID here.",
+      "parentUuid": "9b5a2d8e_e59d1165",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "72d3a9af_bb4733a3",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -64,6 +118,24 @@
       "writtenOn": "2020-08-28T14:30:05Z",
       "side": 1,
       "message": "same",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c8881e32_150e16a8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 452,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "This one I would accept - so insert the port info into the exported error message like done for the looger entry ...",
+      "parentUuid": "72d3a9af_bb4733a3",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "04409ad5_14af7a78",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1740,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "Puuh: DeviceID - we have never inserted that into the exported error message so far. Is that really needed? My assumption would be to just send a \u0027specific error message\u0027 in the returned error code. If you want to verify the real reason for the problem (observed maybe in some fully different component) you can still (and mostly anyway have to) check the OnuAdapter log on the real error source. So this statement refers to above comments as well. Inserting the deviceID in all possible error responses would be a bit of effort. If you really want to have it that way, then I would also poropose to follow that up in a separate story.",
+      "parentUuid": "9815eaed_5b4ac187",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bd4737e1_67e0d51a",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -98,6 +188,24 @@
       "writtenOn": "2020-08-28T14:30:05Z",
       "side": 1,
       "message": "should this just be ignored ? I\u0027m wondering if it\u0027s already running we ignore this and we should be good to go no ?",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "932ac9dd_9bcc4f90",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1757,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "Hmm - perhaps we can shift this consideration to VOL-3441 implementation. By now I would favor to inform the caller, that the requested activity is really not done. Only if the already rquested configuration is repeated here we could ignore the request, but this is not really checked here...",
+      "parentUuid": "bd4737e1_67e0d51a",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "1dde230f_637df57d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1771,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "Yes, can/should be done. New patch.",
+      "parentUuid": "09652577_56383286",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "769ce908_67bc0dc7",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "35e3233f_b135f899",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1815,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "yes.",
+      "parentUuid": "769ce908_67bc0dc7",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "75723aa5_72d90993",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -149,6 +293,24 @@
       "writtenOn": "2020-08-28T14:30:05Z",
       "side": 1,
       "message": "I woudl return an error here and then when an error arrivers to the method it gets returned, eg.g line 1410",
+      "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4192468a_432bffd4",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1396,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-09-01T10:48:46Z",
+      "side": 1,
+      "message": "The original intention here was - as sometimes noted in comments as well - to admit nil as a valid return result in case of processing errors. As a result this was used to ensure that according problem detection and error handling is applied likewise no response was received from OMCI. This way we did not need to provide a seperate error treatment. But as I looked the code up again, even this might not be working correctly, as we use further methods on the the expected ME instance, which may fail in case of nil- usage. So using current implementation we might need to implement further checks on the received nil/MeInstance.\nBut yes, some comments already suggest to use a \u0027fast\u0027 error detection and treatment (and not to wait for the OMCI timeout) (which always is accompanied by the question what to do in these cases :-)).\nI\u0027d suggest to update these send functions interface to use the dual return scheme again and directly react on some error code in the caller function - but as this would generally concern many functions here (this is just one example) I\u0027d propose to follow that up in a separate story (or in the end it is part of still intended error treatment improvements).",
+      "parentUuid": "75723aa5_72d90993",
       "revId": "fcdf004046a27799e03fe9c71e7a371c4796cf2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
