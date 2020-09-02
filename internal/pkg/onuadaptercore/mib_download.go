@@ -40,7 +40,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDLStartingState(e *fsm.Event) {
 		logger.Debug("MibDownload FSM - defining the BridgeInit RxChannel")
 	}
 	// start go routine for processing of MibDownload messages
-	go onuDeviceEntry.ProcessMibDownloadMessages()
+	go onuDeviceEntry.processMibDownloadMessages()
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterCreatingGalState(e *fsm.Event) {
@@ -103,7 +103,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(e *fsm.Event) {
 	}
 }
 
-func (onuDeviceEntry *OnuDeviceEntry) ProcessMibDownloadMessages( /*ctx context.Context*/ ) {
+func (onuDeviceEntry *OnuDeviceEntry) processMibDownloadMessages( /*ctx context.Context*/ ) {
 	logger.Debugw("Start MibDownload Msg processing", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 loop:
 	for {

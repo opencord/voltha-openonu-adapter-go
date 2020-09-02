@@ -26,13 +26,13 @@ import (
 
 // Open ONU default constants
 const (
-	EtcdStoreName               = "etcd"
+	etcdStoreName               = "etcd"
 	defaultInstanceid           = "openonu"
 	defaultKafkaadapterhost     = "192.168.0.20"
 	defaultKafkaadapterport     = 9092
 	defaultKafkaclusterhost     = "10.100.198.220"
 	defaultKafkaclusterport     = 9092
-	defaultKvstoretype          = EtcdStoreName
+	defaultKvstoretype          = etcdStoreName
 	defaultKvstoretimeout       = 5 * time.Second
 	defaultKvstorehost          = "localhost"
 	defaultKvstoreport          = 2379 // Consul = 8500; Etcd = 2379

@@ -89,12 +89,14 @@ OpenOmciAgentDefaults = {
 const cMibAuditDelayImpl = 0
 
 //suppose global methods per adapter ...
-func MibDbVolatileDictImpl() error {
+func mibDbVolatileDictImpl() error {
 	logger.Debug("MibVolatileDict-called")
 	return errors.New("not_implemented")
 }
 
-func AlarmDbDictImpl() error {
+/*
+func alarmDbDictImpl() error {
 	logger.Debug("AlarmDb-called")
 	return errors.New("not_implemented")
 }
+*/

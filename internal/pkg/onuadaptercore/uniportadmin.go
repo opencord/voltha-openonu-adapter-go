@@ -32,9 +32,9 @@ import (
 	//"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
-//LockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
-type LockStateFsm struct {
-	pOmciCC                  *OmciCC
+//lockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
+type lockStateFsm struct {
+	pOmciCC                  *omciCC
 	adminState               bool
 	requestEvent             OnuDeviceEvent
 	omciLockResponseReceived chan bool //seperate channel needed for checking UNI port OMCi message responses
@@ -62,10 +62,10 @@ const (
 	uniStResetting   = "uniStResetting"
 )
 
-//NewLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
-func NewLockStateFsm(apDevOmciCC *OmciCC, aAdminState bool, aRequestEvent OnuDeviceEvent,
-	aName string, aDeviceID string, aCommChannel chan Message) *LockStateFsm {
-	instFsm := &LockStateFsm{
+//newLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
+func newLockStateFsm(apDevOmciCC *omciCC, aAdminState bool, aRequestEvent OnuDeviceEvent,
+	aName string, aDeviceID string, aCommChannel chan Message) *lockStateFsm {
+	instFsm := &lockStateFsm{
 		pOmciCC:      apDevOmciCC,
 		adminState:   aAdminState,
 		requestEvent: aRequestEvent,
@@ -153,13 +153,13 @@ func NewLockStateFsm(apDevOmciCC *OmciCC, aAdminState bool, aRequestEvent OnuDev
 	return instFsm
 }
 
-//SetSuccessEvent modifies the requested event notified on success
+//setSuccessEvent modifies the requested event notified on success
 //assumption is that this is only called in the disabled (idle) state of the FSM, hence no sem protection required
-func (oFsm *LockStateFsm) SetSuccessEvent(aEvent OnuDeviceEvent) {
+func (oFsm *lockStateFsm) setSuccessEvent(aEvent OnuDeviceEvent) {
 	oFsm.requestEvent = aEvent
 }
 
-func (oFsm *LockStateFsm) enterAdminStartingState(e *fsm.Event) {
+func (oFsm *lockStateFsm) enterAdminStartingState(e *fsm.Event) {
 	logger.Debugw("LockStateFSM start", log.Fields{"in state": e.FSM.Current(),
 		"device-id": oFsm.pAdaptFsm.deviceID})
 	// in case the used channel is not yet defined (can be re-used after restarts)
@@ -175,7 +175,7 @@ func (oFsm *LockStateFsm) enterAdminStartingState(e *fsm.Event) {
 		}
 	}
 	// start go routine for processing of LockState messages
-	go oFsm.ProcessOmciLockMessages()
+	go oFsm.processOmciLockMessages()
 
 	//let the state machine run forward from here directly
 	pLockStateAFsm := oFsm.pAdaptFsm
@@ -189,7 +189,7 @@ func (oFsm *LockStateFsm) enterAdminStartingState(e *fsm.Event) {
 	}
 }
 
-func (oFsm *LockStateFsm) enterSettingOnuGState(e *fsm.Event) {
+func (oFsm *lockStateFsm) enterSettingOnuGState(e *fsm.Event) {
 	var omciAdminState uint8 = 1 //default locked
 	if !oFsm.adminState {
 		omciAdminState = 0
@@ -206,16 +206,16 @@ func (oFsm *LockStateFsm) enterSettingOnuGState(e *fsm.Event) {
 	oFsm.pOmciCC.pLastTxMeInstance = meInstance
 }
 
-func (oFsm *LockStateFsm) enterSettingUnisState(e *fsm.Event) {
+func (oFsm *lockStateFsm) enterSettingUnisState(e *fsm.Event) {
 	logger.Infow("LockStateFSM - starting PPTP config loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID, "LockState": oFsm.adminState})
 	go oFsm.performUniPortAdminSet()
 }
 
-func (oFsm *LockStateFsm) enterAdminDoneState(e *fsm.Event) {
+func (oFsm *lockStateFsm) enterAdminDoneState(e *fsm.Event) {
 	logger.Debugw("LockStateFSM", log.Fields{"send notification to core in State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	//use DeviceHandler event notification directly, no need/support to update DeviceEntryState for lock/unlock
-	oFsm.pOmciCC.pBaseDeviceHandler.DeviceProcStatusUpdate(oFsm.requestEvent)
+	oFsm.pOmciCC.pBaseDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
 	//let's reset the state machine in order to release all resources now
 	pLockStateAFsm := oFsm.pAdaptFsm
 	if pLockStateAFsm != nil {
@@ -228,7 +228,7 @@ func (oFsm *LockStateFsm) enterAdminDoneState(e *fsm.Event) {
 	}
 }
 
-func (oFsm *LockStateFsm) enterResettingState(e *fsm.Event) {
+func (oFsm *lockStateFsm) enterResettingState(e *fsm.Event) {
 	logger.Debugw("LockStateFSM resetting", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 	pLockStateAFsm := oFsm.pAdaptFsm
 	if pLockStateAFsm != nil {
@@ -251,7 +251,7 @@ func (oFsm *LockStateFsm) enterResettingState(e *fsm.Event) {
 	}
 }
 
-func (oFsm *LockStateFsm) ProcessOmciLockMessages( /*ctx context.Context*/ ) {
+func (oFsm *lockStateFsm) processOmciLockMessages( /*ctx context.Context*/ ) {
 	logger.Debugw("Start LockStateFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 loop:
 	for {
@@ -286,7 +286,7 @@ loop:
 	logger.Infow("End LockStateFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 }
 
-func (oFsm *LockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
+func (oFsm *lockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 	logger.Debugw("Rx OMCI LockStateFsm Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
 		"msgType": msg.OmciMsg.MessageType})
 
@@ -331,7 +331,7 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 	}
 }
 
-func (oFsm *LockStateFsm) performUniPortAdminSet() {
+func (oFsm *lockStateFsm) performUniPortAdminSet() {
 	var omciAdminState uint8 = 1 //default locked
 	if !oFsm.adminState {
 		omciAdminState = 0
@@ -344,11 +344,11 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 			"device-id": oFsm.pAdaptFsm.deviceID, "for PortNo": uniNo})
 
 		var meInstance *me.ManagedEntity
-		if uniPort.portType == UniPPTP {
+		if uniPort.portType == uniPPTP {
 			meInstance = oFsm.pOmciCC.sendSetUniGLS(context.TODO(), uniPort.entityID, ConstDefaultOmciTimeout,
 				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 			oFsm.pOmciCC.pLastTxMeInstance = meInstance
-		} else if uniPort.portType == UniVEIP {
+		} else if uniPort.portType == uniVEIP {
 			meInstance = oFsm.pOmciCC.sendSetVeipLS(context.TODO(), uniPort.entityID, ConstDefaultOmciTimeout,
 				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 			oFsm.pOmciCC.pLastTxMeInstance = meInstance
@@ -373,14 +373,14 @@ func (oFsm *LockStateFsm) performUniPortAdminSet() {
 	_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxUnisResp)
 }
 
-func (oFsm *LockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) error {
+func (oFsm *lockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) error {
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("LockStateFSM uni-set timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("LockStateFsm uni-set timeout")
+		return errors.New("lockStateFsm uni-set timeout")
 	case success := <-oFsm.omciLockResponseReceived:
 		if success {
 			logger.Debug("LockStateFSM uni-set response received")
@@ -388,6 +388,6 @@ func (oFsm *LockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) er
 		}
 		// should not happen so far
 		logger.Warnw("LockStateFSM uni-set response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("LockStateFsm uni-set responseError")
+		return errors.New("lockStateFsm uni-set responseError")
 	}
 }
