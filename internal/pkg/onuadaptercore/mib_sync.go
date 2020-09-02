@@ -66,8 +66,8 @@ var fsmMsg TestMessageType
 
 func (onuDeviceEntry *OnuDeviceEntry) enterStartingState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start processing MibSync-msgs in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
-	onuDeviceEntry.pOnuDB = NewOnuDeviceDB(context.TODO(), onuDeviceEntry)
-	go onuDeviceEntry.ProcessMibSyncMessages()
+	onuDeviceEntry.pOnuDB = newOnuDeviceDB(context.TODO(), onuDeviceEntry)
+	go onuDeviceEntry.processMibSyncMessages()
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterResettingMibState(e *fsm.Event) {
@@ -82,7 +82,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingMibState(e *fsm.Event) {
 func (onuDeviceEntry *OnuDeviceEntry) enterGettingVendorAndSerialState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start getting VendorId and SerialNumber in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	requestedAttributes := me.AttributeValueMap{"VendorId": "", "SerialNumber": 0}
-	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.OnuGClassID, OnugMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.OnuGClassID, onugMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -91,7 +91,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingVendorAndSerialState(e *fsm.Ev
 func (onuDeviceEntry *OnuDeviceEntry) enterGettingEquipmentIDState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start getting EquipmentId in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	requestedAttributes := me.AttributeValueMap{"EquipmentId": ""}
-	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.Onu2GClassID, Onu2gMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.Onu2GClassID, onu2gMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -100,7 +100,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingEquipmentIDState(e *fsm.Event)
 func (onuDeviceEntry *OnuDeviceEntry) enterGettingFirstSwVersionState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	requestedAttributes := me.AttributeValueMap{"IsActive": 0, "Version": ""}
-	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.SoftwareImageClassID, FirstSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -109,7 +109,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingFirstSwVersionState(e *fsm.Eve
 func (onuDeviceEntry *OnuDeviceEntry) enterGettingSecondSwVersionState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	requestedAttributes := me.AttributeValueMap{"IsActive": 0, "Version": ""}
-	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.SoftwareImageClassID, SecondSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -118,7 +118,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingSecondSwVersionState(e *fsm.Ev
 func (onuDeviceEntry *OnuDeviceEntry) enterGettingMacAddressState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start getting MacAddress in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	requestedAttributes := me.AttributeValueMap{"MacAddress": ""}
-	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.IpHostConfigDataClassID, IPHostConfigDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendGetMe(context.TODO(), me.IpHostConfigDataClassID, ipHostConfigDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -126,7 +126,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMacAddressState(e *fsm.Event) 
 
 func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 
-	for i := FirstSwImageMeID; i <= SecondSwImageMeID; i++ {
+	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
 		if onuDeviceEntry.swImages[i].isActive > 0 {
 			onuDeviceEntry.activeSwVersion = onuDeviceEntry.swImages[i].version
 		}
@@ -156,7 +156,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 					if uint16ValidNumber, err := strconv.ParseUint(fistLevelKey, 10, 16); err == nil {
 						meClassID := me.ClassID(uint16ValidNumber)
 						logger.Debugw("MibSync FSM - fistLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
-						if IsSupportedClassID(meClassID) {
+						if isSupportedClassID(meClassID) {
 							logger.Debugw("MibSync FSM - fistLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
 							secondLevelMap := firstLevelValue.(map[string]interface{})
 							for secondLevelKey, secondLevelValue := range secondLevelMap {
@@ -166,7 +166,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 									logger.Debugw("MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityID": meEntityID})
 									thirdLevelMap := secondLevelValue.(map[string]interface{})
 									for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
-										if thirdLevelKey == "attributes" {
+										if thirdLevelKey == "Attributes" {
 											logger.Debugw("MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
 											attributesMap := thirdLevelValue.(map[string]interface{})
 											logger.Debugw("MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
@@ -188,7 +188,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 	}
 	if meStoredFromTemplate {
 		logger.Debug("MibSync FSM - valid MEs stored from template")
-		onuDeviceEntry.pOnuDB.LogMeDb()
+		onuDeviceEntry.pOnuDB.logMeDb()
 		fsmMsg = LoadMibTemplateOk
 	} else {
 		logger.Debug("MibSync FSM - no valid MEs stored from template - perform MIB-upload!")
@@ -234,7 +234,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterOutOfSyncState(e *fsm.Event) {
 	logger.Debug("function not implemented yet")
 }
 
-func (onuDeviceEntry *OnuDeviceEntry) ProcessMibSyncMessages( /*ctx context.Context*/ ) {
+func (onuDeviceEntry *OnuDeviceEntry) processMibSyncMessages( /*ctx context.Context*/ ) {
 	logger.Debugw("MibSync Msg", log.Fields{"Start routine to process OMCI-messages for device-id": onuDeviceEntry.deviceID})
 loop:
 	for {
@@ -353,8 +353,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(msg
 	if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 		_ = onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 	} else {
-		onuDeviceEntry.pOnuDB.LogMeDb()
-		err := onuDeviceEntry.CreateAndPersistMibTemplate()
+		onuDeviceEntry.pOnuDB.logMeDb()
+		err := onuDeviceEntry.createAndPersistMibTemplate()
 		if err != nil {
 			logger.Errorw("MibSync - MibTemplate - Failed to create and persist the mib template", log.Fields{"error": err, "device-id": onuDeviceEntry.deviceID})
 		}
@@ -381,7 +381,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessa
 					case "OnuG":
 						onuDeviceEntry.vendorID = fmt.Sprintf("%s", meAttributes["VendorId"])
 						snBytes, _ := me.InterfaceToOctets(meAttributes["SerialNumber"])
-						if OnugSerialNumberLen == len(snBytes) {
+						if onugSerialNumberLen == len(snBytes) {
 							snVendorPart := fmt.Sprintf("%s", snBytes[:4])
 							snNumberPart := hex.EncodeToString(snBytes[4:])
 							onuDeviceEntry.serialNumber = snVendorPart + snNumberPart
@@ -401,7 +401,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessa
 						_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetFirstSwVersion)
 						return
 					case "SoftwareImage":
-						if entityID <= SecondSwImageMeID {
+						if entityID <= secondSwImageMeID {
 							onuDeviceEntry.swImages[entityID].version = fmt.Sprintf("%s", meAttributes["Version"])
 							onuDeviceEntry.swImages[entityID].isActive = meAttributes["IsActive"].(uint8)
 							logger.Debugw("MibSync FSM - GetResponse Data for SoftwareImage - Version/IsActive",
@@ -412,16 +412,16 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessa
 							logger.Errorw("MibSync FSM - Failed to GetResponse Data for SoftwareImage", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 
 						}
-						if FirstSwImageMeID == entityID {
+						if firstSwImageMeID == entityID {
 							_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
 							return
-						} else if SecondSwImageMeID == entityID {
+						} else if secondSwImageMeID == entityID {
 							_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetMacAddress)
 							return
 						}
 					case "IpHostConfigData":
 						macBytes, _ := me.InterfaceToOctets(meAttributes["MacAddress"])
-						if OmciMacAddressLen == len(macBytes) {
+						if omciMacAddressLen == len(macBytes) {
 							onuDeviceEntry.macAddress = hex.EncodeToString(macBytes[:])
 							logger.Debugw("MibSync FSM - GetResponse Data for IpHostConfigData - MacAddress", log.Fields{"deviceId": onuDeviceEntry.deviceID,
 								"onuDeviceEntry.macAddress": onuDeviceEntry.macAddress})
@@ -468,7 +468,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 	}
 }
 
-func IsSupportedClassID(meClassID me.ClassID) bool {
+func isSupportedClassID(meClassID me.ClassID) bool {
 	for _, v := range supportedClassIds {
 		if v == meClassID {
 			return true
@@ -477,15 +477,15 @@ func IsSupportedClassID(meClassID me.ClassID) bool {
 	return false
 }
 
-func (onuDeviceEntry *OnuDeviceEntry) MibDbVolatileDict() error {
+func (onuDeviceEntry *OnuDeviceEntry) mibDbVolatileDict() error {
 	logger.Debug("MibVolatileDict- running from default Entry code")
 	return errors.New("not_implemented")
 }
 
-// CreateAndPersistMibTemplate method creates a mib template for the device id when operator enables the ONU device for the first time.
+// createAndPersistMibTemplate method creates a mib template for the device id when operator enables the ONU device for the first time.
 // We are creating a placeholder for "SerialNumber" for ME Class ID 6 and 256 and "MacAddress" for ME Class ID 134 in the template
 // and then storing the template into etcd "service/voltha/omci_mibs/templates/verdor_id/equipment_id/software_version" path.
-func (onuDeviceEntry *OnuDeviceEntry) CreateAndPersistMibTemplate() error {
+func (onuDeviceEntry *OnuDeviceEntry) createAndPersistMibTemplate() error {
 	path := fmt.Sprintf(cSuffixMibTemplateKvStore, onuDeviceEntry.vendorID, onuDeviceEntry.equipmentID, onuDeviceEntry.activeSwVersion)
 	logger.Debugw("MibSync - MibTemplate - key name", log.Fields{"path": path})
 	currentTime := time.Now()
