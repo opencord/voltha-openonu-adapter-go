@@ -27,27 +27,27 @@ import (
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 )
 
-type MeDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
+type meDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
 
-//OnuDeviceDB structure holds information about known ME's
-type OnuDeviceDB struct {
+//onuDeviceDB structure holds information about known ME's
+type onuDeviceDB struct {
 	ctx             context.Context
 	pOnuDeviceEntry *OnuDeviceEntry
-	meDb            MeDbMap
+	meDb            meDbMap
 }
 
-//OnuDeviceDB returns a new instance for a specific ONU_Device_Entry
-func NewOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *OnuDeviceDB {
+//newOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
+func newOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *onuDeviceDB {
 	logger.Debugw("Init OnuDeviceDB for:", log.Fields{"device-id": aPOnuDeviceEntry.deviceID})
-	var onuDeviceDB OnuDeviceDB
+	var onuDeviceDB onuDeviceDB
 	onuDeviceDB.ctx = ctx
 	onuDeviceDB.pOnuDeviceEntry = aPOnuDeviceEntry
-	onuDeviceDB.meDb = make(MeDbMap)
+	onuDeviceDB.meDb = make(meDbMap)
 
 	return &onuDeviceDB
 }
 
-func (onuDeviceDB *OnuDeviceDB) PutMe(meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
+func (onuDeviceDB *onuDeviceDB) PutMe(meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
 
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassID {
@@ -83,7 +83,7 @@ func (onuDeviceDB *OnuDeviceDB) PutMe(meClassID me.ClassID, meEntityID uint16, m
 	}
 }
 
-func (onuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
+func (onuDeviceDB *onuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
 
 	if meAttributes, present := onuDeviceDB.meDb[meClassID][meEntityID]; present {
 		/* verbose logging, avoid in >= debug level
@@ -95,7 +95,7 @@ func (onuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) m
 	return nil
 }
 
-func (onuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32, error) {
+func (onuDeviceDB *onuDeviceDB) getUint32Attrib(meAttribute interface{}) (uint32, error) {
 
 	switch reflect.TypeOf(meAttribute).Kind() {
 	case reflect.Float64:
@@ -108,7 +108,7 @@ func (onuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32
 	}
 }
 
-func (onuDeviceDB *OnuDeviceDB) GetSortedInstKeys(meClassID me.ClassID) []uint16 {
+func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
 
@@ -123,7 +123,7 @@ func (onuDeviceDB *OnuDeviceDB) GetSortedInstKeys(meClassID me.ClassID) []uint16
 	return meInstKeys
 }
 
-func (onuDeviceDB *OnuDeviceDB) LogMeDb() {
+func (onuDeviceDB *onuDeviceDB) logMeDb() {
 	logger.Debugw("ME instances stored for :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 	for meClassID, meInstMap := range onuDeviceDB.meDb {
 		for meEntityID, meAttribs := range meInstMap {

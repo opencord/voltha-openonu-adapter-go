@@ -34,22 +34,22 @@ import (
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
-type UniPortType uint8
+type uniPortType uint8
 
 // UniPPTP Interface type - re-use values from G.988 TP type definition (directly used in OMCI!)
 const (
-	// UniPPTP relates to PPTP
-	UniPPTP UniPortType = 1 // relates to PPTP
-	// UniPPTP relates to VEIP
-	UniVEIP UniPortType = 11 // relates to VEIP
+	// uniPPTP relates to PPTP
+	uniPPTP uniPortType = 1 // relates to PPTP
+	// uniVEIP relates to VEIP
+	uniVEIP uniPortType = 11 // relates to VEIP
 )
 
-//OnuUniPort structure holds information about the ONU attached Uni Ports
-type OnuUniPort struct {
+//onuUniPort structure holds information about the ONU attached Uni Ports
+type onuUniPort struct {
 	enabled    bool
 	name       string
 	portNo     uint32
-	portType   UniPortType
+	portType   uniPortType
 	ofpPortNo  string
 	uniID      uint8
 	macBpNo    uint8
@@ -59,12 +59,12 @@ type OnuUniPort struct {
 	pPort      *voltha.Port
 }
 
-//NewOnuUniPort returns a new instance of a OnuUniPort
-func NewOnuUniPort(aUniID uint8, aPortNo uint32, aInstNo uint16,
-	aPortType UniPortType) *OnuUniPort {
+//newOnuUniPort returns a new instance of a OnuUniPort
+func newOnuUniPort(aUniID uint8, aPortNo uint32, aInstNo uint16,
+	aPortType uniPortType) *onuUniPort {
 	logger.Infow("init-onuUniPort", log.Fields{"uniID": aUniID,
 		"portNo": aPortNo, "InstNo": aInstNo, "type": aPortType})
-	var onuUniPort OnuUniPort
+	var onuUniPort onuUniPort
 	onuUniPort.enabled = false
 	onuUniPort.name = "uni-" + strconv.FormatUint(uint64(aPortNo), 10)
 	onuUniPort.portNo = aPortNo
@@ -80,8 +80,8 @@ func NewOnuUniPort(aUniID uint8, aPortNo uint32, aInstNo uint16,
 	return &onuUniPort
 }
 
-//CreateVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
-func (oo *OnuUniPort) CreateVolthaPort(apDeviceHandler *DeviceHandler) error {
+//createVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
+func (oo *onuUniPort) createVolthaPort(apDeviceHandler *deviceHandler) error {
 	logger.Debugw("creating-voltha-uni-port", log.Fields{
 		"device-id": apDeviceHandler.device.Id, "portNo": oo.portNo})
 	//200630: per [VOL-3202] OF port info is now to be delivered within UniPort create
@@ -148,8 +148,8 @@ func (oo *OnuUniPort) CreateVolthaPort(apDeviceHandler *DeviceHandler) error {
 	return nil
 }
 
-//SetOperState modifies OperState of the the UniPort
-func (oo *OnuUniPort) SetOperState(aNewOperState vc.OperStatus_Types) {
+//setOperState modifies OperState of the the UniPort
+func (oo *onuUniPort) setOperState(aNewOperState vc.OperStatus_Types) {
 	oo.operState = aNewOperState
 }
 

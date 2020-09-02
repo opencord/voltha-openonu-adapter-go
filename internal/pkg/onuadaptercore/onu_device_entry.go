@@ -106,21 +106,34 @@ const (
 	cSuffixMibTemplateKvStore   = "%s/%s/%s"
 )
 
+// OnuDeviceEvent - event of interest to Device Adapters and OpenOMCI State Machines
 type OnuDeviceEvent int
 
 const (
 	// Events of interest to Device Adapters and OpenOMCI State Machines
-	DeviceStatusInit     OnuDeviceEvent = 0  // OnuDeviceEntry default start state
-	MibDatabaseSync      OnuDeviceEvent = 1  // MIB database sync (upload done)
-	OmciCapabilitiesDone OnuDeviceEvent = 2  // OMCI ME and message type capabilities known
-	MibDownloadDone      OnuDeviceEvent = 3  // MIB database sync (upload done)
-	UniLockStateDone     OnuDeviceEvent = 4  // Uni ports admin set to lock
-	UniUnlockStateDone   OnuDeviceEvent = 5  // Uni ports admin set to unlock
-	UniAdminStateDone    OnuDeviceEvent = 6  // Uni ports admin set done - general
-	PortLinkUp           OnuDeviceEvent = 7  // Port link state change
-	PortLinkDw           OnuDeviceEvent = 8  // Port link state change
-	OmciAniConfigDone    OnuDeviceEvent = 9  // AniSide config according to TechProfile done
-	OmciVlanFilterDone   OnuDeviceEvent = 10 // Omci Vlan config according to flowConfig done
+
+	// DeviceStatusInit - default start state
+	DeviceStatusInit OnuDeviceEvent = 0
+	// MibDatabaseSync - MIB database sync (upload done)
+	MibDatabaseSync OnuDeviceEvent = 1
+	// OmciCapabilitiesDone - OMCI ME and message type capabilities known
+	OmciCapabilitiesDone OnuDeviceEvent = 2
+	// MibDownloadDone - //  MIB download done
+	MibDownloadDone OnuDeviceEvent = 3
+	// UniLockStateDone - Uni ports admin set to lock
+	UniLockStateDone OnuDeviceEvent = 4
+	// UniUnlockStateDone - Uni ports admin set to unlock
+	UniUnlockStateDone OnuDeviceEvent = 5
+	// UniAdminStateDone - Uni ports admin set done - general
+	UniAdminStateDone OnuDeviceEvent = 6
+	// PortLinkUp - Port link state change
+	PortLinkUp OnuDeviceEvent = 7
+	// PortLinkDw - Port link state change
+	PortLinkDw OnuDeviceEvent = 8
+	// OmciAniConfigDone -  AniSide config according to TechProfile done
+	OmciAniConfigDone OnuDeviceEvent = 9
+	// OmciVlanFilterDone - Omci Vlan config according to flowConfig done
+	OmciVlanFilterDone OnuDeviceEvent = 10
 	// Add other events here as needed (alarms separate???)
 )
 
@@ -130,8 +143,11 @@ type activityDescr struct {
 	auditDelay uint16
 	//tasks           map[string]func() error
 }
+
+// OmciDeviceFsms - FSM event mapping to database class and time to wait between audits
 type OmciDeviceFsms map[string]activityDescr
 
+// AdapterFsm - Adapter FSM details including channel, event and  device
 type AdapterFsm struct {
 	fsmName  string
 	deviceID string
@@ -139,11 +155,12 @@ type AdapterFsm struct {
 	pFsm     *fsm.FSM
 }
 
-func NewAdapterFsm(a_name string, a_deviceID string, a_commChannel chan Message) *AdapterFsm {
+//NewAdapterFsm - FSM details including event, device and channel.
+func NewAdapterFsm(aName string, aDeviceID string, aCommChannel chan Message) *AdapterFsm {
 	aFsm := &AdapterFsm{
-		fsmName:  a_name,
-		deviceID: a_deviceID,
-		commChan: a_commChannel,
+		fsmName:  aName,
+		deviceID: aDeviceID,
+		commChan: aCommChannel,
 	}
 	return aFsm
 }
@@ -157,33 +174,34 @@ func (oo *AdapterFsm) logFsmStateChange(e *fsm.Event) {
 //OntDeviceEntry structure holds information about the attached FSM'as and their communication
 
 const (
-	FirstSwImageMeID  = 0
-	SecondSwImageMeID = 1
+	firstSwImageMeID  = 0
+	secondSwImageMeID = 1
 )
-const OnugMeID = 0
-const Onu2gMeID = 0
-const IPHostConfigDataMeID = 1
-const OnugSerialNumberLen = 8
-const OmciMacAddressLen = 6
+const onugMeID = 0
+const onu2gMeID = 0
+const ipHostConfigDataMeID = 1
+const onugSerialNumberLen = 8
+const omciMacAddressLen = 6
 
-type SwImages struct {
+type swImages struct {
 	version  string
 	isActive uint8
 }
 
+// OnuDeviceEntry - ONU device info and FSM events.
 type OnuDeviceEntry struct {
 	deviceID           string
-	baseDeviceHandler  *DeviceHandler
+	baseDeviceHandler  *deviceHandler
 	coreProxy          adapterif.CoreProxy
 	adapterProxy       adapterif.AdapterProxy
 	started            bool
-	PDevOmciCC         *OmciCC
-	pOnuDB             *OnuDeviceDB
+	PDevOmciCC         *omciCC
+	pOnuDB             *onuDeviceDB
 	mibTemplateKVStore *db.Backend
 	vendorID           string
 	serialNumber       string
 	equipmentID        string
-	swImages           [SecondSwImageMeID + 1]SwImages
+	swImages           [secondSwImageMeID + 1]swImages
 	activeSwVersion    string
 	macAddress         string
 	//lockDeviceEntries           sync.RWMutex
@@ -204,9 +222,9 @@ type OnuDeviceEntry struct {
 	omciRebootMessageReceivedChannel chan Message // channel needed by Reboot request
 }
 
-//OnuDeviceEntry returns a new instance of a OnuDeviceEntry
+//newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
-func NewOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string, kVStorePort int, kvStoreType string, deviceHandler *DeviceHandler,
+func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string, kVStorePort int, kvStoreType string, deviceHandler *deviceHandler,
 	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy,
 	supportedFsmsPtr *OmciDeviceFsms) *OnuDeviceEntry {
 	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": deviceID})
@@ -231,7 +249,7 @@ func NewOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 		onuDeviceEntry.supportedFsms = OmciDeviceFsms{
 			"mib-synchronizer": {
 				//mibSyncFsm,        // Implements the MIB synchronization state machine
-				onuDeviceEntry.MibDbVolatileDict, // Implements volatile ME MIB database
+				onuDeviceEntry.mibDbVolatileDict, // Implements volatile ME MIB database
 				//true,                             // Advertise events on OpenOMCI event bus
 				60, // Time to wait between MIB audits.  0 to disable audits.
 				// map[string]func() error{
@@ -359,7 +377,7 @@ func NewOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 		// some specifc error treatment - or waiting for crash ???
 	}
 
-	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.SetBackend(cBasePathMibTemplateKvStore)
+	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(cBasePathMibTemplateKvStore)
 	if onuDeviceEntry.mibTemplateKVStore == nil {
 		logger.Errorw("Failed to setup mibTemplateKVStore", log.Fields{"device-id": deviceID})
 	}
@@ -370,11 +388,11 @@ func NewOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 	return &onuDeviceEntry
 }
 
-//Start starts (logs) the omci agent
-func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
+//start starts (logs) the omci agent
+func (oo *OnuDeviceEntry) start(ctx context.Context) error {
 	logger.Info("starting-OnuDeviceEntry")
 
-	oo.PDevOmciCC = NewOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
+	oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
 		oo.coreProxy, oo.adapterProxy)
 	if oo.PDevOmciCC == nil {
 		logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
@@ -386,8 +404,8 @@ func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 	return nil
 }
 
-//Stop terminates the session
-func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
+//stop terminates the session
+func (oo *OnuDeviceEntry) stop(ctx context.Context) error {
 	logger.Info("stopping-OnuDeviceEntry")
 	oo.started = false
 	//oo.exitChannel <- 1
@@ -396,7 +414,7 @@ func (oo *OnuDeviceEntry) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (oo *OnuDeviceEntry) Reboot(ctx context.Context) error {
+func (oo *OnuDeviceEntry) reboot(ctx context.Context) error {
 	logger.Info("reboot-OnuDeviceEntry")
 	if err := oo.PDevOmciCC.sendReboot(context.TODO(), ConstDefaultOmciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
 		logger.Errorw("onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
@@ -445,7 +463,7 @@ func (oo *OnuDeviceEntry) transferSystemEvent(devEvent OnuDeviceEvent) {
 	if devEvent == MibDatabaseSync {
 		if oo.devState < MibDatabaseSync { //devState has not been synced yet
 			oo.devState = MibDatabaseSync
-			go oo.baseDeviceHandler.DeviceProcStatusUpdate(devEvent)
+			go oo.baseDeviceHandler.deviceProcStatusUpdate(devEvent)
 			//TODO!!! device control: next step: start MIB capability verification from here ?!!!
 		} else {
 			logger.Debugw("mibinsync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
@@ -453,7 +471,7 @@ func (oo *OnuDeviceEntry) transferSystemEvent(devEvent OnuDeviceEvent) {
 	} else if devEvent == MibDownloadDone {
 		if oo.devState < MibDownloadDone { //devState has not been synced yet
 			oo.devState = MibDownloadDone
-			go oo.baseDeviceHandler.DeviceProcStatusUpdate(devEvent)
+			go oo.baseDeviceHandler.deviceProcStatusUpdate(devEvent)
 		} else {
 			logger.Debugw("mibdownloaddone-event was already seen - ignored", log.Fields{"state": oo.devState})
 		}
