@@ -75,12 +75,12 @@ type ponAniGemPortAttribs struct {
 	pbitString  string
 }
 
-//UniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
-type UniPonAniConfigFsm struct {
-	pOmciCC                  *OmciCC
-	pOnuUniPort              *OnuUniPort
-	pUniTechProf             *OnuUniTechProf
-	pOnuDB                   *OnuDeviceDB
+//uniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
+type uniPonAniConfigFsm struct {
+	pOmciCC                  *omciCC
+	pOnuUniPort              *onuUniPort
+	pUniTechProf             *onuUniTechProf
+	pOnuDB                   *onuDeviceDB
 	techProfileID            uint16
 	requestEvent             OnuDeviceEvent
 	omciMIdsResponseReceived chan bool //separate channel needed for checking multiInstance OMCI message responses
@@ -96,11 +96,11 @@ type UniPonAniConfigFsm struct {
 	gemPortAttribsSlice      []ponAniGemPortAttribs
 }
 
-//NewUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
-func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTechProf *OnuUniTechProf,
-	apOnuDB *OnuDeviceDB, aTechProfileID uint16, aRequestEvent OnuDeviceEvent, aName string,
-	aDeviceID string, aCommChannel chan Message) *UniPonAniConfigFsm {
-	instFsm := &UniPonAniConfigFsm{
+//newUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
+func newUniPonAniConfigFsm(apDevOmciCC *omciCC, apUniPort *onuUniPort, apUniTechProf *onuUniTechProf,
+	apOnuDB *onuDeviceDB, aTechProfileID uint16, aRequestEvent OnuDeviceEvent, aName string,
+	aDeviceID string, aCommChannel chan Message) *uniPonAniConfigFsm {
+	instFsm := &uniPonAniConfigFsm{
 		pOmciCC:            apDevOmciCC,
 		pOnuUniPort:        apUniPort,
 		pUniTechProf:       apUniTechProf,
@@ -112,7 +112,7 @@ func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTech
 	}
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, aDeviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
-		logger.Errorw("UniPonAniConfigFsm's AdapterFsm could not be instantiated!!", log.Fields{
+		logger.Errorw("uniPonAniConfigFsm's AdapterFsm could not be instantiated!!", log.Fields{
 			"device-id": aDeviceID})
 		return nil
 	}
@@ -165,23 +165,23 @@ func NewUniPonAniConfigFsm(apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTech
 		},
 	)
 	if instFsm.pAdaptFsm.pFsm == nil {
-		logger.Errorw("UniPonAniConfigFsm's Base FSM could not be instantiated!!", log.Fields{
+		logger.Errorw("uniPonAniConfigFsm's Base FSM could not be instantiated!!", log.Fields{
 			"device-id": aDeviceID})
 		return nil
 	}
 
-	logger.Infow("UniPonAniConfigFsm created", log.Fields{"device-id": aDeviceID})
+	logger.Infow("uniPonAniConfigFsm created", log.Fields{"device-id": aDeviceID})
 	return instFsm
 }
 
-//SetFsmCompleteChannel sets the requested channel and channel result for transfer on success
-func (oFsm *UniPonAniConfigFsm) SetFsmCompleteChannel(aChSuccess chan<- uint8, aProcStep uint8) {
+//setFsmCompleteChannel sets the requested channel and channel result for transfer on success
+func (oFsm *uniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, aProcStep uint8) {
 	oFsm.chSuccess = aChSuccess
 	oFsm.procStep = aProcStep
 	oFsm.chanSet = true
 }
 
-func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
+func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 	if aPAFsm != nil && aPAFsm.pFsm != nil {
 		//stick to pythonAdapter numbering scheme
 		//index 0 in naming refers to possible usage of multiple instances (later)
@@ -195,7 +195,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 		// so this approach would search the (sorted) upstream PrioQueue list and use the T-Cont (if available) from highest Bytes
 		// or sndHighByte of relatedPort Attribute (T-Cont Reference) and in case of multiple TConts find the next free TContIndex
 		// that way from PrioQueue.relatedPort list
-		if tcontInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.TContClassID); len(tcontInstKeys) > 0 {
+		if tcontInstKeys := oFsm.pOnuDB.getSortedInstKeys(me.TContClassID); len(tcontInstKeys) > 0 {
 			oFsm.tcont0ID = tcontInstKeys[0]
 			logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 				"device-id": oFsm.pAdaptFsm.deviceID})
@@ -208,7 +208,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 		for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniID]))[0].mapGemPortParams {
 			//collect all GemConfigData in a separate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
 
-			if queueInstKeys := oFsm.pOnuDB.GetSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
+			if queueInstKeys := oFsm.pOnuDB.getSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
 
 				loGemPortAttribs.gemPortID = gemEntry.gemPortID
 				// MibDb usage: upstream PrioQueue.RelatedPort = xxxxyyyy with xxxx=TCont.Entity(incl. slot) and yyyy=prio
@@ -229,7 +229,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 					if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityID); meAttributes != nil {
 						returnVal := meAttributes["RelatedPort"]
 						if returnVal != nil {
-							if relatedPort, err := oFsm.pOnuDB.GetUint32Attrib(returnVal); err == nil {
+							if relatedPort, err := oFsm.pOnuDB.getUint32Attrib(returnVal); err == nil {
 								if relatedPort == usQrelPortMask {
 									loGemPortAttribs.upQueueID = mgmtEntityID
 									logger.Debugw("UpQueue for GemPort found:", log.Fields{"gemPortID": loGemPortAttribs.gemPortID,
@@ -277,13 +277,13 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
+func (oFsm *uniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 	logger.Debugw("UniPonAniConfigFsm start", log.Fields{"in state": e.FSM.Current(),
 		"device-id": oFsm.pAdaptFsm.deviceID})
 	// in case the used channel is not yet defined (can be re-used after restarts)
 	if oFsm.omciMIdsResponseReceived == nil {
 		oFsm.omciMIdsResponseReceived = make(chan bool)
-		logger.Debug("UniPonAniConfigFsm - OMCI multiInstance RxChannel defined")
+		logger.Debug("uniPonAniConfigFsm - OMCI multiInstance RxChannel defined")
 	} else {
 		// as we may 're-use' this instance of FSM and the connected channel
 		// make sure there is no 'lingering' request in the already existing channel:
@@ -307,8 +307,8 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(e *fsm.Event) {
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) enterCreatingDot1PMapper(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm Tx Create::Dot1PMapper", log.Fields{
+func (oFsm *uniPonAniConfigFsm) enterCreatingDot1PMapper(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm Tx Create::Dot1PMapper", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	meInstance := oFsm.pOmciCC.sendCreateDot1PMapper(context.TODO(), ConstDefaultOmciTimeout, true,
@@ -318,8 +318,8 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingDot1PMapper(e *fsm.Event) {
 	oFsm.pOmciCC.pLastTxMeInstance = meInstance
 }
 
-func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm Tx Create::MBPCD", log.Fields{
+func (oFsm *uniPonAniConfigFsm) enterCreatingMBPCD(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm Tx Create::MBPCD", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.macBPCD0ID), 16),
 		"TPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
@@ -341,8 +341,8 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(e *fsm.Event) {
 
 }
 
-func (oFsm *UniPonAniConfigFsm) enterSettingTconts(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm Tx Set::Tcont", log.Fields{
+func (oFsm *uniPonAniConfigFsm) enterSettingTconts(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm Tx Set::Tcont", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 		"AllocId":   strconv.FormatInt(int64(oFsm.alloc0ID), 16),
 		"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
@@ -359,29 +359,29 @@ func (oFsm *UniPonAniConfigFsm) enterSettingTconts(e *fsm.Event) {
 	oFsm.pOmciCC.pLastTxMeInstance = meInstance
 }
 
-func (oFsm *UniPonAniConfigFsm) enterCreatingGemNCTPs(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
+func (oFsm *uniPonAniConfigFsm) enterCreatingGemNCTPs(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	go oFsm.performCreatingGemNCTPs()
 }
 
-func (oFsm *UniPonAniConfigFsm) enterCreatingGemIWs(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm - start creating GemIwTP loop", log.Fields{
+func (oFsm *uniPonAniConfigFsm) enterCreatingGemIWs(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm - start creating GemIwTP loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	go oFsm.performCreatingGemIWs()
 }
 
-func (oFsm *UniPonAniConfigFsm) enterSettingPQs(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm - start setting PrioQueue loop", log.Fields{
+func (oFsm *uniPonAniConfigFsm) enterSettingPQs(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm - start setting PrioQueue loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	go oFsm.performSettingPQs()
 }
 
-func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm Tx Set::.1pMapper with all PBits set", log.Fields{"EntitytId": 0x8042, /*cmp above*/
+func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm Tx Set::.1pMapper with all PBits set", log.Fields{"EntitytId": 0x8042, /*cmp above*/
 		"toGemIw": 1024 /* cmp above */, "in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 
-	logger.Debugw("UniPonAniConfigFsm Tx Set::1pMapper", log.Fields{
+	logger.Debugw("uniPonAniConfigFsm Tx Set::1pMapper", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 
@@ -400,13 +400,13 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 					if loPrioGemPortArray[i] == 0 {
 						loPrioGemPortArray[i] = gemPortAttribs.gemPortID //gemPortId=EntityID and unique
 					} else {
-						logger.Warnw("UniPonAniConfigFsm PrioString not unique", log.Fields{
+						logger.Warnw("uniPonAniConfigFsm PrioString not unique", log.Fields{
 							"device-id": oFsm.pAdaptFsm.deviceID, "IgnoredGemPort": gemPortAttribs.gemPortID,
 							"SetGemPort": loPrioGemPortArray[i]})
 					}
 				}
 			} else {
-				logger.Warnw("UniPonAniConfigFsm PrioString evaluation error", log.Fields{
+				logger.Warnw("uniPonAniConfigFsm PrioString evaluation error", log.Fields{
 					"device-id": oFsm.pAdaptFsm.deviceID, "GemPort": gemPortAttribs.gemPortID,
 					"prioString": gemPortAttribs.pbitString, "position": i})
 			}
@@ -447,7 +447,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 	oFsm.pOmciCC.pLastTxMeInstance = meInstance
 }
 
-func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
+func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 
 	oFsm.aniConfigCompleted = true
 
@@ -463,8 +463,8 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm resetting", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+func (oFsm *uniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm resetting", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
 	if pConfigAniStateAFsm != nil {
@@ -486,14 +486,14 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(e *fsm.Event) {
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
-	logger.Debugw("UniPonAniConfigFsm enters disabled state", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+func (oFsm *uniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
+	logger.Debugw("uniPonAniConfigFsm enters disabled state", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 
 	if oFsm.aniConfigCompleted {
-		logger.Debugw("UniPonAniConfigFsm send dh event notification", log.Fields{
+		logger.Debugw("uniPonAniConfigFsm send dh event notification", log.Fields{
 			"from_State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 		//use DeviceHandler event notification directly
-		oFsm.pOmciCC.pBaseDeviceHandler.DeviceProcStatusUpdate(oFsm.requestEvent)
+		oFsm.pOmciCC.pBaseDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
 		oFsm.aniConfigCompleted = false
 	}
 	//store that the UNI related techProfile processing is done for the given Profile and Uni
@@ -503,7 +503,7 @@ func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
 
 	if oFsm.chanSet {
 		// indicate processing done to the caller
-		logger.Debugw("UniPonAniConfigFsm processingDone on channel", log.Fields{
+		logger.Debugw("uniPonAniConfigFsm processingDone on channel", log.Fields{
 			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 		oFsm.chSuccess <- oFsm.procStep
 		oFsm.chanSet = false //reset the internal channel state
@@ -511,8 +511,8 @@ func (oFsm *UniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
 
 }
 
-func (oFsm *UniPonAniConfigFsm) processOmciAniMessages( /*ctx context.Context*/ ) {
-	logger.Debugw("Start UniPonAniConfigFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
+func (oFsm *uniPonAniConfigFsm) processOmciAniMessages( /*ctx context.Context*/ ) {
+	logger.Debugw("Start uniPonAniConfigFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 loop:
 	for {
 		// case <-ctx.Done():
@@ -544,10 +544,10 @@ loop:
 		}
 
 	}
-	logger.Infow("End UniPonAniConfigFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+	logger.Infow("End uniPonAniConfigFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 }
 
-func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg OmciMessage) {
+func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
 	if msgLayer == nil {
 		logger.Error("Omci Msg layer could not be detected for CreateResponse")
@@ -585,7 +585,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMessage) {
+func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 	if msgLayer == nil {
 		logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be detected for SetResponse")
@@ -625,7 +625,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMe
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
+func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 	logger.Debugw("Rx OMCI UniPonAniConfigFsm Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
 		"msgType": msg.OmciMsg.MessageType})
 
@@ -642,16 +642,16 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 		} //SetResponseType
 	default:
 		{
-			logger.Errorw("UniPonAniConfigFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+			logger.Errorw("uniPonAniConfigFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
 			return
 		}
 	}
 }
 
-func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
+func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs() {
 	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
 	for gemIndex, gemPortAttribs := range oFsm.gemPortAttribsSlice {
-		logger.Debugw("UniPonAniConfigFsm Tx Create::GemNWCtp", log.Fields{
+		logger.Debugw("uniPonAniConfigFsm Tx Create::GemNWCtp", log.Fields{
 			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
 			"TcontId":   strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 			"device-id": oFsm.pAdaptFsm.deviceID})
@@ -688,10 +688,10 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs() {
 	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemntcpsResp)
 }
 
-func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
+func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
 	for gemIndex, gemPortAttribs := range oFsm.gemPortAttribsSlice {
-		logger.Debugw("UniPonAniConfigFsm Tx Create::GemIwTp", log.Fields{
+		logger.Debugw("uniPonAniConfigFsm Tx Create::GemIwTp", log.Fields{
 			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
 			"SPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 			"device-id": oFsm.pAdaptFsm.deviceID})
@@ -726,7 +726,7 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs() {
 	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemiwsResp)
 }
 
-func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
+func (oFsm *uniPonAniConfigFsm) performSettingPQs() {
 	const cu16StrictPrioWeight uint16 = 0xFFFF
 	//find all upstream PrioQueues related to this T-Cont
 	loQueueMap := ordered_map.NewOrderedMap()
@@ -760,13 +760,13 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 		}
 		if (kv.Value).(uint16) == cu16StrictPrioWeight {
 			//StrictPrio indication
-			logger.Debugw("UniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
+			logger.Debugw("uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
 				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 				"device-id": oFsm.pAdaptFsm.deviceID})
 			meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
 		} else {
 			//WRR indication
-			logger.Debugw("UniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
+			logger.Debugw("uniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
 				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 				"Weight":    kv.Value,
 				"device-id": oFsm.pAdaptFsm.deviceID})
@@ -800,7 +800,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs() {
 	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
 }
 
-func (oFsm *UniPonAniConfigFsm) waitforOmciResponse() error {
+func (oFsm *uniPonAniConfigFsm) waitforOmciResponse() error {
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
@@ -810,11 +810,11 @@ func (oFsm *UniPonAniConfigFsm) waitforOmciResponse() error {
 		return errors.New("uniPonAniConfigFsm multi entity timeout")
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
-			logger.Debug("UniPonAniConfigFsm multi entity response received")
+			logger.Debug("uniPonAniConfigFsm multi entity response received")
 			return nil
 		}
 		// should not happen so far
-		logger.Warnw("UniPonAniConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
+		logger.Warnw("uniPonAniConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 		return errors.New("uniPonAniConfigFsm multi entity responseError")
 	}
 }

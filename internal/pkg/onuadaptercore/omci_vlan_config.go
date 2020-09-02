@@ -103,11 +103,11 @@ const (
 
 //UniVlanConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type UniVlanConfigFsm struct {
-	pDeviceHandler              *DeviceHandler
-	pOmciCC                     *OmciCC
-	pOnuUniPort                 *OnuUniPort
-	pUniTechProf                *OnuUniTechProf
-	pOnuDB                      *OnuDeviceDB
+	pDeviceHandler              *deviceHandler
+	pOmciCC                     *omciCC
+	pOnuUniPort                 *onuUniPort
+	pUniTechProf                *onuUniTechProf
+	pOnuDB                      *onuDeviceDB
 	techProfileID               uint16
 	requestEvent                OnuDeviceEvent
 	omciMIdsResponseReceived    chan bool //seperate channel needed for checking multiInstance OMCI message responses
@@ -124,8 +124,8 @@ type UniVlanConfigFsm struct {
 }
 
 //NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
-func NewUniVlanConfigFsm(apDeviceHandler *DeviceHandler, apDevOmciCC *OmciCC, apUniPort *OnuUniPort, apUniTechProf *OnuUniTechProf,
-	apOnuDB *OnuDeviceDB, aTechProfileID uint16, aRequestEvent OnuDeviceEvent, aName string,
+func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, apUniPort *onuUniPort, apUniTechProf *onuUniTechProf,
+	apOnuDB *onuDeviceDB, aTechProfileID uint16, aRequestEvent OnuDeviceEvent, aName string,
 	aDeviceID string, aCommChannel chan Message,
 	aAcceptIncrementalEvto bool, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8) *UniVlanConfigFsm {
 	instFsm := &UniVlanConfigFsm{
@@ -293,7 +293,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(e *fsm.Event) {
 	logger.Debugw("UniVlanConfigFsm - VLAN config done: send dh event notification", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	if oFsm.pDeviceHandler != nil {
-		oFsm.pDeviceHandler.DeviceProcStatusUpdate(oFsm.requestEvent)
+		oFsm.pDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
 	}
 }
 

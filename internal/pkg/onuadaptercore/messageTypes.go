@@ -22,13 +22,17 @@ import (
 	"github.com/opencord/omci-lib-go"
 )
 
+// MessageType - Message Protocol Type
 type MessageType uint8
 
 const (
+	// TestMsg - Message type for non OMCI messages
 	TestMsg MessageType = iota
+	//OMCI - OMCI protocol type msg
 	OMCI
 )
 
+// String - Return the text representation of the message type based on integer
 func (m MessageType) String() string {
 	names := [...]string{
 		"TestMsg",
@@ -37,25 +41,33 @@ func (m MessageType) String() string {
 	return names[m]
 }
 
+// Message - message type and data(OMCI)
 type Message struct {
 	Type MessageType
 	Data interface{}
 }
 
+//TestMessageType - message data for various events
 type TestMessageType uint8
 
 const (
+	// LoadMibTemplateOk - message data for getting mib template successfully
 	LoadMibTemplateOk TestMessageType = iota + 1
+	// LoadMibTemplateFailed - message data for failure for getting mib template
 	LoadMibTemplateFailed
+	// TimeOutOccurred - message data for timeout
 	TimeOutOccurred
+	// AbortMessageProcessing - message data for aborting running message
 	AbortMessageProcessing
 )
 
+//TestMessage - Struct to hold the message data
 //TODO: place holder to have a second interface variant - to be replaced by real variant later on
 type TestMessage struct {
 	TestMessageVal TestMessageType
 }
 
+//OmciMessage - OMCI protocol messages for managing and monitoring ONUs
 type OmciMessage struct {
 	//OnuSN   *openolt.SerialNumber
 	//OnuID   uint32
