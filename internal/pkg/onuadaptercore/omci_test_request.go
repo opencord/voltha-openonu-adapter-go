@@ -35,10 +35,10 @@ import (
 	//"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
-//OmciTestRequest structure holds the information for the OMCI test
-type OmciTestRequest struct {
+//omciTestRequest structure holds the information for the OMCI test
+type omciTestRequest struct {
 	deviceID     string
-	pDevOmciCC   *OmciCC
+	pDevOmciCC   *omciCC
 	started      bool
 	result       bool
 	exclusiveCc  bool
@@ -47,12 +47,12 @@ type OmciTestRequest struct {
 	verifyDone   chan<- bool
 }
 
-//NewOmciTestRequest returns a new instance of OmciTestRequest
-func NewOmciTestRequest(ctx context.Context,
-	deviceID string, omciCc *OmciCC,
-	exclusive bool, allowFailure bool) *OmciTestRequest {
+//newOmciTestRequest returns a new instance of OmciTestRequest
+func newOmciTestRequest(ctx context.Context,
+	deviceID string, omciCc *omciCC,
+	exclusive bool, allowFailure bool) *omciTestRequest {
 	logger.Debug("omciTestRequest-init")
-	var omciTestRequest OmciTestRequest
+	var omciTestRequest omciTestRequest
 	omciTestRequest.deviceID = deviceID
 	omciTestRequest.pDevOmciCC = omciCc
 	omciTestRequest.started = false
@@ -64,23 +64,23 @@ func NewOmciTestRequest(ctx context.Context,
 }
 
 //
-func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, execChannel chan<- bool) {
+func (oo *omciTestRequest) performOmciTest(ctx context.Context, execChannel chan<- bool) {
 	logger.Debug("omciTestRequest-start-test")
 
 	if oo.pDevOmciCC != nil {
 		oo.verifyDone = execChannel
 		// test functionality is limited to ONU-2G get request for the moment
 		// without yet checking the received response automatically here (might be improved ??)
-		tid := oo.pDevOmciCC.GetNextTid(false)
-		onu2gBaseGet, _ := oo.CreateOnu2gBaseGet(tid)
-		omciRxCallbackPair := CallbackPair{
+		tid := oo.pDevOmciCC.getNextTid(false)
+		onu2gBaseGet, _ := oo.createOnu2gBaseGet(tid)
+		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: CallbackPairEntry{nil, oo.ReceiveOmciVerifyResponse},
+			cbEntry: callbackPairEntry{nil, oo.receiveOmciVerifyResponse},
 		}
 
 		logger.Debugw("performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID})
 		// send with default timeout and normal prio
-		go oo.pDevOmciCC.Send(ctx, onu2gBaseGet, ConstDefaultOmciTimeout, 0, false, omciRxCallbackPair)
+		go oo.pDevOmciCC.send(ctx, onu2gBaseGet, ConstDefaultOmciTimeout, 0, false, omciRxCallbackPair)
 
 	} else {
 		logger.Errorw("performOmciTest: Device does not exist", log.Fields{"for device-id": oo.deviceID})
@@ -90,7 +90,7 @@ func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, execChannel chan
 // these are OMCI related functions, could/should be collected in a separate file? TODO!!!
 // for a simple start just included in here
 //basic approach copied from bbsim, cmp /devices/onu.go and /internal/common/omci/mibpackets.go
-func (oo *OmciTestRequest) CreateOnu2gBaseGet(tid uint16) ([]byte, error) {
+func (oo *omciTestRequest) createOnu2gBaseGet(tid uint16) ([]byte, error) {
 
 	request := &omci.GetRequest{
 		MeBasePacket: omci.MeBasePacket{
@@ -113,7 +113,7 @@ func (oo *OmciTestRequest) CreateOnu2gBaseGet(tid uint16) ([]byte, error) {
 }
 
 //supply a response handler - in this testobject the message is evaluated directly, no response channel used
-func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
+func (oo *omciTestRequest) receiveOmciVerifyResponse(omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
 
 	logger.Debugw("verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": omciMsg.TransactionID, "DeviceIdent": omciMsg.DeviceIdentifier})
