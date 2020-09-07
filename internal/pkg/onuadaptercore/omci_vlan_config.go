@@ -65,7 +65,7 @@ const (
 	cDoNotFilterEtherType uint32 = 0
 	cDoNotAddPrio         uint32 = 15
 	cCopyPrioFromInner    uint32 = 8
-	cDontCarePrio         uint32 = 0
+	//cDontCarePrio         uint32 = 0
 	cDontCareVid          uint32 = 0
 	cDontCareTpid         uint32 = 0
 	cSetOutputTpidCopyDei uint32 = 4
@@ -79,13 +79,13 @@ const (
 	vlanEvStartConfig    = "vlanEvStartConfig"
 	vlanEvRxConfigVtfd   = "vlanEvRxConfigVtfd"
 	vlanEvRxConfigEvtocd = "vlanEvRxConfigEvtocd"
-	vlanEvCleanupConfig  = "vlanEvCleanupConfig"
-	vlanEvRxCleanVtfd    = "vlanEvRxCleanVtfd"
-	vlanEvRxCleanEvtocd  = "vlanEvRxCleanEvtocd"
-	vlanEvTimeoutSimple  = "vlanEvTimeoutSimple"
-	vlanEvTimeoutMids    = "vlanEvTimeoutMids"
-	vlanEvReset          = "vlanEvReset"
-	vlanEvRestart        = "vlanEvRestart"
+	//vlanEvCleanupConfig  = "vlanEvCleanupConfig"
+	//vlanEvRxCleanVtfd = "vlanEvRxCleanVtfd"
+	//vlanEvRxCleanEvtocd = "vlanEvRxCleanEvtocd"
+	//vlanEvTimeoutSimple = "vlanEvTimeoutSimple"
+	//vlanEvTimeoutMids = "vlanEvTimeoutMids"
+	vlanEvReset   = "vlanEvReset"
+	vlanEvRestart = "vlanEvRestart"
 )
 const (
 	// states of config PON ANI port FSM
@@ -237,10 +237,10 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(e *fsm.Event) {
 
 				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniId, oFsm.techProfileID) {
 					// let the vlan processing begin
-					a_pAFsm.pFsm.Event(vlanEvStartConfig)
+					_ = a_pAFsm.pFsm.Event(vlanEvStartConfig)
 				} else {
 					// set to waiting for Techprofile
-					a_pAFsm.pFsm.Event(vlanEvWaitTechProf)
+					_ = a_pAFsm.pFsm.Event(vlanEvWaitTechProf)
 				}
 			}
 		}(pConfigVlanStateAFsm)
@@ -256,7 +256,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		pConfigVlanStateAFsm := oFsm.pAdaptFsm
 		go func(a_pAFsm *AdapterFsm) {
-			a_pAFsm.pFsm.Event(vlanEvRxConfigVtfd)
+			_ = a_pAFsm.pFsm.Event(vlanEvRxConfigVtfd)
 		}(pConfigVlanStateAFsm)
 	} else {
 		logger.Debugw("UniVlanConfigFsm create VTFD", log.Fields{
@@ -320,7 +320,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(vlanEvReset)
+				_ = a_pAFsm.pFsm.Event(vlanEvReset)
 			}
 		}(pConfigVlanStateAFsm)
 	}
@@ -343,7 +343,7 @@ func (oFsm *UniVlanConfigFsm) enterResetting(e *fsm.Event) {
 		//try to restart the FSM to 'disabled', decouple event transfer
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				a_pAFsm.pFsm.Event(vlanEvRestart)
+				_ = a_pAFsm.pFsm.Event(vlanEvRestart)
 			}
 		}(pConfigVlanStateAFsm)
 	}
@@ -361,34 +361,32 @@ func (oFsm *UniVlanConfigFsm) processOmciVlanMessages() { //ctx context.Context?
 	logger.Debugw("Start UniVlanConfigFsm Msg processing", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 loop:
 	for {
-		select {
 		// case <-ctx.Done():
 		// 	logger.Info("MibSync Msg", log.Fields{"Message handling canceled via context for device-id": oFsm.pAdaptFsm.deviceID})
 		// 	break loop
-		case message, ok := <-oFsm.pAdaptFsm.commChan:
-			if !ok {
-				logger.Info("UniVlanConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-				oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+		message, ok := <-oFsm.pAdaptFsm.commChan
+		if !ok {
+			logger.Info("UniVlanConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
+			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+			break loop
+		}
+		logger.Debugw("UniVlanConfigFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+
+		switch message.Type {
+		case TestMsg:
+			msg, _ := message.Data.(TestMessage)
+			if msg.TestMessageVal == AbortMessageProcessing {
+				logger.Infow("UniVlanConfigFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 				break loop
 			}
-			logger.Debugw("UniVlanConfigFsm Rx Msg", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-
-			switch message.Type {
-			case TestMsg:
-				msg, _ := message.Data.(TestMessage)
-				if msg.TestMessageVal == AbortMessageProcessing {
-					logger.Infow("UniVlanConfigFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-					break loop
-				}
-				logger.Warnw("UniVlanConfigFsm unknown TestMessage", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "MessageVal": msg.TestMessageVal})
-			case OMCI:
-				msg, _ := message.Data.(OmciMessage)
-				oFsm.handleOmciVlanConfigMessage(msg)
-			default:
-				logger.Warn("UniVlanConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
-					"message.Type": message.Type})
-			}
+			logger.Warnw("UniVlanConfigFsm unknown TestMessage", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "MessageVal": msg.TestMessageVal})
+		case OMCI:
+			msg, _ := message.Data.(OmciMessage)
+			oFsm.handleOmciVlanConfigMessage(msg)
+		default:
+			logger.Warn("UniVlanConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
+				"message.Type": message.Type})
 		}
 	}
 	logger.Infow("End UniVlanConfigFsm Msg processing", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
@@ -424,7 +422,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(msg OmciMessage) {
 				switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 				case "VlanTaggingFilterData":
 					{ // let the FSM proceed ...
-						oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigVtfd)
+						_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigVtfd)
 					}
 				}
 			}
@@ -492,7 +490,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 		if err != nil {
 			logger.Errorw("Evtocd set TPID failed, aborting VlanConfig FSM!",
 				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-			oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 			return
 		}
 	} //for local var
@@ -542,7 +540,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 		if err != nil {
 			logger.Errorw("Evtocd set transparent singletagged rule failed, aborting VlanConfig FSM!",
 				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-			oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 			return
 		}
 	} else {
@@ -592,7 +590,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 			if err != nil {
 				logger.Errorw("Evtocd set singletagged translation rule failed, aborting VlanConfig FSM!",
 					log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-				oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+				_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 				return
 			}
 		} else {
@@ -643,7 +641,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 				if err != nil {
 					logger.Errorw("Evtocd set untagged->singletagged rule failed, aborting VlanConfig FSM!",
 						log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-					oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 					return
 				}
 			} //just for local var's
@@ -693,7 +691,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 				if err != nil {
 					logger.Errorw("Evtocd set priotagged->singletagged rule failed, aborting VlanConfig FSM!",
 						log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-					oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 					return
 				}
 			} //just for local var's
@@ -702,8 +700,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries() {
 
 	// if Config has been done for all GemPort instances let the FSM proceed
 	logger.Debugw("EVTOCD set loop finished", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
-	oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
-	return
+	_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
 }
 
 func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
@@ -715,7 +712,7 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
 		logger.Warnw("UniVlanConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 		return errors.New("UniVlanConfigFsm multi entity timeout")
 	case success := <-oFsm.omciMIdsResponseReceived:
-		if success == true {
+		if success {
 			logger.Debug("UniVlanConfigFsm multi entity response received")
 			return nil
 		}
