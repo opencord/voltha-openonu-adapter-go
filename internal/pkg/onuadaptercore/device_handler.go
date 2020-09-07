@@ -1149,7 +1149,7 @@ func (dh *DeviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 						//VlanFilterFsm exists and was already started
 						pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 						if pVlanFilterStatemachine != nil {
-							pVlanFilterStatemachine.Event(vlanEvReset)
+							_ = pVlanFilterStatemachine.Event(vlanEvReset)
 						}
 					}
 				}

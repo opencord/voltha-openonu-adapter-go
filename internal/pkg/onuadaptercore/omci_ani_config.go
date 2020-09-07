@@ -568,11 +568,11 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 		switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 		case "Ieee8021PMapperServiceProfile":
 			{ // let the FSM proceed ...
-				oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
 			}
 		case "MacBridgePortConfigurationData":
 			{ // let the FSM proceed ...
-				oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
 			}
 		case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
 			{ // let aniConfig Multi-Id processing proceed by stopping the wait function
@@ -608,7 +608,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMe
 		switch oFsm.pOmciCC.pLastTxMeInstance.GetName() {
 		case "TCont":
 			{ // let the FSM proceed ...
-				oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
 			}
 		case "PriorityQueue":
 			{ // let the PrioQueue init proceed by stopping the wait function
@@ -616,7 +616,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMe
 			}
 		case "Ieee8021PMapperServiceProfile":
 			{ // let the FSM proceed ...
-				oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
 			}
 		}
 	}
