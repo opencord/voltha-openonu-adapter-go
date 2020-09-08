@@ -121,6 +121,24 @@
       "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5010ab25_8ee5686e",
+        "filename": "internal/pkg/onuadaptercore/platform.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-08T14:53:22Z",
+      "side": 1,
+      "message": "This is likely as the code is a copy from olt which was made right at the beginning of our implementation. Probably it should be shifted to voltha-lib-go during refactoring.",
+      "parentUuid": "85995e11_726de522",
+      "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
