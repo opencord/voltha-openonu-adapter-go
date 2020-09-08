@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "9546e814_b60d5c19",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-08T14:50:32Z",
+      "side": 1,
+      "message": "I have to admit I don\u0027t have the latest codebase yet. Could somebody enable me to make this one letter change directly in the current patch?",
+      "parentUuid": "c402894a_da917264",
+      "range": {
+        "startLine": 169,
+        "startChar": 31,
+        "endLine": 169,
+        "endChar": 41
+      },
+      "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4b61e5ae_df36bb66",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
