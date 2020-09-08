@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e4d8bd46_3efff0a6",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-08T15:57:09Z",
+      "side": 1,
+      "message": "The wrong renaming of string \"Attributes\" to \"attributes\" introduced by patch \"VOL-3434 Added SCA Fixes\" https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/20375 and reverted by patch https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/20392 was re-introduced by this patch. Please change it!",
+      "range": {
+        "startLine": 169,
+        "startChar": 0,
+        "endLine": 169,
+        "endChar": 15
+      },
+      "revId": "05744fd3d717f6842d8fc0510c852ac2c84212fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
