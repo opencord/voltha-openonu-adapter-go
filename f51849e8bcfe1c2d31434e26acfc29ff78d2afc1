@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "9a7cb2a3_8627d2c6",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2020-09-08T16:03:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4b61e5ae_df36bb66",
+      "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c797aefd_a41932ec",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -104,6 +122,24 @@
       "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ebd97e54_2dd42506",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2020-09-08T16:03:55Z",
+      "side": 1,
+      "message": "Yes",
+      "parentUuid": "c797aefd_a41932ec",
+      "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
