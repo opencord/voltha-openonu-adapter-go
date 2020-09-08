@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "8288f6b5_fcadeb08",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-08T14:42:18Z",
+      "side": 1,
+      "message": "Found - it comes from https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/20375/4/internal/pkg/onuadaptercore/mib_sync.go: \"attributes\" has to be \"Attributes\". A Robot-Testcase to check MibTemplating is already in the pipeline. :-)",
+      "range": {
+        "startLine": 169,
+        "startChar": 31,
+        "endLine": 169,
+        "endChar": 41
+      },
+      "revId": "f51849e8bcfe1c2d31434e26acfc29ff78d2afc1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4b61e5ae_df36bb66",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
