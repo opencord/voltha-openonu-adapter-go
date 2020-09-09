@@ -83,4 +83,10 @@ issues:
     - "don't use underscores in Go names; method Child_device_lost"
     - "don't use underscores in Go names; method Start_omci_test"
     - "don't use underscores in Go names; method Get_ext_value"
+    - "Error return value of `dh.coreProxy.PortStateUpdate` is not checked"
+    - "Error return value of `rxCallbackEntry.cbFunction` is not checked"
+    - "Error return value of `oo.sendNextRequest` is not checked"
+    - "Error return value of `oo.pDevOmciCC.send` is not checked"
+    - "Error return value of `onuDeviceEntry.mibDbClass` is not checked"
+    - "Error return value of `handler.rebootDevice` is not checked"
   exclude-use-default: false
