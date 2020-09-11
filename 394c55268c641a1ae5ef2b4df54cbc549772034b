@@ -87,6 +87,24 @@
       "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2ed66713_f907739f",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1488,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-11T12:52:46Z",
+      "side": 1,
+      "message": "Having a look at the code calling the function it became clear, that error handling for all send*() routines is already a matter of refactoring planned with story VOL-3457:\n \n\t\t\tmeInstance :\u003d oFsm.pOmciCC.sendSetVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,\n\t\t\t\toFsm.pAdaptFsm.commChan, meParams)\n\t\t\t//accept also nil as (error) return value for writing to LastTx\n\t\t\t//  - this avoids misinterpretation of new received OMCI messages\n\t\t\t//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:\n\t\t\t//  send shall return (dual format) error code that can be used here for immediate error treatment\n\t\t\t//  (relevant to all used sendXX() methods in this (and other) FSM\u0027s)",
+      "parentUuid": "e67e3098_c9d61973",
+      "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
