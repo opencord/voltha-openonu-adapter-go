@@ -16,6 +16,24 @@
       "revId": "b03b81cc43310ec5694d6eed91d159a17884f5c6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4b618101_44741d76",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 539,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-11T11:59:46Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b7aa9d68_19f820e7",
+      "revId": "b03b81cc43310ec5694d6eed91d159a17884f5c6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
