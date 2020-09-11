@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b3d56761_09c04d15",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1446,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-11T12:06:31Z",
+      "side": 1,
+      "message": "being picky, but can you have a better name or some documentation on what this method name means ?",
+      "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a9036ef9_cb36ff72",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1488,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-11T12:06:31Z",
+      "side": 1,
+      "message": "worth returning the error even if ignored later ?",
+      "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
