@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "da21f198_e8a5fe75",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1446,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-11T12:38:44Z",
+      "side": 1,
+      "message": "Being consistent than, all abbreviations in function names of the module had to be written out in full. ;-) But few lines down, it becomes clear, that this routine deals with the set-request to configure \"VlanTaggingFilterData\". What do you think about it?",
+      "parentUuid": "b3d56761_09c04d15",
+      "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a9036ef9_cb36ff72",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 2
@@ -33,6 +51,24 @@
       "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e67e3098_c9d61973",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1488,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-11T12:38:44Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a9036ef9_cb36ff72",
+      "revId": "394c55268c641a1ae5ef2b4df54cbc549772034b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
