@@ -526,8 +526,6 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 }
 
 //reEnableDevice unlocks the ONU and its UNI/VEIP ports (admin unlock via OMCI)
-// TODO!!! Clarify usage of this method, compare above DisableDevice, usage may clarify resulting states
-//         maybe it is obsolete by now
 func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 	logger.Debugw("reenable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
@@ -538,12 +536,12 @@ func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 	}
 
-	// TODO!!! DeviceReason to be set here could be more accurate, for now just ...(like python code)
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
+	// DeviceReason tupdate acc.to modified py code as per beginning of Sept 2020
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "onu-reenabled"); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
 	}
-	dh.deviceReason = "initial-mib-downloaded"
+	dh.deviceReason = "onu-reenabled"
 
 	// enable ONU/UNI ports
 	// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
@@ -1822,12 +1820,8 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 		}
 		logger.Debugw("FlowAdd vlan-set", log.Fields{"device-id": dh.deviceID})
 	}
-	//TODO!!: further FlowAdd requests may be valid even in case the FSM is already running,
-	//  e.g. for multi-step flow configuration, error treatment must be redefined in this context as requested in [VOL-3441]
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
-		logger.Errorw("FlowAdd aborted - FSM already running", log.Fields{
-			"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
-		return errors.New("flowAdd FSM already running")
+		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(loMatchVlan, loSetVlan, loSetPcp)
 	}
 	return dh.createVlanFilterFsm(apUniPort,
 		loTpID, loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterDone)

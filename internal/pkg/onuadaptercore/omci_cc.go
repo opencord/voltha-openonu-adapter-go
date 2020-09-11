@@ -1443,6 +1443,51 @@ func (oo *omciCC) sendCreateVtfdVar(ctx context.Context, timeout int, highPrio b
 	return nil
 }
 
+func (oo *omciCC) sendSetVtfdVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send VTFD-Set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVlanTaggingFilterData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode VTFD for set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize VTFD set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send VTFD set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send VTFD-Set-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate VTFD Instance", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
 func (oo *omciCC) sendSetEvtocdVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
