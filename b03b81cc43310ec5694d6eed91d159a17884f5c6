@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b7aa9d68_19f820e7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 539,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2020-09-11T11:52:33Z",
+      "side": 1,
+      "message": "DeviceReason to update*",
+      "revId": "b03b81cc43310ec5694d6eed91d159a17884f5c6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
