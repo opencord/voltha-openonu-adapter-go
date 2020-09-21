@@ -128,7 +128,7 @@ var maxUpstreamPortID = 0xfffffffd
 var controllerPorts = []uint32{0xfffd, 0x7ffffffd, 0xfffffffd}
 */
 
-//mkUniPortNum returns new UNIportNum based on intfID, inuID and uniID
+//mkUniPortNum returns new UNIportNum based on intfID, onuID and uniID
 func mkUniPortNum(intfID, onuID, uniID uint32) uint32 {
 	//extended for checks available in the python onu adapter:!!
 	var limit = int(intfID)
