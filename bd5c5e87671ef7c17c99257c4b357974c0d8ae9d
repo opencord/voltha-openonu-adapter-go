@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "60068a1d_432b7ace",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-21T13:43:56Z",
+      "side": 1,
+      "message": "add the deviceId also in the returned error",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1b5edb07_ef74b685",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 303,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-21T13:43:56Z",
+      "side": 1,
+      "message": "here you are holding the lock until success or for 30 seconds. given that the KVStore  lock is used for other elements, will this create a bottle neck ?",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eec2e232_62cb4a24",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-21T13:43:56Z",
+      "side": 1,
+      "message": "why 255 ? I do not think this is a hard limit for the ONUs, right ?",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3bbb7b2e_0601a8b2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 676,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-21T13:43:56Z",
+      "side": 1,
+      "message": "this needs to return error, I know we have an error story but it\u0027s becoming too big, please do it here given that it\u0027s a new method. same for the other errors in this method.",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2caa66c8_565862b2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2041,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-21T13:43:56Z",
+      "side": 1,
+      "message": "documentation is needed",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
