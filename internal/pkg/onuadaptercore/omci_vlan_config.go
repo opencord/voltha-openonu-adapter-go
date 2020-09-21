@@ -105,15 +105,6 @@ const (
 	vlanStResetting       = "vlanStResetting"
 )
 
-type uniVlanFlowParameter struct {
-	//use uint32 types for allowing immediate bitshifting
-	matchVid     uint32
-	matchPcp     uint32
-	tagsToRemove uint32
-	setVid       uint32
-	setPcp       uint32
-}
-
 //UniVlanConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type UniVlanConfigFsm struct {
 	pDeviceHandler              *deviceHandler
@@ -127,7 +118,7 @@ type UniVlanConfigFsm struct {
 	pAdaptFsm                   *AdapterFsm
 	acceptIncrementalEvtoOption bool
 	mutexFlowParams             sync.Mutex
-	uniFlowParamsSlice          []uniVlanFlowParameter
+	uniFlowParamsSlice          []uniVlanFlowParams
 	numUniFlows                 uint8 // expected number of flows should be less than 12
 	configuredUniFlow           uint8
 	numVlanFilterEntries        uint8
@@ -205,7 +196,7 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 		return nil
 	}
 
-	_ = instFsm.SetUniFlowParams(aMatchVlan, aSetVlan, aSetPcp)
+	_ = instFsm.SetUniFlowParams(aTechProfileID, aMatchVlan, aSetVlan, aSetPcp)
 
 	logger.Infow("UniVlanConfigFsm created", log.Fields{"device-id": aDeviceID,
 		"accIncrEvto": instFsm.acceptIncrementalEvtoOption})
@@ -214,37 +205,38 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 
 //SetUniFlowParams verifies on existence of flow parameters to be configured
 // and appends a new flow if there is space
-func (oFsm *UniVlanConfigFsm) SetUniFlowParams(aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8) error {
-	loFlowParams := uniVlanFlowParameter{
-		matchVid: uint32(aMatchVlan),
-		setVid:   uint32(aSetVlan),
-		setPcp:   uint32(aSetPcp),
+func (oFsm *UniVlanConfigFsm) SetUniFlowParams(aTpID uint16, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8) error {
+	loFlowParams := uniVlanFlowParams{
+		TpID:     aTpID,
+		MatchVid: uint32(aMatchVlan),
+		SetVid:   uint32(aSetVlan),
+		SetPcp:   uint32(aSetPcp),
 	}
 	// some automatic adjustments on the filter/treat parameters as not specifically configured/ensured by flow configuration parameters
-	loFlowParams.tagsToRemove = 1            //one tag to remove as default setting
-	loFlowParams.matchPcp = cPrioDoNotFilter // do not Filter on prio as default
+	loFlowParams.TagsToRemove = 1            //one tag to remove as default setting
+	loFlowParams.MatchPcp = cPrioDoNotFilter // do not Filter on prio as default
 
-	if loFlowParams.setVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
+	if loFlowParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		//then matchVlan is don't care and should be overwritten to 'transparent' here to avoid unneeded multiple flow entries
-		loFlowParams.matchVid = uint32(of.OfpVlanId_OFPVID_PRESENT)
+		loFlowParams.MatchVid = uint32(of.OfpVlanId_OFPVID_PRESENT)
 		//TODO!!: maybe be needed to be re-checked at flow deletion (but assume all flows are always deleted togehther)
 	} else {
 		if !oFsm.acceptIncrementalEvtoOption {
 			//then matchVlan is don't care and should be overwritten to 'transparent' here to avoid unneeded multiple flow entries
-			loFlowParams.matchVid = uint32(of.OfpVlanId_OFPVID_PRESENT)
+			loFlowParams.MatchVid = uint32(of.OfpVlanId_OFPVID_PRESENT)
 		}
 	}
 
-	if loFlowParams.matchVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
+	if loFlowParams.MatchVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		// no prio/vid filtering requested
-		loFlowParams.tagsToRemove = 0          //no tag pop action
-		loFlowParams.matchPcp = cPrioIgnoreTag // no vlan tag filtering
-		if loFlowParams.setPcp == cCopyPrioFromInner {
+		loFlowParams.TagsToRemove = 0          //no tag pop action
+		loFlowParams.MatchPcp = cPrioIgnoreTag // no vlan tag filtering
+		if loFlowParams.SetPcp == cCopyPrioFromInner {
 			//in case of no filtering and configured PrioCopy ensure default prio setting to 0
 			// which is required for stacking of untagged, but obviously also ensures prio setting for prio/singletagged
 			// might collide with NoMatchVid/CopyPrio(/setVid) setting
 			// this was some precondition setting taken over from py adapter ..
-			loFlowParams.setPcp = 0
+			loFlowParams.SetPcp = 0
 		}
 	}
 	flowEntryMatch := false
@@ -265,10 +257,18 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(aMatchVlan uint16, aSetVlan uint1
 			oFsm.uniFlowParamsSlice = append(oFsm.uniFlowParamsSlice, loFlowParams)
 			oFsm.numUniFlows++
 			logger.Debugw("UniVlanConfigFsm flow added", log.Fields{
-				"matchVid": strconv.FormatInt(int64(loFlowParams.matchVid), 16),
-				"setVid":   strconv.FormatInt(int64(loFlowParams.setVid), 16),
-				"setPcp":   loFlowParams.setPcp, "numberofFlows": oFsm.numUniFlows,
+				"MatchVid": strconv.FormatInt(int64(loFlowParams.MatchVid), 16),
+				"SetVid":   strconv.FormatInt(int64(loFlowParams.SetVid), 16),
+				"SetPcp":   loFlowParams.SetPcp, "numberofFlows": oFsm.numUniFlows,
 				"device-id": oFsm.pAdaptFsm.deviceID})
+
+			//permanently store flow config for reconcile case
+
+			if err := oFsm.pDeviceHandler.storePersUniFlowConfig(oFsm.pOnuUniPort.uniID, &oFsm.uniFlowParamsSlice); err != nil {
+				logger.Errorw(err.Error(), log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
+				return err
+			}
+
 			pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
 			if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
 				//have to re-trigger the FSM to proceed with outstanding incremental flow configuration
@@ -321,7 +321,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(e *fsm.Event) {
 func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
-	if oFsm.uniFlowParamsSlice[0].setVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
+	if oFsm.uniFlowParamsSlice[0].SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		// meaning transparent setup - no specific VTFD setting required
 		oFsm.mutexFlowParams.Unlock()
 		logger.Debugw("UniVlanConfigFsm: no VTFD config required", log.Fields{
@@ -336,7 +336,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 		logger.Debugw("UniVlanConfigFsm create VTFD", log.Fields{
 			"EntitytId": strconv.FormatInt(int64(oFsm.vtfdID), 16),
 			"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
-		oFsm.vlanFilterList[0] = uint16(oFsm.uniFlowParamsSlice[0].setVid) // setVid is assumed to be masked already by the caller to 12 bit
+		oFsm.vlanFilterList[0] = uint16(oFsm.uniFlowParamsSlice[0].SetVid) // setVid is assumed to be masked already by the caller to 12 bit
 		oFsm.mutexFlowParams.Unlock()
 		vtfdFilterList := make([]uint16, 12) //needed for parameter serialization
 		vtfdFilterList[0] = oFsm.vlanFilterList[0]
@@ -397,7 +397,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 		"device-id": oFsm.pAdaptFsm.deviceID})
 	oFsm.mutexFlowParams.Lock()
 
-	if oFsm.uniFlowParamsSlice[oFsm.configuredUniFlow].setVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
+	if oFsm.uniFlowParamsSlice[oFsm.configuredUniFlow].SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		// meaning transparent setup - no specific VTFD setting required
 		oFsm.mutexFlowParams.Unlock()
 		logger.Debugw("UniVlanConfigFsm: no VTFD config required", log.Fields{
@@ -408,7 +408,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 			logger.Debugw("UniVlanConfigFsm create VTFD", log.Fields{
 				"EntitytId": strconv.FormatInt(int64(oFsm.vtfdID), 16),
 				"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
-			oFsm.vlanFilterList[0] = uint16(oFsm.uniFlowParamsSlice[oFsm.configuredUniFlow].setVid) // setVid is assumed to be masked already by the caller to 12 bit
+			oFsm.vlanFilterList[0] = uint16(oFsm.uniFlowParamsSlice[oFsm.configuredUniFlow].SetVid) // setVid is assumed to be masked already by the caller to 12 bit
 			oFsm.mutexFlowParams.Unlock()
 			vtfdFilterList := make([]uint16, 12) //needed for parameter serialization
 			vtfdFilterList[0] = oFsm.vlanFilterList[0]
@@ -437,7 +437,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 				"in state":  e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 			// setVid is assumed to be masked already by the caller to 12 bit
 			oFsm.vlanFilterList[oFsm.numVlanFilterEntries] =
-				uint16(oFsm.uniFlowParamsSlice[oFsm.configuredUniFlow].setVid)
+				uint16(oFsm.uniFlowParamsSlice[oFsm.configuredUniFlow].SetVid)
 			oFsm.mutexFlowParams.Unlock()
 			vtfdFilterList := make([]uint16, 12) //needed for parameter serialization
 			for i := uint8(0); i <= oFsm.numVlanFilterEntries; i++ {
@@ -679,7 +679,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 	} //first flow element
 
 	oFsm.mutexFlowParams.Lock()
-	if oFsm.uniFlowParamsSlice[aFlowEntryNo].setVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
+	if oFsm.uniFlowParamsSlice[aFlowEntryNo].SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		//transparent transmission required
 		oFsm.mutexFlowParams.Unlock()
 		logger.Debugw("UniVlanConfigFsm Tx Set::EVTOCD single tagged transparent rule", log.Fields{
@@ -742,20 +742,20 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 					cDoNotFilterTPID<<cFilterTpidOffset) // Do not filter on outer TPID field
 
 			binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterInnerOffset:],
-				oFsm.uniFlowParamsSlice[aFlowEntryNo].matchPcp<<cFilterPrioOffset| // either DNFonPrio or ignore tag (default) on innerVLAN
-					oFsm.uniFlowParamsSlice[aFlowEntryNo].matchVid<<cFilterVidOffset| // either DNFonVid or real filter VID
+				oFsm.uniFlowParamsSlice[aFlowEntryNo].MatchPcp<<cFilterPrioOffset| // either DNFonPrio or ignore tag (default) on innerVLAN
+					oFsm.uniFlowParamsSlice[aFlowEntryNo].MatchVid<<cFilterVidOffset| // either DNFonVid or real filter VID
 					cDoNotFilterTPID<<cFilterTpidOffset| // Do not filter on inner TPID field
 					cDoNotFilterEtherType<<cFilterEtherTypeOffset) // Do not filter of EtherType
 
 			binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatOuterOffset:],
-				oFsm.uniFlowParamsSlice[aFlowEntryNo].tagsToRemove<<cTreatTTROffset| // either 1 or 0
+				oFsm.uniFlowParamsSlice[aFlowEntryNo].TagsToRemove<<cTreatTTROffset| // either 1 or 0
 					cDoNotAddPrio<<cTreatPrioOffset| // do not add outer tag
 					cDontCareVid<<cTreatVidOffset| // Outer VID don't care
 					cDontCareTpid<<cTreatTpidOffset) // Outer TPID field don't care
 
 			binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatInnerOffset:],
-				oFsm.uniFlowParamsSlice[aFlowEntryNo].setPcp<<cTreatPrioOffset| // as configured in flow
-					oFsm.uniFlowParamsSlice[aFlowEntryNo].setVid<<cTreatVidOffset| //as configured in flow
+				oFsm.uniFlowParamsSlice[aFlowEntryNo].SetPcp<<cTreatPrioOffset| // as configured in flow
+					oFsm.uniFlowParamsSlice[aFlowEntryNo].SetVid<<cTreatVidOffset| //as configured in flow
 					cSetOutputTpidCopyDei<<cTreatTpidOffset) // Set TPID = 0x8100
 			oFsm.mutexFlowParams.Unlock()
 
@@ -807,7 +807,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 				binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatInnerOffset:],
 					0<<cTreatPrioOffset| // vlan prio set to 0
 						//   (as done in Py code, maybe better option would be setPcp here, which still could be 0?)
-						oFsm.uniFlowParamsSlice[aFlowEntryNo].setVid<<cTreatVidOffset| // Outer VID don't care
+						oFsm.uniFlowParamsSlice[aFlowEntryNo].SetVid<<cTreatVidOffset| // Outer VID don't care
 						cSetOutputTpidCopyDei<<cTreatTpidOffset) // Set TPID = 0x8100
 
 				oFsm.mutexFlowParams.Unlock()
@@ -859,7 +859,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 				binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatInnerOffset:],
 					cCopyPrioFromInner<<cTreatPrioOffset| // vlan copy from PrioTag
 						//   (as done in Py code, maybe better option would be setPcp here, which still could be PrioCopy?)
-						oFsm.uniFlowParamsSlice[aFlowEntryNo].setVid<<cTreatVidOffset| // Outer VID as configured
+						oFsm.uniFlowParamsSlice[aFlowEntryNo].SetVid<<cTreatVidOffset| // Outer VID as configured
 						cSetOutputTpidCopyDei<<cTreatTpidOffset) // Set TPID = 0x8100
 				oFsm.mutexFlowParams.Unlock()
 

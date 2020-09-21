@@ -237,7 +237,7 @@ func (dh *deviceHandler) processInterAdapterOMCIReqMessage(msg *ic.InterAdapterM
 		return pDevEntry.PDevOmciCC.receiveMessage(context.TODO(), omciMsg.Message)
 	}
 	logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
-	return errors.New("no valid OnuDevice")
+	return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 }
 
 func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapterMessage) error {
@@ -261,23 +261,29 @@ func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapte
 		_ = dh.updateInterface(onuIndication)
 	} else {
 		logger.Errorw("unknown-onu-indication operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
-		return errors.New("invalidOperState")
+		return fmt.Errorf("invalidOperState: %s, %s", onuOperstate, dh.deviceID)
 	}
 	return nil
 }
 
 func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	msg *ic.InterAdapterMessage) error {
+
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Warnw("onuTechProf instance not set up for DLMsg request - ignoring request",
 			log.Fields{"device-id": dh.deviceID})
-		return errors.New("techProfile DLMsg request while onuTechProf instance not setup")
+		return fmt.Errorf("techProfile DLMsg request while onuTechProf instance not setup: %s", dh.deviceID)
 	}
 	if (dh.deviceReason == "stopping-openomci") || (dh.deviceReason == "omci-admin-lock") {
 		// I've seen cases for this request, where the device was already stopped
 		logger.Warnw("TechProf stopped: device-unreachable", log.Fields{"device-id": dh.deviceID})
-		return errors.New("device-unreachable")
+		return fmt.Errorf("device-unreachable: %s", dh.deviceID)
 	}
 
 	msgBody := msg.GetBody()
@@ -289,10 +295,20 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	}
 
 	// we have to lock access to TechProfile processing based on different messageType calls or
-	// even to fast subsequent calls of the same messageType
+	// even to fast subsequent calls of the same messageType as well as OnuKVStore processing due
+	// to possible concurrent access by flow processing
 	dh.pOnuTP.lockTpProcMutex()
-	// lock hangs as long as below decoupled or other related TechProfile processing is active
-	if bTpModify := dh.pOnuTP.updateOnuUniTpPath(techProfMsg.UniId, techProfMsg.Path); bTpModify {
+	defer dh.pOnuTP.unlockTpProcMutex()
+	pDevEntry.lockOnuKVStoreMutex()
+	defer pDevEntry.unlockOnuKVStoreMutex()
+
+	if techProfMsg.UniId > 255 {
+		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
+			techProfMsg.UniId, dh.deviceID))
+	}
+	uniID := uint8(techProfMsg.UniId)
+
+	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, techProfMsg.Path); bTpModify {
 		//	if there has been some change for some uni TechProfilePath
 		//in order to allow concurrent calls to other dh instances we do not wait for execution here
 		//but doing so we can not indicate problems to the caller (who does what with that then?)
@@ -305,30 +321,35 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetProcessingErrorIndication()
+		dh.pOnuTP.resetTpProcessingErrorIndication()
+		pDevEntry.resetKvProcessingErrorIndication()
+
 		var wg sync.WaitGroup
 		wg.Add(2) // for the 2 go routines to finish
 		// attention: deadline completion check and wg.Done is to be done in both routines
-		go dh.pOnuTP.configureUniTp(dctx, uint8(techProfMsg.UniId), techProfMsg.Path, &wg)
-		go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
-		//the wait.. function is responsible for tpProcMutex.Unlock()
-		err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collect their result
-		return err
+		go dh.pOnuTP.configureUniTp(dctx, uniID, techProfMsg.Path, &wg)
+		go pDevEntry.updateOnuKvStore(dctx, &wg)
+		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+
+		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
 	}
-	// no change, nothing really to do
-	dh.pOnuTP.unlockTpProcMutex()
-	//return success
+	// no change, nothing really to do - return success
 	return nil
 }
 
 func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 	msg *ic.InterAdapterMessage) error {
 
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Warnw("onuTechProf instance not set up for DelGem request - ignoring request",
 			log.Fields{"device-id": dh.deviceID})
-		return errors.New("techProfile DelGem request while onuTechProf instance not setup")
+		return fmt.Errorf("techProfile DelGem request while onuTechProf instance not setup: %s", dh.deviceID)
 	}
 
 	msgBody := msg.GetBody()
@@ -341,28 +362,50 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 
 	//compare TECH_PROFILE_DOWNLOAD_REQUEST
 	dh.pOnuTP.lockTpProcMutex()
+	defer dh.pOnuTP.unlockTpProcMutex()
+	pDevEntry.lockOnuKVStoreMutex()
+	defer pDevEntry.unlockOnuKVStoreMutex()
 
-	// deadline context to ensure completion of background routines waited for
-	deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
-	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+	if delGemPortMsg.UniId > 255 {
+		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
+			delGemPortMsg.UniId, dh.deviceID))
+	}
+	uniID := uint8(delGemPortMsg.UniId)
 
-	dh.pOnuTP.resetProcessingErrorIndication()
-	var wg sync.WaitGroup
-	wg.Add(1) // for the 1 go routine to finish
-	go dh.pOnuTP.deleteTpResource(dctx, delGemPortMsg.UniId, delGemPortMsg.TpPath,
-		cResourceGemPort, delGemPortMsg.GemPortId, &wg)
-	//the wait.. function is responsible for tpProcMutex.Unlock()
-	err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
-	return err
+	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, ""); bTpModify {
+		// deadline context to ensure completion of background routines waited for
+		deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
+		dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
+		dh.pOnuTP.resetTpProcessingErrorIndication()
+		pDevEntry.resetKvProcessingErrorIndication()
+
+		var wg sync.WaitGroup
+		wg.Add(2) // for the 2 go routines to finish
+		go pDevEntry.deleteTpResource(dctx, uniID, delGemPortMsg.TpPath,
+			cResourceGemPort, delGemPortMsg.GemPortId, &wg)
+		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
+		go pDevEntry.updateOnuKvStore(dctx, &wg)
+		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+
+		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
+	}
+	return nil
 }
 
 func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 	msg *ic.InterAdapterMessage) error {
+
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Warnw("onuTechProf instance not set up for DelTcont request - ignoring request",
 			log.Fields{"device-id": dh.deviceID})
-		return errors.New("techProfile DelTcont request while onuTechProf instance not setup")
+		return fmt.Errorf("techProfile DelTcont request while onuTechProf instance not setup: %s", dh.deviceID)
 	}
 
 	msgBody := msg.GetBody()
@@ -375,24 +418,34 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 
 	//compare TECH_PROFILE_DOWNLOAD_REQUEST
 	dh.pOnuTP.lockTpProcMutex()
-	if bTpModify := dh.pOnuTP.updateOnuUniTpPath(delTcontMsg.UniId, ""); bTpModify {
+	defer dh.pOnuTP.unlockTpProcMutex()
+	pDevEntry.lockOnuKVStoreMutex()
+	defer pDevEntry.unlockOnuKVStoreMutex()
+
+	if delTcontMsg.UniId > 255 {
+		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
+			delTcontMsg.UniId, dh.deviceID))
+	}
+	uniID := uint8(delTcontMsg.UniId)
+
+	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, ""); bTpModify {
 		// deadline context to ensure completion of background routines waited for
 		deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetProcessingErrorIndication()
+		dh.pOnuTP.resetTpProcessingErrorIndication()
+		pDevEntry.resetKvProcessingErrorIndication()
+
 		var wg sync.WaitGroup
 		wg.Add(2) // for the 2 go routines to finish
-		go dh.pOnuTP.deleteTpResource(dctx, delTcontMsg.UniId, delTcontMsg.TpPath,
+		go pDevEntry.deleteTpResource(dctx, uniID, delTcontMsg.TpPath,
 			cResourceTcont, delTcontMsg.AllocId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
-		go dh.pOnuTP.updateOnuTpPathKvStore(dctx, &wg)
-		//the wait.. function is responsible for tpProcMutex.Unlock()
-		err := dh.pOnuTP.waitForTpCompletion(cancel, &wg) //let that also run off-line to let the IA messaging return!
-		return err
+		go pDevEntry.updateOnuKvStore(dctx, &wg)
+		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+
+		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
 	}
-	dh.pOnuTP.unlockTpProcMutex()
-	//return success
 	return nil
 }
 
@@ -434,8 +487,8 @@ func (dh *deviceHandler) processInterAdapterMessage(msg *ic.InterAdapterMessage)
 	default:
 		{
 			logger.Errorw("inter-adapter-unhandled-type", log.Fields{
-				"device-id": dh.deviceID, "msgType": msg.Header.Type})
-			return errors.New("unimplemented")
+				"msgType": msg.Header.Type, "device-id": dh.deviceID})
+			return fmt.Errorf("inter-adapter-unhandled-type: %d, %s", msg.Header.Type, dh.deviceID)
 		}
 	}
 }
@@ -461,7 +514,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 			flowInPort := flow.GetInPort(flowItem)
 			if flowInPort == uint32(of.OfpPortNo_OFPP_INVALID) {
 				logger.Errorw("flow inPort invalid", log.Fields{"deviceID": dh.deviceID})
-				return errors.New("flow inPort invalid")
+				return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
 				//this is some downstream flow
 				logger.Debugw("incremental flow ignore downstream", log.Fields{
@@ -557,64 +610,127 @@ func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 func (dh *deviceHandler) reconcileDeviceOnuInd() {
 	logger.Debugw("reconciling - simulate onu indication", log.Fields{"device-id": dh.deviceID})
 
-	if err := dh.pOnuTP.restoreFromOnuTpPathKvStore(context.TODO()); err != nil {
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	if err := pDevEntry.restoreDataFromOnuKvStore(context.TODO()); err != nil {
 		logger.Errorw("reconciling - restoring OnuTp-data failed - abort", log.Fields{"err": err, "device-id": dh.deviceID})
 		dh.reconciling = false
 		return
 	}
 	var onuIndication oop.OnuIndication
-	onuIndication.IntfId = dh.pOnuTP.sOnuPersistentData.PersIntfID
-	onuIndication.OnuId = dh.pOnuTP.sOnuPersistentData.PersOnuID
-	onuIndication.OperState = dh.pOnuTP.sOnuPersistentData.PersOperState
-	onuIndication.AdminState = dh.pOnuTP.sOnuPersistentData.PersAdminState
+	onuIndication.IntfId = pDevEntry.sOnuPersistentData.PersIntfID
+	onuIndication.OnuId = pDevEntry.sOnuPersistentData.PersOnuID
+	onuIndication.OperState = pDevEntry.sOnuPersistentData.PersOperState
+	onuIndication.AdminState = pDevEntry.sOnuPersistentData.PersAdminState
 	_ = dh.createInterface(&onuIndication)
 }
 
 func (dh *deviceHandler) reconcileDeviceTechProf() {
 	logger.Debugw("reconciling - trigger tech profile config", log.Fields{"device-id": dh.deviceID})
 
-	dh.pOnuTP.lockTpProcMutex()
-	// lock hangs as long as below decoupled or other related TechProfile processing is active
-	for _, uniData := range dh.pOnuTP.sOnuPersistentData.PersUniTpPath {
-		//In order to allow concurrent calls to other dh instances we do not wait for execution here
-		//but doing so we can not indicate problems to the caller (who does what with that then?)
-		//by now we just assume straightforward successful execution
-		//TODO!!! Generally: In this scheme it would be good to have some means to indicate
-		//  possible problems to the caller later autonomously
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
 
+	dh.pOnuTP.lockTpProcMutex()
+	defer dh.pOnuTP.unlockTpProcMutex()
+
+	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
 		// deadline context to ensure completion of background routines waited for
 		//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 		deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetProcessingErrorIndication()
+		dh.pOnuTP.resetTpProcessingErrorIndication()
+
 		var wg sync.WaitGroup
-		wg.Add(1) // for the 1 go routines to finish
-		// attention: deadline completion check and wg.Done is to be done in both routines
-		go dh.pOnuTP.configureUniTp(dctx, uint8(uniData.PersUniID), uniData.PersTpPath, &wg)
-		//the wait.. function is responsible for tpProcMutex.Unlock()
-		_ = dh.pOnuTP.waitForTpCompletion(cancel, &wg) //wait for background process to finish and collect their result
+		wg.Add(1) // for the 1 go routine to finish
+		go dh.pOnuTP.configureUniTp(dctx, uniData.PersUniID, uniData.PersTpPath, &wg)
+		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+
+		if err := dh.pOnuTP.getTpProcessingErrorIndication(); err != nil {
+			logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
+		}
+	}
+}
+
+func (dh *deviceHandler) reconcileDeviceFlowConfig() {
+	logger.Debugw("reconciling - trigger flow config", log.Fields{"device-id": dh.deviceID})
+
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
-	dh.pOnuTP.unlockTpProcMutex()
-	//TODO: reset of reconciling-flag has always to be done in the last ReconcileDevice*() function
+	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
+		var uniPort *onuUniPort
+		var exist bool
+		uniNo := mkUniPortNum(dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
+		if uniPort, exist = dh.uniEntityMap[uniNo]; !exist {
+			logger.Errorw("onuUniPort data not found!", log.Fields{"uniNo": uniNo, "deviceID": dh.deviceID})
+			return
+		}
+		for _, flowData := range uniData.PersFlowParams {
+			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
+				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(flowData.TpID, uint16(flowData.MatchVid),
+					uint16(flowData.SetVid), uint8(flowData.SetPcp)); err != nil {
+					logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
+				}
+
+			} else {
+				if err := dh.createVlanFilterFsm(uniPort, flowData.TpID, uint16(flowData.MatchVid), uint16(flowData.SetVid),
+					uint8(flowData.SetPcp), OmciVlanFilterDone); err != nil {
+					logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
+				}
+			}
+		}
+	}
+}
+
+func (dh *deviceHandler) reconcileMetrics() {
+	logger.Debugw("reconciling - trigger metrics - to be implemented in scope of VOL-3324!", log.Fields{"device-id": dh.deviceID})
+
+	//TODO: reset of reconciling-flag has always to be done in the last reconcile*() function
 	dh.reconciling = false
 }
 
 func (dh *deviceHandler) deleteDevice(device *voltha.Device) error {
 	logger.Debugw("delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
-	if err := dh.pOnuTP.deleteOnuTpPathKvStore(context.TODO()); err != nil {
-		return err
+
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
+	pDevEntry.lockOnuKVStoreMutex()
+	defer pDevEntry.unlockOnuKVStoreMutex()
+
+	// deadline context to ensure completion of background routines waited for
+	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
+	deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
+	pDevEntry.resetKvProcessingErrorIndication()
+
+	var wg sync.WaitGroup
+	wg.Add(1) // for the 1 go routine to finish
+	go pDevEntry.deleteDataFromOnuKvStore(dctx, &wg)
+	dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+
 	// TODO: further actions - stop metrics and FSMs, remove device ...
-	return nil
+	return pDevEntry.getKvProcessingErrorIndication()
 }
 
 func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 	logger.Debugw("reboot-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 	if device.ConnectStatus != voltha.ConnectStatus_REACHABLE {
 		logger.Errorw("device-unreachable", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
-		return errors.New("device-unreachable")
+		return fmt.Errorf("device-unreachable: %s, %s", dh.deviceID, device.SerialNumber)
 	}
 	if err := dh.pOnuOmciDevice.reboot(context.TODO()); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -879,7 +995,7 @@ func (dh *deviceHandler) doStateDown(e *fsm.Event) {
 // ###################################################
 // deviceHandler utility methods ##### begin #########
 
-//getOnuDeviceEntry getsthe  ONU device entry and may wait until its value is defined
+//getOnuDeviceEntry gets the ONU device entry and may wait until its value is defined
 func (dh *deviceHandler) getOnuDeviceEntry(aWait bool) *OnuDeviceEntry {
 	dh.lockDevice.RLock()
 	pOnuDeviceEntry := dh.pOnuOmciDevice
@@ -977,7 +1093,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 		}
 	} else {
 		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
-		return errors.New("no valid OnuDevice")
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
 	if !dh.reconciling {
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "starting-openomci"); err != nil {
@@ -1091,7 +1207,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 		if pMibUlFsm.Is(ulStDisabled) {
 			if err := pMibUlFsm.Event(ulEvStart); err != nil {
 				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
-				return errors.New("can't go to state starting")
+				return fmt.Errorf("can't go to state starting: %s", dh.deviceID)
 			}
 			logger.Debugw("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 			//Determine ONU status and start/re-start MIB Synchronization tasks
@@ -1099,12 +1215,12 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			if true { //TODO: insert valid check
 				if err := pMibUlFsm.Event(ulEvResetMib); err != nil {
 					logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"err": err})
-					return errors.New("can't go to state resetting_mib")
+					return fmt.Errorf("can't go to state resetting_mib: %s", dh.deviceID)
 				}
 			} else {
 				if err := pMibUlFsm.Event(ulEvExamineMds); err != nil {
 					logger.Errorw("MibSyncFsm: Can't go to state examine_mds", log.Fields{"err": err})
-					return errors.New("can't go to examine_mds")
+					return fmt.Errorf("can't go to examine_mds: %s", dh.deviceID)
 				}
 				logger.Debugw("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 				//Examine the MIB Data Sync
@@ -1115,11 +1231,11 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			}
 		} else {
 			logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(pMibUlFsm.Current())})
-			return errors.New("wrong state of MibSyncFsm")
+			return fmt.Errorf("wrong state of MibSyncFsm: %s", dh.deviceID)
 		}
 	} else {
 		logger.Errorw("MibSyncFsm invalid - cannot be executed!!", log.Fields{"device-id": dh.deviceID})
-		return errors.New("cannot execut MibSync")
+		return fmt.Errorf("can't execute MibSync: %s", dh.deviceID)
 	}
 	return nil
 }
@@ -1132,7 +1248,7 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 		pDevEntry := dh.getOnuDeviceEntry(false)
 		if pDevEntry == nil {
 			logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
-			return errors.New("no valid OnuDevice")
+			return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 		}
 
 		switch dh.deviceReason {
@@ -1361,7 +1477,7 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(devEvent OnuDeviceEvent)
 		logger.Debugw("reconciling - don't notify core that onu went to active but trigger tech profile config",
 			log.Fields{"device-id": dh.deviceID})
 		go dh.reconcileDeviceTechProf()
-		//TODO: further actions e.g. restore flows, metrics, ...
+		// reconcilement will be continued after ani config is done
 	}
 }
 
@@ -1387,6 +1503,9 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) 
 		//set internal state anyway - as it was done
 		dh.deviceReason = "tech-profile-config-download-success"
 	}
+	if dh.reconciling {
+		go dh.reconcileDeviceFlowConfig()
+	}
 }
 
 func (dh *deviceHandler) processOmciVlanFilterDoneEvent(devEvent OnuDeviceEvent) {
@@ -1399,15 +1518,24 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(devEvent OnuDeviceEvent)
 	if dh.deviceReason != "omci-flows-pushed" {
 		// which may be the case from some previous actvity on another UNI Port of the ONU
 		// or even some previous flow add activity on the same port
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-pushed"); err != nil {
-			logger.Errorw("error-DeviceReasonUpdate to 'omci-flows-pushed'",
-				log.Fields{"device-id": dh.deviceID, "error": err})
+		if !dh.reconciling {
+			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-pushed"); err != nil {
+				logger.Errorw("error-DeviceReasonUpdate to 'omci-flows-pushed'",
+					log.Fields{"device-id": dh.deviceID, "error": err})
+			} else {
+				logger.Infow("updated dev reason to ''omci-flows-pushed'",
+					log.Fields{"device-id": dh.deviceID})
+			}
 		} else {
-			logger.Infow("updated dev reason to ''omci-flows-pushed'",
+			logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to omci-flows-pushed",
 				log.Fields{"device-id": dh.deviceID})
 		}
 		//set internal state anyway - as it was done
 		dh.deviceReason = "omci-flows-pushed"
+
+		if dh.reconciling {
+			go dh.reconcileMetrics()
+		}
 	}
 }
 
@@ -1784,7 +1912,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 	if metadata == 0 {
 		logger.Debugw("FlowAdd invalid metadata - abort",
 			log.Fields{"device-id": dh.deviceID})
-		return errors.New("flowAdd invalid metadata")
+		return fmt.Errorf("flowAdd invalid metadata: %s", dh.deviceID)
 	}
 	loTpID := flow.GetTechProfileIDFromWriteMetaData(metadata)
 	logger.Debugw("FlowAdd TechProfileId", log.Fields{"device-id": dh.deviceID, "TP-Id": loTpID})
@@ -1807,7 +1935,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 			"match_vid": strconv.FormatInt(int64(loMatchVlan), 16)})
 		//TODO!!: Use DeviceId within the error response to rwCore
 		//  likewise also in other error response cases to calling components as requested in [VOL-3458]
-		return errors.New("flowAdd Set/Match VlanId inconsistent")
+		return fmt.Errorf("flowAdd Set/Match VlanId inconsistent: %s", dh.deviceID)
 	}
 	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) {
 		logger.Debugw("FlowAdd vlan-any/copy", log.Fields{"device-id": dh.deviceID})
@@ -1821,7 +1949,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 		logger.Debugw("FlowAdd vlan-set", log.Fields{"device-id": dh.deviceID})
 	}
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
-		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(loMatchVlan, loSetVlan, loSetPcp)
+		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(loTpID, loMatchVlan, loSetVlan, loSetPcp)
 	}
 	return dh.createVlanFilterFsm(apUniPort,
 		loTpID, loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterDone)
@@ -1909,4 +2037,60 @@ func (dh *deviceHandler) RemoveVlanFilterFsm(apUniPort *onuUniPort) {
 		"device-id": dh.deviceID, "uniPort": apUniPort.portNo})
 	//save to do, even if entry dows not exist
 	delete(dh.UniVlanConfigFsmMap, apUniPort.uniID)
+}
+
+//storePersUniFlowConfig updates local storage of OnuUniFlowConfig and writes it into kv-store afterwards to have it
+//available for potential reconcilement
+
+func (dh *deviceHandler) storePersUniFlowConfig(aUniID uint8, aUniVlanFlowParams *[]uniVlanFlowParams) error {
+
+	if dh.reconciling {
+		logger.Debugw("reconciling - don't store persistent UniFlowConfig", log.Fields{"device-id": dh.deviceID})
+		return nil
+	}
+	logger.Debugw("Store persistent UniFlowConfig", log.Fields{"device-id": dh.deviceID})
+
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
+	pDevEntry.updateOnuUniFlowConfig(aUniID, aUniVlanFlowParams)
+
+	pDevEntry.lockOnuKVStoreMutex()
+	defer pDevEntry.unlockOnuKVStoreMutex()
+
+	// deadline context to ensure completion of background routines waited for
+	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
+	deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
+	pDevEntry.resetKvProcessingErrorIndication()
+	var wg sync.WaitGroup
+	wg.Add(1) // for the 1 go routine to finish
+
+	go pDevEntry.updateOnuKvStore(dctx, &wg)
+	dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+
+	return pDevEntry.getKvProcessingErrorIndication()
+}
+
+func (dh *deviceHandler) waitForCompletion(cancel context.CancelFunc, wg *sync.WaitGroup) {
+	defer cancel() //ensure termination of context (may be pro forma)
+	wg.Wait()
+	logger.Debug("WaitGroup processing completed")
+
+}
+
+func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
+	var errStr string = ""
+	for _, err := range errS {
+		if err != nil {
+			errStr = errStr + err.Error() + " "
+		}
+	}
+	if errStr != "" {
+		return fmt.Errorf("%s: %s", errStr, dh.deviceID)
+	}
+	return nil
 }
