@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "81be5014_4b5a4f94",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 303,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-22T12:11:34Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f7894081_ddc2ed50",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "eec2e232_62cb4a24",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -107,6 +125,24 @@
     },
     {
       "key": {
+        "uuid": "2aa5e933_c94b6948",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-22T12:11:34Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "714a4af3_6112bc5e",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3bbb7b2e_0601a8b2",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -136,6 +172,24 @@
       "side": 1,
       "message": "To guarantee concurrent processing of the Go-adapter, all reconcileDevice*() functions are called as Go-routines at certain synchronization points during the process of onu-reconcilement. That means, that we can\u0027t delay the return of api-call Reconcile_device() until the whole reconcilement is finished. Currently we handle any error locally at the adapter itself and indicate them within the adapter log. I know, during one of our bi-weekly meetings, we had a short discussion regarding asynchroneous error reporting towards rw-core, when we talked about introduction of onu-reboot processing. But introducing such an asynchroneous error reporting should be handled separately. Are there any docs or examples available regarding asynchroneous error reporting towards rw-core?",
       "parentUuid": "3bbb7b2e_0601a8b2",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e730cfd_c5438d83",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 676,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-22T12:11:34Z",
+      "side": 1,
+      "message": "this the most up to date that I know of. https://docs.google.com/document/d/1sOv5R7iOBTlzXcCVaUfOOzd5617ISQGnseadhx8pb3w/edit?pli\u003d1\nYour best bet is to probably ping Khen on slack.",
+      "parentUuid": "16d5c797_7f87fd32",
       "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
