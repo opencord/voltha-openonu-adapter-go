@@ -196,6 +196,24 @@
     },
     {
       "key": {
+        "uuid": "ece938b8_1b8dbaff",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 676,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-09-22T12:56:35Z",
+      "side": 1,
+      "message": "New story added for that: https://jira.opencord.org/browse/VOL-3497",
+      "parentUuid": "3e730cfd_c5438d83",
+      "revId": "bd5c5e87671ef7c17c99257c4b357974c0d8ae9d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2caa66c8_565862b2",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
