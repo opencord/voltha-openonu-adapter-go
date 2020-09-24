@@ -496,6 +496,7 @@ func (dh *deviceHandler) processInterAdapterMessage(msg *ic.InterAdapterMessage)
 //FlowUpdateIncremental removes and/or adds the flow changes on a given device
 func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.FlowChanges,
 	apOfGroupChanges *openflow_13.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
+	logger.Debugw("FlowUpdateIncremental started", log.Fields{"deviceId": dh.deviceID})
 
 	//Remove flows
 	if apOfFlowChanges.ToRemove != nil {
@@ -546,8 +547,6 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 }
 
 //disableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
-// TODO!!! Clarify usage of this method, it is for sure not used within ONOS (OLT) device disable
-//         maybe it is obsolete by now
 func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 	logger.Debugw("disable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
@@ -563,18 +562,8 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 			dh.pLockStateFsm.setSuccessEvent(UniAdminStateDone)
 			dh.runUniLockFsm(true)
 		}
-
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
-		}
-		dh.deviceReason = "omci-admin-lock"
-		//200604: ConnState improved to 'unreachable' (was not set in python-code), OperState 'unknown' seems to be best choice
-		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_UNREACHABLE,
-			voltha.OperStatus_UNKNOWN); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
-		}
+		//VOL-3493/VOL-3495: postpone setting of deviceReason, conn- and operStatus until all omci-related communication regarding
+		//device disabling has finished successfully
 	}
 }
 
@@ -583,6 +572,8 @@ func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 	logger.Debugw("reenable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
 	// TODO!!! ConnectStatus and OperStatus to be set here could be more accurate, for now just ...(like python code)
+	logger.Debugw("call DeviceStateUpdate upon re-enable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+		"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.deviceID})
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
 		voltha.OperStatus_ACTIVE); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -737,6 +728,8 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		logger.Errorw("error-rebooting-device", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
+	logger.Debugw("call DeviceStateUpdate upon reboot", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
+		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_UNREACHABLE,
 		voltha.OperStatus_DISCOVERED); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -1063,6 +1056,8 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 	dh.pOnuIndication = onuind // let's revise if storing the pointer is sufficient...
 
 	if !dh.reconciling {
+		logger.Debugw("call DeviceStateUpdate upon create interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+			"OperStatus": voltha.OperStatus_ACTIVATING, "device-id": dh.deviceID})
 		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
 			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVATING); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -1324,6 +1319,8 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 		}
 		dh.deviceReason = "stopping-openomci"
 
+		logger.Debugw("call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
+			"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
 		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
 			voltha.ConnectStatus_UNREACHABLE, voltha.OperStatus_DISCOVERED); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -1432,6 +1429,8 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
 	logger.Debugw("MibDownloadDone event received", log.Fields{"device-id": dh.deviceID})
 	//initiate DevStateUpdate
 	if !dh.reconciling {
+		logger.Debugw("call DeviceStateUpdate upon mib-download done", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+			"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.deviceID})
 		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
 			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_ACTIVE); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -1701,7 +1700,7 @@ func (dh *deviceHandler) createUniLockFsm(aAdminState bool, devEvent OnuDeviceEv
 		return
 	}
 	pLSFsm := newLockStateFsm(pDevEntry.PDevOmciCC, aAdminState, devEvent,
-		sFsmName, dh.deviceID, chLSFsm)
+		sFsmName, dh, chLSFsm)
 	if pLSFsm != nil {
 		if aAdminState {
 			dh.pLockStateFsm = pLSFsm

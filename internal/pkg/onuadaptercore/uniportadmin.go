@@ -27,13 +27,14 @@ import (
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
+	"github.com/opencord/voltha-protos/v3/go/voltha"
 	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
 	//"github.com/opencord/voltha-protos/v3/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v3/go/voltha"
 )
 
 //lockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
 type lockStateFsm struct {
+	pDeviceHandler           *deviceHandler
 	pOmciCC                  *omciCC
 	adminState               bool
 	requestEvent             OnuDeviceEvent
@@ -64,16 +65,17 @@ const (
 
 //newLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
 func newLockStateFsm(apDevOmciCC *omciCC, aAdminState bool, aRequestEvent OnuDeviceEvent,
-	aName string, aDeviceID string, aCommChannel chan Message) *lockStateFsm {
+	aName string, apDeviceHandler *deviceHandler, aCommChannel chan Message) *lockStateFsm {
 	instFsm := &lockStateFsm{
-		pOmciCC:      apDevOmciCC,
-		adminState:   aAdminState,
-		requestEvent: aRequestEvent,
+		pDeviceHandler: apDeviceHandler,
+		pOmciCC:        apDevOmciCC,
+		adminState:     aAdminState,
+		requestEvent:   aRequestEvent,
 	}
-	instFsm.pAdaptFsm = NewAdapterFsm(aName, aDeviceID, aCommChannel)
+	instFsm.pAdaptFsm = NewAdapterFsm(aName, apDeviceHandler.deviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
 		logger.Errorw("LockStateFsm's AdapterFsm could not be instantiated!!", log.Fields{
-			"device-id": aDeviceID})
+			"device-id": apDeviceHandler.deviceID})
 		return nil
 	}
 	if aAdminState { //port locking requested
@@ -145,11 +147,11 @@ func newLockStateFsm(apDevOmciCC *omciCC, aAdminState bool, aRequestEvent OnuDev
 	}
 	if instFsm.pAdaptFsm.pFsm == nil {
 		logger.Errorw("LockStateFsm's Base FSM could not be instantiated!!", log.Fields{
-			"device-id": aDeviceID})
+			"device-id": apDeviceHandler.deviceID})
 		return nil
 	}
 
-	logger.Infow("LockStateFsm created", log.Fields{"device-id": aDeviceID})
+	logger.Infow("LockStateFsm created", log.Fields{"device-id": apDeviceHandler.deviceID})
 	return instFsm
 }
 
@@ -216,6 +218,26 @@ func (oFsm *lockStateFsm) enterAdminDoneState(e *fsm.Event) {
 	logger.Debugw("LockStateFSM", log.Fields{"send notification to core in State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	//use DeviceHandler event notification directly, no need/support to update DeviceEntryState for lock/unlock
 	oFsm.pOmciCC.pBaseDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
+
+	//VOL-3493/VOL-3495: postpone setting of deviceReason, conn- and operStatus until all omci-related communication regarding
+	//device disabling has finished successfully
+	if oFsm.adminState {
+		if err := oFsm.pDeviceHandler.coreProxy.DeviceReasonUpdate(context.TODO(),
+			oFsm.pDeviceHandler.deviceID, "omci-admin-lock"); err != nil {
+			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+			logger.Errorw("error-updating-reason-state", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
+		}
+		oFsm.pDeviceHandler.deviceReason = "omci-admin-lock"
+		//200604: ConnState improved to 'unreachable' (was not set in python-code), OperState 'unknown' seems to be best choice
+		logger.Debugw("call DeviceStateUpdate", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
+			"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": oFsm.pDeviceHandler.deviceID})
+		if err := oFsm.pDeviceHandler.coreProxy.DeviceStateUpdate(context.TODO(), oFsm.pDeviceHandler.deviceID,
+			voltha.ConnectStatus_UNREACHABLE, voltha.OperStatus_UNKNOWN); err != nil {
+			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+			logger.Errorw("error-updating-device-state", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
+		}
+	}
+
 	//let's reset the state machine in order to release all resources now
 	pLockStateAFsm := oFsm.pAdaptFsm
 	if pLockStateAFsm != nil {

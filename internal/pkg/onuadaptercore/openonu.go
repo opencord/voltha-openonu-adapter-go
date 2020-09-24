@@ -316,8 +316,9 @@ func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device,
 	// no point in pushing omci flows if the device isn't reachable
 	if device.ConnectStatus != voltha.ConnectStatus_REACHABLE ||
 		device.AdminState != voltha.AdminState_ENABLED {
-		logger.Warnw("device disabled or offline - skipping flow-update", log.Fields{"deviceId": device.Id})
-		return errors.New("non-matching device state")
+		logger.Warnw("device disabled or offline - skipping flow-update", log.Fields{"ConnectStatus": device.ConnectStatus,
+			"AdminState": device.AdminState, "deviceId": device.Id})
+		return fmt.Errorf("non-matching device state: %s", device.Id)
 	}
 
 	// For now, there is no support for group changes (as in the actual Py-adapter code)
