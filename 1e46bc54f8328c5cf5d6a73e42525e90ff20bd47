@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "99622080_5cceb422",
+        "filename": "internal/pkg/config/config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-28T07:40:45Z",
+      "side": 1,
+      "message": "I\u0027d use just one of the two, no need for both, I think the timeout can be identical in all calls.",
+      "revId": "1e46bc54f8328c5cf5d6a73e42525e90ff20bd47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
