@@ -54,8 +54,9 @@ type OpenONUAC struct {
 	HeartbeatFailReportInterval time.Duration
 	AcceptIncrementalEvto       bool
 	//GrpcTimeoutInterval         time.Duration
-	lockDeviceHandlersMap sync.RWMutex
-	pSupportedFsms        *OmciDeviceFsms
+	lockDeviceHandlersMap      sync.RWMutex
+	pSupportedFsms             *OmciDeviceFsms
+	maxTimeoutInterAdapterComm time.Duration
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -79,6 +80,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.HeartbeatCheckInterval = cfg.HeartbeatCheckInterval
 	openOnuAc.HeartbeatFailReportInterval = cfg.HeartbeatFailReportInterval
 	openOnuAc.AcceptIncrementalEvto = cfg.AccIncrEvto
+	openOnuAc.maxTimeoutInterAdapterComm = cfg.MaxTimeoutInterAdapterComm
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.lockDeviceHandlersMap = sync.RWMutex{}
 

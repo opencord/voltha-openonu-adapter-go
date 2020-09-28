@@ -53,9 +53,10 @@ const (
 	// defaultHearbeatFailReportInterval is the time adapter will wait before updating the state to the core.
 	defaultHearbeatFailReportInterval = 180 * time.Second
 	//defaultKafkaReconnectRetries -1: reconnect endlessly.
-	defaultKafkaReconnectRetries = -1
-	defaultCurrentReplica        = 1
-	defaultTotalReplicas         = 1
+	defaultKafkaReconnectRetries      = -1
+	defaultCurrentReplica             = 1
+	defaultTotalReplicas              = 1
+	defaultMaxTimeoutInterAdapterComm = 30 * time.Second
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -87,6 +88,7 @@ type AdapterFlags struct {
 	KafkaReconnectRetries       int
 	CurrentReplica              int
 	TotalReplicas               int
+	MaxTimeoutInterAdapterComm  time.Duration
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -118,6 +120,7 @@ func NewAdapterFlags() *AdapterFlags {
 		KafkaReconnectRetries:       defaultKafkaReconnectRetries,
 		CurrentReplica:              defaultCurrentReplica,
 		TotalReplicas:               defaultTotalReplicas,
+		MaxTimeoutInterAdapterComm:  defaultMaxTimeoutInterAdapterComm,
 	}
 	return &adapterFlags
 }
@@ -199,6 +202,10 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = "Total number of instances for this adapter"
 	flag.IntVar(&(so.TotalReplicas), "total_replica", defaultTotalReplicas, help)
+
+	help = fmt.Sprintf("Maximum Number of seconds for the default interadapter communication timeout")
+	flag.DurationVar(&(so.MaxTimeoutInterAdapterComm), "max_timeout_interadapter_comm",
+		defaultMaxTimeoutInterAdapterComm, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()

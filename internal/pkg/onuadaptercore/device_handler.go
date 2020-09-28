@@ -318,7 +318,7 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 
 		// deadline context to ensure completion of background routines waited for
 		//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
-		deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 		dh.pOnuTP.resetTpProcessingErrorIndication()
@@ -374,7 +374,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 
 	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, ""); bTpModify {
 		// deadline context to ensure completion of background routines waited for
-		deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
+		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 		dh.pOnuTP.resetTpProcessingErrorIndication()
@@ -430,7 +430,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 
 	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, ""); bTpModify {
 		// deadline context to ensure completion of background routines waited for
-		deadline := time.Now().Add(10 * time.Second) //allowed run time to finish before execution
+		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 		dh.pOnuTP.resetTpProcessingErrorIndication()
@@ -634,7 +634,7 @@ func (dh *deviceHandler) reconcileDeviceTechProf() {
 	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
 		// deadline context to ensure completion of background routines waited for
 		//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
-		deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 		dh.pOnuTP.resetTpProcessingErrorIndication()
@@ -703,7 +703,7 @@ func (dh *deviceHandler) deleteDevice(device *voltha.Device) error {
 
 	// deadline context to ensure completion of background routines waited for
 	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
-	deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 	pDevEntry.resetKvProcessingErrorIndication()
@@ -2061,7 +2061,7 @@ func (dh *deviceHandler) storePersUniFlowConfig(aUniID uint8, aUniVlanFlowParams
 
 	// deadline context to ensure completion of background routines waited for
 	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
-	deadline := time.Now().Add(30 * time.Second) //allowed run time to finish before execution
+	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 	pDevEntry.resetKvProcessingErrorIndication()
