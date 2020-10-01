@@ -123,8 +123,8 @@ func (a *adapter) start(ctx context.Context) error {
 	// Create the core proxy to handle requests to the Core
 	a.coreProxy = com.NewCoreProxy(a.kip, a.config.Topic, a.config.CoreTopic)
 
-	// Create the adaptor proxy to handle request between olt and onu
-	a.adapterProxy = com.NewAdapterProxy(a.kip, "openolt", a.config.CoreTopic, cm.Backend)
+	logger.Debugw("create adapter proxy", log.Fields{"OltTopic": a.config.OltTopic, "CoreTopic": a.config.CoreTopic})
+	a.adapterProxy = com.NewAdapterProxy(a.kip, a.config.OltTopic, a.config.CoreTopic, cm.Backend)
 
 	// Create the event proxy to post events to KAFKA
 	a.eventProxy = com.NewEventProxy(com.MsgClient(a.kafkaClient), com.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))

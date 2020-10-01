@@ -41,8 +41,9 @@ const (
 	defaultDisplayVersionOnly   = false
 	defaultAccIncrEvto          = false
 	defaultTopic                = "openonu"
-	defaultCoretopic            = "rwcore"
-	defaultEventtopic           = "voltha.events"
+	defaultOltTopic             = "openolt"
+	defaultCoreTopic            = "rwcore"
+	defaultEventTopic           = "voltha.events"
 	defaultOnunumber            = 1
 	defaultProbeHost            = ""
 	defaultProbePort            = 8080
@@ -72,6 +73,7 @@ type AdapterFlags struct {
 	KVStoreHost                 string
 	KVStorePort                 int
 	Topic                       string
+	OltTopic                    string
 	CoreTopic                   string
 	EventTopic                  string
 	LogLevel                    string
@@ -104,8 +106,9 @@ func NewAdapterFlags() *AdapterFlags {
 		KVStoreHost:                 defaultKvstorehost,
 		KVStorePort:                 defaultKvstoreport,
 		Topic:                       defaultTopic,
-		CoreTopic:                   defaultCoretopic,
-		EventTopic:                  defaultEventtopic,
+		OltTopic:                    defaultOltTopic,
+		CoreTopic:                   defaultCoreTopic,
+		EventTopic:                  defaultEventTopic,
 		LogLevel:                    defaultLoglevel,
 		OnuNumber:                   defaultOnunumber,
 		Banner:                      defaultBanner,
@@ -143,11 +146,14 @@ func (so *AdapterFlags) ParseCommandArguments() {
 	help = fmt.Sprintf("Open ONU topic")
 	flag.StringVar(&(so.Topic), "adapter_topic", defaultTopic, help)
 
+	help = fmt.Sprintf("Open OLT topic")
+	flag.StringVar(&(so.OltTopic), "olt_adapter_topic", defaultOltTopic, help)
+
 	help = fmt.Sprintf("Core topic")
-	flag.StringVar(&(so.CoreTopic), "core_topic", defaultCoretopic, help)
+	flag.StringVar(&(so.CoreTopic), "core_topic", defaultCoreTopic, help)
 
 	help = fmt.Sprintf("Event topic")
-	flag.StringVar(&(so.EventTopic), "event_topic", defaultEventtopic, help)
+	flag.StringVar(&(so.EventTopic), "event_topic", defaultEventTopic, help)
 
 	help = fmt.Sprintf("KV store type")
 	flag.StringVar(&(so.KVStoreType), "kv_store_type", defaultKvstoretype, help)
