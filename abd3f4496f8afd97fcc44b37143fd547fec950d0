@@ -70,6 +70,24 @@
       "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a1a91382_2c962e12",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-05T15:15:30Z",
+      "side": 1,
+      "message": "please create jira. I\u0027m testing the patch in a build, will update in some time.",
+      "parentUuid": "5f5664f6_dd9df342",
+      "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
