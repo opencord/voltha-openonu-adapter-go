@@ -19,7 +19,7 @@ package adaptercoreonu
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	//"sync"
 	//"time"
@@ -104,7 +104,7 @@ func (oo *omciTestRequest) createOnu2gBaseGet(tid uint16) ([]byte, error) {
 	pkt, err := serialize(omci.GetRequestType, request, tid)
 	if err != nil {
 		//omciLogger.WithFields(log.Fields{ ...
-		logger.Errorw("Cannot serialize Onu2-G GetRequest", log.Fields{"Err": err})
+		logger.Errorw("Cannot serialize Onu2-G GetRequest", log.Fields{"device-id": oo.deviceID, "Err": err})
 		return nil, err
 	}
 	// hexEncode would probably work as well, but not needed and leads to wrong logs on OltAdapter frame
@@ -124,7 +124,7 @@ func (oo *omciTestRequest) receiveOmciVerifyResponse(omciMsg *omci.OMCI, packet 
 		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect TransCorrId": omciMsg.TransactionID,
 			"expected": oo.txSeqNo})
 		oo.verifyDone <- false
-		return errors.New("unexpected TransCorrId")
+		return fmt.Errorf("unexpected TransCorrId %s", oo.deviceID)
 	}
 	if omciMsg.MessageType == omci.GetResponseType {
 		logger.Debugw("verify-omci-message-response", log.Fields{"correct RespType": omciMsg.MessageType})
@@ -132,7 +132,7 @@ func (oo *omciTestRequest) receiveOmciVerifyResponse(omciMsg *omci.OMCI, packet 
 		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect RespType": omciMsg.MessageType,
 			"expected": omci.GetResponseType})
 		oo.verifyDone <- false
-		return errors.New("unexpected MessageType")
+		return fmt.Errorf("unexpected MessageType %s", oo.deviceID)
 	}
 
 	//TODO!!! further tests on the payload should be done here ...

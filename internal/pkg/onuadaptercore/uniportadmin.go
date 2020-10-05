@@ -19,7 +19,7 @@ package adaptercoreonu
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/looplab/fsm"
@@ -315,12 +315,14 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 	if msg.OmciMsg.MessageType == omci.SetResponseType {
 		msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 		if msgLayer == nil {
-			logger.Error("LockStateFsm - Omci Msg layer could not be detected for SetResponse")
+			logger.Errorw("LockStateFsm - Omci Msg layer could not be detected for SetResponse",
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 			return
 		}
 		msgObj, msgOk := msgLayer.(*omci.SetResponse)
 		if !msgOk {
-			logger.Error("LockStateFsm - Omci Msg layer could not be assigned for SetResponse")
+			logger.Errorw("LockStateFsm - Omci Msg layer could not be assigned for SetResponse",
+				log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 			return
 		}
 		logger.Debugw("LockStateFsm SetResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
@@ -402,7 +404,7 @@ func (oFsm *lockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) er
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("LockStateFSM uni-set timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("lockStateFsm uni-set timeout")
+		return fmt.Errorf("lockStateFsm uni-set timeout for device-id %s", oFsm.pAdaptFsm.deviceID)
 	case success := <-oFsm.omciLockResponseReceived:
 		if success {
 			logger.Debug("LockStateFSM uni-set response received")
@@ -410,6 +412,6 @@ func (oFsm *lockStateFsm) waitforOmciResponse(apMeInstance *me.ManagedEntity) er
 		}
 		// should not happen so far
 		logger.Warnw("LockStateFSM uni-set response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("lockStateFsm uni-set responseError")
+		return fmt.Errorf("lockStateFsm uni-set responseError for device-id %s", oFsm.pAdaptFsm.deviceID)
 	}
 }

@@ -19,7 +19,7 @@ package adaptercoreonu
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/looplab/fsm"
@@ -149,17 +149,17 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 		{
 			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
 			if msgLayer == nil {
-				logger.Error("Omci Msg layer could not be detected for CreateResponse")
+				logger.Errorw("Omci Msg layer could not be detected for CreateResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.CreateResponse)
 			if !msgOk {
-				logger.Error("Omci Msg layer could not be assigned for CreateResponse")
+				logger.Errorw("Omci Msg layer could not be assigned for CreateResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
 				return
 			}
 			logger.Debugw("CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
-				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 				return
 			}
@@ -197,17 +197,18 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 		{
 			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 			if msgLayer == nil {
-				logger.Error("Omci Msg layer could not be detected for SetResponse")
+				logger.Errorw("Omci Msg layer could not be detected for SetResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.SetResponse)
 			if !msgOk {
-				logger.Error("Omci Msg layer could not be assigned for SetResponse")
+				logger.Errorw("Omci Msg layer could not be assigned for SetResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
 				return
 			}
 			logger.Debugw("SetResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
-				logger.Errorw("Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+				logger.Errorw("Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID,
+					"Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 				return
 			}
@@ -229,7 +230,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 		} //SetResponseType
 	default:
 		{
-			logger.Errorw("Rx OMCI MibDownload unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+			logger.Errorw("Rx OMCI MibDownload unhandled MsgType", log.Fields{"device-id": onuDeviceEntry.deviceID,
+				"omciMsgType": msg.OmciMsg.MessageType})
 			return
 		}
 	} // switch msg.OmciMsg.MessageType
@@ -247,7 +249,8 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		//verify response
 		err := onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
-			logger.Error("InitialBridgeSetup failed at MBSP, aborting MIB Download!")
+			logger.Errorw("InitialBridgeSetup failed at MBSP, aborting MIB Download!",
+				log.Fields{"device-id": onuDeviceEntry.deviceID})
 			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
@@ -259,7 +262,8 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
-			logger.Error("InitialBridgeSetup failed at MBPCD, aborting MIB Download!")
+			logger.Errorw("InitialBridgeSetup failed at MBPCD, aborting MIB Download!",
+				log.Fields{"device-id": onuDeviceEntry.deviceID})
 			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
@@ -271,7 +275,8 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup() {
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(meInstance)
 		if err != nil {
-			logger.Error("InitialBridgeSetup failed at EVTOCD, aborting MIB Download!")
+			logger.Errorw("InitialBridgeSetup failed at EVTOCD, aborting MIB Download!",
+				log.Fields{"device-id": onuDeviceEntry.deviceID})
 			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
@@ -289,7 +294,7 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(apMeInstance *me.Manag
 	// 		logger.Info("MibDownload-bridge-init message reception canceled", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("MibDownload-bridge-init timeout", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-		return errors.New("mibDownloadBridgeInit timeout")
+		return fmt.Errorf("mibDownloadBridgeInit timeout %s", onuDeviceEntry.deviceID)
 	case success := <-onuDeviceEntry.omciMessageReceived:
 		if success {
 			logger.Debug("MibDownload-bridge-init response received")
@@ -297,6 +302,6 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(apMeInstance *me.Manag
 		}
 		// should not happen so far
 		logger.Warnw("MibDownload-bridge-init response error", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-		return errors.New("mibDownloadBridgeInit responseError")
+		return fmt.Errorf("mibDownloadBridgeInit responseError %s", onuDeviceEntry.deviceID)
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -166,7 +167,8 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 	if pCurrentUniPort == nil {
 		logger.Errorw("TechProfile configuration aborted: requested uniID not found in PortDB",
 			log.Fields{"device-id": onuTP.deviceID, "uniID": aUniID})
-		onuTP.procResult = errors.New("techProfile config aborted: requested uniID not found")
+		onuTP.procResult = fmt.Errorf("techProfile config aborted: requested uniID not found %d on %s",
+			aUniID, onuTP.deviceID)
 		return
 	}
 
@@ -178,7 +180,7 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 	//  (ANI) configuration of this port has to be removed first
 	//  (moreover in this case a possibly existing flow configuration is also not valid anymore and needs clean-up as well)
 	//  existence of configuration can be detected based on tp stored TCONT's
-	//TODO!!!:
+	//TODO:
 	/* if tcontMap  not empty {
 		go onuTP.deleteAniSideConfig(ctx, aUniID, processingStep)
 		if !onuTP.waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) {
@@ -195,7 +197,8 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 		//timeout or error detected
 		logger.Debugw("tech-profile related configuration aborted on read",
 			log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
-		onuTP.procResult = errors.New("techProfile config aborted: tech-profile read issue")
+		onuTP.procResult = fmt.Errorf("techProfile config aborted: tech-profile read issue for %d on %s",
+			aUniID, onuTP.deviceID)
 		return
 	}
 
@@ -208,7 +211,8 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 				//timeout or error detected
 				logger.Debugw("tech-profile related configuration aborted on set",
 					log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
-				onuTP.procResult = errors.New("techProfile config aborted: Omci AniSideConfig failed")
+				onuTP.procResult = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
+					aUniID, onuTP.deviceID)
 				//this issue here means that the AniConfigFsm has not finished successfully
 				//which requires to reset it to allow for new usage, e.g. also on a different UNI
 				//(without that it would be reset on device down indication latest)
@@ -219,13 +223,15 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 			// strange: UNI entry exists, but no ANI data, maybe such situation should be cleared up (if observed)
 			logger.Debugw("no Tcont/Gem data for this UNI found - abort", log.Fields{
 				"device-id": onuTP.deviceID, "uniID": aUniID})
-			onuTP.procResult = errors.New("techProfile config aborted: no Tcont/Gem data found for this UNI")
+			onuTP.procResult = fmt.Errorf("techProfile config aborted: no Tcont/Gem data found for this UNI %d on %s",
+				aUniID, onuTP.deviceID)
 			return
 		}
 	} else {
 		logger.Debugw("no PonAni data for this UNI found - abort", log.Fields{
 			"device-id": onuTP.deviceID, "uniID": aUniID})
-		onuTP.procResult = errors.New("techProfile config aborted: no AniSide data found for this UNI")
+		onuTP.procResult = fmt.Errorf("techProfile config aborted: no AniSide data found for this UNI %d on %s",
+			aUniID, onuTP.deviceID)
 		return
 	}
 }

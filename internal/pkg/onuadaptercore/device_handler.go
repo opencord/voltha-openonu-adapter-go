@@ -928,7 +928,7 @@ func (dh *deviceHandler) doStateDown(e *fsm.Event) {
 	device := dh.device
 	if device == nil {
 		/*TODO: needs to handle error scenarios */
-		logger.Error("Failed to fetch handler device")
+		logger.Errorw("Failed to fetch handler device", log.Fields{"device-id": dh.deviceID})
 		e.Cancel(err)
 		return
 	}
@@ -1201,7 +1201,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 	if pMibUlFsm != nil {
 		if pMibUlFsm.Is(ulStDisabled) {
 			if err := pMibUlFsm.Event(ulEvStart); err != nil {
-				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"err": err})
+				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"deviceId": dh.deviceID, "err": err})
 				return fmt.Errorf("can't go to state starting: %s", dh.deviceID)
 			}
 			logger.Debugw("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
@@ -1209,12 +1209,12 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			//Determine if this ONU has ever synchronized
 			if true { //TODO: insert valid check
 				if err := pMibUlFsm.Event(ulEvResetMib); err != nil {
-					logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"err": err})
+					logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"deviceId": dh.deviceID, "err": err})
 					return fmt.Errorf("can't go to state resetting_mib: %s", dh.deviceID)
 				}
 			} else {
 				if err := pMibUlFsm.Event(ulEvExamineMds); err != nil {
-					logger.Errorw("MibSyncFsm: Can't go to state examine_mds", log.Fields{"err": err})
+					logger.Errorw("MibSyncFsm: Can't go to state examine_mds", log.Fields{"deviceId": dh.deviceID, "err": err})
 					return fmt.Errorf("can't go to examine_mds: %s", dh.deviceID)
 				}
 				logger.Debugw("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
@@ -1225,7 +1225,8 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 				// Event(ulEvMismatch)
 			}
 		} else {
-			logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(pMibUlFsm.Current())})
+			logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(pMibUlFsm.Current()),
+				"deviceId": dh.deviceID})
 			return fmt.Errorf("wrong state of MibSyncFsm: %s", dh.deviceID)
 		}
 	} else {
@@ -1403,20 +1404,21 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 	if pMibDlFsm != nil {
 		if pMibDlFsm.Is(dlStDisabled) {
 			if err := pMibDlFsm.Event(dlEvStart); err != nil {
-				logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"err": err})
+				logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"deviceId": dh.deviceID, "err": err})
 				// maybe try a FSM reset and then again ... - TODO!!!
 			} else {
 				logger.Debugw("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
 				// maybe use more specific states here for the specific download steps ...
 				if err := pMibDlFsm.Event(dlEvCreateGal); err != nil {
-					logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"err": err})
+					logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"deviceId": dh.deviceID, "err": err})
 				} else {
 					logger.Debugw("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
 					//Begin MIB data download (running autonomously)
 				}
 			}
 		} else {
-			logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current())})
+			logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current()),
+				"deviceId": dh.deviceID})
 			// maybe try a FSM reset and then again ... - TODO!!!
 		}
 		/***** Mib download started */

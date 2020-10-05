@@ -19,7 +19,6 @@ package adaptercoreonu
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -143,7 +142,7 @@ func (oo *onuUniPort) createVolthaPort(apDeviceHandler *deviceHandler) error {
 	} else {
 		logger.Warnw("could not create Voltha UniPort", log.Fields{
 			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
-		return errors.New("create Voltha UniPort failed")
+		return fmt.Errorf("create Voltha UniPort %d failed on %s", oo.portNo, apDeviceHandler.device.Id)
 	}
 	return nil
 }
