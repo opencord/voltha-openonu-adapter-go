@@ -332,24 +332,26 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadResponseMessage(msg Omc
 
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadNextResponse)
-	if msgLayer == nil {
-		logger.Error("Omci Msg layer could not be detected")
-		return
-	}
-	msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
-	if !msgOk {
-		logger.Error("Omci Msg layer could not be assigned")
-		return
-	}
-	if onuDeviceEntry.mibDebugLevel == "VERBOSE" {
+	//TODO: temporary change due to VOL-3532
+	// if msgLayer == nil {
+	// 	logger.Error("Omci Msg layer could not be detected")
+	// 	return
+	// }
+	if msgLayer != nil {
+		msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
+		if !msgOk {
+			logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+			return
+		}
 		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
+		meClassID := msgObj.ReportedME.GetClassID()
+		meEntityID := msgObj.ReportedME.GetEntityID()
+		meAttributes := msgObj.ReportedME.GetAttributeValueMap()
+
+		onuDeviceEntry.pOnuDB.PutMe(meClassID, meEntityID, meAttributes)
+	} else {
+		logger.Warnw("msgLayer could not be decoded - temporary workaround for VOL-3532 in place!", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 	}
-	meClassID := msgObj.ReportedME.GetClassID()
-	meEntityID := msgObj.ReportedME.GetEntityID()
-	meAttributes := msgObj.ReportedME.GetAttributeValueMap()
-
-	onuDeviceEntry.pOnuDB.PutMe(meClassID, meEntityID, meAttributes)
-
 	if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 		_ = onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 	} else {
