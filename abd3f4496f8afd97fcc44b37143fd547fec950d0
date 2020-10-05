@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "63cb852d_b3695382",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-05T13:56:11Z",
+      "side": 1,
+      "message": "does the absence of meClassID, meEntityID meAttributes have any effect on the further processing of the ONU ? Also, I\u0027d put this hight to warn and remove the `- temporary workaround for VOL-3532 in place!`. Also there is a typo in dercorded, should be decoded.",
+      "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
