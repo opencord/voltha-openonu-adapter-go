@@ -245,7 +245,6 @@ type OnuDeviceEntry struct {
 	devState      OnuDeviceEvent
 	// for mibUpload
 	mibAuditDelay uint16
-	mibDebugLevel string
 
 	// for mibUpload
 	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
@@ -306,7 +305,6 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
 	logger.Debugw("MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
 
-	onuDeviceEntry.mibDebugLevel = "normal" //set to "verbose" if you want to have all output, possibly later also per config option!
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
 	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", deviceID, mibUploadChan)

@@ -292,12 +292,12 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibResetResponseMessage(msg Omci
 					_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetVendorAndSerial)
 					return
 				}
-				logger.Errorw("Omci MibResetResponse Error", log.Fields{"Error": msgObj.Result})
+				logger.Errorw("Omci MibResetResponse Error", log.Fields{"deviceId": onuDeviceEntry.deviceID, "Error": msgObj.Result})
 			} else {
-				logger.Error("Omci Msg layer could not be assigned")
+				logger.Error("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 			}
 		} else {
-			logger.Error("Omci Msg layer could not be detected")
+			logger.Error("Omci Msg layer could not be detected", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 		}
 	} else {
 		logger.Errorw("Omci MibResetResponse received", log.Fields{"in state ": onuDeviceEntry.pMibUploadFsm.pFsm.Current})
@@ -310,12 +310,12 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibResetResponseMessage(msg Omci
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadResponse)
 	if msgLayer == nil {
-		logger.Error("Omci Msg layer could not be detected")
+		logger.Error("Omci Msg layer could not be detected", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 		return
 	}
 	msgObj, msgOk := msgLayer.(*omci.MibUploadResponse)
 	if !msgOk {
-		logger.Error("Omci Msg layer could not be assigned")
+		logger.Error("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 		return
 	}
 	logger.Debugw("MibUploadResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
@@ -333,17 +333,16 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadResponseMessage(msg Omc
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadNextResponse)
 	if msgLayer == nil {
-		logger.Error("Omci Msg layer could not be detected")
+		logger.Error("Omci Msg layer could not be detected", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 		return
 	}
 	msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
 	if !msgOk {
-		logger.Error("Omci Msg layer could not be assigned")
+		logger.Error("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 		return
 	}
-	if onuDeviceEntry.mibDebugLevel == "VERBOSE" {
-		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
-	}
+
+	logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
 	meClassID := msgObj.ReportedME.GetClassID()
 	meEntityID := msgObj.ReportedME.GetEntityID()
 	meAttributes := msgObj.ReportedME.GetAttributeValueMap()
@@ -374,9 +373,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessa
 				if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
 					meAttributes := msgObj.Attributes
 					meInstance := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName()
-					if onuDeviceEntry.mibDebugLevel == "VERBOSE" {
-						logger.Debugf("MibSync FSM - GetResponse Data for %s", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj}, meInstance)
-					}
+					logger.Debugf("MibSync FSM - GetResponse Data for %s", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj}, meInstance)
 					switch meInstance {
 					case "OnuG":
 						onuDeviceEntry.vendorID = fmt.Sprintf("%s", meAttributes["VendorId"])
@@ -434,23 +431,21 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessa
 					}
 				}
 			} else {
-				logger.Errorw("Omci GetResponse Error", log.Fields{"Error": msgObj.Result})
+				logger.Errorw("Omci GetResponse Error", log.Fields{"deviceId": onuDeviceEntry.deviceID, "Error": msgObj.Result})
 			}
 		} else {
-			logger.Error("Omci Msg layer could not be assigned for GetResponse")
+			logger.Error("Omci Msg layer could not be assigned for GetResponse", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 		}
 	} else {
-		logger.Error("Omci Msg layer could not be detected for GetResponse")
+		logger.Error("Omci Msg layer could not be detected for GetResponse", log.Fields{"deviceId": onuDeviceEntry.deviceID})
 	}
 	logger.Info("MibSync Msg", log.Fields{"Stopped handling of MibSyncChan for device-id": onuDeviceEntry.deviceID})
 	_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvStop)
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
-	if onuDeviceEntry.mibDebugLevel == "VERBOSE" {
-		logger.Debugw("MibSync Msg", log.Fields{"OmciMessage received for device-id": onuDeviceEntry.deviceID,
-			"msgType": msg.OmciMsg.MessageType})
-	}
+	logger.Debugw("MibSync Msg", log.Fields{"OmciMessage received for device-id": onuDeviceEntry.deviceID,
+		"msgType": msg.OmciMsg.MessageType})
 	//further analysis could be done here based on msg.OmciMsg.Payload, e.g. verification of error code ...
 	switch msg.OmciMsg.MessageType {
 	case omci.MibResetResponseType:
