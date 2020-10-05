@@ -34,6 +34,24 @@
       "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "730dc92b_a2b31573",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-05T14:11:04Z",
+      "side": 1,
+      "message": "I was discussing with chip, he might elaborate better, but it might be worth storying the ME as a blob nonetheless even if we can\u0027t determine these elements.",
+      "parentUuid": "6986ffb9_e82a7ab1",
+      "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
