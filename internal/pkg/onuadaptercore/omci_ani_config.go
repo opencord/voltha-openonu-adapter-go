@@ -19,7 +19,6 @@ package adaptercoreonu
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -550,12 +549,14 @@ loop:
 func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
 	if msgLayer == nil {
-		logger.Error("Omci Msg layer could not be detected for CreateResponse")
+		logger.Errorw("Omci Msg layer could not be detected for CreateResponse",
+			log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 		return
 	}
 	msgObj, msgOk := msgLayer.(*omci.CreateResponse)
 	if !msgOk {
-		logger.Error("Omci Msg layer could not be assigned for CreateResponse")
+		logger.Errorw("Omci Msg layer could not be assigned for CreateResponse",
+			log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 		return
 	}
 	logger.Debugw("CreateResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
@@ -588,17 +589,20 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 	if msgLayer == nil {
-		logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be detected for SetResponse")
+		logger.Errorw("UniPonAniConfigFsm - Omci Msg layer could not be detected for SetResponse",
+			log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 		return
 	}
 	msgObj, msgOk := msgLayer.(*omci.SetResponse)
 	if !msgOk {
-		logger.Error("UniPonAniConfigFsm - Omci Msg layer could not be assigned for SetResponse")
+		logger.Errorw("UniPonAniConfigFsm - Omci Msg layer could not be assigned for SetResponse",
+			log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 		return
 	}
 	logger.Debugw("UniPonAniConfigFsm SetResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
 	if msgObj.Result != me.Success {
-		logger.Errorw("UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+		logger.Errorw("UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
+			log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "Error": msgObj.Result})
 		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 		return
 	}
@@ -642,7 +646,8 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigMessage(msg OmciMessage) {
 		} //SetResponseType
 	default:
 		{
-			logger.Errorw("uniPonAniConfigFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+			logger.Errorw("uniPonAniConfigFsm - Rx OMCI unhandled MsgType",
+				log.Fields{"omciMsgType": msg.OmciMsg.MessageType, "device-id": oFsm.pAdaptFsm.deviceID})
 			return
 		}
 	}
@@ -807,7 +812,7 @@ func (oFsm *uniPonAniConfigFsm) waitforOmciResponse() error {
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("UniPonAniConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("uniPonAniConfigFsm multi entity timeout")
+		return fmt.Errorf("uniPonAniConfigFsm multi entity timeout %s", oFsm.pAdaptFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
 			logger.Debug("uniPonAniConfigFsm multi entity response received")
@@ -815,6 +820,6 @@ func (oFsm *uniPonAniConfigFsm) waitforOmciResponse() error {
 		}
 		// should not happen so far
 		logger.Warnw("uniPonAniConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("uniPonAniConfigFsm multi entity responseError")
+		return fmt.Errorf("uniPonAniConfigFsm multi entity responseError %s", oFsm.pAdaptFsm.deviceID)
 	}
 }

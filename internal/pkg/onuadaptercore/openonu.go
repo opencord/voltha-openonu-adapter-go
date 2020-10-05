@@ -175,7 +175,7 @@ func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 //Get_ofp_device_info returns OFP information for the given device
 func (oo *OpenONUAC) Get_ofp_device_info(device *voltha.Device) (*ic.SwitchCapability, error) {
 	logger.Errorw("device-handler-not-set", log.Fields{"device-id": device.Id})
-	return nil, errors.New("device-handler-not-set")
+	return nil, fmt.Errorf("device-handler-not-set %s", device.Id)
 }
 
 //Get_ofp_port_info returns OFP port information for the given device

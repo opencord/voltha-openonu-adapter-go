@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -205,23 +206,23 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		}
 	} else {
 		logger.Errorw("received omci-message too small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
-		return errors.New("rxOmciMessage too small for BaseFormat")
+		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
 	}
 
 	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, gopacket.NoCopy)
 	if packet == nil {
-		logger.Error("omci-message could not be decoded")
-		return errors.New("could not decode rxMsg as OMCI")
+		logger.Errorw("omci-message could not be decoded", log.Fields{"deviceID": oo.deviceID})
+		return fmt.Errorf("could not decode rxMsg as OMCI %s", oo.deviceID)
 	}
 	omciLayer := packet.Layer(omci.LayerTypeOMCI)
 	if omciLayer == nil {
-		logger.Error("omci-message could not decode omci layer")
-		return errors.New("could not decode omci layer")
+		logger.Errorw("omci-message could not decode omci layer", log.Fields{"deviceID": oo.deviceID})
+		return fmt.Errorf("could not decode omci layer %s", oo.deviceID)
 	}
 	omciMsg, ok := omciLayer.(*omci.OMCI)
 	if !ok {
-		logger.Error("omci-message could not assign omci layer")
-		return errors.New("could not assign omci layer")
+		logger.Errorw("omci-message could not assign omci layer", log.Fields{"deviceID": oo.deviceID})
+		return fmt.Errorf("could not assign omci layer %s", oo.deviceID)
 	}
 	logger.Debugw("omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "DeviceIdent": omciMsg.DeviceIdentifier})
@@ -232,8 +233,9 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 			return oo.receiveOnuMessage(ctx, omciMsg)
 		}
 		logger.Errorw("Unexpected TransCorrId != 0  not accepted for autonomous messages",
-			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload)})
-		return errors.New("autonomous Omci Message with TranSCorrId != 0 not acccepted")
+			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload),
+				"deviceID": oo.deviceID})
+		return fmt.Errorf("autonomous Omci Message with TranSCorrId != 0 not acccepted %s", oo.deviceID)
 
 	}
 	//logger.Debug("RxMsg is a Omci Response Message: try to schedule it to the requester")
@@ -248,8 +250,8 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.mutexRxSchedMap.Unlock()
 	} else {
 		oo.mutexRxSchedMap.Unlock()
-		logger.Error("omci-message-response for not registered transCorrId")
-		return errors.New("could not find registered response handler tor transCorrId")
+		logger.Errorw("omci-message-response for not registered transCorrId", log.Fields{"deviceID": oo.deviceID})
+		return fmt.Errorf("could not find registered response handler tor transCorrId %s", oo.deviceID)
 	}
 
 	return nil
@@ -460,7 +462,7 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 			/*TODO: needs to handle error scenarios */
 			logger.Errorw("Failed to fetch device", log.Fields{"err": err, "ParentId": oo.pBaseDeviceHandler.deviceID,
 				"ChildId": oo.deviceID})
-			return errors.New("failed to fetch device")
+			return fmt.Errorf("failed to fetch device %s", oo.deviceID)
 		}
 
 		logger.Debugw("omci-message-sending", log.Fields{"fromDeviceType": oo.pBaseDeviceHandler.DeviceType,
@@ -475,7 +477,7 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 			//fromType,toType,toDevId, ProxyDevId
 			oo.pBaseDeviceHandler.DeviceType, oo.pBaseDeviceHandler.ProxyAddressType,
 			oo.deviceID, oo.pBaseDeviceHandler.ProxyAddressID, ""); sendErr != nil {
-			logger.Errorw("send omci request error", log.Fields{"error": sendErr})
+			logger.Errorw("send omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
 			return sendErr
 		}
 		oo.txQueue.Remove(queueElement) // Dequeue
@@ -545,7 +547,7 @@ func (oo *omciCC) receiveOmciResponse(omciMsg *omci.OMCI, packet *gp.Packet, res
 	if oo.pOnuDeviceEntry == nil {
 		logger.Errorw("Abort receiving OMCI response, DeviceEntryPointer is nil", log.Fields{
 			"device-id": oo.deviceID})
-		return errors.New("deviceEntryPointer is nil")
+		return fmt.Errorf("deviceEntryPointer is nil %s", oo.deviceID)
 	}
 
 	// no further test on SeqNo is done here, assignment from rxScheduler is trusted
@@ -612,7 +614,8 @@ func (oo *omciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 	}
 	err = oo.pOnuDeviceEntry.waitForRebootResponse(responseChannel)
 	if err != nil {
-		logger.Error("aborting ONU Reboot!")
+		logger.Errorw("aborting ONU Reboot!", log.Fields{
+			"Err": err, "device-id": oo.deviceID})
 		_ = oo.pOnuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
 		return err
 	}

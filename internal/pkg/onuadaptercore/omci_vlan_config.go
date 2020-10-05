@@ -20,7 +20,7 @@ package adaptercoreonu
 import (
 	"context"
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -281,7 +281,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(aTpID uint16, aMatchVlan uint16, 
 		} else {
 			logger.Errorw("UniVlanConfigFsm flow limit exceeded", log.Fields{
 				"device-id": oFsm.pAdaptFsm.deviceID})
-			return errors.New(" UniVlanConfigFsm flow limit exceeded")
+			return fmt.Errorf(" UniVlanConfigFsm flow limit exceeded %s", oFsm.pAdaptFsm.deviceID)
 		}
 	}
 	return nil
@@ -577,17 +577,20 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(msg OmciMessage) {
 		{
 			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
 			if msgLayer == nil {
-				logger.Error("Omci Msg layer could not be detected for CreateResponse")
+				logger.Errorw("Omci Msg layer could not be detected for CreateResponse",
+					log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.CreateResponse)
 			if !msgOk {
-				logger.Error("Omci Msg layer could not be assigned for CreateResponse")
+				logger.Errorw("Omci Msg layer could not be assigned for CreateResponse",
+					log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				return
 			}
 			logger.Debugw("CreateResponse Data", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
-				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": oFsm.pAdaptFsm.deviceID,
+					"Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 				return
 			}
@@ -612,17 +615,20 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(msg OmciMessage) {
 		{
 			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 			if msgLayer == nil {
-				logger.Error("UniVlanConfigFsm - Omci Msg layer could not be detected for SetResponse")
+				logger.Errorw("UniVlanConfigFsm - Omci Msg layer could not be detected for SetResponse",
+					log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.SetResponse)
 			if !msgOk {
-				logger.Error("UniVlanConfigFsm - Omci Msg layer could not be assigned for SetResponse")
+				logger.Errorw("UniVlanConfigFsm - Omci Msg layer could not be assigned for SetResponse",
+					log.Fields{"device-id": oFsm.pAdaptFsm.deviceID})
 				return
 			}
 			logger.Debugw("UniVlanConfigFsm SetResponse Data", log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
-				logger.Errorw("UniVlanConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+				logger.Errorw("UniVlanConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
+					log.Fields{"deviceId": oFsm.pAdaptFsm.deviceID, "Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 				return
 			}
@@ -639,7 +645,8 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(msg OmciMessage) {
 		} //SetResponseType
 	default:
 		{
-			logger.Errorw("UniVlanConfigFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+			logger.Errorw("UniVlanConfigFsm - Rx OMCI unhandled MsgType",
+				log.Fields{"omciMsgType": msg.OmciMsg.MessageType, "deviceId": oFsm.pAdaptFsm.deviceID})
 			return
 		}
 	}
@@ -899,7 +906,7 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
 	case <-time.After(30 * time.Second): //AS FOR THE OTHER OMCI FSM's
 		logger.Warnw("UniVlanConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("uniVlanConfigFsm multi entity timeout")
+		return fmt.Errorf("uniVlanConfigFsm multi entity timeout %s", oFsm.pAdaptFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
 			logger.Debug("UniVlanConfigFsm multi entity response received")
@@ -907,6 +914,6 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
 		}
 		// should not happen so far
 		logger.Warnw("UniVlanConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.pAdaptFsm.deviceID})
-		return errors.New("uniVlanConfigFsm multi entity responseError")
+		return fmt.Errorf("uniVlanConfigFsm multi entity responseError %s", oFsm.pAdaptFsm.deviceID)
 	}
 }

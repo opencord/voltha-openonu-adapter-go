@@ -245,7 +245,6 @@ type OnuDeviceEntry struct {
 	devState      OnuDeviceEvent
 	// for mibUpload
 	mibAuditDelay uint16
-	mibDebugLevel string
 
 	// for mibUpload
 	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
@@ -306,7 +305,6 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
 	logger.Debugw("MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
 
-	onuDeviceEntry.mibDebugLevel = "normal" //set to "verbose" if you want to have all output, possibly later also per config option!
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
 	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", deviceID, mibUploadChan)
@@ -410,8 +408,8 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 		},
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
-		logger.Error("MibDownloadFsm could not be instantiated!!")
-		// some specifc error treatment - or waiting for crash ???
+		logger.Errorw("MibDownloadFsm could not be instantiated", log.Fields{"device-id": deviceID})
+		// TODO some specifc error treatment - or waiting for crash ?
 	}
 
 	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(cBasePathMibTemplateKvStore)
@@ -441,31 +439,31 @@ func (oo *OnuDeviceEntry) start(ctx context.Context) error {
 		oo.coreProxy, oo.adapterProxy)
 	if oo.PDevOmciCC == nil {
 		logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
-		return errors.New("could not create devOmciCc")
+		return fmt.Errorf("could not create devOmciCc %s", oo.deviceID)
 	}
 
 	oo.started = true
-	logger.Info("OnuDeviceEntry-started")
+	logger.Infow("OnuDeviceEntry-started", log.Fields{"for device-id": oo.deviceID})
 	return nil
 }
 
 //stop terminates the session
 func (oo *OnuDeviceEntry) stop(ctx context.Context) error {
-	logger.Info("stopping-OnuDeviceEntry")
+	logger.Infow("stopping-OnuDeviceEntry", log.Fields{"for device-id": oo.deviceID})
 	oo.started = false
 	//oo.exitChannel <- 1
 	// maybe also the omciCC should be stopped here - for now not as no real processing is expected here - maybe needs consolidation
-	logger.Info("OnuDeviceEntry-stopped")
+	logger.Infow("OnuDeviceEntry-stopped", log.Fields{"for device-id": oo.deviceID})
 	return nil
 }
 
 func (oo *OnuDeviceEntry) reboot(ctx context.Context) error {
-	logger.Info("reboot-OnuDeviceEntry")
+	logger.Infow("reboot-OnuDeviceEntry", log.Fields{"for device-id": oo.deviceID})
 	if err := oo.PDevOmciCC.sendReboot(context.TODO(), ConstDefaultOmciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
 		logger.Errorw("onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
 		return err
 	}
-	logger.Info("OnuDeviceEntry-reboot")
+	logger.Infow("OnuDeviceEntry-reboot", log.Fields{"for device-id": oo.deviceID})
 	return nil
 }
 
@@ -473,30 +471,31 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 	select {
 	case <-time.After(3 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw("Reboot timeout", log.Fields{"for device-id": oo.deviceID})
-		return errors.New("rebootTimeout")
+		return fmt.Errorf("rebootTimeout")
 	case data := <-responseChannel:
 		switch data.Data.(OmciMessage).OmciMsg.MessageType {
 		case omci.RebootResponseType:
 			{
 				msgLayer := (*data.Data.(OmciMessage).OmciPacket).Layer(omci.LayerTypeRebootResponse)
 				if msgLayer == nil {
-					return errors.New("omci Msg layer could not be detected for RebootResponseType")
+					return fmt.Errorf("omci Msg layer could not be detected for RebootResponseType")
 				}
 				msgObj, msgOk := msgLayer.(*omci.GetResponse)
 				if !msgOk {
-					return errors.New("omci Msg layer could not be assigned for RebootResponseType")
+					return fmt.Errorf("omci Msg layer could not be assigned for RebootResponseType %s", oo.deviceID)
 				}
 				logger.Debugw("CreateResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 				if msgObj.Result != me.Success {
-					logger.Errorw("Omci RebootResponseType Error ", log.Fields{"Error": msgObj.Result})
+					logger.Errorw("Omci RebootResponseType Error ", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
 					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-					return errors.New("omci RebootResponse Result Error indication")
+					return fmt.Errorf("omci RebootResponse Result Error indication %s for device %s",
+						msgObj.Result, oo.deviceID)
 				}
 				return nil
 			}
 		}
 		logger.Warnw("Reboot response error", log.Fields{"for device-id": oo.deviceID})
-		return errors.New("unexpected OmciResponse type received")
+		return fmt.Errorf("unexpected OmciResponse type received %s", oo.deviceID)
 	}
 }
 
