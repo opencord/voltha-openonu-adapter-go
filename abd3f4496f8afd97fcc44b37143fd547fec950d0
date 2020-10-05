@@ -16,6 +16,24 @@
       "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6986ffb9_e82a7ab1",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-05T14:05:37Z",
+      "side": 1,
+      "message": "meClassID, meEntityID, and meAttributes are used only to be able to store ME into internal DB - no effect on further processing. Other comments will be incorporated.",
+      "parentUuid": "63cb852d_b3695382",
+      "revId": "abd3f4496f8afd97fcc44b37143fd547fec950d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
