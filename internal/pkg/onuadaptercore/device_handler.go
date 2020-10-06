@@ -562,6 +562,7 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 			dh.pLockStateFsm.setSuccessEvent(UniAdminStateDone)
 			dh.runUniLockFsm(true)
 		}
+		dh.disableUniPortStateUpdate()
 		//VOL-3493/VOL-3495: postpone setting of deviceReason, conn- and operStatus until all omci-related communication regarding
 		//device disabling has finished successfully
 	}
@@ -596,6 +597,9 @@ func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 		dh.pUnlockStateFsm.setSuccessEvent(UniAdminStateDone)
 		dh.runUniLockFsm(false)
 	}
+	//TODO this should be moved according to the discussion here
+	// https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/21066
+	dh.enableUniPortStateUpdate()
 }
 
 func (dh *deviceHandler) reconcileDeviceOnuInd() {
@@ -1569,7 +1573,7 @@ func (dh *deviceHandler) deviceProcStatusUpdate(devEvent OnuDeviceEvent) {
 		}
 	default:
 		{
-			logger.Warnw("unhandled-device-event", log.Fields{"device-id": dh.deviceID, "event": devEvent})
+			logger.Debugw("unhandled-device-event", log.Fields{"device-id": dh.deviceID, "event": devEvent})
 		}
 	} //switch
 }
@@ -1619,6 +1623,7 @@ func (dh *deviceHandler) enableUniPortStateUpdate() {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go dh.coreProxy.PortStateUpdate(context.TODO(), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
 			} else {
+				//TODO there is no retry mechanism, return error
 				logger.Debugw("reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.deviceID})
 			}
 		}
