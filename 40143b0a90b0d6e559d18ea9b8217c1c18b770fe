@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "12709b85_8028a200",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-06T16:00:26Z",
+      "side": 1,
+      "message": "I would apply Holgers comments from patch set #1 also here, that the port state change should only be generated in case the ports have really been deactivated on the ONU.\nAs discussed in patch set #1 comments I would propose to accept this solution here as temporary improvement and update the code later to a more consistent handling.",
+      "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9da78dbb_475e7b4a",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-06T16:00:26Z",
+      "side": 1,
+      "message": "Hmm, that\u0027s some kind of view on that. But the problem with that is, that nobody could really judge for sure then, if the physical connection to the ONU is still there or not. The ONU could be unplugged without any further notification from this state here. So my interpretation of the connection status would be more an indication about if the ONU can be reached on OMCI or not (in my point of view the only thing the ONU adapter can really deliver as connection state). But well, if the VOLTHA state definition shall better be as given in this change, I can also live with that.",
+      "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

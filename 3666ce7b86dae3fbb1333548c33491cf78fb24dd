@@ -70,6 +70,30 @@
       "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "905874bb_e3c6b193",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-06T16:00:26Z",
+      "side": 1,
+      "message": "I think the idea  was to have a differentiation of the \u0027admin device events\u0027 between the automatic port enabling after MibDownload and any real admin state change, which e.g. may result into different activities e.g. concerning the reconcile treatment (techProfile loading after MIB download).\nSo far anyway obviously the port oper state treatment was still missing for the \u0027original admin state\u0027 changes.\nThe solution provided here in this patch is working for straight-on processing and I would propose to accept that by now as a temporary solution.\nBut as already discussed with Holger a more coharent implementation would also consider the success of the needed lock/unlock processing before informing about real state transitions. There are multiple ways to realize that, our preference being to extend deviceProcStatusUpdate with (an) according event(s) to allow for state transition transfer activities (which in my point of view also includes the connection state change to be be moved from the OMCI lock state FSM again). Here using a single event with some following state differentiation or dedicates events is just some implementation aspect with not much influence - given we still can differentiante the \u0027internal unlock\u0027.\nMy proposal is that we update the code accordingly in a later version (as it requires code update on multiple code positions/files).",
+      "parentUuid": "240ff6ca_1ebb416a",
+      "range": {
+        "startLine": 594,
+        "startChar": 4,
+        "endLine": 594,
+        "endChar": 28
+      },
+      "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
