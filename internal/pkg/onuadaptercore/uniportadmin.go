@@ -228,11 +228,16 @@ func (oFsm *lockStateFsm) enterAdminDoneState(e *fsm.Event) {
 			logger.Errorw("error-updating-reason-state", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
 		}
 		oFsm.pDeviceHandler.deviceReason = "omci-admin-lock"
-		//200604: ConnState improved to 'unreachable' (was not set in python-code), OperState 'unknown' seems to be best choice
-		logger.Debugw("call DeviceStateUpdate", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
-			"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": oFsm.pDeviceHandler.deviceID})
+		//ConnState is reachable given the fact that no cable was pulled and it can be re-enabled through OMCI. 
+		logger.Debugw("call DeviceStateUpdate", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+			"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": oFsm.pDeviceHandler.deviceID, "reason": oFsm.pDeviceHandler.deviceReason})
+		if err := oFsm.pDeviceHandler.coreProxy.DeviceReasonUpdate(context.TODO(), oFsm.pDeviceHandler.deviceID,
+			oFsm.pDeviceHandler.deviceReason); err != nil {
+			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+			logger.Errorw("error-updating-device-reason", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
+		}
 		if err := oFsm.pDeviceHandler.coreProxy.DeviceStateUpdate(context.TODO(), oFsm.pDeviceHandler.deviceID,
-			voltha.ConnectStatus_UNREACHABLE, voltha.OperStatus_UNKNOWN); err != nil {
+			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_UNKNOWN); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 			logger.Errorw("error-updating-device-state", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
 		}
