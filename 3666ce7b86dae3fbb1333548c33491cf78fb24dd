@@ -22,6 +22,30 @@
       "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "57107186_6b54307a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-06T14:54:49Z",
+      "side": 1,
+      "message": "but that is not called here, the UniAdminStateDone state will be issued and thus the method processUniUnlockStateDoneEvent() will not be called. Are you saying that the method deviceProcStatusUpdate() at line 1450 should have another clause that handles UniAdminStateDone with state \u003d active and calls processUniUnlockStateDoneEvent()",
+      "parentUuid": "d9a2f8d3_52330d4d",
+      "range": {
+        "startLine": 594,
+        "startChar": 4,
+        "endLine": 594,
+        "endChar": 28
+      },
+      "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
