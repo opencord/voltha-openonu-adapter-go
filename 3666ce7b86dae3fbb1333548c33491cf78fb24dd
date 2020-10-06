@@ -46,6 +46,30 @@
       "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "240ff6ca_1ebb416a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-06T15:21:26Z",
+      "side": 1,
+      "message": "According to my understanding there is an issue with the final state of port-fsm set in case of device disable/reenable-handling. In disableDevice() as well as reEnableDevice() final state is set to UniAdminStateDone - shouldn\u0027t it be set to UniLockStateDone in disable case as well as to UniUnlockStateDone in reeanable case? deviceProcStatusUpdate() has to be extended by a clause for UniLockStateDone than.\n@Michael: Could you please comment on this?",
+      "parentUuid": "57107186_6b54307a",
+      "range": {
+        "startLine": 594,
+        "startChar": 4,
+        "endLine": 594,
+        "endChar": 28
+      },
+      "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
