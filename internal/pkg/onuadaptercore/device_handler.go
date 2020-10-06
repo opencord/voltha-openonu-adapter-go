@@ -556,6 +556,7 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 		// disable UNI ports/ONU
 		// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
 		//     here the result of the processing is not checked (trusted in background) *****
+		dh.disableUniPortStateUpdate()
 		if dh.pLockStateFsm == nil {
 			dh.createUniLockFsm(true, UniAdminStateDone)
 		} else { //LockStateFSM already init
@@ -590,6 +591,7 @@ func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 	// enable ONU/UNI ports
 	// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
 	//     here the result of the processing is not checked (trusted in background) *****
+	dh.enableUniPortStateUpdate()
 	if dh.pUnlockStateFsm == nil {
 		dh.createUniLockFsm(false, UniAdminStateDone)
 	} else { //UnlockStateFSM already init
@@ -1569,7 +1571,7 @@ func (dh *deviceHandler) deviceProcStatusUpdate(devEvent OnuDeviceEvent) {
 		}
 	default:
 		{
-			logger.Warnw("unhandled-device-event", log.Fields{"device-id": dh.deviceID, "event": devEvent})
+			logger.Debugw("unhandled-device-event", log.Fields{"device-id": dh.deviceID, "event": devEvent})
 		}
 	} //switch
 }
@@ -1619,6 +1621,7 @@ func (dh *deviceHandler) enableUniPortStateUpdate() {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go dh.coreProxy.PortStateUpdate(context.TODO(), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
 			} else {
+				//TODO there is no retry mechanism, return error
 				logger.Debugw("reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.deviceID})
 			}
 		}
