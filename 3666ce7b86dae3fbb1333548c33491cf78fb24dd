@@ -94,6 +94,30 @@
       "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d7accdfa_aca921f1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-06T16:52:48Z",
+      "side": 1,
+      "message": "@Michael, agreed, that\u0027s a good optimisation. what I did is that I moved the enable/disable of the ports after the lock/unlock, at least we do thing when the ONU is in proper state. Parts fo the erro refactoring is to also return errors from that method. I added a TODO in there to track this discussion",
+      "parentUuid": "905874bb_e3c6b193",
+      "range": {
+        "startLine": 594,
+        "startChar": 4,
+        "endLine": 594,
+        "endChar": 28
+      },
+      "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

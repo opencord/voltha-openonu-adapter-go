@@ -33,6 +33,24 @@
       "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8f7139c8_ac04aa24",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-06T16:52:48Z",
+      "side": 1,
+      "message": "you mean that the ONU will stay in the Disabled state forever if the cable gets unplugged ? I think that is fine. What we need to make sure is that when the operator re-enables it we fail because we can\u0027t reach it and put the status to unreachable. I can open a jira for that.",
+      "parentUuid": "9da78dbb_475e7b4a",
+      "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
