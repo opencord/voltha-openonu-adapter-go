@@ -74,7 +74,9 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingMibState(e *fsm.Event) {
 	logger.Debugw("MibSync FSM", log.Fields{"Start MibTemplate processing in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 
 	logger.Debugw("MibSync FSM", log.Fields{"send mibReset in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
-	_ = onuDeviceEntry.PDevOmciCC.sendMibReset(context.TODO(), ConstDefaultOmciTimeout, true)
+	if err := onuDeviceEntry.PDevOmciCC.sendMibReset(context.TODO(), ConstDefaultOmciTimeout, true); err != nil {
+		log.Errorw("Can't reset MIB", log.Fields{"device": onuDeviceEntry.deviceID, "err": err})
+	}
 
 	//TODO: needs to handle timeouts
 }
