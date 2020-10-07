@@ -69,6 +69,24 @@
       "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8adc829f_0dcc48aa",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-07T08:03:11Z",
+      "side": 1,
+      "message": "As per my understanding yes, that is the desired behaviour.",
+      "parentUuid": "d934df8c_a3eafb28",
+      "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
