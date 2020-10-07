@@ -250,7 +250,7 @@ func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapte
 	}
 
 	onuOperstate := onuIndication.GetOperState()
-	logger.Debugw("inter-adapter-recv-onu-ind", log.Fields{"OnuId": onuIndication.GetOnuId(),
+	logger.Debugw("inter-adapter-recv-onu-ind", log.Fields{"device-id": dh.deviceID, "OnuId": onuIndication.GetOnuId(),
 		"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
 		"SNR": onuIndication.GetSerialNumber()})
 
@@ -1211,7 +1211,8 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			logger.Debugw("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 			//Determine ONU status and start/re-start MIB Synchronization tasks
 			//Determine if this ONU has ever synchronized
-			if true { //TODO: insert valid check
+			if true { //TODO: insert valid check, possibly dh.pDeviceStateFsm.Is(devStNull)
+				log.Debugw("Resetting Mib", log.Fields{"deviceId": dh.deviceID})
 				if err := pMibUlFsm.Event(ulEvResetMib); err != nil {
 					logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"deviceId": dh.deviceID, "err": err})
 					return fmt.Errorf("can't go to state resetting_mib: %s", dh.deviceID)
@@ -1241,6 +1242,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 }
 
 func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
+	logger.Debugw("updateInterface-started ", log.Fields{"device-id": dh.deviceID, "onuInd": onuind})
 	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
 	if dh.deviceReason != "stopping-openomci" {
 		logger.Debugw("updateInterface-started - stopping-device", log.Fields{"device-id": dh.deviceID})
@@ -1323,6 +1325,10 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 			return err
 		}
 		dh.deviceReason = "stopping-openomci"
+		pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
+		//TODO worth adding the "unreachable" to the MIBFSM states line 66 of onu_device_entry ?
+		// do we need to stop OMCI ?
+		pMibUlFsm.SetState(ulStDisabled)
 
 		logger.Debugw("call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
 			"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
@@ -1546,6 +1552,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(devEvent OnuDeviceEvent)
 
 //deviceProcStatusUpdate evaluates possible processing events and initiates according next activities
 func (dh *deviceHandler) deviceProcStatusUpdate(devEvent OnuDeviceEvent) {
+	log.Debugw("Received Event", log.Fields{"event": devEvent})
 	switch devEvent {
 	case MibDatabaseSync:
 		{

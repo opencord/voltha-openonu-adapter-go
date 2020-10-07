@@ -451,6 +451,7 @@ func (oo *OnuDeviceEntry) start(ctx context.Context) error {
 func (oo *OnuDeviceEntry) stop(ctx context.Context) error {
 	logger.Infow("stopping-OnuDeviceEntry", log.Fields{"for device-id": oo.deviceID})
 	oo.started = false
+	oo.devState = DeviceStatusInit
 	//oo.exitChannel <- 1
 	// maybe also the omciCC should be stopped here - for now not as no real processing is expected here - maybe needs consolidation
 	logger.Infow("OnuDeviceEntry-stopped", log.Fields{"for device-id": oo.deviceID})
