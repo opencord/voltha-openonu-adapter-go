@@ -51,6 +51,24 @@
       "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d934df8c_a3eafb28",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-07T07:38:21Z",
+      "side": 1,
+      "message": "To be more precise on what I meant: I assumed this way the ONU will stay in ConnectionStatus \u0027reachable\u0027 independent from any layer 1 status of the ONU connection because it does not know anything about that directly. But of course there is the OLT adapter \u0027ONU indication\u0027 interface to the onu adapter, which might still correctly update the ONU layer 1 state also for the ONU adapter. So that way the delivered ONU conncetion status will only rely on this \u0027ONU indication\u0027 information - if this is the desired behavior I\u0027m fine with it.\nI would not expect problems with the OperState, so I don\u0027t think some Jira s required for that.",
+      "parentUuid": "8f7139c8_ac04aa24",
+      "revId": "40143b0a90b0d6e559d18ea9b8217c1c18b770fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

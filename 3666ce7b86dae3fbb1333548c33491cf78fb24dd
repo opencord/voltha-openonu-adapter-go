@@ -118,6 +118,30 @@
       "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "55c6e486_780fec96",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-07T07:38:21Z",
+      "side": 1,
+      "message": "Shifting that here does not really help as the state machines are running in background. But anyway, as discussed we can update that later.",
+      "parentUuid": "d7accdfa_aca921f1",
+      "range": {
+        "startLine": 594,
+        "startChar": 4,
+        "endLine": 594,
+        "endChar": 28
+      },
+      "revId": "3666ce7b86dae3fbb1333548c33491cf78fb24dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
