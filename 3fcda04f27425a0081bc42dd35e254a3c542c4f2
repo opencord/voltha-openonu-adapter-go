@@ -51,6 +51,24 @@
       "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b8951f26_aa024155",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1335,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-08T12:04:30Z",
+      "side": 1,
+      "message": "yes, will remove the code for the DownId. \nIn relation to Delete_device() I\u0027m not sure this is the behaviour we want. because that will be called generally when we want to remove the device from the system, not when the olt is disabled. or do you think we ought to purge all the state ?",
+      "parentUuid": "97e8ad15_0acad84f",
+      "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
