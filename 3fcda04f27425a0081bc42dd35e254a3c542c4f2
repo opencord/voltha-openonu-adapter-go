@@ -33,6 +33,24 @@
       "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "97e8ad15_0acad84f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1335,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-08T09:42:10Z",
+      "side": 1,
+      "message": "In respect to my last reflections for device removal was not right: there is already some system interface - and already implemented - for a device removal: Delete_device(). If that isused things should be fine in this respect.",
+      "parentUuid": "7a4bab67_91ef1843",
+      "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
