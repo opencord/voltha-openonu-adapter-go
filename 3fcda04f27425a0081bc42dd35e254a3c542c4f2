@@ -69,6 +69,24 @@
       "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4f3ee204_b5b3e500",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1335,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-08T15:44:22Z",
+      "side": 1,
+      "message": "DeleteDevice() considerations where only involved here as a side discussion, as I was checking if the deviceHandler FSM deactivation would really be required. Generally DeleteDevice() would then delete the specific handler (which will also remove the state machine), this way for the moment I do not see the need of DeviceHandler state machine deactivation (always \u0027init\u0027).",
+      "parentUuid": "b8951f26_aa024155",
+      "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
