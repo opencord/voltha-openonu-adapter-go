@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eb024876_a71e548e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1331,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-08T09:28:22Z",
+      "side": 1,
+      "message": "Modifying the state of the FSM from outside the FSM should be avoided (FSM internal data might get corrupted). But -yes, resetting the MibSync FSM is required in this context. It was not completely ensured in the code above, as it was not considered that the MibSync FSm is a \u0027live-time-active FSM\u0027 (because of audit options etc). So the best way to correct that would be to remove the \"starting-openomci\" case in the dh.deviceReason switch above and to insert the activity unconditionally before that switch block:\n\tpMibUlFsm :\u003d pDevEntry.pMibUploadFsm.pFsm\n\tif pMibUlFsm !\u003d nil {\n\t    _ \u003d pMibUlFsm.Event(ulEvStop)\n\t}",
+      "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7a4bab67_91ef1843",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1335,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-08T09:28:22Z",
+      "side": 1,
+      "message": "Setting the devicehandler FSM to down is not (yet) really supported and no real functionality is tied to that for the moment. So this code sequence should better be removed again.\nOn the other hand that is a good reminder of what the trigger is to remove the ONU assigned handler (and its deviceEntry) from the data base again. Some relavant system interface looks to me \u0027abandon_device()\u0027, but that seems not to be supported within the system. Hence it might be required to setup some inherent device removal, which would anyway need some slightly different code extensions...",
+      "revId": "3fcda04f27425a0081bc42dd35e254a3c542c4f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
