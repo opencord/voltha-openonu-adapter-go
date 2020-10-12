@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "c526f489_ed4fea8a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 567,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-12T14:29:33Z",
+      "side": 1,
+      "message": "Would not know what to do: disableDevice does not return errors in the VOLTHA framework (anyway no-one would know what to do with that).",
+      "parentUuid": "41745b70_e9374f10",
+      "revId": "18a6d5a22e3ba6199c3401d3ed736d1b7a4dbf8c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "46673e03_de17393d",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2020-10-12T14:00:56Z",
       "side": 1,
       "message": "same here, add //TODO return error",
+      "revId": "18a6d5a22e3ba6199c3401d3ed736d1b7a4dbf8c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "065a0a0e_4fc47fc0",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1513,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-12T14:29:33Z",
+      "side": 1,
+      "message": "Also here, this method just tries to process events (notifications). If there is some processing issue in here it should not have some impact on the sender of the event/notification.",
+      "parentUuid": "46673e03_de17393d",
       "revId": "18a6d5a22e3ba6199c3401d3ed736d1b7a4dbf8c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
