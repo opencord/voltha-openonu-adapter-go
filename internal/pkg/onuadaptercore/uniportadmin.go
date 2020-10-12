@@ -27,7 +27,6 @@ import (
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
-	"github.com/opencord/voltha-protos/v3/go/voltha"
 	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
 	//"github.com/opencord/voltha-protos/v3/go/openflow_13"
 )
@@ -218,30 +217,6 @@ func (oFsm *lockStateFsm) enterAdminDoneState(e *fsm.Event) {
 	logger.Debugw("LockStateFSM", log.Fields{"send notification to core in State": e.FSM.Current(), "device-id": oFsm.pAdaptFsm.deviceID})
 	//use DeviceHandler event notification directly, no need/support to update DeviceEntryState for lock/unlock
 	oFsm.pOmciCC.pBaseDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
-
-	//VOL-3493/VOL-3495: postpone setting of deviceReason, conn- and operStatus until all omci-related communication regarding
-	//device disabling has finished successfully
-	if oFsm.adminState {
-		if err := oFsm.pDeviceHandler.coreProxy.DeviceReasonUpdate(context.TODO(),
-			oFsm.pDeviceHandler.deviceID, "omci-admin-lock"); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-updating-reason-state", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
-		}
-		oFsm.pDeviceHandler.deviceReason = "omci-admin-lock"
-		//ConnState is reachable given the fact that no cable was pulled and it can be re-enabled through OMCI.
-		logger.Debugw("call DeviceStateUpdate", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
-			"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": oFsm.pDeviceHandler.deviceID, "reason": oFsm.pDeviceHandler.deviceReason})
-		if err := oFsm.pDeviceHandler.coreProxy.DeviceReasonUpdate(context.TODO(), oFsm.pDeviceHandler.deviceID,
-			oFsm.pDeviceHandler.deviceReason); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-updating-device-reason", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
-		}
-		if err := oFsm.pDeviceHandler.coreProxy.DeviceStateUpdate(context.TODO(), oFsm.pDeviceHandler.deviceID,
-			voltha.ConnectStatus_REACHABLE, voltha.OperStatus_UNKNOWN); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-updating-device-state", log.Fields{"device-id": oFsm.pDeviceHandler.deviceID, "error": err})
-		}
-	}
 
 	//let's reset the state machine in order to release all resources now
 	pLockStateAFsm := oFsm.pAdaptFsm
