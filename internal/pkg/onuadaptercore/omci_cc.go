@@ -140,6 +140,37 @@ func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 	return &omciCC
 }
 
+//stop stops/resets the omciCC
+func (oo *omciCC) stop(ctx context.Context) error {
+	logger.Debugw("omciCC-stopping", log.Fields{"for device-id": oo.deviceID})
+	//reseting all internal data, which might also be helpful for discarding any lingering tx/rx requests
+	oo.mutexTxQueue.Lock()
+	oo.txQueue.Init() // clear the tx queue
+	oo.mutexTxQueue.Unlock()
+	oo.mutexRxSchedMap.Lock()
+	for k := range oo.rxSchedulerMap {
+		delete(oo.rxSchedulerMap, k) //clear the scheduler map
+	}
+	oo.mutexRxSchedMap.Unlock()
+	oo.mutexHpTid.Lock()
+	oo.hpTid = 0x8000 //reset the high prio transactionId
+	oo.mutexHpTid.Unlock()
+	oo.mutexTid.Lock()
+	oo.tid = 1 //reset the low prio transactionId
+	oo.mutexTid.Unlock()
+	//reset control values
+	oo.uploadSequNo = 0
+	oo.uploadNoOfCmds = 0
+	//reset the stats counter - which might be topic of discussion ...
+	oo.txFrames = 0
+	oo.txOnuFrames = 0
+	oo.rxFrames = 0
+	oo.rxOnuFrames = 0
+	oo.rxOnuDiscards = 0
+
+	return nil
+}
+
 // Rx handler for omci messages
 func (oo *omciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) error {
 	logger.Debugw("rx-onu-autonomous-message", log.Fields{"omciMsgType": omciMsg.MessageType,
@@ -488,21 +519,21 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 func (oo *omciCC) getNextTid(highPriority bool) uint16 {
 	var next uint16
 	if highPriority {
-		oo.mutexTid.Lock()
+		oo.mutexHpTid.Lock()
 		next = oo.hpTid
 		oo.hpTid++
 		if oo.hpTid < 0x8000 {
 			oo.hpTid = 0x8000
 		}
-		oo.mutexTid.Unlock()
+		oo.mutexHpTid.Unlock()
 	} else {
-		oo.mutexHpTid.Lock()
+		oo.mutexTid.Lock()
 		next = oo.tid
 		oo.tid++
 		if oo.tid >= 0x8000 {
 			oo.tid = 1
 		}
-		oo.mutexHpTid.Unlock()
+		oo.mutexTid.Unlock()
 	}
 	return next
 }

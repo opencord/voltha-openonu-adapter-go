@@ -129,16 +129,18 @@ const (
 	UniLockStateDone OnuDeviceEvent = 4
 	// UniUnlockStateDone - Uni ports admin set to unlock
 	UniUnlockStateDone OnuDeviceEvent = 5
-	// UniAdminStateDone - Uni ports admin set done - general
-	UniAdminStateDone OnuDeviceEvent = 6
+	// UniDisableStateDone - Uni ports admin set to lock based on device disable
+	UniDisableStateDone OnuDeviceEvent = 6
+	// UniEnableStateDone - Uni ports admin set to unlock based on device re-enable
+	UniEnableStateDone OnuDeviceEvent = 7
 	// PortLinkUp - Port link state change
-	PortLinkUp OnuDeviceEvent = 7
+	PortLinkUp OnuDeviceEvent = 8
 	// PortLinkDw - Port link state change
-	PortLinkDw OnuDeviceEvent = 8
+	PortLinkDw OnuDeviceEvent = 9
 	// OmciAniConfigDone -  AniSide config according to TechProfile done
-	OmciAniConfigDone OnuDeviceEvent = 9
+	OmciAniConfigDone OnuDeviceEvent = 10
 	// OmciVlanFilterDone - Omci Vlan config according to flowConfig done
-	OmciVlanFilterDone OnuDeviceEvent = 10
+	OmciVlanFilterDone OnuDeviceEvent = 11
 	// Add other events here as needed (alarms separate???)
 )
 
@@ -223,7 +225,6 @@ type OnuDeviceEntry struct {
 	baseDeviceHandler     *deviceHandler
 	coreProxy             adapterif.CoreProxy
 	adapterProxy          adapterif.AdapterProxy
-	started               bool
 	PDevOmciCC            *omciCC
 	pOnuDB                *onuDeviceDB
 	mibTemplateKVStore    *db.Backend
@@ -263,7 +264,6 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 	supportedFsmsPtr *OmciDeviceFsms) *OnuDeviceEntry {
 	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": deviceID})
 	var onuDeviceEntry OnuDeviceEntry
-	onuDeviceEntry.started = false
 	onuDeviceEntry.deviceID = deviceID
 	onuDeviceEntry.baseDeviceHandler = deviceHandler
 	onuDeviceEntry.coreProxy = coreProxy
@@ -433,37 +433,37 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 
 //start starts (logs) the omci agent
 func (oo *OnuDeviceEntry) start(ctx context.Context) error {
-	logger.Info("starting-OnuDeviceEntry")
-
-	oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
-		oo.coreProxy, oo.adapterProxy)
+	logger.Infow("OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC == nil {
-		logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
-		return fmt.Errorf("could not create devOmciCc %s", oo.deviceID)
+		oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
+			oo.coreProxy, oo.adapterProxy)
+		if oo.PDevOmciCC == nil {
+			logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
+			return fmt.Errorf("could not create devOmciCc %s", oo.deviceID)
+		}
 	}
-
-	oo.started = true
-	logger.Infow("OnuDeviceEntry-started", log.Fields{"for device-id": oo.deviceID})
 	return nil
 }
 
-//stop terminates the session
+//stop stops/resets the omciCC
 func (oo *OnuDeviceEntry) stop(ctx context.Context) error {
-	logger.Infow("stopping-OnuDeviceEntry", log.Fields{"for device-id": oo.deviceID})
-	oo.started = false
-	//oo.exitChannel <- 1
-	// maybe also the omciCC should be stopped here - for now not as no real processing is expected here - maybe needs consolidation
-	logger.Infow("OnuDeviceEntry-stopped", log.Fields{"for device-id": oo.deviceID})
+	logger.Debugw("OnuDeviceEntry-stopping", log.Fields{"for device-id": oo.deviceID})
+	if oo.PDevOmciCC != nil {
+		_ = oo.PDevOmciCC.stop(ctx)
+	}
+	//to allow for all event notifications again when re-using the device and omciCC
+	oo.devState = DeviceStatusInit
 	return nil
 }
 
 func (oo *OnuDeviceEntry) reboot(ctx context.Context) error {
-	logger.Infow("reboot-OnuDeviceEntry", log.Fields{"for device-id": oo.deviceID})
-	if err := oo.PDevOmciCC.sendReboot(context.TODO(), ConstDefaultOmciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
-		logger.Errorw("onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
-		return err
+	logger.Debugw("OnuDeviceEntry-rebooting", log.Fields{"for device-id": oo.deviceID})
+	if oo.PDevOmciCC != nil {
+		if err := oo.PDevOmciCC.sendReboot(ctx, ConstDefaultOmciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
+			logger.Errorw("onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
+			return err
+		}
 	}
-	logger.Infow("OnuDeviceEntry-reboot", log.Fields{"for device-id": oo.deviceID})
 	return nil
 }
 

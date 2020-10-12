@@ -250,7 +250,8 @@ func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapte
 	}
 
 	onuOperstate := onuIndication.GetOperState()
-	logger.Debugw("inter-adapter-recv-onu-ind", log.Fields{"OnuId": onuIndication.GetOnuId(),
+	logger.Debugw("inter-adapter-recv-onu-ind", log.Fields{"device-id": dh.deviceID,
+		"OnuId":      onuIndication.GetOnuId(),
 		"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
 		"SNR": onuIndication.GetSerialNumber()})
 
@@ -550,21 +551,31 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 	logger.Debugw("disable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
-	//admin-lock reason can also be used uniquely for setting the DeviceState accordingly - inblock
-	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
+	//admin-lock reason can also be used uniquely for setting the DeviceState accordingly
+	// - inblock state checking to prevent possibly unneeded processing (on command repitition)
 	if dh.deviceReason != "omci-admin-lock" {
+		//running FSM's are stopped/reset here to avoid indirect stucking
+		// due to blocked OMCI transmission on disabled state
+		// but with possibly aborted FSM's there might be complications as the expected state
+		// after some re-enable would then be quite undefined
+		// maybe after re-enabling some additional checks would be required to possibly enforce new
+		// (reconcile-like) config (which would require some indication from 'aborted' FSM's first)
+		// for now let's assume no running FSM is active at this time point here ... -> TODO!!!
+		if err := dh.resetFsms(); err != nil {
+			logger.Errorw("error-disableDevice at FSM stop",
+				log.Fields{"device-id": dh.deviceID, "error": err})
+			// abort: system behavior is just unstable ...
+			return
+		}
+
 		// disable UNI ports/ONU
-		// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
-		//     here the result of the processing is not checked (trusted in background) *****
+		// *** should generate UniDisableStateDone event - used to disable the port(s) on success
 		if dh.pLockStateFsm == nil {
-			dh.createUniLockFsm(true, UniAdminStateDone)
+			dh.createUniLockFsm(true, UniDisableStateDone)
 		} else { //LockStateFSM already init
-			dh.pLockStateFsm.setSuccessEvent(UniAdminStateDone)
+			dh.pLockStateFsm.setSuccessEvent(UniDisableStateDone)
 			dh.runUniLockFsm(true)
 		}
-		dh.disableUniPortStateUpdate()
-		//VOL-3493/VOL-3495: postpone setting of deviceReason, conn- and operStatus until all omci-related communication regarding
-		//device disabling has finished successfully
 	}
 }
 
@@ -572,34 +583,14 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 	logger.Debugw("reenable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
-	// TODO!!! ConnectStatus and OperStatus to be set here could be more accurate, for now just ...(like python code)
-	logger.Debugw("call DeviceStateUpdate upon re-enable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
-		"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.deviceID})
-	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
-		voltha.OperStatus_ACTIVE); err != nil {
-		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
-	}
-
-	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "onu-reenabled"); err != nil {
-		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
-	}
-	dh.deviceReason = "onu-reenabled"
-
 	// enable ONU/UNI ports
-	// *** should generate UniAdminStateDone event - unrelated to DeviceProcStatusUpdate!!
-	//     here the result of the processing is not checked (trusted in background) *****
+	// *** should generate UniEnableStateDone event - used to disable the port(s) on success
 	if dh.pUnlockStateFsm == nil {
-		dh.createUniLockFsm(false, UniAdminStateDone)
+		dh.createUniLockFsm(false, UniEnableStateDone)
 	} else { //UnlockStateFSM already init
-		dh.pUnlockStateFsm.setSuccessEvent(UniAdminStateDone)
+		dh.pUnlockStateFsm.setSuccessEvent(UniEnableStateDone)
 		dh.runUniLockFsm(false)
 	}
-	//TODO this should be moved according to the discussion here
-	// https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/21066
-	dh.enableUniPortStateUpdate()
 }
 
 func (dh *deviceHandler) reconcileDeviceOnuInd() {
@@ -1109,7 +1100,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 	verifyExec := make(chan bool)
 	omciVerify := newOmciTestRequest(context.TODO(),
 		dh.device.Id, pDevEntry.PDevOmciCC,
-		true, true) //eclusive and allowFailure (anyway not yet checked)
+		true, true) //exclusive and allowFailure (anyway not yet checked)
 	omciVerify.performOmciTest(context.TODO(), verifyExec)
 
 	/* 	give the handler some time here to wait for the OMCi verification result
@@ -1244,64 +1235,18 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
 	if dh.deviceReason != "stopping-openomci" {
 		logger.Debugw("updateInterface-started - stopping-device", log.Fields{"device-id": dh.deviceID})
-		//stop all running SM processing - make use of the DH-state as mirrored in the deviceReason
-		pDevEntry := dh.getOnuDeviceEntry(false)
-		if pDevEntry == nil {
-			logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
-			return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
+		//here no conflict with aborted FSM's should arise as a complete OMCI initialization is assumed on ONU-Up
+		//but that might change with some simple MDS check on ONU-Up treatment -> attention!!!
+		if err := dh.resetFsms(); err != nil {
+			logger.Errorw("error-updateInterface at FSM stop",
+				log.Fields{"device-id": dh.deviceID, "error": err})
+			// abort: system behavior is just unstable ...
+			return err
 		}
 
-		switch dh.deviceReason {
-		case "starting-openomci":
-			{ //MIBSync FSM may run
-				pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
-				if pMibUlFsm != nil {
-					_ = pMibUlFsm.Event(ulEvStop) //TODO!! verify if MibSyncFsm stop-processing is sufficient (to allow it again afterwards)
-				}
-			}
-		case "discovery-mibsync-complete":
-			{ //MibDownload may run
-				pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
-				if pMibDlFsm != nil {
-					_ = pMibDlFsm.Event(dlEvReset)
-				}
-			}
-		default:
-			{
-				//port lock/unlock FSM's may be active
-				if dh.pUnlockStateFsm != nil {
-					_ = dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
-				}
-				if dh.pLockStateFsm != nil {
-					_ = dh.pLockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
-				}
-				//techProfile related PonAniConfigFsm FSM may be active
-				// maybe encapsulated as OnuTP method - perhaps later in context of module splitting
-				if dh.pOnuTP.pAniConfigFsm != nil {
-					_ = dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
-				}
-				for _, uniPort := range dh.uniEntityMap {
-					//reset the TechProfileConfig Done state for all (active) UNI's
-					dh.pOnuTP.setConfigDone(uniPort.uniID, false)
-					// reset the possibly existing VlanConfigFsm
-					if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniID]; exist {
-						//VlanFilterFsm exists and was already started
-						pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
-						if pVlanFilterStatemachine != nil {
-							_ = pVlanFilterStatemachine.Event(vlanEvReset)
-						}
-					}
-				}
-			}
-			//TODO!!! care about PM/Alarm processing once started
-		}
-		//TODO: from here the deviceHandler FSM itself may be stuck in some of the initial states
-		//  (mainly the still separate 'Event states')
-		//  so it is questionable, how this is resolved after some possible re-enable
-		//  assumption there is obviously, that the system may continue with some 'after "mib-download-done" state'
-
-		//stop/remove(?) the device entry
-		_ = pDevEntry.stop(context.TODO()) //maybe some more sophisticated context treatment should be used here?
+		//deviceEntry with omciCC is not stopped/reset here, regarding the OMCI_CC still valid for this ONU
+		// - in contrary to disableDevice - compare there
 
 		//TODO!!! remove existing traffic profiles
 		/* from py code, if TP's exist, remove them - not yet implemented
@@ -1337,6 +1282,60 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 	} else {
 		logger.Debugw("updateInterface - device already stopped", log.Fields{"device-id": dh.deviceID})
 	}
+	return nil
+}
+
+func (dh *deviceHandler) resetFsms() error {
+	//all possible FSM's are stopped or reset here to ensure their transition to 'disabled'
+	//it is not sufficient to stop/reset the latest running FSM as done in previous versions
+	//  as after down/up procedures all FSM's might be active/ongoing (in theory)
+	//  and using the stop/reset event should never harm
+
+	pDevEntry := dh.getOnuDeviceEntry(false)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
+
+	//the MibSync FSM might be active all the ONU-active time,
+	// hence it must be stopped unconditionally
+	pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
+	if pMibUlFsm != nil {
+		_ = pMibUlFsm.Event(ulEvStop) //TODO!! verify if MibSyncFsm stop-processing is sufficient (to allow it again afterwards)
+	}
+	//MibDownload may run
+	pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
+	if pMibDlFsm != nil {
+		_ = pMibDlFsm.Event(dlEvReset)
+	}
+	//port lock/unlock FSM's may be active
+	if dh.pUnlockStateFsm != nil {
+		_ = dh.pUnlockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+	}
+	if dh.pLockStateFsm != nil {
+		_ = dh.pLockStateFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+	}
+	//techProfile related PonAniConfigFsm FSM may be active
+	if dh.pOnuTP != nil {
+		// should always be the case here
+		// FSM  stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
+		if dh.pOnuTP.pAniConfigFsm != nil {
+			_ = dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		}
+		for _, uniPort := range dh.uniEntityMap {
+			//reset the TechProfileConfig Done state for all (active) UNI's
+			dh.pOnuTP.setConfigDone(uniPort.uniID, false)
+			// reset the possibly existing VlanConfigFsm
+			if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniID]; exist {
+				//VlanFilterFsm exists and was already started
+				pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
+				if pVlanFilterStatemachine != nil {
+					_ = pVlanFilterStatemachine.Event(vlanEvReset)
+				}
+			}
+		}
+	}
+	//TODO!!! care about PM/Alarm processing once started
 	return nil
 }
 
@@ -1472,7 +1471,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
 }
 
 func (dh *deviceHandler) processUniUnlockStateDoneEvent(devEvent OnuDeviceEvent) {
-	go dh.enableUniPortStateUpdate() //cmp python yield self.enable_ports()
+	dh.enableUniPortStateUpdate() //cmp python yield self.enable_ports()
 
 	if !dh.reconciling {
 		logger.Infow("UniUnlockStateDone event: Sending OnuUp event", log.Fields{"device-id": dh.deviceID})
@@ -1484,6 +1483,59 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(devEvent OnuDeviceEvent)
 		go dh.reconcileDeviceTechProf()
 		// reconcilement will be continued after ani config is done
 	}
+}
+
+func (dh *deviceHandler) processUniDisableStateDoneEvent(devEvent OnuDeviceEvent) {
+	logger.Debugw("DeviceStateUpdate upon disable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+		"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.deviceID})
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(),
+		dh.deviceID, voltha.ConnectStatus_REACHABLE, voltha.OperStatus_UNKNOWN); err != nil {
+		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
+	}
+
+	logger.Debugw("DeviceReasonUpdate upon re-enable", log.Fields{
+		"reason": "omci-admin-lock", "device-id": dh.deviceID})
+	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
+		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
+	}
+	dh.deviceReason = "omci-admin-lock"
+
+	//transfer the modified logical uni port state
+	dh.disableUniPortStateUpdate()
+
+	//stop the device entry which resets the attached omciCC
+	pDevEntry := dh.getOnuDeviceEntry(false)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	_ = pDevEntry.stop(context.TODO()) //maybe some more sophisticated context treatment should be used here?
+
+}
+
+func (dh *deviceHandler) processUniEnableStateDoneEvent(devEvent OnuDeviceEvent) {
+	logger.Debugw("DeviceStateUpdate upon re-enable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+		"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.deviceID})
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
+		voltha.OperStatus_ACTIVE); err != nil {
+		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
+	}
+
+	logger.Debugw("DeviceReasonUpdate upon re-enable", log.Fields{
+		"reason": "onu-reenabled", "device-id": dh.deviceID})
+	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "onu-reenabled"); err != nil {
+		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
+	}
+	dh.deviceReason = "onu-reenabled"
+
+	//transfer the modified logical uni port state
+	dh.enableUniPortStateUpdate()
 }
 
 func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) {
@@ -1559,6 +1611,16 @@ func (dh *deviceHandler) deviceProcStatusUpdate(devEvent OnuDeviceEvent) {
 	case UniUnlockStateDone:
 		{
 			dh.processUniUnlockStateDoneEvent(devEvent)
+
+		}
+	case UniEnableStateDone:
+		{
+			dh.processUniEnableStateDoneEvent(devEvent)
+
+		}
+	case UniDisableStateDone:
+		{
+			dh.processUniDisableStateDoneEvent(devEvent)
 
 		}
 	case OmciAniConfigDone:
