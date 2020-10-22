@@ -480,7 +480,7 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				if msgLayer == nil {
 					return fmt.Errorf("omci Msg layer could not be detected for RebootResponseType")
 				}
-				msgObj, msgOk := msgLayer.(*omci.GetResponse)
+				msgObj, msgOk := msgLayer.(*omci.RebootResponse)
 				if !msgOk {
 					return fmt.Errorf("omci Msg layer could not be assigned for RebootResponseType %s", oo.deviceID)
 				}
