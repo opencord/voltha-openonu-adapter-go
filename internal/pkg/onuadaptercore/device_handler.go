@@ -723,15 +723,15 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		logger.Errorw("error-rebooting-device", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
-	logger.Debugw("call DeviceStateUpdate upon reboot", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
+	logger.Debugw("call DeviceStateUpdate upon reboot", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
-	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_UNREACHABLE,
+	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
 		voltha.OperStatus_DISCOVERED); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "rebooting-onu"); err != nil {
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "rebooting"); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err

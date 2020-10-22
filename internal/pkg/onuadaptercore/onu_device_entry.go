@@ -480,15 +480,15 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				if msgLayer == nil {
 					return fmt.Errorf("omci Msg layer could not be detected for RebootResponseType")
 				}
-				msgObj, msgOk := msgLayer.(*omci.GetResponse)
+				msgObj, msgOk := msgLayer.(*omci.RebootResponse)
 				if !msgOk {
 					return fmt.Errorf("omci Msg layer could not be assigned for RebootResponseType %s", oo.deviceID)
 				}
-				logger.Debugw("CreateResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
+				logger.Debugw("RebootResponse data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 				if msgObj.Result != me.Success {
-					logger.Errorw("Omci RebootResponseType Error ", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
+					logger.Errorw("Omci RebootResponse Error ", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
 					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-					return fmt.Errorf("omci RebootResponse Result Error indication %s for device %s",
+					return fmt.Errorf("omci RebootResponse result error indication %s for device %s",
 						msgObj.Result, oo.deviceID)
 				}
 				return nil

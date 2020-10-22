@@ -647,7 +647,6 @@ func (oo *omciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 	if err != nil {
 		logger.Errorw("aborting ONU Reboot!", log.Fields{
 			"Err": err, "device-id": oo.deviceID})
-		_ = oo.pOnuDeviceEntry.pMibDownloadFsm.pFsm.Event("reset")
 		return err
 	}
 	return nil
