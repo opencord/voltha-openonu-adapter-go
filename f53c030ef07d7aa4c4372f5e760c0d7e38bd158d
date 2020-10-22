@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8c35c162_f1fe8260",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-22T10:29:10Z",
+      "side": 1,
+      "message": "\"RebootResponse data\"",
+      "revId": "f53c030ef07d7aa4c4372f5e760c0d7e38bd158d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "053aa0cb_deab0fe5",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 489,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-22T10:29:10Z",
+      "side": 1,
+      "message": "\"omci RebootResponse result error\"",
+      "revId": "f53c030ef07d7aa4c4372f5e760c0d7e38bd158d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ece729c0_9f15dd01",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 491,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-22T10:29:10Z",
+      "side": 1,
+      "message": "\"omci RebootResponse result error ...\"",
+      "revId": "f53c030ef07d7aa4c4372f5e760c0d7e38bd158d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "358e8b1c_7574024a",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 732,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-22T10:29:10Z",
+      "side": 1,
+      "message": "Also some further aspects have to be corrected in this respect, not only in this file:\nomci_cc.go:\n\terr \u003d oo.pOnuDeviceEntry.waitForRebootResponse(responseChannel)\n\tif err !\u003d nil {\n\t\tlogger.Errorw(\"aborting ONU Reboot!\", log.Fields{\n\t\t\t\"Err\": err, \"device-id\": oo.deviceID})\n\t\t_ \u003d oo.pOnuDeviceEntry.pMibDownloadFsm.pFsm.Event(\"reset\")\n\t\treturn err\n\t}\n--\u003e remove the MibDownloadFsm reset - this is wrong. Ozge did not use a separate FSM, so nothing to reset here! (some more specific error treatment perhaps later)\n\nand device_handler.go (from line 788..):\n\tlogger.Debugw(\"call DeviceStateUpdate upon reboot\", log.Fields{\"ConnectStatus\": voltha.ConnectStatus_UNREACHABLE,\n\t\t\"OperStatus\": voltha.OperStatus_DISCOVERED, \"device-id\": dh.deviceID})\n\tif err :\u003d dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_UNREACHABLE,\n\t\tvoltha.OperStatus_DISCOVERED); err !\u003d nil {\n\t\t//TODO with VOL-3045/VOL-3046: return the error and stop further processing\n\t\tlogger.Errorw(\"error-updating-device-state\", log.Fields{\"device-id\": dh.deviceID, \"error\": err})\n\t\treturn err\n\t}\n\tif err :\u003d dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, \"rebooting-onu\"); err !\u003d nil {\n\t\t//TODO with VOL-3045/VOL-3046: return the error and stop further processing\n\t\tlogger.Errorw(\"error-updating-reason-state\", log.Fields{\"device-id\": dh.deviceID, \"error\": err})\n\t\treturn err\n\t}\n\tdh.deviceReason \u003d \"rebooting-onu\"\n--\u003e States need to clarified, Py Adapter implementation deviates from this go implementation:\nPy Adapter: No change on OperState and ConnState - which I regard as wrong, at lest the OperState should not be active anymore. But Py Connection state remains \u0027reachable\u0027, in \u0027go code\u0027 this way still \u0027unreachable\u0027. In accordance with last ConnState discussion I would agree on leaving the ConnState at \u0027reachable\u0027 (which must be changed then) (discussion was: bind the connectionState to the OnuIndication delivered state only - even though in this case we know, that the ONU should not be reachable for some time ...).\nAnd concerning deviceReason: Py code uses \"rebooting\", Go code \"rebooting-onu\". Don\u0027t know why it was selected differently. My suggestion would be to adapt the go code to \"rebooting\" as well.",
+      "revId": "f53c030ef07d7aa4c4372f5e760c0d7e38bd158d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
