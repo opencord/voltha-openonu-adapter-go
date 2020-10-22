@@ -67,6 +67,23 @@
       "revId": "f53c030ef07d7aa4c4372f5e760c0d7e38bd158d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3a19b8f_a53b2f89",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 732,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-10-22T10:48:45Z",
+      "side": 1,
+      "message": "Yeah, But I looked other example like \"enable-device\". but you\u0027re right, \"rebooting\" should be good idea.",
+      "revId": "f53c030ef07d7aa4c4372f5e760c0d7e38bd158d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
