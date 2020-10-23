@@ -330,7 +330,7 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		// attention: deadline completion check and wg.Done is to be done in both routines
 		go dh.pOnuTP.configureUniTp(dctx, uniID, techProfMsg.Path, &wg)
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
-		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+		dh.waitForCompletion(cancel, &wg, "TechProfDwld") //wait for background process to finish
 
 		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
 	}
@@ -387,7 +387,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 			cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
-		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+		dh.waitForCompletion(cancel, &wg, "GemDelete") //wait for background process to finish
 
 		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
 	}
@@ -443,7 +443,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 			cResourceTcont, delTcontMsg.AllocId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
-		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+		dh.waitForCompletion(cancel, &wg, "TContDelete") //wait for background process to finish
 
 		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
 	}
@@ -497,30 +497,28 @@ func (dh *deviceHandler) processInterAdapterMessage(msg *ic.InterAdapterMessage)
 //FlowUpdateIncremental removes and/or adds the flow changes on a given device
 func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.FlowChanges,
 	apOfGroupChanges *openflow_13.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
-	logger.Debugw("FlowUpdateIncremental started", log.Fields{"deviceId": dh.deviceID})
+	logger.Debugw("FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID})
 
-	//Remove flows
+	var retError error = nil
+	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
 	if apOfFlowChanges.ToRemove != nil {
 		for _, flowItem := range apOfFlowChanges.ToRemove.Items {
-			logger.Debugw("incremental flow item remove", log.Fields{"deviceId": dh.deviceID,
-				"Item": flowItem})
-		}
-	}
-	if apOfFlowChanges.ToAdd != nil {
-		for _, flowItem := range apOfFlowChanges.ToAdd.Items {
 			if flowItem.GetCookie() == 0 {
-				logger.Debugw("incremental flow add - no cookie - ignore", log.Fields{
-					"deviceId": dh.deviceID})
+				logger.Warnw("flow-remove no cookie: ignore and continuing on checking further flows", log.Fields{
+					"device-id": dh.deviceID})
+				retError = fmt.Errorf("flow-remove no cookie, device-id %s", dh.deviceID)
 				continue
 			}
 			flowInPort := flow.GetInPort(flowItem)
 			if flowInPort == uint32(of.OfpPortNo_OFPP_INVALID) {
-				logger.Errorw("flow inPort invalid", log.Fields{"deviceID": dh.deviceID})
-				return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
+				logger.Warnw("flow-remove inPort invalid: ignore and continuing on checking further flows", log.Fields{"device-id": dh.deviceID})
+				retError = fmt.Errorf("flow-remove inPort invalid, device-id %s", dh.deviceID)
+				continue
+				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
-				//this is some downstream flow
-				logger.Debugw("incremental flow ignore downstream", log.Fields{
-					"deviceId": dh.deviceID, "inPort": flowInPort})
+				//this is some downstream flow, not regarded as error, just ignored
+				logger.Debugw("flow-remove for downstream: ignore and continuing on checking further flows", log.Fields{
+					"device-id": dh.deviceID, "inPort": flowInPort})
 				continue
 			} else {
 				// this is the relevant upstream flow
@@ -528,23 +526,82 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 				if uniPort, exist := dh.uniEntityMap[flowInPort]; exist {
 					loUniPort = uniPort
 				} else {
-					logger.Errorw("flow inPort not found in UniPorts",
-						log.Fields{"deviceID": dh.deviceID, "inPort": flowInPort})
-					return fmt.Errorf("flow-parameter inPort %d not found in internal UniPorts", flowInPort)
+					logger.Warnw("flow-remove inPort not found in UniPorts: ignore and continuing on checking further flows",
+						log.Fields{"device-id": dh.deviceID, "inPort": flowInPort})
+					retError = fmt.Errorf("flow-remove inPort not found in UniPorts, inPort %d, device-id %s",
+						flowInPort, dh.deviceID)
+					continue
+					//return fmt.Errorf("flow-parameter inPort %d not found in internal UniPorts", flowInPort)
 				}
 				flowOutPort := flow.GetOutPort(flowItem)
-				logger.Debugw("incremental flow-add port indications", log.Fields{
-					"deviceId": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
+				logger.Debugw("flow-remove port indications", log.Fields{
+					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
 					"uniPortName": loUniPort.name})
-				err := dh.addFlowItemToUniPort(flowItem, loUniPort)
-				//abort processing in error case
+				err := dh.removeFlowItemFromUniPort(flowItem, loUniPort)
+				//try next flow after processing error
 				if err != nil {
-					return err
+					logger.Warnw("flow-remove processing error: continuing on checking further flows",
+						log.Fields{"device-id": dh.deviceID, "error": err})
+					retError = err
+					continue
+					//return err
+				} else { // if last setting succeeds, overwrite possibly previously set error
+					retError = nil
 				}
 			}
 		}
 	}
-	return nil
+	if apOfFlowChanges.ToAdd != nil {
+		for _, flowItem := range apOfFlowChanges.ToAdd.Items {
+			if flowItem.GetCookie() == 0 {
+				logger.Debugw("incremental flow-add no cookie: ignore and continuing on checking further flows", log.Fields{
+					"device-id": dh.deviceID})
+				retError = fmt.Errorf("flow-add no cookie, device-id %s", dh.deviceID)
+				continue
+			}
+			flowInPort := flow.GetInPort(flowItem)
+			if flowInPort == uint32(of.OfpPortNo_OFPP_INVALID) {
+				logger.Warnw("flow-add inPort invalid: ignore and continuing on checking further flows", log.Fields{"device-id": dh.deviceID})
+				retError = fmt.Errorf("flow-add inPort invalid, device-id %s", dh.deviceID)
+				continue
+				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
+			} else if flowInPort == dh.ponPortNumber {
+				//this is some downstream flow
+				logger.Debugw("flow-add for downstream: ignore and continuing on checking further flows", log.Fields{
+					"device-id": dh.deviceID, "inPort": flowInPort})
+				continue
+			} else {
+				// this is the relevant upstream flow
+				var loUniPort *onuUniPort
+				if uniPort, exist := dh.uniEntityMap[flowInPort]; exist {
+					loUniPort = uniPort
+				} else {
+					logger.Warnw("flow-add inPort not found in UniPorts: ignore and continuing on checking further flows",
+						log.Fields{"device-id": dh.deviceID, "inPort": flowInPort})
+					retError = fmt.Errorf("flow-add inPort not found in UniPorts, inPort %d, device-id %s",
+						flowInPort, dh.deviceID)
+					continue
+					//return fmt.Errorf("flow-parameter inPort %d not found in internal UniPorts", flowInPort)
+				}
+				flowOutPort := flow.GetOutPort(flowItem)
+				logger.Debugw("flow-add port indications", log.Fields{
+					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
+					"uniPortName": loUniPort.name})
+				err := dh.addFlowItemToUniPort(flowItem, loUniPort)
+				//try next flow after processing error
+				if err != nil {
+					logger.Warnw("flow-add processing error: continuing on checking further flows",
+						log.Fields{"device-id": dh.deviceID, "error": err})
+					retError = err
+					continue
+					//return err
+				} else { // if last setting succeeds, overwrite possibly previously set error
+					retError = nil
+				}
+			}
+		}
+	}
+	return retError
 }
 
 //disableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
@@ -568,13 +625,40 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 			return
 		}
 
-		// disable UNI ports/ONU
-		// *** should generate UniDisableStateDone event - used to disable the port(s) on success
-		if dh.pLockStateFsm == nil {
-			dh.createUniLockFsm(true, UniDisableStateDone)
-		} else { //LockStateFSM already init
-			dh.pLockStateFsm.setSuccessEvent(UniDisableStateDone)
-			dh.runUniLockFsm(true)
+		if dh.deviceReason != "rebooting" {
+			// disable UNI ports/ONU
+			// *** should generate UniDisableStateDone event - used to disable the port(s) on success
+			if dh.pLockStateFsm == nil {
+				dh.createUniLockFsm(true, UniDisableStateDone)
+			} else { //LockStateFSM already init
+				dh.pLockStateFsm.setSuccessEvent(UniDisableStateDone)
+				dh.runUniLockFsm(true)
+			}
+		} else {
+			logger.Debugw("DeviceStateUpdate upon disable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+				"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.deviceID})
+			if err := dh.coreProxy.DeviceStateUpdate(context.TODO(),
+				dh.deviceID, voltha.ConnectStatus_REACHABLE, voltha.OperStatus_UNKNOWN); err != nil {
+				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+				logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
+			}
+
+			logger.Debugw("DeviceReasonUpdate upon re-enable", log.Fields{
+				"reason": "omci-admin-lock", "device-id": dh.deviceID})
+			// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
+			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
+				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+				logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
+			}
+			dh.deviceReason = "omci-admin-lock"
+
+			//stop the device entry which resets the attached omciCC
+			pDevEntry := dh.getOnuDeviceEntry(false)
+			if pDevEntry == nil {
+				logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
+				return
+			}
+			_ = pDevEntry.stop(context.TODO(), true) //stop deviceEntry with omciCC reset
 		}
 	}
 }
@@ -637,7 +721,7 @@ func (dh *deviceHandler) reconcileDeviceTechProf() {
 		var wg sync.WaitGroup
 		wg.Add(1) // for the 1 go routine to finish
 		go dh.pOnuTP.configureUniTp(dctx, uniData.PersUniID, uniData.PersTpPath, &wg)
-		dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+		dh.waitForCompletion(cancel, &wg, "TechProfReconcile") //wait for background process to finish
 
 		if err := dh.pOnuTP.getTpProcessingErrorIndication(); err != nil {
 			logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
@@ -658,19 +742,22 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig() {
 		var exist bool
 		uniNo := mkUniPortNum(dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
 		if uniPort, exist = dh.uniEntityMap[uniNo]; !exist {
-			logger.Errorw("onuUniPort data not found!", log.Fields{"uniNo": uniNo, "deviceID": dh.deviceID})
+			logger.Errorw("onuUniPort data not found!", log.Fields{"uniNo": uniNo, "device-id": dh.deviceID})
 			return
 		}
 		for _, flowData := range uniData.PersFlowParams {
+			logger.Debugw("add flow with cookie slice", log.Fields{"device-id": dh.deviceID, "cookies": flowData.CookieSlice})
+			//the slice can be passed 'by value' here, - which internally passes its reference copy
 			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
-				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(flowData.TpID, uint16(flowData.MatchVid),
-					uint16(flowData.SetVid), uint8(flowData.SetPcp)); err != nil {
+				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(flowData.VlanRuleParams.TpID,
+					flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
+					uint8(flowData.VlanRuleParams.SetPcp)); err != nil {
 					logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
-
 			} else {
-				if err := dh.createVlanFilterFsm(uniPort, flowData.TpID, uint16(flowData.MatchVid), uint16(flowData.SetVid),
-					uint8(flowData.SetPcp), OmciVlanFilterDone); err != nil {
+				if err := dh.createVlanFilterFsm(uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
+					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
+					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterDone); err != nil {
 					logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			}
@@ -706,7 +793,7 @@ func (dh *deviceHandler) deleteDevice(device *voltha.Device) error {
 	var wg sync.WaitGroup
 	wg.Add(1) // for the 1 go routine to finish
 	go pDevEntry.deleteDataFromOnuKvStore(dctx, &wg)
-	dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+	dh.waitForCompletion(cancel, &wg, "DeleteDevice") //wait for background process to finish
 
 	// TODO: further actions - stop metrics and FSMs, remove device ...
 	return pDevEntry.getKvProcessingErrorIndication()
@@ -723,6 +810,10 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		logger.Errorw("error-rebooting-device", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
+
+	//transfer the possibly modified logical uni port state
+	dh.disableUniPortStateUpdate()
+
 	logger.Debugw("call DeviceStateUpdate upon reboot", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
 	if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID, voltha.ConnectStatus_REACHABLE,
@@ -736,7 +827,7 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
-	dh.deviceReason = "rebooting-onu"
+	dh.deviceReason = "rebooting"
 	return nil
 }
 
@@ -792,7 +883,7 @@ func (dh *deviceHandler) doStateInit(e *fsm.Event) {
 				   )
 	*/
 	if !dh.reconciling {
-		logger.Debugw("adding-pon-port", log.Fields{"deviceID": dh.deviceID, "ponPortNo": dh.ponPortNumber})
+		logger.Debugw("adding-pon-port", log.Fields{"device-id": dh.deviceID, "ponPortNo": dh.ponPortNumber})
 		var ponPortNo uint32 = 1
 		if dh.ponPortNumber != 0 {
 			ponPortNo = dh.ponPortNumber
@@ -907,7 +998,7 @@ func (dh *deviceHandler) doStateUp(e *fsm.Event) {
 		// Synchronous call to update device state - this method is run in its own go routine
 		if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.device.Id, voltha.ConnectStatus_REACHABLE,
 			voltha.OperStatus_ACTIVE); err != nil {
-			logger.Errorw("Failed to update device with OLT UP indication", log.Fields{"deviceID": dh.device.Id, "error": err})
+			logger.Errorw("Failed to update device with OLT UP indication", log.Fields{"device-id": dh.device.Id, "error": err})
 			return err
 		}
 		return nil
@@ -933,7 +1024,7 @@ func (dh *deviceHandler) doStateDown(e *fsm.Event) {
 	/*
 		// Update the all ports state on that device to disable
 		if er := dh.coreProxy.PortsStateUpdate(ctx, cloned.Id, voltha.OperStatus_UNKNOWN); er != nil {
-			logger.Errorw("updating-ports-failed", log.Fields{"deviceID": device.Id, "error": er})
+			logger.Errorw("updating-ports-failed", log.Fields{"device-id": device.Id, "error": er})
 			return er
 		}
 
@@ -943,14 +1034,14 @@ func (dh *deviceHandler) doStateDown(e *fsm.Event) {
 		dh.device = cloned
 
 		if er := dh.coreProxy.DeviceStateUpdate(ctx, cloned.Id, cloned.ConnectStatus, cloned.OperStatus); er != nil {
-			logger.Errorw("error-updating-device-state", log.Fields{"deviceID": device.Id, "error": er})
+			logger.Errorw("error-updating-device-state", log.Fields{"device-id": device.Id, "error": er})
 			return er
 		}
 
 		//get the child device for the parent device
 		onuDevices, err := dh.coreProxy.GetChildDevices(ctx, dh.device.Id)
 		if err != nil {
-			logger.Errorw("failed to get child devices information", log.Fields{"deviceID": dh.device.Id, "error": err})
+			logger.Errorw("failed to get child devices information", log.Fields{"device-id": dh.device.Id, "error": err})
 			return err
 		}
 		for _, onuDevice := range onuDevices.Items {
@@ -962,14 +1053,14 @@ func (dh *deviceHandler) doStateDown(e *fsm.Event) {
 				"openolt", onuDevice.Type, onuDevice.Id, onuDevice.ProxyAddress.DeviceId, "")
 			if er != nil {
 				logger.Errorw("Failed to send inter-adapter-message", log.Fields{"OnuInd": onuInd,
-					"From Adapter": "openolt", "DevieType": onuDevice.Type, "DeviceID": onuDevice.Id})
+					"From Adapter": "openolt", "DevieType": onuDevice.Type, "device-id": onuDevice.Id})
 				//Do not return here and continue to process other ONUs
 			}
 		}
 		// * Discovered ONUs entries need to be cleared , since after OLT
 		//   is up, it starts sending discovery indications again* /
 		dh.discOnus = sync.Map{}
-		logger.Debugw("do-state-down-end", log.Fields{"deviceID": device.Id})
+		logger.Debugw("do-state-down-end", log.Fields{"device-id": device.Id})
 		return nil
 	*/
 	err = errors.New("device FSM: function not implemented yet")
@@ -1030,7 +1121,7 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 			dh.pOpenOnuAc.KVStorePort, dh.pOpenOnuAc.KVStoreType,
 			dh, dh.coreProxy, dh.AdapterProxy,
 			dh.pOpenOnuAc.pSupportedFsms) //nil as FSM pointer would yield deviceEntry internal defaults ...
-		onuTechProfProc := newOnuUniTechProf(ctx, dh.deviceID, dh)
+		onuTechProfProc := newOnuUniTechProf(ctx, dh)
 		//error treatment possible //TODO!!!
 		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc)
 		// fire deviceEntry ready event to spread to possibly waiting processing
@@ -1196,7 +1287,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 	if pMibUlFsm != nil {
 		if pMibUlFsm.Is(ulStDisabled) {
 			if err := pMibUlFsm.Event(ulEvStart); err != nil {
-				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"deviceId": dh.deviceID, "err": err})
+				logger.Errorw("MibSyncFsm: Can't go to state starting", log.Fields{"device-id": dh.deviceID, "err": err})
 				return fmt.Errorf("can't go to state starting: %s", dh.deviceID)
 			}
 			logger.Debugw("MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
@@ -1204,12 +1295,12 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			//Determine if this ONU has ever synchronized
 			if true { //TODO: insert valid check
 				if err := pMibUlFsm.Event(ulEvResetMib); err != nil {
-					logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"deviceId": dh.deviceID, "err": err})
+					logger.Errorw("MibSyncFsm: Can't go to state resetting_mib", log.Fields{"device-id": dh.deviceID, "err": err})
 					return fmt.Errorf("can't go to state resetting_mib: %s", dh.deviceID)
 				}
 			} else {
 				if err := pMibUlFsm.Event(ulEvExamineMds); err != nil {
-					logger.Errorw("MibSyncFsm: Can't go to state examine_mds", log.Fields{"deviceId": dh.deviceID, "err": err})
+					logger.Errorw("MibSyncFsm: Can't go to state examine_mds", log.Fields{"device-id": dh.deviceID, "err": err})
 					return fmt.Errorf("can't go to examine_mds: %s", dh.deviceID)
 				}
 				logger.Debugw("state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
@@ -1221,7 +1312,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			}
 		} else {
 			logger.Errorw("wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(pMibUlFsm.Current()),
-				"deviceId": dh.deviceID})
+				"device-id": dh.deviceID})
 			return fmt.Errorf("wrong state of MibSyncFsm: %s", dh.deviceID)
 		}
 	} else {
@@ -1330,8 +1421,6 @@ func (dh *deviceHandler) resetFsms() error {
 			_ = dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 		}
 		for _, uniPort := range dh.uniEntityMap {
-			//reset the TechProfileConfig Done state for all (active) UNI's
-			dh.pOnuTP.setConfigDone(uniPort.uniID, false)
 			// reset the possibly existing VlanConfigFsm
 			if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniID]; exist {
 				//VlanFilterFsm exists and was already started
@@ -1355,7 +1444,7 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 			logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{
 				"device-id": dh.deviceID, "error": err})
 		} else {
-			logger.Infow("dev reason updated to 'MibSync complete'", log.Fields{"deviceID": dh.deviceID})
+			logger.Infow("dev reason updated to 'MibSync complete'", log.Fields{"device-id": dh.deviceID})
 		}
 	} else {
 		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to mibsync-complete",
@@ -1414,13 +1503,13 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 	if pMibDlFsm != nil {
 		if pMibDlFsm.Is(dlStDisabled) {
 			if err := pMibDlFsm.Event(dlEvStart); err != nil {
-				logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"deviceId": dh.deviceID, "err": err})
+				logger.Errorw("MibDownloadFsm: Can't go to state starting", log.Fields{"device-id": dh.deviceID, "err": err})
 				// maybe try a FSM reset and then again ... - TODO!!!
 			} else {
 				logger.Debugw("MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
 				// maybe use more specific states here for the specific download steps ...
 				if err := pMibDlFsm.Event(dlEvCreateGal); err != nil {
-					logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"deviceId": dh.deviceID, "err": err})
+					logger.Errorw("MibDownloadFsm: Can't start CreateGal", log.Fields{"device-id": dh.deviceID, "err": err})
 				} else {
 					logger.Debugw("state of MibDownloadFsm", log.Fields{"state": string(pMibDlFsm.Current())})
 					//Begin MIB data download (running autonomously)
@@ -1428,7 +1517,7 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 			}
 		} else {
 			logger.Errorw("wrong state of MibDownloadFsm - want: disabled", log.Fields{"have": string(pMibDlFsm.Current()),
-				"deviceId": dh.deviceID})
+				"device-id": dh.deviceID})
 			// maybe try a FSM reset and then again ... - TODO!!!
 		}
 		/***** Mib download started */
@@ -1520,7 +1609,6 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(devEvent OnuDeviceEvent
 		return
 	}
 	_ = pDevEntry.stop(context.TODO(), true) //stop deviceEntry with omciCC reset
-	//maybe some more sophisticated context treatment should be used here?
 }
 
 func (dh *deviceHandler) processUniEnableStateDoneEvent(devEvent OnuDeviceEvent) {
@@ -1735,7 +1823,7 @@ func (dh *deviceHandler) sendOnuOperStateEvent(aOperState vc.OperStatus_Types, a
 	eventContext["device_id"] = aDeviceID
 	eventContext["registration_id"] = aDeviceID //py: string(device_id)??
 	logger.Debugw("prepare ONU_ACTIVATED event",
-		log.Fields{"DeviceId": aDeviceID, "EventContext": eventContext})
+		log.Fields{"device-id": aDeviceID, "EventContext": eventContext})
 
 	/* Populating device event body */
 	de.Context = eventContext
@@ -1853,23 +1941,24 @@ func (dh *deviceHandler) getFlowOfbFields(apFlowItem *ofp.OfpFlowStats, loMatchV
 		switch field.Type {
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_ETH_TYPE:
 			{
-				logger.Debugw("FlowAdd type EthType", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow type EthType", log.Fields{"device-id": dh.deviceID,
 					"EthType": strconv.FormatInt(int64(field.GetEthType()), 16)})
 			}
+		/* TT related temporary workaround - should not be needed anymore
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_IP_PROTO:
 			{
 				*loIPProto = field.GetIpProto()
-				logger.Debugw("FlowAdd type IpProto", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow type IpProto", log.Fields{"device-id": dh.deviceID,
 					"IpProto": strconv.FormatInt(int64(*loIPProto), 16)})
 				if *loIPProto == 2 {
 					// some workaround for TT workflow at proto == 2 (IGMP trap) -> ignore the flow
 					// avoids installing invalid EVTOCD rule
-					logger.Debugw("FlowAdd type IpProto 2: TT workaround: ignore flow",
-						log.Fields{"device-id": dh.deviceID,
-							"IpProto": strconv.FormatInt(int64(*loIPProto), 16)})
+					logger.Debugw("flow type IpProto 2: TT workaround: ignore flow",
+						log.Fields{"device-id": dh.deviceID})
 					return
 				}
 			}
+		*/
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_VID:
 			{
 				*loMatchVlan = uint16(field.GetVlanVid())
@@ -1878,38 +1967,38 @@ func (dh *deviceHandler) getFlowOfbFields(apFlowItem *ofp.OfpFlowStats, loMatchV
 					loMatchVlanMask == uint16(of.OfpVlanId_OFPVID_PRESENT)) {
 					*loMatchVlan = *loMatchVlan & 0xFFF // not transparent: copy only ID bits
 				}
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"VID": strconv.FormatInt(int64(*loMatchVlan), 16)})
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_PCP:
 			{
 				*loAddPcp = uint8(field.GetVlanPcp())
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"PCP": loAddPcp})
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_UDP_DST:
 			{
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"UDP-DST": strconv.FormatInt(int64(field.GetUdpDst()), 16)})
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_UDP_SRC:
 			{
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"UDP-SRC": strconv.FormatInt(int64(field.GetUdpSrc()), 16)})
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_IPV4_DST:
 			{
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"IPv4-DST": field.GetIpv4Dst()})
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_IPV4_SRC:
 			{
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"IPv4-SRC": field.GetIpv4Src()})
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_METADATA:
 			{
-				logger.Debugw("FlowAdd field type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow field type", log.Fields{"device-id": dh.deviceID,
 					"Metadata": field.GetTableMetadata()})
 			}
 			/*
@@ -1928,32 +2017,32 @@ func (dh *deviceHandler) getFlowActions(apFlowItem *ofp.OfpFlowStats, loSetPcp *
 		/* not used:
 		case of.OfpActionType_OFPAT_OUTPUT:
 			{
-				logger.Debugw("FlowAdd action type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow action type", log.Fields{"device-id": dh.deviceID,
 					"Output": action.GetOutput()})
 			}
 		*/
 		case of.OfpActionType_OFPAT_PUSH_VLAN:
 			{
-				logger.Debugw("FlowAdd action type", log.Fields{"device-id": dh.deviceID,
+				logger.Debugw("flow action type", log.Fields{"device-id": dh.deviceID,
 					"PushEthType": strconv.FormatInt(int64(action.GetPush().Ethertype), 16)})
 			}
 		case of.OfpActionType_OFPAT_SET_FIELD:
 			{
 				pActionSetField := action.GetSetField()
 				if pActionSetField.Field.OxmClass != of.OfpOxmClass_OFPXMC_OPENFLOW_BASIC {
-					logger.Warnw("FlowAdd action SetField invalid OxmClass (ignored)", log.Fields{"device-id": dh.deviceID,
+					logger.Warnw("flow action SetField invalid OxmClass (ignored)", log.Fields{"device-id": dh.deviceID,
 						"OxcmClass": pActionSetField.Field.OxmClass})
 				}
 				if pActionSetField.Field.GetOfbField().Type == of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_VID {
 					*loSetVlan = uint16(pActionSetField.Field.GetOfbField().GetVlanVid())
-					logger.Debugw("FlowAdd Set VLAN from SetField action", log.Fields{"device-id": dh.deviceID,
+					logger.Debugw("flow Set VLAN from SetField action", log.Fields{"device-id": dh.deviceID,
 						"SetVlan": strconv.FormatInt(int64(*loSetVlan), 16)})
 				} else if pActionSetField.Field.GetOfbField().Type == of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_PCP {
 					*loSetPcp = uint8(pActionSetField.Field.GetOfbField().GetVlanPcp())
-					logger.Debugw("FlowAdd Set PCP from SetField action", log.Fields{"device-id": dh.deviceID,
+					logger.Debugw("flow Set PCP from SetField action", log.Fields{"device-id": dh.deviceID,
 						"SetPcp": *loSetPcp})
 				} else {
-					logger.Warnw("FlowAdd action SetField invalid FieldType", log.Fields{"device-id": dh.deviceID,
+					logger.Warnw("flow action SetField invalid FieldType", log.Fields{"device-id": dh.deviceID,
 						"Type": pActionSetField.Field.GetOfbField().Type})
 				}
 			}
@@ -1985,35 +2074,39 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 
 	metadata := flow.GetMetadataFromWriteMetadataAction(apFlowItem)
 	if metadata == 0 {
-		logger.Debugw("FlowAdd invalid metadata - abort",
+		logger.Debugw("flow-add invalid metadata - abort",
 			log.Fields{"device-id": dh.deviceID})
-		return fmt.Errorf("flowAdd invalid metadata: %s", dh.deviceID)
+		return fmt.Errorf("flow-add invalid metadata: %s", dh.deviceID)
 	}
 	loTpID := flow.GetTechProfileIDFromWriteMetaData(metadata)
-	logger.Debugw("FlowAdd TechProfileId", log.Fields{"device-id": dh.deviceID, "TP-Id": loTpID})
+	loCookie := apFlowItem.GetCookie()
+	loCookieSlice := []uint64{loCookie}
+	logger.Debugw("flow-add base indications", log.Fields{"device-id": dh.deviceID,
+		"TechProf-Id": loTpID, "cookie": loCookie})
 
 	dh.getFlowOfbFields(apFlowItem, &loMatchVlan, &loAddPcp, &loIPProto)
+	/* TT related temporary workaround - should not be needed anymore
 	if loIPProto == 2 {
 		// some workaround for TT workflow at proto == 2 (IGMP trap) -> ignore the flow
 		// avoids installing invalid EVTOCD rule
-		logger.Debugw("FlowAdd type IpProto 2: TT workaround: ignore flow",
-			log.Fields{"device-id": dh.deviceID,
-				"IpProto": strconv.FormatInt(int64(loIPProto), 16)})
+		logger.Debugw("flow-add type IpProto 2: TT workaround: ignore flow",
+			log.Fields{"device-id": dh.deviceID})
 		return nil
 	}
+	*/
 	dh.getFlowActions(apFlowItem, &loSetPcp, &loSetVlan)
 
 	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) {
-		logger.Errorw("FlowAdd aborted - SetVlanId undefined, but MatchVid set", log.Fields{
+		logger.Errorw("flow-add aborted - SetVlanId undefined, but MatchVid set", log.Fields{
 			"device-id": dh.deviceID, "UniPort": apUniPort.portNo,
 			"set_vid":   strconv.FormatInt(int64(loSetVlan), 16),
 			"match_vid": strconv.FormatInt(int64(loMatchVlan), 16)})
 		//TODO!!: Use DeviceId within the error response to rwCore
 		//  likewise also in other error response cases to calling components as requested in [VOL-3458]
-		return fmt.Errorf("flowAdd Set/Match VlanId inconsistent: %s", dh.deviceID)
+		return fmt.Errorf("flow-add Set/Match VlanId inconsistent: %s", dh.deviceID)
 	}
 	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) {
-		logger.Debugw("FlowAdd vlan-any/copy", log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("flow-add vlan-any/copy", log.Fields{"device-id": dh.deviceID})
 		loSetVlan = loMatchVlan //both 'transparent' (copy any)
 	} else {
 		//looks like OMCI value 4097 (copyFromOuter - for Uni double tagged) is not supported here
@@ -2021,18 +2114,57 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 			// not set to transparent
 			loSetVlan &= 0x0FFF //mask VID bits as prerequisite for vlanConfigFsm
 		}
-		logger.Debugw("FlowAdd vlan-set", log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("flow-add vlan-set", log.Fields{"device-id": dh.deviceID})
 	}
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
-		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(loTpID, loMatchVlan, loSetVlan, loSetPcp)
+		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(loTpID, loCookieSlice,
+			loMatchVlan, loSetVlan, loSetPcp)
 	}
-	return dh.createVlanFilterFsm(apUniPort,
-		loTpID, loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterDone)
+	return dh.createVlanFilterFsm(apUniPort, loTpID, loCookieSlice,
+		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterDone)
+}
+
+//removeFlowItemFromUniPort parses the actual flow item to remove it from the UniPort
+func (dh *deviceHandler) removeFlowItemFromUniPort(apFlowItem *ofp.OfpFlowStats, apUniPort *onuUniPort) error {
+	//optimization and assumption: the flow cookie uniquely identifies the flow and with that the internal rule
+	//hence only the cookie is used here to find the relevant flow and possibly remove the rule
+	//no extra check is done on the rule parameters
+	//accordingly the removal is done only once - for the first found flow with that cookie, even though
+	// at flow creation is not assured, that the same cookie is not configured for different flows - just assumed
+	//additionally it is assumed here, that removal can only be done for one cookie per flow in a sequence (different
+	// from addFlow - where at reconcilement multiple cookies per flow ) can be configured in one sequence)
+	// - some possible 'delete-all' sequence would have be implemented separately (where the cookies are don't care anyway)
+	loCookie := apFlowItem.GetCookie()
+	logger.Debugw("flow-remove base indications", log.Fields{"device-id": dh.deviceID, "cookie": loCookie})
+
+	/* TT related temporary workaround - should not be needed anymore
+	for _, field := range flow.GetOfbFields(apFlowItem) {
+		if field.Type == of.OxmOfbFieldTypes_OFPXMT_OFB_IP_PROTO {
+			loIPProto := field.GetIpProto()
+			logger.Debugw("flow type IpProto", log.Fields{"device-id": dh.deviceID,
+				"IpProto": strconv.FormatInt(int64(loIPProto), 16)})
+			if loIPProto == 2 {
+				// some workaround for TT workflow on proto == 2 (IGMP trap) -> the flow was not added, no need to remove
+				logger.Debugw("flow-remove type IpProto 2: TT workaround: ignore flow",
+					log.Fields{"device-id": dh.deviceID})
+				return nil
+			}
+		}
+	} //for all OfbFields
+	*/
+
+	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
+		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(loCookie)
+	}
+	logger.Warnw("flow-remove called, but no flow is configured (no VlanConfigFsm)",
+		log.Fields{"device-id": dh.deviceID})
+	//but as we regard the flow as not existing = removed we respond just ok
+	return nil
 }
 
 // createVlanFilterFsm initializes and runs the VlanFilter FSM to transfer OMCI related VLAN config
-func (dh *deviceHandler) createVlanFilterFsm(apUniPort *onuUniPort,
-	aTpID uint16, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent) error {
+func (dh *deviceHandler) createVlanFilterFsm(apUniPort *onuUniPort, aTpID uint16, aCookieSlice []uint64,
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent) error {
 	chVlanFilterFsm := make(chan Message, 2048)
 
 	pDevEntry := dh.getOnuDeviceEntry(true)
@@ -2042,8 +2174,8 @@ func (dh *deviceHandler) createVlanFilterFsm(apUniPort *onuUniPort,
 	}
 
 	pVlanFilterFsm := NewUniVlanConfigFsm(dh, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
-		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", dh.deviceID, chVlanFilterFsm,
-		dh.pOpenOnuAc.AcceptIncrementalEvto, aMatchVlan, aSetVlan, aSetPcp)
+		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
+		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp)
 	if pVlanFilterFsm != nil {
 		dh.UniVlanConfigFsmMap[apUniPort.uniID] = pVlanFilterFsm
 		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
@@ -2145,16 +2277,16 @@ func (dh *deviceHandler) storePersUniFlowConfig(aUniID uint8, aUniVlanFlowParams
 	wg.Add(1) // for the 1 go routine to finish
 
 	go pDevEntry.updateOnuKvStore(dctx, &wg)
-	dh.waitForCompletion(cancel, &wg) //wait for background process to finish
+	dh.waitForCompletion(cancel, &wg, "UpdateKvStore") //wait for background process to finish
 
 	return pDevEntry.getKvProcessingErrorIndication()
 }
 
-func (dh *deviceHandler) waitForCompletion(cancel context.CancelFunc, wg *sync.WaitGroup) {
+func (dh *deviceHandler) waitForCompletion(cancel context.CancelFunc, wg *sync.WaitGroup, aCallerIdent string) {
 	defer cancel() //ensure termination of context (may be pro forma)
 	wg.Wait()
-	logger.Debug("WaitGroup processing completed")
-
+	logger.Debugw("WaitGroup processing completed", log.Fields{
+		"device-id": dh.deviceID, "called from": aCallerIdent})
 }
 
 func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
