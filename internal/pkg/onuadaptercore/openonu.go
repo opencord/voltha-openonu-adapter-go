@@ -321,6 +321,10 @@ func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device,
 		logger.Warnw("device disabled or offline - skipping flow-update", log.Fields{"ConnectStatus": device.ConnectStatus,
 			"AdminState": device.AdminState, "deviceId": device.Id})
 		return fmt.Errorf("non-matching device state: %s", device.Id)
+		//TODO!!: verify if some flow delete activity as observed in BBSIM tests after ONU-down indication
+		//  has some system impact on general behavior after ONU up again (as no flow is really removed here)
+		//  but it may only be related to following device_delete, which anyway should clear up all stuff
+		//  (testing needed with new device-enable [after device-delete] ...)
 	}
 
 	// For now, there is no support for group changes (as in the actual Py-adapter code)

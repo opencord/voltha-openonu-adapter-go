@@ -85,8 +85,8 @@ type tMapPonAniConfig map[uint16]*tcontGemList
 
 //onuUniTechProf structure holds information about the TechProfiles attached to Uni Ports of the ONU
 type onuUniTechProf struct {
-	deviceID                 string
 	baseDeviceHandler        *deviceHandler
+	deviceID                 string
 	tpProcMutex              sync.RWMutex
 	techProfileKVStore       *db.Backend
 	chTpConfigProcessingStep chan uint8
@@ -95,15 +95,16 @@ type onuUniTechProf struct {
 	pAniConfigFsm            *uniPonAniConfigFsm
 	procResult               error //error indication of processing
 	mutexTPState             sync.Mutex
+	tpProfileExists          bool
 }
 
 //newOnuUniTechProf returns the instance of a OnuUniTechProf
 //(one instance per ONU/deviceHandler for all possible UNI's)
-func newOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *deviceHandler) *onuUniTechProf {
-	logger.Infow("init-OnuUniTechProf", log.Fields{"device-id": aDeviceID})
+func newOnuUniTechProf(ctx context.Context, aDeviceHandler *deviceHandler) *onuUniTechProf {
+	logger.Infow("init-OnuUniTechProf", log.Fields{"device-id": aDeviceHandler.deviceID})
 	var onuTP onuUniTechProf
-	onuTP.deviceID = aDeviceID
 	onuTP.baseDeviceHandler = aDeviceHandler
+	onuTP.deviceID = aDeviceHandler.deviceID
 	onuTP.tpProcMutex = sync.RWMutex{}
 	onuTP.chTpConfigProcessingStep = make(chan uint8)
 	onuTP.mapUniTpIndication = make(map[uint8]*tTechProfileIndication)
@@ -113,7 +114,7 @@ func newOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *de
 	onuTP.techProfileKVStore = aDeviceHandler.setBackend(cBasePathTechProfileKVStore)
 	if onuTP.techProfileKVStore == nil {
 		logger.Errorw("Can't access techProfileKVStore - no backend connection to service",
-			log.Fields{"device-id": aDeviceID, "service": cBasePathTechProfileKVStore})
+			log.Fields{"device-id": aDeviceHandler.deviceID, "service": cBasePathTechProfileKVStore})
 	}
 
 	return &onuTP
@@ -147,7 +148,7 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 	aUniID uint8, aPathString string, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
 	logger.Debugw("configure the Uni according to TpPath", log.Fields{
-		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString})
+		"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString})
 
 	if onuTP.techProfileKVStore == nil {
 		logger.Debug("techProfileKVStore not set - abort")
@@ -166,7 +167,7 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 	}
 	if pCurrentUniPort == nil {
 		logger.Errorw("TechProfile configuration aborted: requested uniID not found in PortDB",
-			log.Fields{"device-id": onuTP.deviceID, "uniID": aUniID})
+			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
 		onuTP.procResult = fmt.Errorf("techProfile config aborted: requested uniID not found %d on %s",
 			aUniID, onuTP.deviceID)
 		return
@@ -195,8 +196,13 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 	go onuTP.readAniSideConfigFromTechProfile(ctx, aUniID, aPathString, processingStep)
 	if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpConfigProcessingStep, processingStep) {
 		//timeout or error detected
+		if onuTP.tpProfileExists {
+			//ignore the internal error in case the new profile is already configured
+			// and abort the processing here
+			return
+		}
 		logger.Debugw("tech-profile related configuration aborted on read",
-			log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
+			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
 		onuTP.procResult = fmt.Errorf("techProfile config aborted: tech-profile read issue for %d on %s",
 			aUniID, onuTP.deviceID)
 		return
@@ -210,7 +216,7 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 			if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpConfigProcessingStep, processingStep) {
 				//timeout or error detected
 				logger.Debugw("tech-profile related configuration aborted on set",
-					log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID})
+					log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
 				onuTP.procResult = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
 					aUniID, onuTP.deviceID)
 				//this issue here means that the AniConfigFsm has not finished successfully
@@ -222,14 +228,14 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 		} else {
 			// strange: UNI entry exists, but no ANI data, maybe such situation should be cleared up (if observed)
 			logger.Debugw("no Tcont/Gem data for this UNI found - abort", log.Fields{
-				"device-id": onuTP.deviceID, "uniID": aUniID})
+				"device-id": onuTP.deviceID, "uni-id": aUniID})
 			onuTP.procResult = fmt.Errorf("techProfile config aborted: no Tcont/Gem data found for this UNI %d on %s",
 				aUniID, onuTP.deviceID)
 			return
 		}
 	} else {
 		logger.Debugw("no PonAni data for this UNI found - abort", log.Fields{
-			"device-id": onuTP.deviceID, "uniID": aUniID})
+			"device-id": onuTP.deviceID, "uni-id": aUniID})
 		onuTP.procResult = fmt.Errorf("techProfile config aborted: no AniSide data found for this UNI %d on %s",
 			aUniID, onuTP.deviceID)
 		return
@@ -242,6 +248,7 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 	ctx context.Context, aUniID uint8, aPathString string, aProcessingStep uint8) {
 	var tpInst tp.TechProfile
 
+	onuTP.tpProfileExists = false
 	//store profile type and identifier for later usage within the OMCI identifier and possibly ME setup
 	//pathstring is defined to be in the form of <ProfType>/<profID>/<Interface/../Identifier>
 	subStringSlice := strings.Split(aPathString, "/")
@@ -251,18 +258,33 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 		onuTP.chTpConfigProcessingStep <- 0 //error indication
 		return
 	}
+	profID, err := strconv.ParseUint(subStringSlice[1], 10, 32)
+	if err != nil {
+		logger.Errorw("invalid ProfileId from path",
+			log.Fields{"ParseErr": err})
+		onuTP.chTpConfigProcessingStep <- 0 //error indication
+		return
+	}
 
-	//just some logical check to avoid unexpected behavior
 	//at this point it is assumed that a new TechProfile is assigned to the UNI
-	//expectation is that no TPIndication entry exists here, if yes,
-	//  then we throw a warning and remove it (and the possible ANIConfig) simply
-	//  note that the ONU config state may be ambivalent in such a case
-	//  also note, that the PonAniConfig map is not checked additionally
-	//    consistency to TPIndication is assumed
+	//expectation is that no TPIndication entry exists here, if exists and with the same TPId
+	//  then we throw a warning, set an internal error and abort with error,
+	//  which is later re-defined to success response to OLT adapter
+	//  if TPId has changed, current data is removed (note that the ONU config state may be
+	// 	  ambivalent in such a case)
 	if _, existTP := onuTP.mapUniTpIndication[aUniID]; existTP {
 		logger.Warnw("Some active profile entry at reading new TechProfile",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID,
-				"UniId": aUniID, "wrongProfile": onuTP.mapUniTpIndication[aUniID].techProfileID})
+				"uni-id": aUniID, "wrongProfile": onuTP.mapUniTpIndication[aUniID].techProfileID})
+		if uint16(profID) == onuTP.mapUniTpIndication[aUniID].techProfileID {
+			// ProfId not changed - assume profile to be still the same
+			// anyway this should not appear after full support of profile (Gem/TCont) removal
+			logger.Warnw("New TechProfile already exists - aborting configuration",
+				log.Fields{"device-id": onuTP.deviceID})
+			onuTP.tpProfileExists = true
+			onuTP.chTpConfigProcessingStep <- 0 //error indication
+			return
+		}
 		//delete on the mapUniTpIndication map not needed, just overwritten later
 		//delete on the PonAniConfig map should be safe, even if not existing
 		delete(onuTP.mapPonAniConfig, aUniID)
@@ -272,18 +294,11 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 	}
 
 	onuTP.mapUniTpIndication[aUniID].techProfileType = subStringSlice[0]
-	profID, err := strconv.ParseUint(subStringSlice[1], 10, 32)
-	if err != nil {
-		logger.Errorw("invalid ProfileId from path",
-			log.Fields{"ParseErr": err})
-		onuTP.chTpConfigProcessingStep <- 0 //error indication
-		return
-	}
-
 	//note the limitation on ID range (probably even more limited) - based on usage within OMCI EntityID
 	onuTP.mapUniTpIndication[aUniID].techProfileID = uint16(profID)
+	onuTP.mapUniTpIndication[aUniID].techProfileConfigDone = false
 	logger.Debugw("tech-profile path indications",
-		log.Fields{"device-id": onuTP.deviceID, "UniId": aUniID,
+		log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID,
 			"profType": onuTP.mapUniTpIndication[aUniID].techProfileType,
 			"profID":   onuTP.mapUniTpIndication[aUniID].techProfileID})
 
@@ -318,7 +333,7 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 		return
 	}
 
-	//default start with 1Tcont1Gem profile, later extend for multi GemPerTcont and perhaps even  MultiTcontMultiGem
+	//default start with 1Tcont profile, later perhaps extend to MultiTcontMultiGem
 	localMapGemPortParams := make(map[uint16]*gemPortParamStruct)
 	localMapGemPortParams[0] = &gemPortParamStruct{}
 	localMapPonAniConfig := make(map[uint16]*tcontGemList)
@@ -450,7 +465,7 @@ func (onuTP *onuUniTechProf) createAniConfigFsm(aUniID uint8,
 	}
 	pAniCfgFsm := newUniPonAniConfigFsm(pDevEntry.PDevOmciCC, apCurrentUniPort, onuTP,
 		pDevEntry.pOnuDB, onuTP.mapUniTpIndication[aUniID].techProfileID, devEvent,
-		"AniConfigFsm", onuTP.deviceID, chAniConfigFsm)
+		"AniConfigFsm", onuTP.baseDeviceHandler, chAniConfigFsm)
 	if pAniCfgFsm != nil {
 		onuTP.pAniConfigFsm = pAniCfgFsm
 		onuTP.runAniConfigFsm(aProcessingStep)
@@ -486,6 +501,18 @@ func (onuTP *onuUniTechProf) runAniConfigFsm(aProcessingStep uint8) {
 		logger.Errorw("AniConfigFSM StateMachine invalid - cannot be executed!!", log.Fields{"device-id": onuTP.deviceID})
 		// maybe try a FSM reset and then again ... - TODO!!!
 	}
+}
+
+// clearAniSideConfig deletes all internal TechProfile related data connected to the requested UniPort
+func (onuTP *onuUniTechProf) clearAniSideConfig(aUniID uint8) {
+	logger.Debugw("removing TpIndication and PonAniConfig data", log.Fields{
+		"device-id": onuTP.deviceID, "uni-id": aUniID})
+	//a mutex protection on the concerned data should not be needed here, as the config/write action should not
+	//  interfere with any read action or the initial write/config activity at start
+	//remove the TechProfile indications of this UNI, should be safe even if not existing
+	delete(onuTP.mapUniTpIndication, aUniID)
+	//delete on the PonAniConfig map of this UNI should be safe, even if not existing
+	delete(onuTP.mapPonAniConfig, aUniID)
 }
 
 // setConfigDone sets the requested techProfile config state (if possible)

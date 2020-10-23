@@ -1561,3 +1561,49 @@ func (oo *omciCC) sendSetEvtocdVar(ctx context.Context, timeout int, highPrio bo
 		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
+
+func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send VTFD-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewVlanTaggingFilterData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode VTFD for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize VTFD delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send VTFD delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send VTFD-Delete-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate VTFD Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
