@@ -195,19 +195,10 @@ type swImages struct {
 	isActive uint8
 }
 
-type uniVlanFlowParams struct {
-	TpID         uint16 `json:"tp_id"`
-	MatchVid     uint32 `json:"match_vid"` //use uint32 types for allowing immediate bitshifting
-	MatchPcp     uint32 `json:"match_pcp"`
-	TagsToRemove uint32 `json:"tags_to_revome"`
-	SetVid       uint32 `json:"set_vid"`
-	SetPcp       uint32 `json:"set_pcp"`
-}
-
 type uniPersConfig struct {
 	PersUniID      uint8               `json:"uni_id"`
 	PersTpPath     string              `json:"tp_path"`
-	PersFlowParams []uniVlanFlowParams `json:"flow_params"`
+	PersFlowParams []uniVlanFlowParams `json:"flow_params"` //as defined in omci_ani_config.go
 }
 
 type onuPersistentData struct {
@@ -486,7 +477,7 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				}
 				logger.Debugw("RebootResponse data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 				if msgObj.Result != me.Success {
-					logger.Errorw("Omci RebootResponse Error ", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
+					logger.Errorw("Omci RebootResponse result error", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
 					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 					return fmt.Errorf("omci RebootResponse result error indication %s for device %s",
 						msgObj.Result, oo.deviceID)
@@ -494,7 +485,7 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				return nil
 			}
 		}
-		logger.Warnw("Reboot response error", log.Fields{"for device-id": oo.deviceID})
+		logger.Warnw("Reboot response message type error", log.Fields{"for device-id": oo.deviceID})
 		return fmt.Errorf("unexpected OmciResponse type received %s", oo.deviceID)
 	}
 }
