@@ -195,19 +195,10 @@ type swImages struct {
 	isActive uint8
 }
 
-type uniVlanFlowParams struct {
-	TpID         uint16 `json:"tp_id"`
-	MatchVid     uint32 `json:"match_vid"` //use uint32 types for allowing immediate bitshifting
-	MatchPcp     uint32 `json:"match_pcp"`
-	TagsToRemove uint32 `json:"tags_to_revome"`
-	SetVid       uint32 `json:"set_vid"`
-	SetPcp       uint32 `json:"set_pcp"`
-}
-
 type uniPersConfig struct {
 	PersUniID      uint8               `json:"uni_id"`
 	PersTpPath     string              `json:"tp_path"`
-	PersFlowParams []uniVlanFlowParams `json:"flow_params"`
+	PersFlowParams []uniVlanFlowParams `json:"flow_params"` //as defined in omci_ani_config.go
 }
 
 type onuPersistentData struct {
@@ -480,15 +471,15 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				if msgLayer == nil {
 					return fmt.Errorf("omci Msg layer could not be detected for RebootResponseType")
 				}
-				msgObj, msgOk := msgLayer.(*omci.RebootResponse)
+				msgObj, msgOk := msgLayer.(*omci.GetResponse)
 				if !msgOk {
 					return fmt.Errorf("omci Msg layer could not be assigned for RebootResponseType %s", oo.deviceID)
 				}
-				logger.Debugw("RebootResponse data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
+				logger.Debugw("CreateResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 				if msgObj.Result != me.Success {
-					logger.Errorw("Omci RebootResponse Error ", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
+					logger.Errorw("Omci RebootResponseType Error ", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
 					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-					return fmt.Errorf("omci RebootResponse result error indication %s for device %s",
+					return fmt.Errorf("omci RebootResponse Result Error indication %s for device %s",
 						msgObj.Result, oo.deviceID)
 				}
 				return nil
