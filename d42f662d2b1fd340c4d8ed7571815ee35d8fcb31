@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "b09e135f_c3d175d1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 533,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-26T17:45:26Z",
+      "side": 1,
+      "message": "I see and I agree, leave as `continue` but please add to the warning log something like \"continuing process of other flows\"",
+      "parentUuid": "d0914eec_f35d0a1b",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0c0c853e_09bc0760",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "Yes, there still might be \u0027correct flows\u0027 that will be admitted then.",
       "parentUuid": "0c0c853e_09bc0760",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c57ad4d_70a7b35b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 546,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-26T17:45:26Z",
+      "side": 1,
+      "message": "what are your thoughts on a fail fast mechanism ? I mean, if one flow fails there is actually no point in continuing installing the others, the data plane will not work. thoughts ?",
+      "parentUuid": "a560c82c_2b6bec29",
       "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -107,6 +143,24 @@
     },
     {
       "key": {
+        "uuid": "332bda8f_6e0ceeeb",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 567,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-26T17:45:26Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d0341576_0c173760",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a2988dea_6470e6e2",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -136,6 +190,41 @@
       "side": 1,
       "message": "Not really. It was a remark for me, that I had to update the code here when the base structure for the persistent data is really settled. So - something that I still wanted to do here. But i lost track of that here ...\nNext code patch is updated with real implementation. But it is not verified yet (as the code shows) - something that Holger or I would have to specifically look at in ongoing tests. (reconcilement of flows was not yet really verified yet with the modified implementation)",
       "parentUuid": "a2988dea_6470e6e2",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cc88c44c_c084d13f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 750,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-26T17:45:26Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "396bd231_78556c41",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cb0fbafa_6d11b1a5",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1427,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-26T17:45:26Z",
+      "side": 1,
+      "message": "why was this removed ?",
       "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -174,6 +263,24 @@
       "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "29c07564_1d740ed0",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 344,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-26T17:45:26Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e8b4c928_e769e5c7",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
