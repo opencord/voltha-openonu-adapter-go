@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "b3a60286_6c6ec748",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 533,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-27T08:51:25Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b09e135f_c3d175d1",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0c0c853e_09bc0760",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -102,6 +120,24 @@
       "side": 1,
       "message": "what are your thoughts on a fail fast mechanism ? I mean, if one flow fails there is actually no point in continuing installing the others, the data plane will not work. thoughts ?",
       "parentUuid": "a560c82c_2b6bec29",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1b194c4e_b0aadd23",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 546,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-27T08:51:25Z",
+      "side": 1,
+      "message": "It makes sense to continue to search for valid flows. I mean, this is error treatment for errors probably connected to other components of the system (or some interworking), so there is a chance that not all data is really wrong. And concerning the ONU adapter many of the system defined flows fall together into just one rule for the ONU, so there is a chance that some valid flow is still sufficient to provide the needed configuration for the data flow (at least in respect to the ONU).\nBTW: So far I did not observe, that the rwCore is really sending multiple flows in one update, it seems to use more the 1 by 1 sequencing, so it is also a bit hard to test this processing. But well - in theory - from interface definition point of view it is possible...",
+      "parentUuid": "8c57ad4d_70a7b35b",
       "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -225,6 +261,24 @@
       "writtenOn": "2020-10-26T17:45:26Z",
       "side": 1,
       "message": "why was this removed ?",
+      "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fb9d3dd0_55b6ca21",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1427,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-27T08:51:25Z",
+      "side": 1,
+      "message": "You refer to  patch 3 changes here - removed now as this state control is now already assured from within the omci_vlan_config FSM.",
+      "parentUuid": "cb0fbafa_6d11b1a5",
       "revId": "d42f662d2b1fd340c4d8ed7571815ee35d8fcb31",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
