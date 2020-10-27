@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6a4754f9_095f4145",
+        "filename": ".golangci.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2020-10-27T15:57:25Z",
+      "side": 1,
+      "message": "Seems to be quite high. Instead functions should be optimized.",
+      "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
