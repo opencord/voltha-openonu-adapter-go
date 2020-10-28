@@ -16,6 +16,24 @@
       "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "87409326_bea3533d",
+        "filename": ".golangci.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-28T08:43:38Z",
+      "side": 1,
+      "message": "@Andrea: While having a look into other voltha-components, I realized that the majority of them do not perform gocyclo-test during SCA. Including this for voltha-lib-go without setting an explicit limit it looks like that \"30\" is the current globally configured limit. Do you know where this limit comes from?\n \nbbsim@bbsim:~/code/src/github.com/opencord/voltha-lib-go$ gedit .golangci.yml\nbbsim@bbsim:~/code/src/github.com/opencord/voltha-lib-go$ make sca\nRunning static code analysis...\n\u003ctestsuites\u003e\n  \u003ctestsuite name\u003d\"pkg/flows/flow_utils.go\"\u003e\n    \u003ctestcase name\u003d\"gocyclo\" classname\u003d\"pkg/flows/flow_utils.go:777:1\"\u003e\n      \u003cfailure message\u003d\"cyclomatic complexity 65 of func `hashWriteOfbField` is high (\u0026gt; 30)\"\u003e\u003c![CDATA[func hashWriteOfbField(md5Hash hash.Hash, field *ofp.OfpOxmOfbField) error {]]\u003e\u003c/failure\u003e\n    \u003c/testcase\u003e\n  \u003c/testsuite\u003e\n\u003c/testsuites\u003eMakefile:82: recipe for target \u0027sca\u0027 failed\nmake: *** [sca] Error 1",
+      "parentUuid": "6a4754f9_095f4145",
+      "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
