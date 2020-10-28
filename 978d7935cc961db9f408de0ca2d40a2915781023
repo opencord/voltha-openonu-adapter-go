@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2bb754e2_f85980d1",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-28T12:46:57Z",
+      "side": 1,
+      "message": "while we are doing this I think it\u0027s worth returning and error here. I know the error handling is part of a bigger task but we should return and in case ignore in the upper layer with a //TODO in the calling classes.",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a0128bdf_d615d8a3",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-28T12:46:57Z",
+      "side": 1,
+      "message": "move to debug",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d115aec0_5aeddf3a",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-28T12:46:57Z",
+      "side": 1,
+      "message": "incoming",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f70130f_0da26056",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-28T12:46:57Z",
+      "side": 1,
+      "message": "debug again",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
