@@ -52,6 +52,24 @@
       "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "94db406a_10a5e9af",
+        "filename": ".golangci.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-28T10:07:33Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "66dc9d15_5f9f9aa6",
+      "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
