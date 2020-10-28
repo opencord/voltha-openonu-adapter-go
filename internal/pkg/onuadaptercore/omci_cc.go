@@ -1607,3 +1607,164 @@ func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
+
+func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send MulticastGemIWTP-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewMulticastGemInterworkingTerminationPoint(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw("Cannot encode MulticastGEMIWTP for create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize MulticastGEMIWTP create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send MulticastGEMIWTP create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send MulticastGEMIWTP-create-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate MulticastGEMIWTP Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendCreateMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send MulticastOperationProfile-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewMulticastOperationsProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw("Cannot encode MulticastOperationProfile for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize MulticastOperationProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send MulticastOperationProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send MulticastOperationProfile-create-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate MulticastOperationProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendSetMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send MulticastOperationProfile-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewMulticastOperationsProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw("Cannot encode MulticastOperationProfile for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize MulticastOperationProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send MulticastOperationProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send MulticastOperationProfile-create-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate MulticastOperationProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send MulticastSubConfigInfo-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewMulticastSubscriberConfigInfo(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw("Cannot encode MulticastSubConfigInfo for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize MulticastSubConfigInfo create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send MulticastSubConfigInfo create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send MulticastSubConfigInfo-create-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate MulticastSubConfigInfo Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil
+}
