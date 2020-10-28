@@ -257,7 +257,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	}
 	logger.Debugw("omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "DeviceIdent": omciMsg.DeviceIdentifier})
-	if byte(omciMsg.MessageType) & ^me.AK == 0 {
+	if byte(omciMsg.MessageType)&me.AK == 0 {
 		// Not a response
 		logger.Debug("RxMsg is no Omci Response Message")
 		if omciMsg.TransactionID == 0 {
@@ -1002,6 +1002,53 @@ func (oo *omciCC) sendSetOnuGLS(ctx context.Context, timeout int,
 	return nil
 }
 
+func (oo *omciCC) sendSetPptpEthUniLS(ctx context.Context, aInstNo uint16, timeout int,
+	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send PPTPEthUni-Set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	// PPTPEthUni ME-ID is taken from Mib Upload stored OnuUniPort instance (argument)
+	meParams := me.ParamData{
+		EntityID:   aInstNo,
+		Attributes: requestedAttributes,
+	}
+	meInstance, omciErr := me.NewPhysicalPathTerminationPointEthernetUni(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode PPTPEthUni instance for set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize PPTPEthUni-Set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send PPTPEthUni-Set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send PPTPEthUni-Set-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate PPTPEthUni", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+/* UniG obsolete by now, left here in case it should be needed once again
+   UniG AdminState anyway should be ignored by ONU acc. to G988
 func (oo *omciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int,
 	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -1046,6 +1093,7 @@ func (oo *omciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int
 		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
+*/
 
 func (oo *omciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int,
 	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
