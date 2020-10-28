@@ -34,6 +34,24 @@
       "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66dc9d15_5f9f9aa6",
+        "filename": ".golangci.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-28T10:03:41Z",
+      "side": 1,
+      "message": "30 is the default if not set: https://github.com/golangci/golangci-lint/blob/58234f055cd8a4ba71ce6dafb95d7fa665bc8d39/.golangci.example.yml#L154\n\na middle ground coudl be setting 20 but excluding a few functions that are particularly complicated for now with a //FIXME for post 2.6 release. thoughts ?\n\nthey can be excluded with //gocyclo:ignore",
+      "parentUuid": "87409326_bea3533d",
+      "revId": "915f9157851ac02fbad10ea5421c36b6a329b7ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
