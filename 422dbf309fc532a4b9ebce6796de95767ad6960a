@@ -1,0 +1,10 @@
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Code-Review+1: Michael Pagenkopf <michael.pagenkopf@adtran.com>
+Code-Review+1: Chip Boling <chipboling@gmail.com>
+Code-Review+1: Holger Hildebrandt <holger.hildebrandt@adtran.com>
+Code-Review+2: Andrea Campanella <andrea@opennetworking.org>
+Submitted-by: Andrea Campanella <andrea@opennetworking.org>
+Submitted-at: Wed, 28 Oct 2020 14:24:05 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/21382
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
