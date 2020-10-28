@@ -18,6 +18,7 @@
 package adaptercoreonu
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -293,16 +294,16 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibResetResponseMessage(msg Omci
 					_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetVendorAndSerial)
 					return
 				}
-				logger.Errorw("Omci MibResetResponse Error", log.Fields{"deviceId": onuDeviceEntry.deviceID, "Error": msgObj.Result})
+				logger.Errorw("Omci MibResetResponse Error", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
 			} else {
-				logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+				logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"device-id": onuDeviceEntry.deviceID})
 			}
 		} else {
-			logger.Errorw("Omci Msg layer could not be detected", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+			logger.Errorw("Omci Msg layer could not be detected", log.Fields{"device-id": onuDeviceEntry.deviceID})
 		}
 	} else {
 		logger.Errorw("Wrong Omci MibResetResponse received", log.Fields{"in state ": onuDeviceEntry.pMibUploadFsm.pFsm.Current,
-			"deviceId": onuDeviceEntry.deviceID})
+			"device-id": onuDeviceEntry.deviceID})
 	}
 	logger.Info("MibSync Msg", log.Fields{"Stopped handling of MibSyncChan for device-id": onuDeviceEntry.deviceID})
 	_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvStop)
@@ -312,21 +313,21 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibResetResponseMessage(msg Omci
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadResponse)
 	if msgLayer == nil {
-		logger.Errorw("Omci Msg layer could not be detected", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+		logger.Errorw("Omci Msg layer could not be detected", log.Fields{"device-id": onuDeviceEntry.deviceID})
 		return
 	}
 	msgObj, msgOk := msgLayer.(*omci.MibUploadResponse)
 	if !msgOk {
-		logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+		logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"device-id": onuDeviceEntry.deviceID})
 		return
 	}
-	logger.Debugw("MibUploadResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
+	logger.Debugw("MibUploadResponse Data for:", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 	/* to be verified / reworked !!! */
 	onuDeviceEntry.PDevOmciCC.uploadNoOfCmds = msgObj.NumberOfCommands
 	if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 		_ = onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
 	} else {
-		logger.Errorw("Invalid number of commands received for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "uploadNoOfCmds": onuDeviceEntry.PDevOmciCC.uploadNoOfCmds})
+		logger.Errorw("Invalid number of commands received for:", log.Fields{"device-id": onuDeviceEntry.deviceID, "uploadNoOfCmds": onuDeviceEntry.PDevOmciCC.uploadNoOfCmds})
 		//TODO right action?
 		_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvTimeout)
 	}
@@ -337,23 +338,23 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(msg
 
 	//TODO: temporary change due to VOL-3532
 	// if msgLayer == nil {
-	// 	logger.Errorw("Omci Msg layer could not be detected", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+	// 	logger.Errorw("Omci Msg layer could not be detected", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	// 	return
 	// }
 	if msgLayer != nil {
 		msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
 		if !msgOk {
-			logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+			logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"device-id": onuDeviceEntry.deviceID})
 			return
 		}
-		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
+		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 		meClassID := msgObj.ReportedME.GetClassID()
 		meEntityID := msgObj.ReportedME.GetEntityID()
 		meAttributes := msgObj.ReportedME.GetAttributeValueMap()
 
 		onuDeviceEntry.pOnuDB.PutMe(meClassID, meEntityID, meAttributes)
 	} else {
-		logger.Warnw("msgLayer could not be decoded - temporary workaround for VOL-3532 in place!", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+		logger.Warnw("msgLayer could not be decoded - temporary workaround for VOL-3532 in place!", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	}
 	if onuDeviceEntry.PDevOmciCC.uploadSequNo < onuDeviceEntry.PDevOmciCC.uploadNoOfCmds {
 		_ = onuDeviceEntry.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
@@ -368,85 +369,107 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(msg
 	}
 }
 
-func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessage) {
+func (onuDeviceEntry *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessage) error {
+	var err error = nil
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetResponse)
-	if msgLayer != nil {
-		msgObj, msgOk := msgLayer.(*omci.GetResponse)
-		if msgOk {
-			logger.Debugw("MibSync FSM - GetResponse Data", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj})
-			if msgObj.Result == me.Success {
-				entityID := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID()
-				if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
-					meAttributes := msgObj.Attributes
-					meInstance := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName()
-					logger.Debugf("MibSync FSM - GetResponse Data for %s", log.Fields{"deviceId": onuDeviceEntry.deviceID, "data-fields": msgObj}, meInstance)
-					switch meInstance {
-					case "OnuG":
-						onuDeviceEntry.vendorID = fmt.Sprintf("%s", meAttributes["VendorId"])
-						snBytes, _ := me.InterfaceToOctets(meAttributes["SerialNumber"])
-						if onugSerialNumberLen == len(snBytes) {
-							snVendorPart := fmt.Sprintf("%s", snBytes[:4])
-							snNumberPart := hex.EncodeToString(snBytes[4:])
-							onuDeviceEntry.serialNumber = snVendorPart + snNumberPart
-							logger.Debugw("MibSync FSM - GetResponse Data for Onu-G - VendorId/SerialNumber", log.Fields{"deviceId": onuDeviceEntry.deviceID,
-								"onuDeviceEntry.vendorID": onuDeviceEntry.vendorID, "onuDeviceEntry.serialNumber": onuDeviceEntry.serialNumber})
-						} else {
-							logger.Errorw("MibSync FSM - SerialNumber has wrong length", log.Fields{"deviceId": onuDeviceEntry.deviceID, "length": len(snBytes)})
-						}
-						// trigger retrieval of EquipmentId
-						_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetEquipmentID)
-						return
-					case "Onu2G":
-						onuDeviceEntry.equipmentID = fmt.Sprintf("%s", meAttributes["EquipmentId"])
-						logger.Debugw("MibSync FSM - GetResponse Data for Onu2-G - EquipmentId", log.Fields{"deviceId": onuDeviceEntry.deviceID,
-							"onuDeviceEntry.equipmentID": onuDeviceEntry.equipmentID})
-						// trigger retrieval of 1st SW-image info
-						_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetFirstSwVersion)
-						return
-					case "SoftwareImage":
-						if entityID <= secondSwImageMeID {
-							onuDeviceEntry.swImages[entityID].version = fmt.Sprintf("%s", meAttributes["Version"])
-							onuDeviceEntry.swImages[entityID].isActive = meAttributes["IsActive"].(uint8)
-							logger.Debugw("MibSync FSM - GetResponse Data for SoftwareImage - Version/IsActive",
-								log.Fields{"deviceId": onuDeviceEntry.deviceID, "entityID": entityID,
-									"version": onuDeviceEntry.swImages[entityID].version, "isActive": onuDeviceEntry.swImages[entityID].isActive})
-						} else {
-							//TODO: error handling
-							logger.Errorw("MibSync FSM - Failed to GetResponse Data for SoftwareImage", log.Fields{"deviceId": onuDeviceEntry.deviceID})
-
-						}
-						if firstSwImageMeID == entityID {
-							_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
-							return
-						} else if secondSwImageMeID == entityID {
-							_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetMacAddress)
-							return
-						}
-					case "IpHostConfigData":
-						macBytes, _ := me.InterfaceToOctets(meAttributes["MacAddress"])
-						if omciMacAddressLen == len(macBytes) {
-							onuDeviceEntry.macAddress = hex.EncodeToString(macBytes[:])
-							logger.Debugw("MibSync FSM - GetResponse Data for IpHostConfigData - MacAddress", log.Fields{"deviceId": onuDeviceEntry.deviceID,
-								"onuDeviceEntry.macAddress": onuDeviceEntry.macAddress})
-						} else {
-							logger.Errorw("MibSync FSM - MacAddress wrong length", log.Fields{"deviceId": onuDeviceEntry.deviceID, "length": len(macBytes)})
-						}
-						// trigger retrieval of mib template
-						_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
-						return
-					}
+	if msgLayer == nil {
+		logger.Errorw("omci Msg layer could not be detected for GetResponse - handling of MibSyncChan stopped", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvStop)
+		return fmt.Errorf("omci Msg layer could not be detected for GetResponse - handling of MibSyncChan stopped: %s", onuDeviceEntry.deviceID)
+	}
+	msgObj, msgOk := msgLayer.(*omci.GetResponse)
+	if !msgOk {
+		logger.Errorw("omci Msg layer could not be assigned for GetResponse - handling of MibSyncChan stopped", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvStop)
+		return fmt.Errorf("omci Msg layer could not be assigned for GetResponse - handling of MibSyncChan stopped: %s", onuDeviceEntry.deviceID)
+	}
+	logger.Debugw("MibSync FSM - GetResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
+	if msgObj.Result == me.Success {
+		entityID := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID()
+		if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
+			meAttributes := msgObj.Attributes
+			meInstance := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName()
+			logger.Debugf("MibSync FSM - GetResponse Data for %s", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj}, meInstance)
+			switch meInstance {
+			case "OnuG":
+				onuDeviceEntry.vendorID = trimStringFromInterface(meAttributes["VendorId"])
+				snBytes, _ := me.InterfaceToOctets(meAttributes["SerialNumber"])
+				if onugSerialNumberLen == len(snBytes) {
+					snVendorPart := fmt.Sprintf("%s", snBytes[:4])
+					snNumberPart := hex.EncodeToString(snBytes[4:])
+					onuDeviceEntry.serialNumber = snVendorPart + snNumberPart
+					logger.Debugw("MibSync FSM - GetResponse Data for Onu-G - VendorId/SerialNumber", log.Fields{"device-id": onuDeviceEntry.deviceID,
+						"onuDeviceEntry.vendorID": onuDeviceEntry.vendorID, "onuDeviceEntry.serialNumber": onuDeviceEntry.serialNumber})
+				} else {
+					logger.Infow("MibSync FSM - SerialNumber has wrong length - fill serialNumber with zeros", log.Fields{"device-id": onuDeviceEntry.deviceID, "length": len(snBytes)})
+					onuDeviceEntry.serialNumber = cEmptySerialNumberString
 				}
-			} else {
-				logger.Errorw("Omci GetResponse Error", log.Fields{"deviceId": onuDeviceEntry.deviceID, "Error": msgObj.Result})
+				// trigger retrieval of EquipmentId
+				_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetEquipmentID)
+				return nil
+			case "Onu2G":
+				onuDeviceEntry.equipmentID = trimStringFromInterface(meAttributes["EquipmentId"])
+				logger.Debugw("MibSync FSM - GetResponse Data for Onu2-G - EquipmentId", log.Fields{"device-id": onuDeviceEntry.deviceID,
+					"onuDeviceEntry.equipmentID": onuDeviceEntry.equipmentID})
+				// trigger retrieval of 1st SW-image info
+				_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetFirstSwVersion)
+				return nil
+			case "SoftwareImage":
+				if entityID <= secondSwImageMeID {
+					onuDeviceEntry.swImages[entityID].version = trimStringFromInterface(meAttributes["Version"])
+					onuDeviceEntry.swImages[entityID].isActive = meAttributes["IsActive"].(uint8)
+					logger.Debugw("MibSync FSM - GetResponse Data for SoftwareImage - Version/IsActive",
+						log.Fields{"device-id": onuDeviceEntry.deviceID, "entityID": entityID,
+							"version": onuDeviceEntry.swImages[entityID].version, "isActive": onuDeviceEntry.swImages[entityID].isActive})
+				} else {
+					err = fmt.Errorf("mibSync FSM - Failed to GetResponse Data for SoftwareImage: %s", onuDeviceEntry.deviceID)
+				}
+				if firstSwImageMeID == entityID {
+					_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
+					return nil
+				} else if secondSwImageMeID == entityID {
+					_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetMacAddress)
+					return nil
+				}
+			case "IpHostConfigData":
+				macBytes, _ := me.InterfaceToOctets(meAttributes["MacAddress"])
+				if omciMacAddressLen == len(macBytes) {
+					onuDeviceEntry.macAddress = hex.EncodeToString(macBytes[:])
+					logger.Debugw("MibSync FSM - GetResponse Data for IpHostConfigData - MacAddress", log.Fields{"device-id": onuDeviceEntry.deviceID,
+						"onuDeviceEntry.macAddress": onuDeviceEntry.macAddress})
+				} else {
+					logger.Infow("MibSync FSM - MacAddress wrong length - fill macAddress with zeros", log.Fields{"device-id": onuDeviceEntry.deviceID, "length": len(macBytes)})
+					onuDeviceEntry.macAddress = cEmptyMacAddrString
+				}
+				// trigger retrieval of mib template
+				_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
+				return nil
 			}
-		} else {
-			logger.Errorw("Omci Msg layer could not be assigned for GetResponse", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+		}
+	} else if msgObj.Result == me.UnknownInstance {
+		logger.Debugw("MibSync FSM - Unknown Instance in GetResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
+		entityID := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID()
+		if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
+			meInstance := onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName()
+			switch meInstance {
+			case "IpHostConfigData":
+				logger.Debugf("MibSync FSM - Unknown Instance for IpHostConfigData received - ONU doesn't support ME - fill macAddress with zeros",
+					log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
+				onuDeviceEntry.macAddress = cEmptyMacAddrString
+				// trigger retrieval of mib template
+				_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
+				return nil
+			default:
+				logger.Debugf("MibSync FSM - Unknown Instance in GetResponse Data for %s", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj}, meInstance)
+			}
 		}
 	} else {
-		logger.Errorw("Omci Msg layer could not be detected for GetResponse", log.Fields{"deviceId": onuDeviceEntry.deviceID})
+		logger.Errorw("mibSync FSM - Omci GetResponse Error", log.Fields{"Error": msgObj.Result, "device-id": onuDeviceEntry.deviceID})
+		err = fmt.Errorf("mibSync FSM - Omci GetResponse Error: %s", onuDeviceEntry.deviceID)
 	}
 	logger.Info("MibSync Msg", log.Fields{"Stopped handling of MibSyncChan for device-id": onuDeviceEntry.deviceID})
 	_ = onuDeviceEntry.pMibUploadFsm.pFsm.Event(ulEvStop)
+	return err
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
@@ -464,7 +487,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 		onuDeviceEntry.handleOmciMibUploadNextResponseMessage(msg)
 
 	case omci.GetResponseType:
-		onuDeviceEntry.handleOmciGetResponseMessage(msg)
+		//TODO: error handling
+		_ = onuDeviceEntry.handleOmciGetResponseMessage(msg)
 
 	default:
 		log.Warnw("Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
@@ -479,6 +503,11 @@ func isSupportedClassID(meClassID me.ClassID) bool {
 		}
 	}
 	return false
+}
+
+func trimStringFromInterface(input interface{}) string {
+	ifBytes, _ := me.InterfaceToOctets(input)
+	return fmt.Sprintf("%s", bytes.Trim(ifBytes, "\x00"))
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) mibDbVolatileDict() error {

@@ -327,7 +327,7 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {
 				{ // let the FSM proceed ...
 					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
 				}
-			case "UniG", "VEIP":
+			case "PhysicalPathTerminationPointEthernetUni", "VEIP":
 				{ // let the PPTP init proceed by stopping the wait function
 					oFsm.omciLockResponseReceived <- true
 				}
@@ -344,7 +344,7 @@ func (oFsm *lockStateFsm) performUniPortAdminSet() {
 	if !oFsm.adminState {
 		omciAdminState = 0
 	}
-	//set UNI-G or VEIP AdminState
+	//set PPTPEthUni or VEIP AdminState
 	requestedAttributes := me.AttributeValueMap{"AdministrativeState": omciAdminState}
 
 	for uniNo, uniPort := range oFsm.pOmciCC.pBaseDeviceHandler.uniEntityMap {
@@ -353,7 +353,7 @@ func (oFsm *lockStateFsm) performUniPortAdminSet() {
 
 		var meInstance *me.ManagedEntity
 		if uniPort.portType == uniPPTP {
-			meInstance = oFsm.pOmciCC.sendSetUniGLS(context.TODO(), uniPort.entityID, ConstDefaultOmciTimeout,
+			meInstance = oFsm.pOmciCC.sendSetPptpEthUniLS(context.TODO(), uniPort.entityID, ConstDefaultOmciTimeout,
 				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 			oFsm.pLastTxMeInstance = meInstance
 		} else if uniPort.portType == uniVEIP {

@@ -190,6 +190,9 @@ const ipHostConfigDataMeID = 1
 const onugSerialNumberLen = 8
 const omciMacAddressLen = 6
 
+const cEmptyMacAddrString = "000000000000"
+const cEmptySerialNumberString = "0000000000000000"
+
 type swImages struct {
 	version  string
 	isActive uint8

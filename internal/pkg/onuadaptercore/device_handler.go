@@ -234,7 +234,10 @@ func (dh *deviceHandler) processInterAdapterOMCIReqMessage(msg *ic.InterAdapterM
 	//receive_message(omci_msg.message)
 	pDevEntry := dh.getOnuDeviceEntry(true)
 	if pDevEntry != nil {
-		return pDevEntry.PDevOmciCC.receiveMessage(context.TODO(), omciMsg.Message)
+		if pDevEntry.PDevOmciCC != nil {
+			return pDevEntry.PDevOmciCC.receiveMessage(context.TODO(), omciMsg.Message)
+		}
+		logger.Debugw("omciCC not ready to receive omci messages - incoming omci message ignored", log.Fields{"rxMsg": omciMsg.Message})
 	}
 	logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
 	return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
