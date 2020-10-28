@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "d90a8d33_937f3387",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-28T14:33:15Z",
+      "side": 1,
+      "message": "Should work, but at this position it looks very strange to me (check the member reference within the member function?)\nInstead I think following should work and would be more obvious: change code in deviceHandler line 236:\nif pDevEntry !\u003d nil {\n\tif pDevEntry.PDevOmciCC \u003d\u003d nil {\n\t\tlogger.Debugw(\"omciCC not ready to receive omci messages - incoming omci message ignored\", log.Fields{\"rxMsg\": omciMsg.Message})\n\t} else {\n\t\treturn pDevEntry.PDevOmciCC.receiveMessage(context.TODO(), omciMsg.Message)\n\t}\n         ....",
+      "parentUuid": "a0128bdf_d615d8a3",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d115aec0_5aeddf3a",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -53,6 +71,24 @@
     },
     {
       "key": {
+        "uuid": "a9cce2a2_17bf264c",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-28T14:33:15Z",
+      "side": 1,
+      "message": "Not really - I would leave the errorw here as before. incoming notification should already be fished in line 260 and finally be transferred via receiveOnuMessage().\nIf the check in line 260ff does not work, we have to inspect that code there specifically ...",
+      "parentUuid": "d115aec0_5aeddf3a",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7f70130f_0da26056",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -64,6 +100,41 @@
       "writtenOn": "2020-10-28T12:46:57Z",
       "side": 1,
       "message": "debug again",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "138448a2_460650c0",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-28T14:33:15Z",
+      "side": 1,
+      "message": "Same as above, I do not expect notification here anymore, but responses without subscribed handler. This is still some error for me.",
+      "parentUuid": "7f70130f_0da26056",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3765d2d6_b0d5d29f",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-10-28T14:33:15Z",
+      "side": 1,
+      "message": "as this defintion is only used in mib_sync.go it should also be define there.",
       "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
