@@ -224,6 +224,9 @@ func (oo *omciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 // Rx handler for onu messages
 //    e.g. would call ReceiveOnuMessage() in case of TID=0 or Action=test ...
 func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
+	if oo == nil {
+		logger.Infow("received omci-message before omciCC is finally setup - ignore", log.Fields{"rxMsg": rxMsg})
+	}
 	//logger.Debugw("cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
 	if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
 		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
@@ -281,8 +284,9 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.mutexRxSchedMap.Unlock()
 	} else {
 		oo.mutexRxSchedMap.Unlock()
-		logger.Errorw("omci-message-response for not registered transCorrId", log.Fields{"deviceID": oo.deviceID})
-		return fmt.Errorf("could not find registered response handler tor transCorrId %s", oo.deviceID)
+		//TODO Evaluate incomming notifications
+		logger.Infow("omci-message-response for not registered transCorrId - ignore for the time being", log.Fields{"deviceID": oo.deviceID})
+		return nil
 	}
 
 	return nil
