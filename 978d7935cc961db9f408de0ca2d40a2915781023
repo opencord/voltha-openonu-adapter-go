@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "18606871_1b0c2389",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-29T15:11:00Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2bb754e2_f85980d1",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a0128bdf_d615d8a3",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -51,6 +69,24 @@
       "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8bcd2615_98629890",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-29T15:11:00Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d90a8d33_937f3387",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -89,6 +125,24 @@
     },
     {
       "key": {
+        "uuid": "39ad99dc_322370ba",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-29T15:11:00Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a9cce2a2_17bf264c",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7f70130f_0da26056",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -124,6 +178,24 @@
     },
     {
       "key": {
+        "uuid": "1ea07f4a_16ee6bc1",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-29T15:11:00Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "138448a2_460650c0",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3765d2d6_b0d5d29f",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
@@ -135,6 +207,24 @@
       "writtenOn": "2020-10-28T14:33:15Z",
       "side": 1,
       "message": "as this defintion is only used in mib_sync.go it should also be define there.",
+      "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f6947d03_1a9ba661",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-29T15:11:00Z",
+      "side": 1,
+      "message": "I would leave it in context of onu_device_entry because these attribute related constants will potentially be used even apart from Mib-upload processing.",
+      "parentUuid": "3765d2d6_b0d5d29f",
       "revId": "978d7935cc961db9f408de0ca2d40a2915781023",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
