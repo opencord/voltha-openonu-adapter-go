@@ -87,6 +87,24 @@
       "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "09c2162f_7768303b",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1659,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-30T11:09:07Z",
+      "side": 1,
+      "message": "@Ozge: Would it be ok for you to fix SCA-issues with https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/21382 and submit a new patch for that? I would temporary remove the new MC-functions then.",
+      "parentUuid": "75833b7c_6d865e35",
+      "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
