@@ -105,6 +105,24 @@
       "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c767dd77_455c1a4a",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1659,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-10-30T11:53:20Z",
+      "side": 1,
+      "message": "scale should be enabled. I think we do ignore unused functions. can you please leaver them there, it\u0027s good that Ozge is doing things incrementally and not in one big patch.",
+      "parentUuid": "09c2162f_7768303b",
+      "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
