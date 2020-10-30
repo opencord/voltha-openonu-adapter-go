@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f42854be_75d074cc",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 284,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-30T10:38:44Z",
+      "side": 1,
+      "message": "GIT merging issue - I love this tool! ;-)",
+      "parentUuid": "bebec26a_7378382f",
+      "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3e51aac0_0be64eae",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 3
@@ -30,6 +48,24 @@
       "writtenOn": "2020-10-30T10:08:45Z",
       "side": 1,
       "message": "looks like you need to rebase now with the extensions from Ozge ... (Mc-ME\u0027s)",
+      "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "803e9d95_78880bfe",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1659,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-30T10:38:44Z",
+      "side": 1,
+      "message": "GIT merging issue - I love this tool! ;-)",
+      "parentUuid": "3e51aac0_0be64eae",
       "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
