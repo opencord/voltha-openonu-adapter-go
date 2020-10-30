@@ -69,6 +69,24 @@
       "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75833b7c_6d865e35",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1659,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-10-30T10:58:43Z",
+      "side": 1,
+      "message": "@Andrea: Is SCA-check enabled in onugo-Jenkins job? When I apply \"make sca\" on current master I get errors below.\n\n  \nbbsim@bbsim:~/voltha-openonu-adapter-go$ make sca\nRunning static code analysis...\n\u003ctestsuites\u003e\n  \u003ctestsuite name\u003d\"internal/pkg/onuadaptercore/omci_cc.go\"\u003e\n    \u003ctestcase name\u003d\"unused\" classname\u003d\"internal/pkg/onuadaptercore/omci_cc.go:1611:19\"\u003e\n      \u003cfailure message\u003d\"func `(*omciCC).sendCreateMulticastGemIWTPVar` is unused\"\u003e\u003c/failure\u003e\n    \u003c/testcase\u003e\n    \u003ctestcase name\u003d\"unused\" classname\u003d\"internal/pkg/onuadaptercore/omci_cc.go:1690:19\"\u003e\n      \u003cfailure message\u003d\"func `(*omciCC).sendSetMulticastOperationProfileVar` is unused\"\u003e\u003c/failure\u003e\n    \u003c/testcase\u003e\n    \u003ctestcase name\u003d\"unused\" classname\u003d\"internal/pkg/onuadaptercore/omci_cc.go:1649:19\"\u003e\n      \u003cfailure message\u003d\"func `(*omciCC).sendCreateMulticastOperationProfileVar` is unused\"\u003e\u003c/failure\u003e\n    \u003c/testcase\u003e\n    \u003ctestcase name\u003d\"unused\" classname\u003d\"internal/pkg/onuadaptercore/omci_cc.go:1731:19\"\u003e\n      \u003cfailure message\u003d\"func `(*omciCC).sendCreateMulticastSubConfigInfoVar` is unused\"\u003e\u003c/failure\u003e\n    \u003c/testcase\u003e\n  \u003c/testsuite\u003e\n\u003c/testsuites\u003eMakefile:163: recipe for target \u0027sca\u0027 failed\nmake: *** [sca] Error 1\nbbsim@bbsim:~/voltha-openonu-adapter-go$ git status\nOn branch master\nYour branch is up-to-date with \u0027origin/master\u0027.\nnothing to commit, working directory clean\nbbsim@bbsim:~/voltha-openonu-adapter-go$",
+      "parentUuid": "803e9d95_78880bfe",
+      "revId": "3706db118874c5a888b91854cf7e67be49f69ff0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
