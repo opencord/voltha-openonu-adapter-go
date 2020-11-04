@@ -118,29 +118,33 @@ const (
 	// Events of interest to Device Adapters and OpenOMCI State Machines
 
 	// DeviceStatusInit - default start state
-	DeviceStatusInit OnuDeviceEvent = 0
+	DeviceStatusInit OnuDeviceEvent = iota
 	// MibDatabaseSync - MIB database sync (upload done)
-	MibDatabaseSync OnuDeviceEvent = 1
+	MibDatabaseSync
 	// OmciCapabilitiesDone - OMCI ME and message type capabilities known
-	OmciCapabilitiesDone OnuDeviceEvent = 2
+	OmciCapabilitiesDone
 	// MibDownloadDone - // MIB download done
-	MibDownloadDone OnuDeviceEvent = 3
+	MibDownloadDone
 	// UniLockStateDone - Uni ports admin set to lock
-	UniLockStateDone OnuDeviceEvent = 4
+	UniLockStateDone
 	// UniUnlockStateDone - Uni ports admin set to unlock
-	UniUnlockStateDone OnuDeviceEvent = 5
+	UniUnlockStateDone
 	// UniDisableStateDone - Uni ports admin set to lock based on device disable
-	UniDisableStateDone OnuDeviceEvent = 6
+	UniDisableStateDone
 	// UniEnableStateDone - Uni ports admin set to unlock based on device re-enable
-	UniEnableStateDone OnuDeviceEvent = 7
+	UniEnableStateDone
 	// PortLinkUp - Port link state change
-	PortLinkUp OnuDeviceEvent = 8
+	PortLinkUp
 	// PortLinkDw - Port link state change
-	PortLinkDw OnuDeviceEvent = 9
+	PortLinkDw
 	// OmciAniConfigDone -  AniSide config according to TechProfile done
-	OmciAniConfigDone OnuDeviceEvent = 10
-	// OmciVlanFilterDone - Omci Vlan config according to flowConfig done
-	OmciVlanFilterDone OnuDeviceEvent = 11
+	OmciAniConfigDone
+	// OmciAniResourceRemoved - AniSide TechProfile related resource (Gem/TCont) removed
+	OmciAniResourceRemoved // needs to be the successor of OmciAniConfigDone!
+	// OmciVlanFilterAddDone - Omci Vlan config done according to flow-add
+	OmciVlanFilterAddDone
+	// OmciVlanFilterRemDone - Omci Vlan config done according to flow-remove
+	OmciVlanFilterRemDone // needs to be the successor of OmciVlanFilterAddDone!
 	// Add other events here as needed (alarms separate???)
 )
 
@@ -662,25 +666,6 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aPathString string) b
 	oo.sOnuPersistentData.PersUniConfig =
 		append(oo.sOnuPersistentData.PersUniConfig, uniPersConfig{PersUniID: aUniID, PersTpPath: aPathString, PersFlowParams: make([]uniVlanFlowParams, 0)})
 	return true
-}
-
-// deleteTpResource removes Resources from the ONU's specified Uni
-func (oo *OnuDeviceEntry) deleteTpResource(ctx context.Context,
-	aUniID uint8, aPathString string, aResource resourceEntry, aEntryID uint32,
-	wg *sync.WaitGroup) {
-	defer wg.Done()
-	logger.Debugw("this would remove TP resources from ONU's UNI", log.Fields{
-		"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString, "Resource": aResource})
-	//TODO!!!
-	//delete the given resource from ONU OMCI config and data base - as background routine
-	/*
-		var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpConfigProcessingStep
-		go onuTp.deleteAniResource(ctx, processingStep)
-		if !onuTP.waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) {
-			//timeout or error detected
-			return
-		}
-	*/
 }
 
 func (oo *OnuDeviceEntry) updateOnuUniFlowConfig(aUniID uint8, aUniVlanFlowParams *[]uniVlanFlowParams) {
