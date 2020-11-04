@@ -84,6 +84,7 @@ const (
 	vlanEvRxConfigVtfd    = "vlanEvRxConfigVtfd"
 	vlanEvRxConfigEvtocd  = "vlanEvRxConfigEvtocd"
 	vlanEvIncrFlowConfig  = "vlanEvIncrFlowConfig"
+	vlanEvRenew           = "vlanEvRenew"
 	vlanEvRemFlowConfig   = "vlanEvRemFlowConfig"
 	vlanEvRemFlowDone     = "vlanEvRemFlowDone"
 	vlanEvFlowDataRemoved = "vlanEvFlowDataRemoved"
@@ -150,6 +151,7 @@ type UniVlanConfigFsm struct {
 	vtfdID                      uint16
 	evtocdID                    uint16
 	pLastTxMeInstance           *me.ManagedEntity
+	requestEventOffset          uint8
 }
 
 //NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -190,6 +192,7 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 			{Name: vlanEvRxConfigEvtocd, Src: []string{vlanStConfigEvtocd, vlanStConfigIncrFlow},
 				Dst: vlanStConfigDone},
 			{Name: vlanEvIncrFlowConfig, Src: []string{vlanStConfigDone}, Dst: vlanStConfigIncrFlow},
+			{Name: vlanEvRenew, Src: []string{vlanStConfigIncrFlow}, Dst: vlanStStarting},
 			{Name: vlanEvRemFlowConfig, Src: []string{vlanStConfigDone}, Dst: vlanStRemoveFlow},
 			{Name: vlanEvRemFlowDone, Src: []string{vlanStRemoveFlow}, Dst: vlanStCleanupDone},
 			{Name: vlanEvFlowDataRemoved, Src: []string{vlanStCleanupDone}, Dst: vlanStConfigDone},
@@ -588,6 +591,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 func (oFsm *UniVlanConfigFsm) enterConfigEvtocd(e *fsm.Event) {
 	logger.Debugw("UniVlanConfigFsm - start config EVTOCD loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
+	oFsm.requestEventOffset = 0 //0 offset for last flow-add activity
 	go oFsm.performConfigEvtocdEntries(0)
 }
 
@@ -617,7 +621,8 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(e *fsm.Event) {
 	// it might appear that some flows are requested also after 'flowPushed' event has been generated ...
 	// state transition notification is checked in deviceHandler
 	if oFsm.pDeviceHandler != nil {
-		oFsm.pDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
+		//making use of the add->remove successor enum assumption/definition
+		oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
 	}
 }
 
@@ -626,6 +631,18 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 		"in state": e.FSM.Current(), "recent flow-number": (oFsm.configuredUniFlow),
 		"device-id": oFsm.deviceID})
 	oFsm.mutexFlowParams.Lock()
+
+	if oFsm.configuredUniFlow == 0 {
+		oFsm.mutexFlowParams.Unlock()
+		// this is a restart with a complete new flow, we can re-use the initial flow config control
+		// including the check, if the related techProfile is (still) available (probably also removed in between)
+		// calling some FSM event must be decoupled
+		pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
+		go func(a_pBaseFsm *fsm.FSM) {
+			_ = a_pBaseFsm.Event(vlanEvRenew)
+		}(pConfigVlanStateBaseFsm)
+		return
+	}
 
 	if oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		// meaning transparent setup - no specific VTFD setting required
@@ -697,10 +714,14 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 		if err != nil {
 			logger.Errorw("VTFD create/set failed, aborting VlanConfig FSM!",
 				log.Fields{"device-id": oFsm.deviceID})
-			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+			pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
+			go func(a_pBaseFsm *fsm.FSM) {
+				_ = a_pBaseFsm.Event(vlanEvReset)
+			}(pConfigVlanStateBaseFsm)
 			return
 		}
 	}
+	oFsm.requestEventOffset = 0 //0 offset for last flow-add activity
 	go oFsm.performConfigEvtocdEntries(oFsm.configuredUniFlow)
 }
 
@@ -710,6 +731,8 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 		"in state": e.FSM.Current(), "with last cookie": oFsm.uniRemoveFlowsSlice[0].cookie,
 		"device-id": oFsm.deviceID})
 
+	pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
+	loAllowSpecificOmciConfig := oFsm.pDeviceHandler.ReadyForSpecificOmciConfig
 	loVlanEntryClear := uint8(0)
 	loVlanEntryRmPos := uint8(0x80) //with indication 'invalid' in bit 7
 	//shallow copy is sufficient as no reference variables are used within struct
@@ -732,10 +755,15 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 			logger.Debugw("UniVlanConfigFsm: VTFD delete (no more vlan filters)",
 				log.Fields{"current vlan list": oFsm.vlanFilterList,
 					"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
-			loVlanEntryClear = 1 //full VlanFilter clear request
-			meInstance := oFsm.pOmciCC.sendDeleteVtfd(context.TODO(), ConstDefaultOmciTimeout, true,
-				oFsm.pAdaptFsm.commChan, oFsm.vtfdID)
-			oFsm.pLastTxMeInstance = meInstance
+			loVlanEntryClear = 1           //full VlanFilter clear request
+			if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
+				meInstance := oFsm.pOmciCC.sendDeleteVtfd(context.TODO(), ConstDefaultOmciTimeout, true,
+					oFsm.pAdaptFsm.commChan, oFsm.vtfdID)
+				oFsm.pLastTxMeInstance = meInstance
+			} else {
+				logger.Debugw("UniVlanConfigFsm delete VTFD OMCI handling skipped based on device state", log.Fields{
+					"device-id": oFsm.deviceID, "device-state": oFsm.pDeviceHandler.deviceReason})
+			}
 		} else {
 			//many VTFD already should exists - find and remove the one concerned by the actual remove rule
 			//  by updating the VTFD per set command with new valid list
@@ -764,29 +792,39 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 					"EntitytId":     strconv.FormatInt(int64(oFsm.vtfdID), 16),
 					"new vlan list": vtfdFilterList, "device-id": oFsm.deviceID})
 
-				meParams := me.ParamData{
-					EntityID: oFsm.vtfdID,
-					Attributes: me.AttributeValueMap{
-						"VlanFilterList":  vtfdFilterList,
-						"NumberOfEntries": (oFsm.numVlanFilterEntries - 1), //one element less
-					},
+				if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
+					meParams := me.ParamData{
+						EntityID: oFsm.vtfdID,
+						Attributes: me.AttributeValueMap{
+							"VlanFilterList":  vtfdFilterList,
+							"NumberOfEntries": (oFsm.numVlanFilterEntries - 1), //one element less
+						},
+					}
+					meInstance := oFsm.pOmciCC.sendSetVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
+						oFsm.pAdaptFsm.commChan, meParams)
+					oFsm.pLastTxMeInstance = meInstance
+				} else {
+					logger.Debugw("UniVlanConfigFsm set VTFD OMCI handling skipped based on device state", log.Fields{
+						"device-id": oFsm.deviceID, "device-state": oFsm.pDeviceHandler.deviceReason})
 				}
-				meInstance := oFsm.pOmciCC.sendSetVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
-					oFsm.pAdaptFsm.commChan, meParams)
-				oFsm.pLastTxMeInstance = meInstance
 			} else {
 				logger.Warnw("UniVlanConfigFsm: requested VLAN for removal not found in list - ignore and continue (no VTFD set)",
 					log.Fields{"device-id": oFsm.deviceID})
 			}
 		}
 		if loVlanEntryClear > 0 {
-			//waiting on response
-			err := oFsm.waitforOmciResponse()
-			if err != nil {
-				logger.Errorw("VTFD delete/reset failed, aborting VlanConfig FSM!",
-					log.Fields{"device-id": oFsm.deviceID})
-				_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-				return
+			if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
+				//waiting on response
+				err := oFsm.waitforOmciResponse()
+				if err != nil {
+					logger.Errorw("VTFD delete/reset failed, aborting VlanConfig FSM!",
+						log.Fields{"device-id": oFsm.deviceID})
+					// calling some FSM event must be decoupled
+					go func(a_pBaseFsm *fsm.FSM) {
+						_ = a_pBaseFsm.Event(vlanEvReset)
+					}(pConfigVlanStateBaseFsm)
+					return
+				}
 			}
 
 			if loVlanEntryClear == 1 {
@@ -803,7 +841,17 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 		}
 	}
 
-	go oFsm.removeEvtocdEntries(loRuleParams)
+	if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
+		go oFsm.removeEvtocdEntries(loRuleParams)
+	} else {
+		// OMCI processing is not done, expectation is to have the ONU in some basic config state accordingly
+		logger.Debugw("UniVlanConfigFsm remove EVTOCD OMCI handling skipped based on device state", log.Fields{
+			"device-id": oFsm.deviceID})
+		// calling some FSM event must be decoupled
+		go func(a_pBaseFsm *fsm.FSM) {
+			_ = a_pBaseFsm.Event(vlanEvRemFlowDone)
+		}(pConfigVlanStateBaseFsm)
+	}
 }
 
 func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(e *fsm.Event) {
@@ -825,6 +873,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(e *fsm.Event) {
 	}
 	oFsm.mutexFlowParams.Unlock()
 
+	oFsm.requestEventOffset = 1 //offset 1 for last flow-remove activity
 	//return to the basic config verification state
 	pConfigVlanStateAFsm := oFsm.pAdaptFsm
 	if pConfigVlanStateAFsm != nil {
@@ -1282,7 +1331,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 		}
 	}
 
-	// if Config has been done for all GemPort instances let the FSM proceed
+	// if Config has been done for all EVTOCD entries let the FSM proceed
 	logger.Debugw("EVTOCD set loop finished", log.Fields{"device-id": oFsm.deviceID})
 	oFsm.configuredUniFlow++ // one (more) flow configured
 	_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
@@ -1483,7 +1532,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(aRuleParams uniVlanRuleParams)
 		}
 	}
 
-	// if Config has been done for all GemPort instances let the FSM proceed
+	// if Config has been done for all EVTOCD entries let the FSM proceed
 	logger.Debugw("EVTOCD filter remove loop finished", log.Fields{"device-id": oFsm.deviceID})
 	_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRemFlowDone)
 }

@@ -474,6 +474,45 @@ func (onuTP *onuUniTechProf) createAniConfigFsm(aUniID uint8,
 	}
 }
 
+// deleteTpResource removes Resources from the ONU's specified Uni
+func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
+	aUniID uint8, aPathString string, aResource resourceEntry, aEntryID uint32,
+	wg *sync.WaitGroup) {
+	defer wg.Done()
+	logger.Debugw("this would remove TP resources from ONU's UNI", log.Fields{
+		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString, "Resource": aResource})
+	if cResourceTcont == aResource {
+		//the TechProfile indicated by path is considered for removal
+		//  by now we do not clear the OMCI related configuration (to be done later)
+		//  so we use this position here just to remove the internal stored profile data
+		//    (needed for checking the existence of the TechProfile after some profile delete)
+		//  at the oment we only admit 1 TechProfile (T-Cont), so by now we can just remove the only existing TechProfile
+		//  TODO: To be updated with multi-T-Cont implementation
+		logger.Debugw("DeleteTcont clears the existing internal profile", log.Fields{
+			"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString, "Resource": aResource})
+		onuTP.clearAniSideConfig(aUniID)
+		// reset also the FSM in order to admit a new OMCI configuration in case a new profile is created
+		// FSM stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
+		if onuTP.pAniConfigFsm != nil {
+			_ = onuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		}
+
+		//TODO!!! - the real processing could look like that (for starting the removal, where the clearAniSideConfig is done implicitly):
+		//delete the given resource from ONU OMCI config and data base - as background routine
+		/*
+			var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpConfigProcessingStep
+			go onuTp.deleteAniResource(ctx, processingStep)
+			if !onuTP.waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) {
+				//timeout or error detected
+				return
+			}
+		*/
+	}
+	//if implemented, the called FSM would generate an adequate event if config has been done,
+	//  by now we just stimulate this event here as 'done' - TODO!!: to be removed after full implementation
+	go onuTP.baseDeviceHandler.deviceProcStatusUpdate(OmciAniResourceRemoved)
+}
+
 // runAniConfigFsm starts the AniConfig FSM to transfer the OMCI related commands for  ANI side configuration
 func (onuTP *onuUniTechProf) runAniConfigFsm(aProcessingStep uint8) {
 	/*  Uni related ANI config procedure -
