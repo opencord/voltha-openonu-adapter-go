@@ -1656,6 +1656,7 @@ func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 	return nil
 }
 
+// nolint: unused
 func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -1694,6 +1695,7 @@ func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int
 	return nil
 }
 
+// nolint: unused
 func (oo *omciCC) sendCreateMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -1735,6 +1737,7 @@ func (oo *omciCC) sendCreateMulticastOperationProfileVar(ctx context.Context, ti
 	return nil
 }
 
+// nolint: unused
 func (oo *omciCC) sendSetMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -1776,6 +1779,7 @@ func (oo *omciCC) sendSetMulticastOperationProfileVar(ctx context.Context, timeo
 	return nil
 }
 
+// nolint: unused
 func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)

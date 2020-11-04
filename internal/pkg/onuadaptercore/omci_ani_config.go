@@ -552,29 +552,31 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 		return
 	}
 	logger.Debugw("CreateResponse Data", log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj})
-	if msgObj.Result != me.Success {
+	if msgObj.Result == me.Success || msgObj.Result == me.InstanceExists {
+		//if the result is ok or Instance already exists (latest needed at least as long as we do not clear the OMCI techProfile data)
+		if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
+			msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
+			// maybe we can use just the same eventName for different state transitions like "forward"
+			//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
+			switch oFsm.pLastTxMeInstance.GetName() {
+			case "Ieee8021PMapperServiceProfile":
+				{ // let the FSM proceed ...
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
+				}
+			case "MacBridgePortConfigurationData":
+				{ // let the FSM proceed ...
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
+				}
+			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
+				{ // let aniConfig Multi-Id processing proceed by stopping the wait function
+					oFsm.omciMIdsResponseReceived <- true
+				}
+			}
+		}
+	} else {
 		logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
 		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 		return
-	}
-	if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
-		msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
-		// maybe we can use just the same eventName for different state transitions like "forward"
-		//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
-		switch oFsm.pLastTxMeInstance.GetName() {
-		case "Ieee8021PMapperServiceProfile":
-			{ // let the FSM proceed ...
-				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
-			}
-		case "MacBridgePortConfigurationData":
-			{ // let the FSM proceed ...
-				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
-			}
-		case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
-			{ // let aniConfig Multi-Id processing proceed by stopping the wait function
-				oFsm.omciMIdsResponseReceived <- true
-			}
-		}
 	}
 }
 
