@@ -127,12 +127,13 @@ type deviceHandler struct {
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
 	//metrics            *pmmetrics.PmMetrics
-	stopCollector       chan bool
-	stopHeartbeatCheck  chan bool
-	activePorts         sync.Map
-	uniEntityMap        map[uint32]*onuUniPort
-	UniVlanConfigFsmMap map[uint8]*UniVlanConfigFsm
-	reconciling         bool
+	stopCollector              chan bool
+	stopHeartbeatCheck         chan bool
+	activePorts                sync.Map
+	uniEntityMap               map[uint32]*onuUniPort
+	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
+	reconciling                bool
+	ReadyForSpecificOmciConfig bool
 }
 
 //newDeviceHandler creates a new device handler
@@ -158,6 +159,7 @@ func newDeviceHandler(cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adap
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
+	dh.ReadyForSpecificOmciConfig = false
 
 	// Device related state machine
 	dh.pDeviceStateFsm = fsm.NewFSM(
@@ -284,11 +286,14 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 			log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("techProfile DLMsg request while onuTechProf instance not setup: %s", dh.deviceID)
 	}
-	if (dh.deviceReason == "stopping-openomci") || (dh.deviceReason == "omci-admin-lock") {
-		// I've seen cases for this request, where the device was already stopped
-		logger.Warnw("TechProf stopped: device-unreachable", log.Fields{"device-id": dh.deviceID})
-		return fmt.Errorf("device-unreachable: %s", dh.deviceID)
+	if !dh.ReadyForSpecificOmciConfig {
+		logger.Warnw("TechProf-set rejected: improper device state", log.Fields{"device-id": dh.deviceID,
+			"device-state": dh.deviceReason})
+		return fmt.Errorf("improper device state %s on device %s", dh.deviceReason, dh.deviceID)
 	}
+	//previous state test here was just this one, now extended for more states to reject the SetRequest:
+	// at least 'mib-downloaded' should be reached for processing of this specific ONU configuration
+	//  if (dh.deviceReason == "stopping-openomci") || (dh.deviceReason == "omci-admin-lock")
 
 	msgBody := msg.GetBody()
 	techProfMsg := &ic.InterAdapterTechProfileDownloadMessage{}
@@ -386,7 +391,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 
 		var wg sync.WaitGroup
 		wg.Add(2) // for the 2 go routines to finish
-		go pDevEntry.deleteTpResource(dctx, uniID, delGemPortMsg.TpPath,
+		go dh.pOnuTP.deleteTpResource(dctx, uniID, delGemPortMsg.TpPath,
 			cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
@@ -442,7 +447,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 
 		var wg sync.WaitGroup
 		wg.Add(2) // for the 2 go routines to finish
-		go pDevEntry.deleteTpResource(dctx, uniID, delTcontMsg.TpPath,
+		go dh.pOnuTP.deleteTpResource(dctx, uniID, delTcontMsg.TpPath,
 			cResourceTcont, delTcontMsg.AllocId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
@@ -534,7 +539,6 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 					retError = fmt.Errorf("flow-remove inPort not found in UniPorts, inPort %d, device-id %s",
 						flowInPort, dh.deviceID)
 					continue
-					//return fmt.Errorf("flow-parameter inPort %d not found in internal UniPorts", flowInPort)
 				}
 				flowOutPort := flow.GetOutPort(flowItem)
 				logger.Debugw("flow-remove port indications", log.Fields{
@@ -586,6 +590,18 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 					continue
 					//return fmt.Errorf("flow-parameter inPort %d not found in internal UniPorts", flowInPort)
 				}
+				// let's still assume that we receive the flow-add only in some 'active' device state (as so far observed)
+				// if not, we just throw some error here to have an indication about that, if we really need to support that
+				//   then we would need to create some means to activate the internal stored flows
+				//   after the device gets active automatically (and still with its dependency to the TechProfile)
+				// for state checking compare also code here: processInterAdapterTechProfileDownloadReqMessage
+				// also abort for the other still possible flows here
+				if !dh.ReadyForSpecificOmciConfig {
+					logger.Warnw("flow-add rejected: improper device state", log.Fields{"device-id": dh.deviceID,
+						"last device-reason": dh.deviceReason})
+					return fmt.Errorf("improper device state on device %s", dh.deviceID)
+				}
+
 				flowOutPort := flow.GetOutPort(flowItem)
 				logger.Debugw("flow-add port indications", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
@@ -608,10 +624,14 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 }
 
 //disableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
+//following are the expected device states after this activity:
+//Device Admin-State : down (on rwCore), Port-State: UNKNOWN, Conn-State: REACHABLE, Reason: omci-admin-lock
+// (Conn-State: REACHABLE might conflict with some previous ONU Down indication - maybe to be resolved later)
 func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 	logger.Debugw("disable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
 	//admin-lock reason can also be used uniquely for setting the DeviceState accordingly
+	//note that some disableDevice sequence in some 'ONU active' state may yield also "tech...delete-success" in the end
 	// - inblock state checking to prevent possibly unneeded processing (on command repitition)
 	if dh.deviceReason != "omci-admin-lock" {
 		//running FSM's are stopped/reset here to avoid indirect stucking
@@ -628,7 +648,7 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 			return
 		}
 
-		if dh.deviceReason != "rebooting" {
+		if dh.ReadyForSpecificOmciConfig {
 			// disable UNI ports/ONU
 			// *** should generate UniDisableStateDone event - used to disable the port(s) on success
 			if dh.pLockStateFsm == nil {
@@ -669,6 +689,16 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 //reEnableDevice unlocks the ONU and its UNI/VEIP ports (admin unlock via OMCI)
 func (dh *deviceHandler) reEnableDevice(device *voltha.Device) {
 	logger.Debugw("reenable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
+
+	//setting ReadyForSpecificOmciConfig here is just a workaround for BBSIM testing in the sequence
+	//  OnuSoftReboot-disable-enable, because BBSIM does not generate a new OnuIndication-Up event after SoftReboot
+	//  which is the assumption for real ONU's, where the ready-state is then set according to the following MibUpload/Download
+	//  for real ONU's that should have nearly no influence
+	//  Note that for real ONU's there is anyway a problematic situation with following sequence:
+	//		OnuIndication-Dw (or not active at all) (- disable) - enable: here already the LockFsm may run into timeout (no OmciResponse)
+	//      but that anyway is hopefully resolved by some OnuIndication-Up event (maybe to be tested)
+	//      one could also argue, that a device-enable should also enable attempts for specific omci configuration
+	dh.ReadyForSpecificOmciConfig = true //needed to allow subsequent flow/techProf config (on BBSIM)
 
 	// enable ONU/UNI ports
 	// *** should generate UniEnableStateDone event - used to disable the port(s) on success
@@ -760,7 +790,7 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig() {
 			} else {
 				if err := dh.createVlanFilterFsm(uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
 					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterDone); err != nil {
+					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterAddDone); err != nil {
 					logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			}
@@ -831,6 +861,7 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		return err
 	}
 	dh.deviceReason = "rebooting"
+	dh.ReadyForSpecificOmciConfig = false
 	return nil
 }
 
@@ -1327,6 +1358,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 
 func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
+	// (but note that the deviceReason may also have changed to e.g. TechProf*Delete_Success in between)
 	if dh.deviceReason != "stopping-openomci" {
 		logger.Debugw("updateInterface-started - stopping-device", log.Fields{"device-id": dh.deviceID})
 		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
@@ -1361,14 +1393,16 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 
 		dh.disableUniPortStateUpdate()
 
+		dh.deviceReason = "stopping-openomci"
+		dh.ReadyForSpecificOmciConfig = false
+
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "stopping-openomci"); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to 'stopping-openomci'",
+			logger.Errorw("error-DeviceReasonUpdate to stopping-openomci",
 				log.Fields{"device-id": dh.deviceID, "error": err})
 			// abort: system behavior is just unstable ...
 			return err
 		}
-		dh.deviceReason = "stopping-openomci"
 
 		logger.Debugw("call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
 			"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
@@ -1444,10 +1478,10 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 		//initiate DevStateUpdate
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to 'mibsync-complete'", log.Fields{
+			logger.Errorw("error-DeviceReasonUpdate to mibsync-complete", log.Fields{
 				"device-id": dh.deviceID, "error": err})
 		} else {
-			logger.Infow("dev reason updated to 'MibSync complete'", log.Fields{"device-id": dh.deviceID})
+			logger.Infow("dev reason updated to MibSync complete", log.Fields{"device-id": dh.deviceID})
 		}
 	} else {
 		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to mibsync-complete",
@@ -1549,10 +1583,10 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
 	if !dh.reconciling {
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to 'initial-mib-downloaded'",
+			logger.Errorw("error-DeviceReasonUpdate to initial-mib-downloaded",
 				log.Fields{"device-id": dh.deviceID, "error": err})
 		} else {
-			logger.Infow("dev reason updated to 'initial-mib-downloaded'", log.Fields{"device-id": dh.deviceID})
+			logger.Infow("dev reason updated to initial-mib-downloaded", log.Fields{"device-id": dh.deviceID})
 		}
 	} else {
 		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to initial-mib-downloaded",
@@ -1560,6 +1594,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
 	}
 	//set internal state anyway - as it was done
 	dh.deviceReason = "initial-mib-downloaded"
+	dh.ReadyForSpecificOmciConfig = true
 	// *** should generate UniUnlockStateDone event *****
 	if dh.pUnlockStateFsm == nil {
 		dh.createUniLockFsm(false, UniUnlockStateDone)
@@ -1637,59 +1672,92 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(devEvent OnuDeviceEvent)
 }
 
 func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) {
-	logger.Debugw("OmciAniConfigDone event received", log.Fields{"device-id": dh.deviceID})
-	// attention: the device reason update is done based on ONU-UNI-Port related activity
-	//  - which may cause some inconsistency
-	if dh.deviceReason != "tech-profile-config-download-success" {
-		// which may be the case from some previous actvity on another UNI Port of the ONU
-		if !dh.reconciling {
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-download-success"); err != nil {
-				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-				logger.Errorw("error-DeviceReasonUpdate to 'tech-profile-config-download-success'",
-					log.Fields{"device-id": dh.deviceID, "error": err})
+	if devEvent == OmciAniConfigDone {
+		logger.Debugw("OmciAniConfigDone event received", log.Fields{"device-id": dh.deviceID})
+		// attention: the device reason update is done based on ONU-UNI-Port related activity
+		//  - which may cause some inconsistency
+		if dh.deviceReason != "tech-profile-config-download-success" {
+			// which may be the case from some previous actvity even on this UNI Port (but also other UNI ports)
+			if !dh.reconciling {
+				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-download-success"); err != nil {
+					//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+					logger.Errorw("error-DeviceReasonUpdate to tech-profile-config-download-success",
+						log.Fields{"device-id": dh.deviceID, "error": err})
+				} else {
+					logger.Infow("update dev reason to tech-profile-config-download-success",
+						log.Fields{"device-id": dh.deviceID})
+				}
 			} else {
-				logger.Infow("update dev reason to 'tech-profile-config-download-success'",
+				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to tech-profile-config-download-success",
 					log.Fields{"device-id": dh.deviceID})
 			}
-		} else {
-			logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to tech-profile-config-download-success",
-				log.Fields{"device-id": dh.deviceID})
+			//set internal state anyway - as it was done
+			dh.deviceReason = "tech-profile-config-download-success"
 		}
-		//set internal state anyway - as it was done
-		dh.deviceReason = "tech-profile-config-download-success"
-	}
-	if dh.reconciling {
-		go dh.reconcileDeviceFlowConfig()
+		if dh.reconciling {
+			go dh.reconcileDeviceFlowConfig()
+		}
+	} else { // should be the OmciAniResourceRemoved block
+		logger.Debugw("OmciAniResourceRemoved event received", log.Fields{"device-id": dh.deviceID})
+		// attention: the device reason update is done based on ONU-UNI-Port related activity
+		//  - which may cause some inconsistency
+		if dh.deviceReason != "tech-profile-config-delete-success" {
+			// which may be the case from some previous actvity even on this ONU port (but also other UNI ports)
+			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-delete-success"); err != nil {
+				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+				logger.Errorw("error-DeviceReasonUpdate to tech-profile-config-delete-success",
+					log.Fields{"device-id": dh.deviceID, "error": err})
+			} else {
+				logger.Infow("update dev reason to tech-profile-config-delete-success",
+					log.Fields{"device-id": dh.deviceID})
+			}
+			//set internal state anyway - as it was done
+			dh.deviceReason = "tech-profile-config-delete-success"
+		}
 	}
 }
 
-func (dh *deviceHandler) processOmciVlanFilterDoneEvent(devEvent OnuDeviceEvent) {
+func (dh *deviceHandler) processOmciVlanFilterDoneEvent(aDevEvent OnuDeviceEvent) {
 	logger.Debugw("OmciVlanFilterDone event received",
-		log.Fields{"device-id": dh.deviceID})
+		log.Fields{"device-id": dh.deviceID, "event": aDevEvent})
 	// attention: the device reason update is done based on ONU-UNI-Port related activity
 	//  - which may cause some inconsistency
-	//			yield self.core_proxy.device_reason_update(self.device_id, 'omci-flows-pushed')
 
-	if dh.deviceReason != "omci-flows-pushed" {
-		// which may be the case from some previous actvity on another UNI Port of the ONU
-		// or even some previous flow add activity on the same port
-		if !dh.reconciling {
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-pushed"); err != nil {
-				logger.Errorw("error-DeviceReasonUpdate to 'omci-flows-pushed'",
-					log.Fields{"device-id": dh.deviceID, "error": err})
+	if aDevEvent == OmciVlanFilterAddDone {
+		if dh.deviceReason != "omci-flows-pushed" {
+			// which may be the case from some previous actvity on another UNI Port of the ONU
+			// or even some previous flow add activity on the same port
+			if !dh.reconciling {
+				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-pushed"); err != nil {
+					logger.Errorw("error-DeviceReasonUpdate to omci-flows-pushed",
+						log.Fields{"device-id": dh.deviceID, "error": err})
+				} else {
+					logger.Infow("updated dev reason to omci-flows-pushed",
+						log.Fields{"device-id": dh.deviceID})
+				}
 			} else {
-				logger.Infow("updated dev reason to ''omci-flows-pushed'",
+				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to omci-flows-pushed",
 					log.Fields{"device-id": dh.deviceID})
 			}
-		} else {
-			logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to omci-flows-pushed",
-				log.Fields{"device-id": dh.deviceID})
-		}
-		//set internal state anyway - as it was done
-		dh.deviceReason = "omci-flows-pushed"
+			//set internal state anyway - as it was done
+			dh.deviceReason = "omci-flows-pushed"
 
-		if dh.reconciling {
-			go dh.reconcileMetrics()
+			if dh.reconciling {
+				go dh.reconcileMetrics()
+			}
+		}
+	} else {
+		if dh.deviceReason != "omci-flows-deleted" {
+			//not relevant for reconcile
+			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-deleted"); err != nil {
+				logger.Errorw("error-DeviceReasonUpdate to omci-flows-deleted",
+					log.Fields{"device-id": dh.deviceID, "error": err})
+			} else {
+				logger.Infow("updated dev reason to omci-flows-deleted",
+					log.Fields{"device-id": dh.deviceID})
+			}
+			//set internal state anyway - as it was done
+			dh.deviceReason = "omci-flows-deleted"
 		}
 	}
 }
@@ -1704,32 +1772,26 @@ func (dh *deviceHandler) deviceProcStatusUpdate(devEvent OnuDeviceEvent) {
 	case MibDownloadDone:
 		{
 			dh.processMibDownloadDoneEvent(devEvent)
-
 		}
 	case UniUnlockStateDone:
 		{
 			dh.processUniUnlockStateDoneEvent(devEvent)
-
 		}
 	case UniEnableStateDone:
 		{
 			dh.processUniEnableStateDoneEvent(devEvent)
-
 		}
 	case UniDisableStateDone:
 		{
 			dh.processUniDisableStateDoneEvent(devEvent)
-
 		}
-	case OmciAniConfigDone:
+	case OmciAniConfigDone, OmciAniResourceRemoved:
 		{
 			dh.processOmciAniConfigDoneEvent(devEvent)
-
 		}
-	case OmciVlanFilterDone:
+	case OmciVlanFilterAddDone, OmciVlanFilterRemDone:
 		{
 			dh.processOmciVlanFilterDoneEvent(devEvent)
-
 		}
 	default:
 		{
@@ -2124,7 +2186,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(apFlowItem *ofp.OfpFlowStats, apUn
 			loMatchVlan, loSetVlan, loSetPcp)
 	}
 	return dh.createVlanFilterFsm(apUniPort, loTpID, loCookieSlice,
-		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterDone)
+		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone)
 }
 
 //removeFlowItemFromUniPort parses the actual flow item to remove it from the UniPort
@@ -2136,7 +2198,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(apFlowItem *ofp.OfpFlowStats,
 	// at flow creation is not assured, that the same cookie is not configured for different flows - just assumed
 	//additionally it is assumed here, that removal can only be done for one cookie per flow in a sequence (different
 	// from addFlow - where at reconcilement multiple cookies per flow ) can be configured in one sequence)
-	// - some possible 'delete-all' sequence would have be implemented separately (where the cookies are don't care anyway)
+	// - some possible 'delete-all' sequence would have to be implemented separately (where the cookies are don't care anyway)
 	loCookie := apFlowItem.GetCookie()
 	logger.Debugw("flow-remove base indications", log.Fields{"device-id": dh.deviceID, "cookie": loCookie})
 
@@ -2159,9 +2221,12 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(apFlowItem *ofp.OfpFlowStats,
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(loCookie)
 	}
-	logger.Warnw("flow-remove called, but no flow is configured (no VlanConfigFsm)",
+	logger.Debugw("flow-remove called, but no flow is configured (no VlanConfigFsm, flow already removed) ",
 		log.Fields{"device-id": dh.deviceID})
 	//but as we regard the flow as not existing = removed we respond just ok
+	// and treat the reason accordingly (which in the normal removal procedure is initiated by the FSM)
+	go dh.deviceProcStatusUpdate(OmciVlanFilterRemDone)
+
 	return nil
 }
 
@@ -2208,6 +2273,26 @@ func (dh *deviceHandler) createVlanFilterFsm(apUniPort *onuUniPort, aTpID uint16
 		return fmt.Errorf("uniVlanConfigFsm could not be created for device-id %x", dh.deviceID)
 	}
 	return nil
+}
+
+//VerifyVlanConfigRequest checks on existence of a given uniPort
+// and starts verification of flow config based on that
+func (dh *deviceHandler) VerifyVlanConfigRequest(aUniID uint8) {
+	//ensure that the given uniID is available (configured) in the UniPort class (used for OMCI entities)
+	var pCurrentUniPort *onuUniPort
+	for _, uniPort := range dh.uniEntityMap {
+		// only if this port is validated for operState transfer
+		if uniPort.uniID == uint8(aUniID) {
+			pCurrentUniPort = uniPort
+			break //found - end search loop
+		}
+	}
+	if pCurrentUniPort == nil {
+		logger.Debugw("VerifyVlanConfig aborted: requested uniID not found in PortDB",
+			log.Fields{"device-id": dh.deviceID, "uni-id": aUniID})
+		return
+	}
+	dh.verifyUniVlanConfigRequest(pCurrentUniPort)
 }
 
 //verifyUniVlanConfigRequest checks on existence of flow configuration and starts it accordingly

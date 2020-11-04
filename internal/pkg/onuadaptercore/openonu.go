@@ -315,34 +315,28 @@ func (oo *OpenONUAC) Update_flows_bulk(device *voltha.Device, flows *voltha.Flow
 //Update_flows_incrementally updates (add/remove) the flows on a given device
 func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device,
 	flows *openflow_13.FlowChanges, groups *openflow_13.FlowGroupChanges, flowMetadata *voltha.FlowMetadata) error {
-	// no point in pushing omci flows if the device isn't reachable
-	if device.ConnectStatus != voltha.ConnectStatus_REACHABLE ||
-		device.AdminState != voltha.AdminState_ENABLED {
-		logger.Warnw("device disabled or offline - skipping flow-update", log.Fields{"ConnectStatus": device.ConnectStatus,
-			"AdminState": device.AdminState, "deviceId": device.Id})
-		return fmt.Errorf("non-matching device state: %s", device.Id)
-		//TODO!!: verify if some flow delete activity as observed in BBSIM tests after ONU-down indication
-		//  has some system impact on general behavior after ONU up again (as no flow is really removed here)
-		//  but it may only be related to following device_delete, which anyway should clear up all stuff
-		//  (testing needed with new device-enable [after device-delete] ...)
-	}
+
+	//flow config is relayed to handler even if the device might be in some 'inactive' state
+	// let the handler or related FSM's decide, what to do with the modified flow state info
+	// at least the flow-remove must be done in respect to internal data, while OMCI activity might not be needed here
 
 	// For now, there is no support for group changes (as in the actual Py-adapter code)
+	//   but processing is continued for flowUpdate possibly also set in the request
 	if groups.ToAdd != nil && groups.ToAdd.Items != nil {
-		logger.Debugw("Update-flow-incr: group add not supported (ignored)", log.Fields{"deviceId": device.Id})
+		logger.Warnw("Update-flow-incr: group add not supported (ignored)", log.Fields{"device-id": device.Id})
 	}
 	if groups.ToRemove != nil && groups.ToRemove.Items != nil {
-		logger.Debugw("Update-flow-incr: group remove not supported (ignored)", log.Fields{"deviceId": device.Id})
+		logger.Warnw("Update-flow-incr: group remove not supported (ignored)", log.Fields{"device-id": device.Id})
 	}
 	if groups.ToUpdate != nil && groups.ToUpdate.Items != nil {
-		logger.Debugw("Update-flow-incr: group update not supported (ignored)", log.Fields{"deviceId": device.Id})
+		logger.Warnw("Update-flow-incr: group update not supported (ignored)", log.Fields{"device-id": device.Id})
 	}
 
 	if handler := oo.getDeviceHandler(device.Id); handler != nil {
 		err := handler.FlowUpdateIncremental(flows, groups, flowMetadata)
 		return err
 	}
-	logger.Warnw("no handler found for incremental flow update", log.Fields{"deviceId": device.Id})
+	logger.Warnw("no handler found for incremental flow update", log.Fields{"device-id": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
