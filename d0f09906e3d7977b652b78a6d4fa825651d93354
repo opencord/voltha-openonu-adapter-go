@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "08d58e60_9ea30374",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-04T19:34:08Z",
+      "side": 1,
+      "message": "Sorry for my ignorance about this code. It is no clear what is the role of this variable and how/why this is used. Can you please clarify?",
+      "revId": "d0f09906e3d7977b652b78a6d4fa825651d93354",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "54e69192_b061c7fc",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
