@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "01cd38f2_e7200640",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-05T07:38:51Z",
+      "side": 1,
+      "message": "On succesful configuration the state machine generates an event indication for further device handler specific processing. The state machine now includes both activites: adding of rules and removing of rules wich must be accordingly indicated to the handler as event. \u0027requestEventOffset\u0027 is now used here with values 0 or 1 to supply an offset to the requested event value (enum) (which is always the \u0027add\u0027 value) to indicate either success for adding (0) or removing (1). Compare also OnuDeviceEvent (enum) definition in onu_device_entry.go.",
+      "parentUuid": "08d58e60_9ea30374",
+      "revId": "d0f09906e3d7977b652b78a6d4fa825651d93354",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "54e69192_b061c7fc",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2020-11-04T17:53:26Z",
       "side": 1,
       "message": "are you planning to include this TODO in this version of the patch ?",
+      "revId": "d0f09906e3d7977b652b78a6d4fa825651d93354",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7da8c227_d0b34a72",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 495,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-05T07:38:51Z",
+      "side": 1,
+      "message": "No, this will be part of the real techProfile removal story VOL-3330",
+      "parentUuid": "54e69192_b061c7fc",
       "revId": "d0f09906e3d7977b652b78a6d4fa825651d93354",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
