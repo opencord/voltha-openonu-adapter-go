@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "68b146a9_d797d684",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-10T15:02:08Z",
+      "side": 1,
+      "message": "you can omit this check here, it\u0027s safe to call the delete on a map entry even if it does not exist",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "83f15a37_99585755",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -19,6 +36,23 @@
     },
     {
       "key": {
+        "uuid": "fce06377_c99c70e4",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-10T15:02:08Z",
+      "side": 1,
+      "message": "perhaps also add a comment that as a workaround this handling is only required for the OnuIndication with OperState\u003dUp event, but we live without that further check and use this processing also for OperState down/unreachable events to avoid the deeper message processing at this stage. Should do no harm on the other events (except for run time)",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8ebc6b39_0a1478ee",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -30,6 +64,24 @@
       "writtenOn": "2020-11-10T14:12:09Z",
       "side": 1,
       "message": "do you need to cleanup also deviceHandlersCreateChan map ?",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d751d3fd_1a29ddbc",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-10T15:02:08Z",
+      "side": 1,
+      "message": "it\u0027s done internally in the deleteDeviceHandlerToMap",
+      "parentUuid": "8ebc6b39_0a1478ee",
       "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
