@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "782a713a_3826e43c",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-10T15:02:40Z",
+      "side": 1,
+      "message": "Would it be ok to define a separate story for that?",
+      "parentUuid": "83f15a37_99585755",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fce06377_c99c70e4",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -81,6 +99,24 @@
       "writtenOn": "2020-11-10T15:02:08Z",
       "side": 1,
       "message": "it\u0027s done internally in the deleteDeviceHandlerToMap",
+      "parentUuid": "8ebc6b39_0a1478ee",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03caed55_8dc4aaf1",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-10T15:02:40Z",
+      "side": 1,
+      "message": "deleteDeviceHandlerToMap() deletes the corresponding entries in deviceHandlers- as well as deviceHandlersCreateChan-map.",
       "parentUuid": "8ebc6b39_0a1478ee",
       "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
