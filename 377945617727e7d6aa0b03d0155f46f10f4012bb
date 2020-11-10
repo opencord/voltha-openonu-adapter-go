@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "a4c68289_b02baa76",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-10T15:22:53Z",
+      "side": 1,
+      "message": "yes, fine, thanks.",
+      "parentUuid": "782a713a_3826e43c",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fce06377_c99c70e4",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
