@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "f0cde670_45fb1d9c",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-10T16:01:17Z",
+      "side": 1,
+      "message": "New story to cover that: https://jira.opencord.org/browse/VOL-3629",
+      "parentUuid": "a4c68289_b02baa76",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fce06377_c99c70e4",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
