@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "83f15a37_99585755",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-10T14:12:09Z",
+      "side": 1,
+      "message": "extract as property so it\u0027s configurable",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ebc6b39_0a1478ee",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-10T14:12:09Z",
+      "side": 1,
+      "message": "do you need to cleanup also deviceHandlersCreateChan map ?",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
