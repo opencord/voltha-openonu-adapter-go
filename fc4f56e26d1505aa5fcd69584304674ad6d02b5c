@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0e8a8738_b497640d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-10T10:54:34Z",
+      "side": 1,
+      "message": "Ack. Was probably copied from block above, which then should also be Errorw.",
+      "parentUuid": "156f6830_3fedc422",
+      "revId": "fc4f56e26d1505aa5fcd69584304674ad6d02b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "855dc423_85d75b4b",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 6
@@ -30,6 +48,24 @@
       "writtenOn": "2020-11-10T10:09:10Z",
       "side": 1,
       "message": "minor: move to Errorw",
+      "revId": "fc4f56e26d1505aa5fcd69584304674ad6d02b5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8f95a768_064523e2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 596,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-10T10:54:34Z",
+      "side": 1,
+      "message": "Ack. Also copied from blocks above, which then also should use Errorw. Todo in one of the upcoming stories/updates.",
+      "parentUuid": "855dc423_85d75b4b",
       "revId": "fc4f56e26d1505aa5fcd69584304674ad6d02b5c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
