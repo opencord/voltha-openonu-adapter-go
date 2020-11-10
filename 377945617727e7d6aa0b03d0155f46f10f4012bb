@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "04a0818f_ba1097e3",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-10T15:21:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "68b146a9_d797d684",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "83f15a37_99585755",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -65,6 +83,24 @@
       "writtenOn": "2020-11-10T15:02:08Z",
       "side": 1,
       "message": "perhaps also add a comment that as a workaround this handling is only required for the OnuIndication with OperState\u003dUp event, but we live without that further check and use this processing also for OperState down/unreachable events to avoid the deeper message processing at this stage. Should do no harm on the other events (except for run time)",
+      "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "310e15af_687a8b11",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-10T15:21:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fce06377_c99c70e4",
       "revId": "377945617727e7d6aa0b03d0155f46f10f4012bb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
