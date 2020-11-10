@@ -38,6 +38,7 @@ import (
 //OpenONUAC structure holds the ONU core information
 type OpenONUAC struct {
 	deviceHandlers              map[string]*deviceHandler
+	deviceHandlersCreateChan    map[string]chan bool //channels for deviceHandler create events
 	coreProxy                   adapterif.CoreProxy
 	adapterProxy                adapterif.AdapterProxy
 	eventProxy                  adapterif.EventProxy
@@ -66,6 +67,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	var openOnuAc OpenONUAC
 	openOnuAc.exitChannel = make(chan int, 1)
 	openOnuAc.deviceHandlers = make(map[string]*deviceHandler)
+	openOnuAc.deviceHandlersCreateChan = make(map[string]chan bool)
 	openOnuAc.kafkaICProxy = kafkaICProxy
 	openOnuAc.config = cfg
 	openOnuAc.numOnus = cfg.OnuNumber
@@ -127,24 +129,45 @@ func (oo *OpenONUAC) addDeviceHandlerToMap(ctx context.Context, agent *deviceHan
 	if _, exist := oo.deviceHandlers[agent.deviceID]; !exist {
 		oo.deviceHandlers[agent.deviceID] = agent
 		oo.deviceHandlers[agent.deviceID].start(ctx)
+		if _, exist := oo.deviceHandlersCreateChan[agent.deviceID]; exist {
+			logger.Debugw("deviceHandler created - trigger processing of pending ONU_IND_REQUEST", log.Fields{"device-id": agent.deviceID})
+			oo.deviceHandlersCreateChan[agent.deviceID] <- true
+		}
 	}
 }
 
-/*
 func (oo *OpenONUAC) deleteDeviceHandlerToMap(agent *deviceHandler) {
 	oo.lockDeviceHandlersMap.Lock()
 	defer oo.lockDeviceHandlersMap.Unlock()
 	delete(oo.deviceHandlers, agent.deviceID)
+	delete(oo.deviceHandlersCreateChan, agent.deviceID)
 }
-*/
 
-func (oo *OpenONUAC) getDeviceHandler(deviceID string) *deviceHandler {
+//getDeviceHandler gets the ONU deviceHandler and may wait until it is created
+func (oo *OpenONUAC) getDeviceHandler(deviceID string, aWait bool) *deviceHandler {
 	oo.lockDeviceHandlersMap.Lock()
-	defer oo.lockDeviceHandlersMap.Unlock()
-	if agent, ok := oo.deviceHandlers[deviceID]; ok {
-		return agent
+	agent, ok := oo.deviceHandlers[deviceID]
+	if aWait && !ok {
+		logger.Debugw("deviceHandler not present - wait for creation or timeout", log.Fields{"device-id": deviceID})
+		if _, exist := oo.deviceHandlersCreateChan[deviceID]; !exist {
+			oo.deviceHandlersCreateChan[deviceID] = make(chan bool, 1)
+		}
+		//keep the read sema short to allow for subsequent write
+		oo.lockDeviceHandlersMap.Unlock()
+		// based on concurrent processing the deviceHandler creation may not yet be finished at his point
+		// so it might be needed to wait here for that event with some timeout
+		select {
+		case <-time.After(1 * time.Second): //timer may be discussed ...
+			logger.Warnw("No valid deviceHandler created after max WaitTime", log.Fields{"device-id": deviceID})
+			return nil
+		case <-oo.deviceHandlersCreateChan[deviceID]:
+			logger.Debugw("deviceHandler is ready now - continue", log.Fields{"device-id": deviceID})
+			// if written now, we can return the written value without sema
+			return oo.deviceHandlers[deviceID]
+		}
 	}
-	return nil
+	oo.lockDeviceHandlersMap.Unlock()
+	return agent
 }
 
 // Adapter interface required methods ############## begin #########
@@ -162,7 +185,7 @@ func (oo *OpenONUAC) Adopt_device(device *voltha.Device) error {
 	ctx := context.Background()
 	logger.Infow("adopt-device", log.Fields{"device-id": device.Id})
 	var handler *deviceHandler
-	if handler = oo.getDeviceHandler(device.Id); handler == nil {
+	if handler = oo.getDeviceHandler(device.Id, false); handler == nil {
 		handler := newDeviceHandler(oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
 		oo.addDeviceHandlerToMap(ctx, handler)
 		go handler.adoptOrReconcileDevice(ctx, device)
@@ -187,9 +210,22 @@ func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) 
 	logger.Debugw("Process_inter_adapter_message", log.Fields{"msgId": msg.Header.Id,
 		"msgProxyDeviceId": msg.Header.ProxyDeviceId, "msgToDeviceId": msg.Header.ToDeviceId})
 
+	var waitForDhInstPresent bool
+	//ToDeviceId should address a DeviceHandler instance
 	targetDevice := msg.Header.ToDeviceId
-	//ToDeviceId should address an DeviceHandler instance
-	if handler := oo.getDeviceHandler(targetDevice); handler != nil {
+	// As a workaround this handling is only required for the OnuIndication with OperState=Up event.
+	// But we live without that further check and use this processing also for OperState down/unreachable events to avoid
+	// the deeper message processing at this stage. Should do no harm on the other events (except for run time)
+	if msg.Header.Type != ic.InterAdapterMessageType_ONU_IND_REQUEST {
+		waitForDhInstPresent = false
+	} else {
+		//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
+		//ONU_IND_REQUEST msg by olt-adapter could arrive a little bit earlier than rw_core was able to announce the corresponding
+		//ONU by RPC of Adopt_device()
+		logger.Debugw("ONU_IND_REQUEST - potentially wait until DeviceHandler instance is created", log.Fields{"device-id": targetDevice})
+		waitForDhInstPresent = true
+	}
+	if handler := oo.getDeviceHandler(targetDevice, waitForDhInstPresent); handler != nil {
 		/* 200724: modification towards synchronous implementation - possible errors within processing shall be
 		 * 	 in the accordingly delayed response, some timing effect might result in Techprofile processing for multiple UNI's
 		 */
@@ -232,7 +268,7 @@ func (oo *OpenONUAC) Reconcile_device(device *voltha.Device) error {
 	ctx := context.Background()
 	logger.Infow("Reconcile_device", log.Fields{"device-id": device.Id})
 	var handler *deviceHandler
-	if handler = oo.getDeviceHandler(device.Id); handler == nil {
+	if handler = oo.getDeviceHandler(device.Id, false); handler == nil {
 		handler := newDeviceHandler(oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
 		oo.addDeviceHandlerToMap(ctx, handler)
 		handler.device = device
@@ -253,7 +289,7 @@ func (oo *OpenONUAC) Abandon_device(device *voltha.Device) error {
 //Disable_device disables the given device
 func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
 	logger.Debugw("Disable_device", log.Fields{"device-id": device.Id})
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		go handler.disableDevice(device)
 		return nil
 	}
@@ -264,7 +300,7 @@ func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
 //Reenable_device enables the onu device after disable
 func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
 	logger.Debugw("Reenable_device", log.Fields{"device-id": device.Id})
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		go handler.reEnableDevice(device)
 		return nil
 	}
@@ -275,7 +311,7 @@ func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
 //Reboot_device reboots the given device
 func (oo *OpenONUAC) Reboot_device(device *voltha.Device) error {
 	logger.Debugw("Reboot-device", log.Fields{"device-id": device.Id})
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		go handler.rebootDevice(device)
 		return nil
 	}
@@ -291,12 +327,15 @@ func (oo *OpenONUAC) Self_test_device(device *voltha.Device) error {
 // Delete_device deletes the given device
 func (oo *OpenONUAC) Delete_device(device *voltha.Device) error {
 	logger.Debugw("Delete_device", log.Fields{"device-id": device.Id})
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
-		if err := handler.deleteDevice(device); err != nil {
+	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
+		err := handler.deleteDevice(device)
+		//don't leave any garbage - even in error case
+		oo.deleteDeviceHandlerToMap(handler)
+		if err != nil {
 			return err
 		}
 	} else {
-		logger.Warnw("no handler found for device-reconcilement", log.Fields{"device-id": device.Id})
+		logger.Warnw("no handler found for device-deletion", log.Fields{"device-id": device.Id})
 		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 	}
 	return nil
@@ -332,7 +371,7 @@ func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device,
 		logger.Warnw("Update-flow-incr: group update not supported (ignored)", log.Fields{"device-id": device.Id})
 	}
 
-	if handler := oo.getDeviceHandler(device.Id); handler != nil {
+	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		err := handler.FlowUpdateIncremental(flows, groups, flowMetadata)
 		return err
 	}
