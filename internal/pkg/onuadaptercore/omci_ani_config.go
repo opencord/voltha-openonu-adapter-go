@@ -19,7 +19,9 @@ package adaptercoreonu
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"net"
 	"strconv"
 	"time"
 
@@ -82,13 +84,17 @@ const (
 )
 
 type ponAniGemPortAttribs struct {
-	gemPortID   uint16
-	upQueueID   uint16
-	downQueueID uint16
-	direction   uint8
-	qosPolicy   string
-	weight      uint8
-	pbitString  string
+	gemPortID      uint16
+	upQueueID      uint16
+	downQueueID    uint16
+	direction      uint8
+	qosPolicy      string
+	weight         uint8
+	pbitString     string
+	isMulticast    bool
+	multicastGemID uint16
+	staticACL      string
+	dynamicACL     string
 }
 
 //uniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
@@ -361,6 +367,12 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 			loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
 			loGemPortAttribs.weight = gemEntry.queueWeight
 			loGemPortAttribs.pbitString = gemEntry.pbitString
+			if gemEntry.isMulticast {
+				loGemPortAttribs.isMulticast = true
+				loGemPortAttribs.multicastGemID = gemEntry.multicastGemPortID
+				loGemPortAttribs.staticACL = gemEntry.staticACL
+				loGemPortAttribs.dynamicACL = gemEntry.dynamicACL
+			}
 
 			logger.Debugw("prio-related GemPort attributes:", log.Fields{
 				"gemPortID":      loGemPortAttribs.gemPortID,
@@ -368,6 +380,10 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 				"downQueueID":    loGemPortAttribs.downQueueID,
 				"pbitString":     loGemPortAttribs.pbitString,
 				"prioQueueIndex": gemEntry.prioQueueIndex,
+				"isMulticast":    loGemPortAttribs.isMulticast,
+				"multicastGemID": loGemPortAttribs.multicastGemID,
+				"staticACL":      loGemPortAttribs.staticACL,
+				"dynamicACL":     loGemPortAttribs.dynamicACL,
 			})
 
 			oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
@@ -513,7 +529,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 
 		}
 	}
-	var foundIwPtr bool = false
+	var foundIwPtr = false
 	for index, value := range loPrioGemPortArray {
 		if value != 0 {
 			foundIwPtr = true
@@ -942,26 +958,52 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
 			"SPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 			"device-id": oFsm.deviceID})
-		meParams := me.ParamData{
-			EntityID: gemPortAttribs.gemPortID,
-			Attributes: me.AttributeValueMap{
-				"GemPortNetworkCtpConnectivityPointer": gemPortAttribs.gemPortID, //same as EntityID, see above
-				"InterworkingOption":                   5,                        //fixed model:: G.998 .1pMapper
-				"ServiceProfilePointer":                oFsm.mapperSP0ID,
-				"InterworkingTerminationPointPointer":  0, //not used with .1PMapper Mac bridge
-				"GalProfilePointer":                    galEthernetEID,
-			},
-		}
-		meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
-			oFsm.pAdaptFsm.commChan, meParams)
-		//accept also nil as (error) return value for writing to LastTx
-		//  - this avoids misinterpretation of new received OMCI messages
-		oFsm.pLastTxMeInstance = meInstance
 
+		//TODO if the port has only downstream direction the isMulticast flag can be removed.
+		if gemPortAttribs.isMulticast {
+			ipv4MulticastTable := make([]uint8, 12)
+			binary.BigEndian.PutUint16(ipv4MulticastTable[0:], gemPortAttribs.gemPortID)
+			binary.BigEndian.PutUint16(ipv4MulticastTable[2:], 0)
+			// This is the 224.0.0.1 address
+			binary.BigEndian.PutUint32(ipv4MulticastTable[4:], IPToInt32(net.IPv4allsys))
+			// this is the 255.255.255.255 address
+			binary.BigEndian.PutUint32(ipv4MulticastTable[8:], IPToInt32(net.IPv4bcast))
+
+			meParams := me.ParamData{
+				EntityID: gemPortAttribs.gemPortID,
+				Attributes: me.AttributeValueMap{
+					"GemPortNetworkCtpConnectivityPointer": gemPortAttribs.gemPortID,
+					"InterworkingOption":                   0, // Don't Care
+					"ServiceProfilePointer":                0, // Don't Care
+					"GalProfilePointer":                    galEthernetEID,
+					"Ipv4MulticastAddressTable":            ipv4MulticastTable,
+				},
+			}
+			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout,
+				true, oFsm.pAdaptFsm.commChan, meParams)
+			oFsm.pLastTxMeInstance = meInstance
+
+		} else {
+			meParams := me.ParamData{
+				EntityID: gemPortAttribs.gemPortID,
+				Attributes: me.AttributeValueMap{
+					"GemPortNetworkCtpConnectivityPointer": gemPortAttribs.gemPortID, //same as EntityID, see above
+					"InterworkingOption":                   5,                        //fixed model:: G.998 .1pMapper
+					"ServiceProfilePointer":                oFsm.mapperSP0ID,
+					"InterworkingTerminationPointPointer":  0, //not used with .1PMapper Mac bridge
+					"GalProfilePointer":                    galEthernetEID,
+				},
+			}
+			meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
+				oFsm.pAdaptFsm.commChan, meParams)
+			//accept also nil as (error) return value for writing to LastTx
+			//  - this avoids misinterpretation of new received OMCI messages
+			oFsm.pLastTxMeInstance = meInstance
+		}
 		//verify response
 		err := oFsm.waitforOmciResponse()
 		if err != nil {
-			logger.Errorw("GemIwTp create failed, aborting AniConfig FSM!",
+			logger.Errorw("GemTP create failed, aborting AniConfig FSM!",
 				log.Fields{"device-id": oFsm.deviceID, "GemIndex": gemIndex})
 			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
