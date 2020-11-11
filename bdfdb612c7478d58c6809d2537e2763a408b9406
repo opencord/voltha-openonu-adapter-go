@@ -124,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "908da2ae_f23a13dc",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-11T15:41:22Z",
+      "side": 1,
+      "message": "there are two ways of moving to boolean\n1) defining as boolean here and converting when receiving the string at line 291 with strconv.ParseBool(loGemPortAttribs.isMulticast)\n2) changing omci-lib-go for boolean.",
+      "parentUuid": "767c9dad_3e6b7d8a",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4ca86ae6_df3d72e1",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
