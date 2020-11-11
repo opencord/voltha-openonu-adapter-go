@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "28448a1d_8c604957",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-11T08:24:16Z",
+      "side": 1,
+      "message": "can we have this as boolean and convert from string to boolean at line 291 ?",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81a02781_f12f0181",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 719,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-11T08:24:16Z",
+      "side": 1,
+      "message": "this would then easily become only if gemPortAttribs.isMulticast",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2b1aa84c_23d6b244",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-11T08:24:16Z",
+      "side": 1,
+      "message": "usually this should be content.PriorityQueue \u003e 7",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
