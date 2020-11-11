@@ -73,6 +73,10 @@ type gemPortParamStruct struct {
 	//maxQueueSize     uint16
 	queueSchedPolicy string
 	queueWeight      uint8
+	isMulticast string
+	multicastGemPortID uint16
+	staticACL  string
+	dynamicACL string
 }
 
 //refers to one tcont and its properties and all assigned GemPorts and their properties
@@ -407,8 +411,52 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 		onuTP.chTpConfigProcessingStep <- 0 //error indication
 		return
 	}
-	//TODO!! MC (downstream) GemPorts can be set using DownstreamGemPortAttributeList separately
+	for pos, content := range tpInst.DownstreamGemPortAttributeList {
+		if uint32(pos) == loNumGemPorts {
+			logger.Debugw("PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
+				log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
+			break
+		}
+		if pos == 0 {
+			//at least one upstream GemPort should always exist (else traffic profile makes no sense)
+			loGemPortRead = true
+		}
+		if content.IsMulticast == "True"{
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)] = &gemPortParamStruct{}
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortID =
+				uint16(content.McastGemID)
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].direction = 2 // for ANI to UNI as defined in G.988
+			if 7 < content.PriorityQueue {
+				logger.Errorw("PonAniConfig reject on GemPortList - PrioQueue value invalid",
+					log.Fields{"device-id": onuTP.deviceID, "index": pos, "PrioQueue": content.PriorityQueue})
+				//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
+				delete(onuTP.mapPonAniConfig, aUniID)
+				onuTP.chTpConfigProcessingStep <- 0 //error indication
+				return
+			}
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].prioQueueIndex =
+				uint8(content.PriorityQueue)
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].pbitString =
+				strings.TrimPrefix(content.PbitMap, binaryStringPrefix)
+			if content.AesEncryption == "True" {
+				(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortEncState = 1
+			} else {
+				(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].gemPortEncState = 0
+			}
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].discardPolicy =
+				content.DiscardPolicy
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueSchedPolicy =
+				content.SchedulingPolicy
+			//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].queueWeight =
+				uint8(content.Weight)
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].isMulticast = content.IsMulticast
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].multicastGemPortID = uint16(content.McastGemID)
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].staticACL = content.SControlList
+			(*(onuTP.mapPonAniConfig[aUniID]))[0].mapGemPortParams[uint16(pos)].dynamicACL = content.DControlList
 
+		}
+	}
 	//logger does not simply output the given structures, just give some example debug values
 	logger.Debugw("PonAniConfig read from TechProfile", log.Fields{
 		"device-id": onuTP.deviceID,
