@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -73,6 +74,11 @@ type gemPortParamStruct struct {
 	queueSchedPolicy string
 	queueWeight      uint8
 	removeIndex      uint16
+	isMulticast      bool
+	//TODO check if this has any value/difference from gemPortId
+	multicastGemPortID uint16
+	staticACL          string
+	dynamicACL         string
 }
 
 //refers to one tcont and its properties and all assigned GemPorts and their properties
@@ -267,7 +273,7 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 }
 
 /* internal methods *********************/
-
+// nolint: gocyclo
 func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 	ctx context.Context, aUniID uint8, aTpID uint8, aPathString string, aProcessingStep uint8) {
 	var tpInst tp.TechProfile
@@ -383,6 +389,8 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 			loGemPortRead = true
 		} else {
 			//for all further GemPorts we need to extend the mapGemPortParams
+			//FIXME one can use uint16(content.GemportID) as key to the map
+			// see jira https://jira.opencord.org/browse/VOL-3667
 			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)] = &gemPortParamStruct{}
 		}
 		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].gemPortID =
@@ -391,7 +399,7 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 		//  for now just assume bidirectional (upstream never exists alone)
 		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].direction = 3 //as defined in G.988
 		// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
-		if 7 < content.PriorityQueue {
+		if content.PriorityQueue > 7 {
 			logger.Errorw("PonAniConfig reject on GemPortList - PrioQueue value invalid",
 				log.Fields{"device-id": onuTP.deviceID, "index": pos, "PrioQueue": content.PriorityQueue})
 			//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
@@ -416,6 +424,58 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].queueWeight =
 			uint8(content.Weight)
 	}
+
+	for pos, downstreamContent := range tpInst.DownstreamGemPortAttributeList {
+		if uint32(pos) == loNumGemPorts {
+			logger.Debugw("PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
+				log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
+			break
+		}
+
+		//Flag is defined as string in the TP in voltha-lib-go, parsing it from string
+		isMulticast, err := strconv.ParseBool(downstreamContent.IsMulticast)
+
+		if err != nil {
+			logger.Errorw("multicast-error-config-unknown-flag-in-technology-profile", log.Fields{"UniTpKey": uniTPKey,
+				"downstream-gem": downstreamContent, "error": err})
+			continue
+		}
+
+		if isMulticast {
+			mcastGemID := uint16(downstreamContent.McastGemID)
+			_, existing := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID]
+			if existing {
+				//GEM port was previously configured, avoid setting multicast attributes
+				logger.Errorw("multicast-error-config-existing-gem-port-config", log.Fields{"UniTpKey": uniTPKey,
+					"downstream-gem": downstreamContent, "key": mcastGemID})
+				continue
+			} else {
+				//GEM port is not configured, setting multicast attributes
+				logger.Infow("creating-multicast-gem-port", log.Fields{"uniPtKEy": uniTPKey,
+					"gemPortId": mcastGemID, "key": mcastGemID})
+
+				//for all further GemPorts we need to extend the mapGemPortParams
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID] = &gemPortParamStruct{}
+
+				//Separate McastGemId is derived from OMCI-lib-go, if not needed first needs to be removed there.
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].gemPortID = mcastGemID
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].direction = 2 // for ANI to UNI as defined in G.988
+				//Downstream Priority Queue is set in the data of any message exchanged, using in mcast too.
+				if downstreamContent.PriorityQueue > 7 {
+					logger.Errorw("PonAniConfig reject on GemPortList - PrioQueue value invalid",
+						log.Fields{"device-id": onuTP.deviceID, "index": pos, "PrioQueue": downstreamContent.PriorityQueue})
+				}
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].prioQueueIndex =
+					uint8(downstreamContent.PriorityQueue)
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].isMulticast = isMulticast
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].multicastGemPortID =
+					uint16(downstreamContent.McastGemID)
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].staticACL = downstreamContent.SControlList
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].dynamicACL = downstreamContent.DControlList
+			}
+		}
+	}
+
 	if !loGemPortRead {
 		logger.Errorw("PonAniConfig reject - no GemPort could be read from TechProfile",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
@@ -424,8 +484,6 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 		onuTP.chTpConfigProcessingStep <- 0 //error indication
 		return
 	}
-	//TODO!! MC (downstream) GemPorts can be set using DownstreamGemPortAttributeList separately
-
 	//logger does not simply output the given structures, just give some example debug values
 	logger.Debugw("PonAniConfig read from TechProfile", log.Fields{
 		"device-id": onuTP.deviceID, "uni-id": aUniID,
