@@ -18,7 +18,9 @@
 package adaptercoreonu
 
 import (
+	"encoding/binary"
 	"errors"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,4 +42,12 @@ func GetTpIDFromTpPath(tpPath string) (uint8, error) {
 	tpID, err := strconv.Atoi(strings.Split(tpPath, "/")[1])
 	// Atoi returns uint64 and need to be type-casted to uint8 as tpID is uint8 size.
 	return uint8(tpID), err
+}
+
+//IPToInt32 transforms an IP of net.Ip type to int32
+func IPToInt32(ip net.IP) uint32 {
+	if len(ip) == 16 {
+		return binary.BigEndian.Uint32(ip[12:16])
+	}
+	return binary.BigEndian.Uint32(ip)
 }
