@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "edc1460e_7e61c313",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 989,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-12T14:18:30Z",
+      "side": 1,
+      "message": "if this is entered during \"DisableDevice\" or \"DisablePort\" state we do not want to actually remove the flows, in the \"disabled\" state the operator would need to go and actually remove the flows from the system by call the ONOS APIs to remove the subscriber. So I woudl not remove the flows from the ONU here.",
+      "revId": "cf2ddfe063d2160da2b3ed04dc7314a43e98c5bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
