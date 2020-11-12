@@ -54,6 +54,7 @@ type tTechProfileIndication struct {
 	techProfileType       string
 	techProfileID         uint16
 	techProfileConfigDone bool
+	techProfileToDelete   bool
 }
 
 type tcontParamStruct struct {
@@ -297,6 +298,7 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 	//note the limitation on ID range (probably even more limited) - based on usage within OMCI EntityID
 	onuTP.mapUniTpIndication[aUniID].techProfileID = uint16(profID)
 	onuTP.mapUniTpIndication[aUniID].techProfileConfigDone = false
+	onuTP.mapUniTpIndication[aUniID].techProfileToDelete = false
 	logger.Debugw("tech-profile path indications",
 		log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID,
 			"profType": onuTP.mapUniTpIndication[aUniID].techProfileType,
@@ -569,9 +571,23 @@ func (onuTP *onuUniTechProf) getTechProfileDone(aUniID uint8, aTpID uint16) bool
 		if onuTP.mapUniTpIndication[aUniID].techProfileID == aTpID {
 			onuTP.mutexTPState.Lock()
 			defer onuTP.mutexTPState.Unlock()
+			if onuTP.mapUniTpIndication[aUniID].techProfileToDelete {
+				logger.Debugw("TechProfile not relevant for requested flow config - waiting on delete",
+					log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
+				return false //still waiting for removal of this techProfile first
+			}
 			return onuTP.mapUniTpIndication[aUniID].techProfileConfigDone
 		}
 	}
 	//for all other constellations indicate false = Config not done
 	return false
+}
+
+// setProfileToDelete sets the requested techProfile toDelete state (if possible)
+func (onuTP *onuUniTechProf) setProfileToDelete(aUniID uint8, aState bool) {
+	if _, existTP := onuTP.mapUniTpIndication[aUniID]; existTP {
+		onuTP.mutexTPState.Lock()
+		onuTP.mapUniTpIndication[aUniID].techProfileToDelete = aState
+		onuTP.mutexTPState.Unlock()
+	} //else: the state is just ignored (does not exist)
 }

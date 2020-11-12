@@ -572,6 +572,10 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 
 func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingStep uint8) {
 
+	logger.Debugw("delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
+	oo.sOnuPersistentData.PersUniConfig = nil                                             //releasing all UniConfig entries to garbage collector
+	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", make([]uniPersConfig, 0)} //default entry
+
 	logger.Debugw("delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
 	if err != nil {
@@ -669,6 +673,11 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aPathString string) b
 				//  (during which the flows are removed/re-assigned but the techProf is left active)
 				//and as the TechProfile is regarded as active we have to verify, if some flow configuration still waits on it
 				//  (should not be the case, but should not harm or be more robust ...)
+				// and to be sure, that for some reason the corresponding TpDelete was lost somewhere in history
+				//  we also reset a possibly outstanding delete request - repeated TpConfig is regarded as valid for waiting flow config
+				if oo.baseDeviceHandler.pOnuTP != nil {
+					oo.baseDeviceHandler.pOnuTP.setProfileToDelete(aUniID, false)
+				}
 				go oo.baseDeviceHandler.VerifyVlanConfigRequest(aUniID)
 			}
 			return false //indicate 'no change' - nothing more to do, TechProf inter-adapter message is return with success anyway here

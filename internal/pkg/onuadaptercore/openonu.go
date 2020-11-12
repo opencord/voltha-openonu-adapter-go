@@ -326,19 +326,15 @@ func (oo *OpenONUAC) Self_test_device(device *voltha.Device) error {
 
 // Delete_device deletes the given device
 func (oo *OpenONUAC) Delete_device(device *voltha.Device) error {
-	logger.Debugw("Delete_device", log.Fields{"device-id": device.Id})
+	logger.Debugw("Delete_device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
-		err := handler.deleteDevice(device)
+		err := handler.deleteDevicePersistencyData()
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
-		if err != nil {
-			return err
-		}
-	} else {
-		logger.Warnw("no handler found for device-deletion", log.Fields{"device-id": device.Id})
-		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+		return err
 	}
-	return nil
+	logger.Warnw("no handler found for device-deletion", log.Fields{"device-id": device.Id})
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Get_device_details unimplemented

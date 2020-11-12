@@ -652,7 +652,7 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 				logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 			}
 
-			logger.Debugw("DeviceReasonUpdate upon re-enable", log.Fields{
+			logger.Debugw("DeviceReasonUpdate upon disable", log.Fields{
 				"reason": "omci-admin-lock", "device-id": dh.deviceID})
 			// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
 			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
@@ -783,13 +783,14 @@ func (dh *deviceHandler) reconcileMetrics() {
 	dh.reconciling = false
 }
 
-func (dh *deviceHandler) deleteDevice(device *voltha.Device) error {
-	logger.Debugw("delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
+func (dh *deviceHandler) deleteDevicePersistencyData() error {
+	logger.Debugw("delete device persistency data", log.Fields{"device-id": dh.deviceID})
 
-	pDevEntry := dh.getOnuDeviceEntry(true)
+	pDevEntry := dh.getOnuDeviceEntry(false)
 	if pDevEntry == nil {
-		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
-		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+		//IfDevEntry does not exist here, no problem - no persistent data should have been stored
+		logger.Debugw("OnuDevice does not exist - nothing to delete", log.Fields{"device-id": dh.deviceID})
+		return nil
 	}
 	pDevEntry.lockOnuKVStoreMutex()
 	defer pDevEntry.unlockOnuKVStoreMutex()
@@ -1339,6 +1340,7 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 	// (but note that the deviceReason may also have changed to e.g. TechProf*Delete_Success in between)
 	if dh.deviceReason != "stopping-openomci" {
 		logger.Debugw("updateInterface-started - stopping-device", log.Fields{"device-id": dh.deviceID})
+
 		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
 		//here no conflict with aborted FSM's should arise as a complete OMCI initialization is assumed on ONU-Up
 		//but that might change with some simple MDS check on ONU-Up treatment -> attention!!!
@@ -1348,6 +1350,8 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 			// abort: system behavior is just unstable ...
 			return err
 		}
+		//all stored persitent data are not valid anymore (loosing knowledge abouit the connected ONU)
+		_ = dh.deleteDevicePersistencyData() //ignore possible errors here and continue, hope is that data is synchronized with new ONU-Up
 
 		//deviceEntry stop without omciCC reset here, regarding the OMCI_CC still valid for this ONU
 		// - in contrary to disableDevice - compare with processUniDisableStateDoneEvent
@@ -1441,6 +1445,10 @@ func (dh *deviceHandler) resetFsms() error {
 				//VlanFilterFsm exists and was already started
 				pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 				if pVlanFilterStatemachine != nil {
+					//reset of all Fsm is always accompagnied by global persistency data removal
+					//  no need to remove specific data
+					pVlanFilterFsm.RequestClearPersistency(false)
+					//and reset the UniVlanConfig FSM
 					_ = pVlanFilterStatemachine.Event(vlanEvReset)
 				}
 			}
@@ -2313,7 +2321,7 @@ func (dh *deviceHandler) storePersUniFlowConfig(aUniID uint8, aUniVlanFlowParams
 		logger.Debugw("reconciling - don't store persistent UniFlowConfig", log.Fields{"device-id": dh.deviceID})
 		return nil
 	}
-	logger.Debugw("Store persistent UniFlowConfig", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw("Store or clear persistent UniFlowConfig", log.Fields{"device-id": dh.deviceID})
 
 	pDevEntry := dh.getOnuDeviceEntry(true)
 	if pDevEntry == nil {

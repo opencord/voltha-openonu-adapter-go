@@ -140,6 +140,7 @@ type UniVlanConfigFsm struct {
 	omciMIdsResponseReceived    chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                   *AdapterFsm
 	acceptIncrementalEvtoOption bool
+	clearPersistency            bool
 	mutexFlowParams             sync.Mutex
 	uniVlanFlowParamsSlice      []uniVlanFlowParams
 	uniRemoveFlowsSlice         []uniRemoveVlanFlowParams
@@ -173,6 +174,7 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 		numUniFlows:                 0,
 		configuredUniFlow:           0,
 		numRemoveFlows:              0,
+		clearPersistency:            true,
 	}
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
@@ -297,6 +299,14 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(aTpID uint16, aCookieSlice []uin
 	}
 
 	return nil
+}
+
+//RequestClearPersistency sets the internal flag to not clear persistency data (false=NoClear)
+func (oFsm *UniVlanConfigFsm) RequestClearPersistency(aClear bool) {
+	//mutex protection is required for possible concurrent access to FSM members
+	oFsm.mutexFlowParams.Lock()
+	defer oFsm.mutexFlowParams.Unlock()
+	oFsm.clearPersistency = aClear
 }
 
 //SetUniFlowParams verifies on existence of flow parameters to be configured,
@@ -470,6 +480,9 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 						oFsm.numUniFlows = 0              //no more flows
 						oFsm.configuredUniFlow = 0        //no more flows configured
 						oFsm.uniVlanFlowParamsSlice = nil //reset the slice
+						//at this point it is evident that no flow anymore refers to a still possibly active Techprofile
+						//request that this profile gets deleted before a new flow add is allowed
+						oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, true)
 						logger.Debugw("UniVlanConfigFsm flow removal - no more flows", log.Fields{
 							"device-id": oFsm.deviceID})
 					} else {
@@ -479,9 +492,28 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 							//TODO!! might be needed to consider still outstanding configure requests ..
 							//  so a flow at removal might still not be configured !?!
 						}
+						usedTpID := storedUniFlowParams.VlanRuleParams.TpID
 						//cut off the requested flow by slicing out this element
 						oFsm.uniVlanFlowParamsSlice = append(
 							oFsm.uniVlanFlowParamsSlice[:flow], oFsm.uniVlanFlowParamsSlice[flow+1:]...)
+						//here we have to check, if there are still other flows referencing to the actual ProfileId
+						//  before we can request that this profile gets deleted before a new flow add is allowed
+						tpIDInOtherFlows := false
+						for _, tpUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
+							if tpUniFlowParams.VlanRuleParams.TpID == usedTpID {
+								tpIDInOtherFlows = true
+								break // search loop can be left
+							}
+						}
+						if tpIDInOtherFlows {
+							logger.Debugw("UniVlanConfigFsm tp-id used in deleted flow is still used in other flows", log.Fields{
+								"device-id": oFsm.deviceID, "tp-id": usedTpID})
+						} else {
+							logger.Debugw("UniVlanConfigFsm tp-id used in deleted flow is not used anymore", log.Fields{
+								"device-id": oFsm.deviceID, "tp-id": usedTpID})
+							//request that this profile gets deleted before a new flow add is allowed
+							oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, true)
+						}
 						logger.Debugw("UniVlanConfigFsm flow removal - specific flow removed from data", log.Fields{
 							"device-id": oFsm.deviceID})
 					}
@@ -943,7 +975,20 @@ func (oFsm *UniVlanConfigFsm) enterDisabled(e *fsm.Event) {
 	logger.Debugw("UniVlanConfigFsm enters disabled state", log.Fields{"device-id": oFsm.deviceID})
 	oFsm.pLastTxMeInstance = nil
 	if oFsm.pDeviceHandler != nil {
-		//request removal of 'reference' in the Handler (completely clear the FSM)
+		//TODO: to clarify with improved error treatment for VlanConfigFsm (timeout,reception) errors
+		//  current code removes the complete FSM including all flow/rule configuration done so far
+		//  this might be a bit to much, it would require fully new flow config from rwCore (at least on OnuDown/up)
+		//  maybe a more sophisticated approach is possible without clearing the data
+		if oFsm.clearPersistency {
+			//permanently remove possibly stored persistent data
+			if len(oFsm.uniVlanFlowParamsSlice) > 0 {
+				var emptySlice = make([]uniVlanFlowParams, 0)
+				_ = oFsm.pDeviceHandler.storePersUniFlowConfig(oFsm.pOnuUniPort.uniID, &emptySlice) //ignore errors
+			}
+		} else {
+			logger.Debugw("UniVlanConfigFsm persistency data not cleared", log.Fields{"device-id": oFsm.deviceID})
+		}
+		//request removal of 'reference' in the Handler (completely clear the FSM and its data)
 		go oFsm.pDeviceHandler.RemoveVlanFilterFsm(oFsm.pOnuUniPort)
 	}
 }
