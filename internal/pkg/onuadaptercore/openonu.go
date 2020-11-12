@@ -152,6 +152,7 @@ func (oo *OpenONUAC) getDeviceHandler(deviceID string, aWait bool) *deviceHandle
 		if _, exist := oo.deviceHandlersCreateChan[deviceID]; !exist {
 			oo.deviceHandlersCreateChan[deviceID] = make(chan bool, 1)
 		}
+		deviceCreateChan := oo.deviceHandlersCreateChan[deviceID]
 		//keep the read sema short to allow for subsequent write
 		oo.lockDeviceHandlersMap.Unlock()
 		// based on concurrent processing the deviceHandler creation may not yet be finished at his point
@@ -160,9 +161,10 @@ func (oo *OpenONUAC) getDeviceHandler(deviceID string, aWait bool) *deviceHandle
 		case <-time.After(1 * time.Second): //timer may be discussed ...
 			logger.Warnw("No valid deviceHandler created after max WaitTime", log.Fields{"device-id": deviceID})
 			return nil
-		case <-oo.deviceHandlersCreateChan[deviceID]:
+		case <-deviceCreateChan:
 			logger.Debugw("deviceHandler is ready now - continue", log.Fields{"device-id": deviceID})
-			// if written now, we can return the written value without sema
+			oo.lockDeviceHandlersMap.RLock()
+			defer oo.lockDeviceHandlersMap.RUnlock()
 			return oo.deviceHandlers[deviceID]
 		}
 	}
