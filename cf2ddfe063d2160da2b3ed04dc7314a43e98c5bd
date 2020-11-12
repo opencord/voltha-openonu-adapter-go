@@ -34,6 +34,24 @@
       "revId": "cf2ddfe063d2160da2b3ed04dc7314a43e98c5bd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cae7342b_dbe84179",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 989,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-12T14:50:08Z",
+      "side": 1,
+      "message": "thanks for the clarification, +1",
+      "parentUuid": "84660657_1b1f1447",
+      "revId": "cf2ddfe063d2160da2b3ed04dc7314a43e98c5bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
