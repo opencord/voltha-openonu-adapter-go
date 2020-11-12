@@ -16,6 +16,24 @@
       "revId": "cf2ddfe063d2160da2b3ed04dc7314a43e98c5bd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84660657_1b1f1447",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 989,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-12T14:48:36Z",
+      "side": 1,
+      "message": "This code fragment is not invoked during \u0027DisableDevice\u0027 (which in the end is the port disable). Current use cases here are internal FSM errors (timeout etc) and OnuDown indication.",
+      "parentUuid": "edc1460e_7e61c313",
+      "revId": "cf2ddfe063d2160da2b3ed04dc7314a43e98c5bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
