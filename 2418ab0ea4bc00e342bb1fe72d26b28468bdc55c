@@ -1,0 +1,113 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6d8a507a_e2df4939",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 701,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-12T15:16:20Z",
+      "side": 1,
+      "message": "As this branch could be reached in other contexts too, log level should be \"Infow\".",
+      "range": {
+        "startLine": 701,
+        "startChar": 3,
+        "endLine": 701,
+        "endChar": 9
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "73aaa045_cdf69041",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1357,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-12T15:16:20Z",
+      "side": 1,
+      "message": "persitent -\u003e persistent \nabouit -\u003e about",
+      "range": {
+        "startLine": 1357,
+        "startChar": 44,
+        "endLine": 1357,
+        "endChar": 52
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "051adf2d_6673395a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1358,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-12T15:16:20Z",
+      "side": 1,
+      "message": "Ok here, as etcd processing is very fast - i.e. additional etcd-write-calls should not decrease runtime performance significantly.",
+      "range": {
+        "startLine": 1358,
+        "startChar": 122,
+        "endLine": 1358,
+        "endChar": 126
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6ffea241_c13ee458",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1452,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-12T15:16:20Z",
+      "side": 1,
+      "message": "accompagnied -\u003e accompanied",
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "170f3945_db92fa35",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-12T15:16:20Z",
+      "side": 1,
+      "message": "Log level contradicts following error handling.",
+      "range": {
+        "startLine": 545,
+        "startChar": 10,
+        "endLine": 545,
+        "endChar": 16
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
