@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3e204e74_e105a9a0",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 541,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T14:31:14Z",
+      "side": 1,
+      "message": "smaller optimisation: line 535 and 539 could be moved from inside the block to here, or even better to the end of the the function only at \u0027set success\u0027 to line 591. Such would allow the semaphore unlock directly after copying data to local var (with a separate test afterwards) in line 526",
+      "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "55dd7069_9ea8d078",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 578,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T14:31:14Z",
+      "side": 1,
+      "message": "block would not be needed if true setting is shifted down to line 591",
+      "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fae989bf_088e852c",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 586,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T14:31:14Z",
+      "side": 1,
+      "message": "block would not be needed if true setting is shifted down to line 591",
+      "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
