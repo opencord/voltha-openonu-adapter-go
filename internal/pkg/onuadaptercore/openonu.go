@@ -39,6 +39,7 @@ import (
 type OpenONUAC struct {
 	deviceHandlers              map[string]*deviceHandler
 	deviceHandlersCreateChan    map[string]chan bool //channels for deviceHandler create events
+	lockDeviceHandlersMap       sync.RWMutex
 	coreProxy                   adapterif.CoreProxy
 	adapterProxy                adapterif.AdapterProxy
 	eventProxy                  adapterif.EventProxy
@@ -50,12 +51,13 @@ type OpenONUAC struct {
 	KVStorePort                 int
 	KVStoreType                 string
 	KVStoreTimeout              time.Duration
+	mibTemplatesGenerated       map[string]bool
+	lockMibTemplateGenerated    sync.RWMutex
 	exitChannel                 chan int
 	HeartbeatCheckInterval      time.Duration
 	HeartbeatFailReportInterval time.Duration
 	AcceptIncrementalEvto       bool
 	//GrpcTimeoutInterval         time.Duration
-	lockDeviceHandlersMap      sync.RWMutex
 	pSupportedFsms             *OmciDeviceFsms
 	maxTimeoutInterAdapterComm time.Duration
 }
@@ -68,6 +70,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.exitChannel = make(chan int, 1)
 	openOnuAc.deviceHandlers = make(map[string]*deviceHandler)
 	openOnuAc.deviceHandlersCreateChan = make(map[string]chan bool)
+	openOnuAc.lockDeviceHandlersMap = sync.RWMutex{}
 	openOnuAc.kafkaICProxy = kafkaICProxy
 	openOnuAc.config = cfg
 	openOnuAc.numOnus = cfg.OnuNumber
@@ -79,12 +82,13 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.KVStorePort = cfg.KVStorePort
 	openOnuAc.KVStoreType = cfg.KVStoreType
 	openOnuAc.KVStoreTimeout = cfg.KVStoreTimeout
+	openOnuAc.mibTemplatesGenerated = make(map[string]bool)
+	openOnuAc.lockMibTemplateGenerated = sync.RWMutex{}
 	openOnuAc.HeartbeatCheckInterval = cfg.HeartbeatCheckInterval
 	openOnuAc.HeartbeatFailReportInterval = cfg.HeartbeatFailReportInterval
 	openOnuAc.AcceptIncrementalEvto = cfg.AccIncrEvto
 	openOnuAc.maxTimeoutInterAdapterComm = cfg.MaxTimeoutInterAdapterComm
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
-	openOnuAc.lockDeviceHandlersMap = sync.RWMutex{}
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {
