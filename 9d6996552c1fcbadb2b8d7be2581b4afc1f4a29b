@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "eae64d0d_59d05523",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 541,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-16T15:12:26Z",
+      "side": 1,
+      "message": "Partly accepted: both statements could be merged into one line right before unlocking the map. But they could not be moved to the end of the function, because there would be a risk that the current ONU-thread would be suspended by another one which would find the actual mib-template as untreated.",
+      "parentUuid": "3e204e74_e105a9a0",
+      "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "55dd7069_9ea8d078",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "c2e3e005_b5e52e41",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 578,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-16T15:12:26Z",
+      "side": 1,
+      "message": "See above",
+      "parentUuid": "55dd7069_9ea8d078",
+      "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fae989bf_088e852c",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2020-11-16T14:31:14Z",
       "side": 1,
       "message": "block would not be needed if true setting is shifted down to line 591",
+      "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffe8d66e_77d1a0ce",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 586,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-16T15:12:26Z",
+      "side": 1,
+      "message": "See above",
+      "parentUuid": "fae989bf_088e852c",
       "revId": "9d6996552c1fcbadb2b8d7be2581b4afc1f4a29b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
