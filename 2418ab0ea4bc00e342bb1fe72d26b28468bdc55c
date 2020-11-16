@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "2b38ebe3_e729c605",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 701,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T13:28:42Z",
+      "side": 1,
+      "message": "For now it is some \u0027possible\u0027 normal handling, but may change with [VOL-3636] (handling of early stages of ONU startup).",
+      "parentUuid": "6d8a507a_e2df4939",
+      "range": {
+        "startLine": 701,
+        "startChar": 3,
+        "endLine": 701,
+        "endChar": 9
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "73aaa045_cdf69041",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "994e6f59_f97d33a1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1357,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T13:28:42Z",
+      "side": 1,
+      "message": "Ack - in some upcoming release",
+      "parentUuid": "73aaa045_cdf69041",
+      "range": {
+        "startLine": 1357,
+        "startChar": 44,
+        "endLine": 1357,
+        "endChar": 52
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "11c2c9eb_ccced6a4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1358,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T13:28:42Z",
+      "side": 1,
+      "message": "Ack, plus further changes required in process of [VOL-3636].",
+      "parentUuid": "051adf2d_6673395a",
+      "range": {
+        "startLine": 1358,
+        "startChar": 122,
+        "endLine": 1358,
+        "endChar": 126
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6ffea241_c13ee458",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -88,6 +160,24 @@
     },
     {
       "key": {
+        "uuid": "a251d003_5b4d0212",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1452,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T13:28:42Z",
+      "side": 1,
+      "message": "Ack - in some upcoming release",
+      "parentUuid": "6ffea241_c13ee458",
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "170f3945_db92fa35",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 2
@@ -99,6 +189,30 @@
       "writtenOn": "2020-11-12T15:16:20Z",
       "side": 1,
       "message": "Log level contradicts following error handling.",
+      "range": {
+        "startLine": 545,
+        "startChar": 10,
+        "endLine": 545,
+        "endChar": 16
+      },
+      "revId": "2418ab0ea4bc00e342bb1fe72d26b28468bdc55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "88ff59e1_3f7619ee",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-16T13:28:42Z",
+      "side": 1,
+      "message": "In this case here \u0027no ONU-data found\" is just infomative and no error (can be just a normal procedeeding), but we have to return an \u0027error\u0027 to the deviceHandler in order to indicate, that no reconcile-treatment is required here as \u0027normal\u0027 processing.\nCode might also be needed to change with [VOL-3636].",
+      "parentUuid": "170f3945_db92fa35",
       "range": {
         "startLine": 545,
         "startChar": 10,
