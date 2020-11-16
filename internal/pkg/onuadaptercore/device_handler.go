@@ -1134,10 +1134,7 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		   we omit that here first (declaration unclear) -> todo at Adapter specialization ...*/
 		/* also no 'clock' argument - usage open ...*/
 		/* and no alarm_db yet (oo.alarm_db)  */
-		deviceEntry = newOnuDeviceEntry(ctx, dh.deviceID, dh.pOpenOnuAc.KVStoreHost,
-			dh.pOpenOnuAc.KVStorePort, dh.pOpenOnuAc.KVStoreType,
-			dh, dh.coreProxy, dh.AdapterProxy,
-			dh.pOpenOnuAc.pSupportedFsms) //nil as FSM pointer would yield deviceEntry internal defaults ...
+		deviceEntry = newOnuDeviceEntry(ctx, dh)
 		onuTechProfProc := newOnuUniTechProf(ctx, dh)
 		//error treatment possible //TODO!!!
 		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc)

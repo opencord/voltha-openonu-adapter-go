@@ -221,12 +221,14 @@ type onuPersistentData struct {
 type OnuDeviceEntry struct {
 	deviceID              string
 	baseDeviceHandler     *deviceHandler
+	pOpenOnuAc            *OpenONUAC
 	coreProxy             adapterif.CoreProxy
 	adapterProxy          adapterif.AdapterProxy
 	PDevOmciCC            *omciCC
 	pOnuDB                *onuDeviceDB
 	mibTemplateKVStore    *db.Backend
 	sOnuPersistentData    onuPersistentData
+	mibTemplatePath       string
 	onuKVStoreMutex       sync.RWMutex
 	onuKVStore            *db.Backend
 	onuKVStorePath        string
@@ -257,15 +259,14 @@ type OnuDeviceEntry struct {
 
 //newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
-func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string, kVStorePort int, kvStoreType string, deviceHandler *deviceHandler,
-	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy,
-	supportedFsmsPtr *OmciDeviceFsms) *OnuDeviceEntry {
-	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": deviceID})
+func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
+	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": dh.deviceID})
 	var onuDeviceEntry OnuDeviceEntry
-	onuDeviceEntry.deviceID = deviceID
-	onuDeviceEntry.baseDeviceHandler = deviceHandler
-	onuDeviceEntry.coreProxy = coreProxy
-	onuDeviceEntry.adapterProxy = adapterProxy
+	onuDeviceEntry.deviceID = dh.deviceID
+	onuDeviceEntry.baseDeviceHandler = dh
+	onuDeviceEntry.pOpenOnuAc = dh.pOpenOnuAc
+	onuDeviceEntry.coreProxy = dh.coreProxy
+	onuDeviceEntry.adapterProxy = dh.AdapterProxy
 	onuDeviceEntry.devState = DeviceStatusInit
 	onuDeviceEntry.sOnuPersistentData.PersUniConfig = make([]uniPersConfig, 0)
 	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
@@ -275,8 +276,8 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 	//are per ONU Vendor
 	//
 	// MIB Synchronization Database - possible overloading from arguments
-	if supportedFsmsPtr != nil {
-		onuDeviceEntry.supportedFsms = *supportedFsmsPtr
+	if dh.pOpenOnuAc.pSupportedFsms != nil {
+		onuDeviceEntry.supportedFsms = *dh.pOpenOnuAc.pSupportedFsms
 	} else {
 		//var mibSyncFsm = NewMibSynchronizer()
 		// use some internaö defaults, if not defined from outside
@@ -305,7 +306,7 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
-	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", deviceID, mibUploadChan)
+	onuDeviceEntry.pMibUploadFsm = NewAdapterFsm("MibUpload", dh.deviceID, mibUploadChan)
 	onuDeviceEntry.pMibUploadFsm.pFsm = fsm.NewFSM(
 		ulStDisabled,
 		fsm.Events{
@@ -370,7 +371,7 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 	)
 	// Omci related Mib download state machine
 	mibDownloadChan := make(chan Message, 2048)
-	onuDeviceEntry.pMibDownloadFsm = NewAdapterFsm("MibDownload", deviceID, mibDownloadChan)
+	onuDeviceEntry.pMibDownloadFsm = NewAdapterFsm("MibDownload", dh.deviceID, mibDownloadChan)
 	onuDeviceEntry.pMibDownloadFsm.pFsm = fsm.NewFSM(
 		dlStDisabled,
 		fsm.Events{
@@ -406,21 +407,21 @@ func newOnuDeviceEntry(ctx context.Context, deviceID string, kVStoreHost string,
 		},
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
-		logger.Errorw("MibDownloadFsm could not be instantiated", log.Fields{"device-id": deviceID})
+		logger.Errorw("MibDownloadFsm could not be instantiated", log.Fields{"device-id": dh.deviceID})
 		// TODO some specifc error treatment - or waiting for crash ?
 	}
 
 	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(cBasePathMibTemplateKvStore)
 	if onuDeviceEntry.mibTemplateKVStore == nil {
 		logger.Errorw("Can't access mibTemplateKVStore - no backend connection to service",
-			log.Fields{"device-id": deviceID, "service": cBasePathMibTemplateKvStore})
+			log.Fields{"device-id": dh.deviceID, "service": cBasePathMibTemplateKvStore})
 	}
 
 	onuDeviceEntry.onuKVStorePath = onuDeviceEntry.deviceID
 	onuDeviceEntry.onuKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(cBasePathOnuKVStore)
 	if onuDeviceEntry.onuKVStore == nil {
 		logger.Errorw("Can't access onuKVStore - no backend connection to service",
-			log.Fields{"device-id": deviceID, "service": cBasePathOnuKVStore})
+			log.Fields{"device-id": dh.deviceID, "service": cBasePathOnuKVStore})
 	}
 
 	// Alarm Synchronization Database
