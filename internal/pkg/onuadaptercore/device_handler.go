@@ -282,12 +282,12 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	}
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
-		logger.Warnw("onuTechProf instance not set up for DLMsg request - ignoring request",
+		logger.Errorw("onuTechProf instance not set up for DLMsg request - ignoring request",
 			log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("techProfile DLMsg request while onuTechProf instance not setup: %s", dh.deviceID)
 	}
 	if !dh.ReadyForSpecificOmciConfig {
-		logger.Warnw("TechProf-set rejected: improper device state", log.Fields{"device-id": dh.deviceID,
+		logger.Errorw("TechProf-set rejected: improper device state", log.Fields{"device-id": dh.deviceID,
 			"device-state": dh.deviceReason})
 		return fmt.Errorf("improper device state %s on device %s", dh.deviceReason, dh.deviceID)
 	}
@@ -593,7 +593,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 				// for state checking compare also code here: processInterAdapterTechProfileDownloadReqMessage
 				// also abort for the other still possible flows here
 				if !dh.ReadyForSpecificOmciConfig {
-					logger.Warnw("flow-add rejected: improper device state", log.Fields{"device-id": dh.deviceID,
+					logger.Errorw("flow-add rejected: improper device state", log.Fields{"device-id": dh.deviceID,
 						"last device-reason": dh.deviceReason})
 					return fmt.Errorf("improper device state on device %s", dh.deviceID)
 				}
@@ -1351,7 +1351,7 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 			// abort: system behavior is just unstable ...
 			return err
 		}
-		//all stored persitent data are not valid anymore (loosing knowledge abouit the connected ONU)
+		//all stored persistent data are not valid anymore (loosing knowledge about the connected ONU)
 		_ = dh.deleteDevicePersistencyData() //ignore possible errors here and continue, hope is that data is synchronized with new ONU-Up
 
 		//deviceEntry stop without omciCC reset here, regarding the OMCI_CC still valid for this ONU
@@ -1446,7 +1446,7 @@ func (dh *deviceHandler) resetFsms() error {
 				//VlanFilterFsm exists and was already started
 				pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 				if pVlanFilterStatemachine != nil {
-					//reset of all Fsm is always accompagnied by global persistency data removal
+					//reset of all Fsm is always accompanied by global persistency data removal
 					//  no need to remove specific data
 					pVlanFilterFsm.RequestClearPersistency(false)
 					//and reset the UniVlanConfig FSM
@@ -1460,7 +1460,7 @@ func (dh *deviceHandler) resetFsms() error {
 }
 
 func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
-	logger.Debugw("MibInSync event received", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw("MibInSync event received, adding uni ports and locking the ONU interfaces", log.Fields{"device-id": dh.deviceID})
 	if !dh.reconciling {
 		//initiate DevStateUpdate
 		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
@@ -1477,8 +1477,8 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 	//set internal state anyway - as it was done
 	dh.deviceReason = "discovery-mibsync-complete"
 
-	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
 	pDevEntry := dh.getOnuDeviceEntry(false)
+	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
 	if unigInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(me.UniGClassID); len(unigInstKeys) > 0 {
 		for _, mgmtEntityID := range unigInstKeys {
 			logger.Debugw("Add UNI port for stored UniG instance:", log.Fields{
@@ -1502,27 +1502,32 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 	if i == 0 {
 		logger.Warnw("No PPTP instances found", log.Fields{"device-id": dh.deviceID})
 	}
+	/* 200605: lock processing after initial MIBUpload removed now as the ONU should be in the lock state per default here */
+	/* 201117: build_dt-berlin-pod-openonugo_1T8GEM_voltha_DT_openonugo_master_test runs into error TC
+	 *    'Test Disable ONUs and OLT Then Delete ONUs and OLT for DT' with Sercom ONU, which obviously needs
+	 *    disable/enable toggling here to allow traffic
+	 *    but moreover it might be useful for tracking the interface operState changes if this will be implemented,
+	 *    like the py comment says:
+	 *      # start by locking all the unis till mib sync and initial mib is downloaded
+	 *      # this way we can capture the port down/up events when we are ready
+	 */
 
-	/* 200605: lock processing after initial MIBUpload removed now as the ONU should be in the lock state per default here
-	 *  left the code here as comment in case such processing should prove needed unexpectedly
-			// Init Uni Ports to Admin locked state
-			// maybe not really needed here as UNI ports should be locked by default, but still left as available in python code
-			// *** should generate UniLockStateDone event *****
-			if dh.pLockStateFsm == nil {
-				dh.createUniLockFsm(true, UniLockStateDone)
-			} else { //LockStateFSM already init
-				dh.pLockStateFsm.SetSuccessEvent(UniLockStateDone)
-				dh.runUniLockFsm(true)
-			}
-		}
-	case UniLockStateDone:
-		{
-			logger.Infow("UniLockStateDone event: Starting MIB download", log.Fields{"device-id": dh.deviceID})
-	* lockState processing commented out
-	*/
+	// Init Uni Ports to Admin locked state
+	// *** should generate UniLockStateDone event *****
+	if dh.pLockStateFsm == nil {
+		dh.createUniLockFsm(true, UniLockStateDone)
+	} else { //LockStateFSM already init
+		dh.pLockStateFsm.setSuccessEvent(UniLockStateDone)
+		dh.runUniLockFsm(true)
+	}
+}
+
+func (dh *deviceHandler) processUniLockStateDoneEvent(devEvent OnuDeviceEvent) {
+	logger.Infow("UniLockStateDone event: Starting MIB download", log.Fields{"device-id": dh.deviceID})
 	/*  Mib download procedure -
 	***** should run over 'downloaded' state and generate MibDownloadDone event *****
 	 */
+	pDevEntry := dh.getOnuDeviceEntry(false)
 	pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
 	if pMibDlFsm != nil {
 		if pMibDlFsm.Is(dlStDisabled) {
@@ -1551,7 +1556,7 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 }
 
 func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
-	logger.Debugw("MibDownloadDone event received", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw("MibDownloadDone event received, unlocking the ONU interfaces", log.Fields{"device-id": dh.deviceID})
 	//initiate DevStateUpdate
 	if !dh.reconciling {
 		logger.Debugw("call DeviceStateUpdate upon mib-download done", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
@@ -1747,6 +1752,10 @@ func (dh *deviceHandler) deviceProcStatusUpdate(devEvent OnuDeviceEvent) {
 	case MibDatabaseSync:
 		{
 			dh.processMibDatabaseSyncEvent(devEvent)
+		}
+	case UniLockStateDone:
+		{
+			dh.processUniLockStateDoneEvent(devEvent)
 		}
 	case MibDownloadDone:
 		{

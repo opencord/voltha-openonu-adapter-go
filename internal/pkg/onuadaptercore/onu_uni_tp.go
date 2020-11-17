@@ -483,7 +483,15 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 	defer wg.Done()
 	logger.Debugw("this would remove TP resources from ONU's UNI", log.Fields{
 		"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString, "Resource": aResource})
-	if cResourceTcont == aResource {
+	if cResourceGemPort == aResource {
+		logger.Debugw("remove GemPort from the list of existing ones of the TP", log.Fields{
+			"device-id": onuTP.deviceID, "uniID": aUniID, "path": aPathString, "entry": aEntryID})
+		// check if the requested GemPort exists in the DB
+		// check that the TpConfigRequest was done
+		// initiate OMCI GemPort related removal
+		// remove GemPort from config DB
+		// dev reason update? (for the moment not yet done here!)
+	} else { //if cResourceTcont == aResource {
 		//the TechProfile indicated by path is considered for removal
 		//  by now we do not clear the OMCI related configuration (to be done later)
 		//  so we use this position here just to remove the internal stored profile data
