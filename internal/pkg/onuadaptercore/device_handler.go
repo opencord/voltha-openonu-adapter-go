@@ -316,8 +316,13 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 			techProfMsg.UniId, dh.deviceID))
 	}
 	uniID := uint8(techProfMsg.UniId)
+	tpID, err := GetTpIDFromTpPath(techProfMsg.Path)
+	if err != nil {
+		logger.Errorw("error-parsing-tpid-from-tppath", log.Fields{"err": err, "tp-path": techProfMsg.Path})
+		return err
+	}
 
-	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, techProfMsg.Path); bTpModify {
+	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, uint8(tpID), techProfMsg.Path); bTpModify {
 		//	if there has been some change for some uni TechProfilePath
 		//in order to allow concurrent calls to other dh instances we do not wait for execution here
 		//but doing so we can not indicate problems to the caller (who does what with that then?)
@@ -330,7 +335,7 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetTpProcessingErrorIndication()
+		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
 		pDevEntry.resetKvProcessingErrorIndication()
 
 		var wg sync.WaitGroup
@@ -340,7 +345,7 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
 		dh.waitForCompletion(cancel, &wg, "TechProfDwld") //wait for background process to finish
 
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
+		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
 	}
 	// no change, nothing really to do - return success
 	return nil
@@ -380,6 +385,11 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 			delGemPortMsg.UniId, dh.deviceID))
 	}
 	uniID := uint8(delGemPortMsg.UniId)
+	tpID, err := GetTpIDFromTpPath(delGemPortMsg.TpPath)
+	if err != nil {
+		logger.Errorw("error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": delGemPortMsg.TpPath})
+		return err
+	}
 
 	//a removal of some GemPort would never remove the complete TechProfile entry (done on T-Cont)
 
@@ -387,7 +397,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-	dh.pOnuTP.resetTpProcessingErrorIndication()
+	dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
 
 	var wg sync.WaitGroup
 	wg.Add(1) // for the 1 go routine to finish
@@ -395,7 +405,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 		cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 	dh.waitForCompletion(cancel, &wg, "GemDelete") //wait for background process to finish
 
-	return dh.pOnuTP.getTpProcessingErrorIndication()
+	return dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID)
 }
 
 func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
@@ -432,13 +442,19 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 			delTcontMsg.UniId, dh.deviceID))
 	}
 	uniID := uint8(delTcontMsg.UniId)
+	tpPath := delTcontMsg.TpPath
+	tpID, err := GetTpIDFromTpPath(tpPath)
+	if err != nil {
+		logger.Errorw("error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": tpPath})
+		return err
+	}
 
-	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, ""); bTpModify {
+	if bTpModify := pDevEntry.updateOnuUniTpPath(uniID, tpID, ""); bTpModify {
 		// deadline context to ensure completion of background routines waited for
 		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetTpProcessingErrorIndication()
+		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
 		pDevEntry.resetKvProcessingErrorIndication()
 
 		var wg sync.WaitGroup
@@ -449,7 +465,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
 		dh.waitForCompletion(cancel, &wg, "TContDelete") //wait for background process to finish
 
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(), pDevEntry.getKvProcessingErrorIndication())
+		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
 	}
 	return nil
 }
@@ -731,15 +747,15 @@ func (dh *deviceHandler) reconcileDeviceTechProf() {
 		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetTpProcessingErrorIndication()
-
-		var wg sync.WaitGroup
-		wg.Add(1) // for the 1 go routine to finish
-		go dh.pOnuTP.configureUniTp(dctx, uniData.PersUniID, uniData.PersTpPath, &wg)
-		dh.waitForCompletion(cancel, &wg, "TechProfReconcile") //wait for background process to finish
-
-		if err := dh.pOnuTP.getTpProcessingErrorIndication(); err != nil {
-			logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
+		for tpID := range uniData.PersTpPathMap {
+			dh.pOnuTP.resetTpProcessingErrorIndication(uniData.PersUniID, tpID)
+			var wg sync.WaitGroup
+			wg.Add(1) // for the 1 go routine to finish
+			go dh.pOnuTP.configureUniTp(dctx, uniData.PersUniID, uniData.PersTpPathMap[tpID], &wg)
+			dh.waitForCompletion(cancel, &wg, "TechProfReconcile") //wait for background process to finish
+			if err := dh.pOnuTP.getTpProcessingErrorIndication(uniData.PersUniID, tpID); err != nil {
+				logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
+			}
 		}
 	}
 }
@@ -1441,7 +1457,9 @@ func (dh *deviceHandler) resetFsms() error {
 		// should always be the case here
 		// FSM  stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
 		if dh.pOnuTP.pAniConfigFsm != nil {
-			_ = dh.pOnuTP.pAniConfigFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			for uniTP := range dh.pOnuTP.pAniConfigFsm {
+				_ = dh.pOnuTP.pAniConfigFsm[uniTP].pAdaptFsm.pFsm.Event(aniEvReset)
+			}
 		}
 		for _, uniPort := range dh.uniEntityMap {
 			// reset the possibly existing VlanConfigFsm
