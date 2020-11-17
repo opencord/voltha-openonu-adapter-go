@@ -204,8 +204,8 @@ type swImages struct {
 
 type uniPersConfig struct {
 	PersUniID      uint8               `json:"uni_id"`
-	PersTpPath     string              `json:"tp_path"`
-	PersFlowParams []uniVlanFlowParams `json:"flow_params"` //as defined in omci_ani_config.go
+	PersTpPathMap  map[uint8]string    `json:"PersTpPathMap"` // tp-id to tp-path map
+	PersFlowParams []uniVlanFlowParams `json:"flow_params"`   //as defined in omci_ani_config.go
 }
 
 type onuPersistentData struct {
@@ -352,21 +352,21 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 		},
 
 		fsm.Callbacks{
-			"enter_state":                           func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
-			("enter_" + ulStStarting):               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
-			("enter_" + ulStResettingMib):           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
-			("enter_" + ulStGettingVendorAndSerial): func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
-			("enter_" + ulStGettingEquipmentID):     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIDState(e) },
-			("enter_" + ulStGettingFirstSwVersion):  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
-			("enter_" + ulStGettingSecondSwVersion): func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
-			("enter_" + ulStGettingMacAddress):      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
-			("enter_" + ulStGettingMibTemplate):     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(e) },
-			("enter_" + ulStUploading):              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
-			("enter_" + ulStExaminingMds):           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
-			("enter_" + ulStResynchronizing):        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
-			("enter_" + ulStAuditing):               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
-			("enter_" + ulStOutOfSync):              func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
-			("enter_" + ulStInSync):                 func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
+			"enter_state":                         func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
+			"enter_" + ulStStarting:               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
+			"enter_" + ulStResettingMib:           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
+			"enter_" + ulStGettingVendorAndSerial: func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
+			"enter_" + ulStGettingEquipmentID:     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIDState(e) },
+			"enter_" + ulStGettingFirstSwVersion:  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
+			"enter_" + ulStGettingSecondSwVersion: func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
+			"enter_" + ulStGettingMacAddress:      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
+			"enter_" + ulStGettingMibTemplate:     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(e) },
+			"enter_" + ulStUploading:              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
+			"enter_" + ulStExaminingMds:           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
+			"enter_" + ulStResynchronizing:        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
+			"enter_" + ulStAuditing:               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
+			"enter_" + ulStOutOfSync:              func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
+			"enter_" + ulStInSync:                 func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
 		},
 	)
 	// Omci related Mib download state machine
@@ -397,13 +397,13 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 		},
 
 		fsm.Callbacks{
-			"enter_state":                 func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
-			("enter_" + dlStStarting):     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
-			("enter_" + dlStCreatingGal):  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(e) },
-			("enter_" + dlStSettingOnu2g): func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(e) },
-			("enter_" + dlStBridgeInit):   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(e) },
-			("enter_" + dlStDownloaded):   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
-			("enter_" + dlStResetting):    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(e) },
+			"enter_state":               func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
+			"enter_" + dlStStarting:     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
+			"enter_" + dlStCreatingGal:  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(e) },
+			"enter_" + dlStSettingOnu2g: func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(e) },
+			"enter_" + dlStBridgeInit:   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(e) },
+			"enter_" + dlStDownloaded:   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
+			"enter_" + dlStResetting:    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(e) },
 		},
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
@@ -633,7 +633,7 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	oo.chOnuKvProcessingStep <- aProcessingStep //done
 }
 
-func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aPathString string) bool {
+func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aTpID uint8, aPathString string) bool {
 	/* within some specific InterAdapter processing request write/read access to data is ensured to be sequentially,
 	   as also the complete sequence is ensured to 'run to completion' before some new request is accepted
 	   no specific concurrency protection to sOnuPersistentData is required here
@@ -641,16 +641,19 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aPathString string) b
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
 			logger.Debugw("PersUniConfig-entry already exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
-			existingPath := oo.sOnuPersistentData.PersUniConfig[k].PersTpPath
+			existingPath, ok := oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID]
+			if !ok {
+				logger.Debugw("tp-does-not-exist--to-be-created-afresh", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
+			}
 			if existingPath != aPathString {
 				if aPathString == "" {
 					//existing entry to be deleted
 					logger.Debugw("UniTp delete path value", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
-					oo.sOnuPersistentData.PersUniConfig[k].PersTpPath = ""
+					oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID] = ""
 				} else {
 					//existing entry to be modified
 					logger.Debugw("UniTp modify path value", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
-					oo.sOnuPersistentData.PersUniConfig[k].PersTpPath = aPathString
+					oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID] = aPathString
 				}
 				return true
 			}
@@ -677,7 +680,7 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aPathString string) b
 				// and to be sure, that for some reason the corresponding TpDelete was lost somewhere in history
 				//  we also reset a possibly outstanding delete request - repeated TpConfig is regarded as valid for waiting flow config
 				if oo.baseDeviceHandler.pOnuTP != nil {
-					oo.baseDeviceHandler.pOnuTP.setProfileToDelete(aUniID, false)
+					oo.baseDeviceHandler.pOnuTP.setProfileToDelete(aUniID, aTpID, false)
 				}
 				go oo.baseDeviceHandler.VerifyVlanConfigRequest(aUniID)
 			}
@@ -693,8 +696,10 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aPathString string) b
 	}
 	//new entry to be created
 	logger.Debugw("New UniTp path set", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
+	perSubTpPathMap := make(map[uint8]string)
+	perSubTpPathMap[aTpID] = aPathString
 	oo.sOnuPersistentData.PersUniConfig =
-		append(oo.sOnuPersistentData.PersUniConfig, uniPersConfig{PersUniID: aUniID, PersTpPath: aPathString, PersFlowParams: make([]uniVlanFlowParams, 0)})
+		append(oo.sOnuPersistentData.PersUniConfig, uniPersConfig{PersUniID: aUniID, PersTpPathMap: perSubTpPathMap, PersFlowParams: make([]uniVlanFlowParams, 0)})
 	return true
 }
 
@@ -708,7 +713,7 @@ func (oo *OnuDeviceEntry) updateOnuUniFlowConfig(aUniID uint8, aUniVlanFlowParam
 		}
 	}
 	//flow update was faster than tp-config - create PersUniConfig-entry
-	tmpConfig := uniPersConfig{PersUniID: aUniID, PersTpPath: "", PersFlowParams: make([]uniVlanFlowParams, len(*aUniVlanFlowParams))}
+	tmpConfig := uniPersConfig{PersUniID: aUniID, PersTpPathMap: make(map[uint8]string), PersFlowParams: make([]uniVlanFlowParams, len(*aUniVlanFlowParams))}
 	copy(tmpConfig.PersFlowParams, *aUniVlanFlowParams)
 	oo.sOnuPersistentData.PersUniConfig = append(oo.sOnuPersistentData.PersUniConfig, tmpConfig)
 }

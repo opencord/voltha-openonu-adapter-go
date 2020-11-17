@@ -64,6 +64,10 @@ const (
 	aniStResetting           = "aniStResetting"
 )
 
+const (
+	tpIDOffset = 64
+)
+
 type ponAniGemPortAttribs struct {
 	gemPortID   uint16
 	upQueueID   uint16
@@ -82,7 +86,7 @@ type uniPonAniConfigFsm struct {
 	pOnuUniPort              *onuUniPort
 	pUniTechProf             *onuUniTechProf
 	pOnuDB                   *onuDeviceDB
-	techProfileID            uint16
+	techProfileID            uint8
 	requestEvent             OnuDeviceEvent
 	omciMIdsResponseReceived chan bool //separate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                *AdapterFsm
@@ -99,7 +103,7 @@ type uniPonAniConfigFsm struct {
 
 //newUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 func newUniPonAniConfigFsm(apDevOmciCC *omciCC, apUniPort *onuUniPort, apUniTechProf *onuUniTechProf,
-	apOnuDB *onuDeviceDB, aTechProfileID uint16, aRequestEvent OnuDeviceEvent, aName string,
+	apOnuDB *onuDeviceDB, aTechProfileID uint8, aRequestEvent OnuDeviceEvent, aName string,
 	apDeviceHandler *deviceHandler, aCommChannel chan Message) *uniPonAniConfigFsm {
 	instFsm := &uniPonAniConfigFsm{
 		pDeviceHandler: apDeviceHandler,
@@ -185,29 +189,87 @@ func (oFsm *uniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, a
 
 func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 	if aPAFsm != nil && aPAFsm.pFsm != nil {
+		uniTpKey := uniTP{uniID: oFsm.pOnuUniPort.uniID, tpID: oFsm.techProfileID}
 		//stick to pythonAdapter numbering scheme
 		//index 0 in naming refers to possible usage of multiple instances (later)
-		oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + oFsm.techProfileID
-		oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityID) + oFsm.techProfileID
+		oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + uint16(oFsm.techProfileID)
+		oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityID) + uint16(oFsm.techProfileID)
 
-		// For the time being: if there are multiple T-Conts on the ONU the first one from the entityID-ordered list is used
-		// TODO!: if more T-Conts have to be supported (tcontXID!), then use the first instances of the entity-ordered list
-		// or use the py code approach, which might be a bit more complicated, but also more secure, as it
-		// ensures that the selected T-Cont also has queues (which I would assume per definition from ONU, but who knows ...)
-		// so this approach would search the (sorted) upstream PrioQueue list and use the T-Cont (if available) from highest Bytes
-		// or sndHighByte of relatedPort Attribute (T-Cont Reference) and in case of multiple TConts find the next free TContIndex
-		// that way from PrioQueue.relatedPort list
+		/*
+			// Find a free TCONT Instance ID and use it
+			foundFreeTcontInstID := false
+		*/
 		if tcontInstKeys := oFsm.pOnuDB.getSortedInstKeys(me.TContClassID); len(tcontInstKeys) > 0 {
-			oFsm.tcont0ID = tcontInstKeys[0]
-			logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
-				"device-id": oFsm.deviceID})
+
+			// FIXME: Ideally the ME configurations on the ONU should constantly be MIB Synced back to the ONU DB
+			// So, as soon as we use up a TCONT Entity on the ONU, the DB at ONU adapter should know that the TCONT
+			// entity is used up via MIB Sync procedure and it will not use it for subsequent TCONT on that ONU.
+			// But, it seems, due to the absence of the constant mib-sync procedure, the TCONT Entities show up as
+			// free even though they are already reserved on the ONU. It seems the mib is synced only once, initially
+			// when the ONU is discovered.
+			/*
+				for _, tcontInstID := range tcontInstKeys {
+					tconInst := oFsm.pOnuDB.GetMe(me.TContClassID, tcontInstID)
+					returnVal := tconInst["AllocId"]
+					if returnVal != nil {
+						if allocID, err := oFsm.pOnuDB.getUint16Attrib(returnVal); err == nil {
+							// If the TCONT Instance ID is set to 0xff or 0xffff, it means it is free to use.
+							if allocID == 0xff || allocID == 0xffff {
+								foundFreeTcontInstID = true
+								oFsm.tcont0ID = uint16(tcontInstID)
+								logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
+									"device-id": oFsm.deviceID})
+								break
+							}
+						} else {
+							logger.Errorw("error-converting-alloc-id-to-uint16", log.Fields{"device-id": oFsm.deviceID, "tcont-inst": tcontInstID})
+						}
+					} else {
+						logger.Errorw("error-extracting-alloc-id-attribute", log.Fields{"device-id": oFsm.deviceID, "tcont-inst": tcontInstID})
+					}
+				}
+			*/
+
+			// Ensure that the techProfileID is in a valid range so that we can allocate a free Tcont for it.
+			if oFsm.techProfileID >= tpIDOffset && oFsm.techProfileID < uint8(tpIDOffset+len(tcontInstKeys)) {
+				// For now, as a dirty workaround, use the tpIDOffset to index the TcontEntityID to be used.
+				// The first TP ID for the ONU will get the first TcontEntityID, the next will get second and so on.
+				// Here the assumption is TP ID will always start from 64 (this is also true to Technology Profile Specification) and the
+				// TP ID will increment in single digit
+				oFsm.tcont0ID = tcontInstKeys[oFsm.techProfileID-tpIDOffset]
+				logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
+					"device-id": oFsm.deviceID})
+			} else {
+				logger.Errorw("tech profile id not in valid range", log.Fields{"device-id": oFsm.deviceID, "tp-id": oFsm.techProfileID, "num-tcont": len(tcontInstKeys)})
+				if oFsm.chanSet {
+					// indicate processing error/abort to the caller
+					oFsm.chSuccess <- 0
+					oFsm.chanSet = false //reset the internal channel state
+				}
+				//reset the state machine to enable usage on subsequent requests
+				_ = aPAFsm.pFsm.Event(aniEvReset)
+				return
+			}
 		} else {
-			logger.Warnw("No TCont instances found", log.Fields{"device-id": oFsm.deviceID})
+			logger.Errorw("No TCont instances found", log.Fields{"device-id": oFsm.deviceID})
+			return
 		}
-		oFsm.alloc0ID = (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniID]))[0].tcontParams.allocID
+		/*
+			if !foundFreeTcontInstID {
+				// This should never happen. If it does, the behavior is unpredictable.
+				logger.Warnw("No free TCONT instances found", log.Fields{"device-id": oFsm.deviceID})
+			}*/
+
+		// Access critical state with lock
+		oFsm.pUniTechProf.mutexTPState.Lock()
+		oFsm.alloc0ID = oFsm.pUniTechProf.mapPonAniConfig[uniTpKey].tcontParams.allocID
+		mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[uniTpKey].mapGemPortParams
+		oFsm.pUniTechProf.mutexTPState.Unlock()
+
 		loGemPortAttribs := ponAniGemPortAttribs{}
 		//for all TechProfile set GemIndices
-		for _, gemEntry := range (*(oFsm.pUniTechProf.mapPonAniConfig[oFsm.pOnuUniPort.uniID]))[0].mapGemPortParams {
+
+		for _, gemEntry := range mapGemPortParams {
 			//collect all GemConfigData in a separate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
 
 			if queueInstKeys := oFsm.pOnuDB.getSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
@@ -456,7 +518,7 @@ func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
 	//use DeviceHandler event notification directly
 	oFsm.pDeviceHandler.deviceProcStatusUpdate(oFsm.requestEvent)
 	//store that the UNI related techProfile processing is done for the given Profile and Uni
-	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.uniID, true)
+	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.uniID, oFsm.techProfileID, true)
 	//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
 	go oFsm.pDeviceHandler.verifyUniVlanConfigRequest(oFsm.pOnuUniPort)
 
@@ -499,7 +561,7 @@ func (oFsm *uniPonAniConfigFsm) enterDisabledState(e *fsm.Event) {
 	oFsm.pLastTxMeInstance = nil
 
 	//remove all TechProf related internal data to allow for new configuration (e.g. with disable/enable procedure)
-	oFsm.pUniTechProf.clearAniSideConfig(oFsm.pOnuUniPort.uniID)
+	oFsm.pUniTechProf.clearAniSideConfig(oFsm.pOnuUniPort.uniID, oFsm.techProfileID)
 }
 
 func (oFsm *uniPonAniConfigFsm) processOmciAniMessages( /*ctx context.Context*/ ) {
