@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7dc72810_e8855267",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 645,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "That looks inconsistent to me: If the techprofile does not yet exist in the persistency data for this uni and tpid it needs to be created (if the path is not \"\" (delete)). So like at the end of the function it must be added to the dtat and return true to indicate a modification to start the needed data inspection and FSM processing.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6c520329_e52253f4",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "You see the need of semaphore protection here? So far I regard calling of this function from the device handler as only 1by1 sequential - based on the \u0027waitForCompletion\u0027 enforced there.\n-\u003e also releevant to all following usages in this function below.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "737e5ef1_810ad8a2",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "Also in this function: do you regard Semaphore protection needed? Basically the function should also only be executed sequentially by the used waitForTimeoutOrCompletion() synchronisation.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "acf96f2b_193e0b6f",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "profID parsing should not anymore be needed - as already given as parameter to the function now, see also below",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2191013a_92a64752",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "I think aTpID should be used now for the comparison istead of parsed ProfID, see above.\nAlso relevant to some further following code points of this function",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4cc26c8c_671722f0",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 509,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "Also in this function: do you regard Semaphore protection needed? Basically the function should also only be executed sequentially by the used waitForTimeoutOrCompletion() synchronisation.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e0ed4d8_0da5ec33",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "Also in this function: do you regard Semaphore protection needed? Basically the function should also only be executed sequentially by the used waitForCompletion() synchronisation.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "64f781e7_a5415448",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 549,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "I think this is to one unlock to much.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1378c472_63c10930",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 574,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-17T09:13:44Z",
+      "side": 1,
+      "message": "Also in this function: do you regard Semaphore protection needed? Basically the function should also only be executed sequentially by the used waitForTimeoutOrCompletion() synchronisation.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
