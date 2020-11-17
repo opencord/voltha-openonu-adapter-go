@@ -288,7 +288,7 @@ func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 		Version: version.VersionInfo.Version,
 		// TODO once we'll be ready to support multiple versions of the adapter
 		// the Endpoint will have to change to `brcm_openomci_onu_<currentReplica`>
-		Endpoint:       "brcm_openomci_onu",
+		Endpoint:       a.config.Topic,
 		Type:           "brcm_openomci_onu",
 		CurrentReplica: int32(a.config.CurrentReplica),
 		TotalReplicas:  int32(a.config.TotalReplicas),

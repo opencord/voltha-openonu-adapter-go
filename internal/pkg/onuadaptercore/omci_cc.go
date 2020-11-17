@@ -505,8 +505,8 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 		omciMsg := &ic.InterAdapterOmciMessage{Message: omciTxRequest.txFrame}
 		if sendErr := oo.adapterProxy.SendInterAdapterMessage(context.Background(), omciMsg,
 			ic.InterAdapterMessageType_OMCI_REQUEST,
-			//fromType,toType,toDevId, ProxyDevId
-			oo.pBaseDeviceHandler.DeviceType, oo.pBaseDeviceHandler.ProxyAddressType,
+			//fromTopic,toType,toDevId, ProxyDevId
+			oo.pOnuDeviceEntry.baseDeviceHandler.pOpenOnuAc.config.Topic, oo.pBaseDeviceHandler.ProxyAddressType,
 			oo.deviceID, oo.pBaseDeviceHandler.ProxyAddressID, ""); sendErr != nil {
 			logger.Errorw("send omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
 			return sendErr
