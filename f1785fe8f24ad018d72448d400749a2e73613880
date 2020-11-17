@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0637d9c7_be80d0cc",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 645,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7dc72810_e8855267",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6c520329_e52253f4",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2020-11-17T09:13:44Z",
       "side": 1,
       "message": "You see the need of semaphore protection here? So far I regard calling of this function from the device handler as only 1by1 sequential - based on the \u0027waitForCompletion\u0027 enforced there.\n-\u003e also releevant to all following usages in this function below.",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "36405a06_d246b4e4",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "You are right since configureUniTp is a blocking call from deviceHandler it does seem like we need a lock anywhere in this function. I am going to remove it now.",
+      "parentUuid": "6c520329_e52253f4",
       "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "60f9632d_a6df819f",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "737e5ef1_810ad8a2",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "acf96f2b_193e0b6f",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -67,6 +121,24 @@
       "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8b786579_7c05ba4e",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "acf96f2b_193e0b6f",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "65930e89_5c32c792",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2191013a_92a64752",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4cc26c8c_671722f0",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -101,6 +191,24 @@
       "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "472ac96a_cb8eb842",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 509,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4cc26c8c_671722f0",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "50b91ea5_a40522a6",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 545,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1e0ed4d8_0da5ec33",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "64f781e7_a5415448",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "e8b80463_248b0fbd",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 549,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "64f781e7_a5415448",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1378c472_63c10930",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -152,6 +296,24 @@
       "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2bcc39dc_d75dabec",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 574,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-17T22:47:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1378c472_63c10930",
+      "revId": "f1785fe8f24ad018d72448d400749a2e73613880",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
