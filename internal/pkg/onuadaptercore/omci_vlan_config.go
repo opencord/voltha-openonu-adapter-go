@@ -213,16 +213,16 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 			{Name: vlanEvRestart, Src: []string{vlanStResetting}, Dst: vlanStDisabled},
 		},
 		fsm.Callbacks{
-			"enter_state":                     func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
-			("enter_" + vlanStStarting):       func(e *fsm.Event) { instFsm.enterConfigStarting(e) },
-			("enter_" + vlanStConfigVtfd):     func(e *fsm.Event) { instFsm.enterConfigVtfd(e) },
-			("enter_" + vlanStConfigEvtocd):   func(e *fsm.Event) { instFsm.enterConfigEvtocd(e) },
-			("enter_" + vlanStConfigDone):     func(e *fsm.Event) { instFsm.enterVlanConfigDone(e) },
-			("enter_" + vlanStConfigIncrFlow): func(e *fsm.Event) { instFsm.enterConfigIncrFlow(e) },
-			("enter_" + vlanStRemoveFlow):     func(e *fsm.Event) { instFsm.enterRemoveFlow(e) },
-			("enter_" + vlanStCleanupDone):    func(e *fsm.Event) { instFsm.enterVlanCleanupDone(e) },
-			("enter_" + vlanStResetting):      func(e *fsm.Event) { instFsm.enterResetting(e) },
-			("enter_" + vlanStDisabled):       func(e *fsm.Event) { instFsm.enterDisabled(e) },
+			"enter_state":                   func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(e) },
+			"enter_" + vlanStStarting:       func(e *fsm.Event) { instFsm.enterConfigStarting(e) },
+			"enter_" + vlanStConfigVtfd:     func(e *fsm.Event) { instFsm.enterConfigVtfd(e) },
+			"enter_" + vlanStConfigEvtocd:   func(e *fsm.Event) { instFsm.enterConfigEvtocd(e) },
+			"enter_" + vlanStConfigDone:     func(e *fsm.Event) { instFsm.enterVlanConfigDone(e) },
+			"enter_" + vlanStConfigIncrFlow: func(e *fsm.Event) { instFsm.enterConfigIncrFlow(e) },
+			"enter_" + vlanStRemoveFlow:     func(e *fsm.Event) { instFsm.enterRemoveFlow(e) },
+			"enter_" + vlanStCleanupDone:    func(e *fsm.Event) { instFsm.enterVlanCleanupDone(e) },
+			"enter_" + vlanStResetting:      func(e *fsm.Event) { instFsm.enterResetting(e) },
+			"enter_" + vlanStDisabled:       func(e *fsm.Event) { instFsm.enterDisabled(e) },
 		},
 	)
 	if instFsm.pAdaptFsm.pFsm == nil {
@@ -393,7 +393,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(aTpID uint16, aCookieSlice []uint
 				"Cookies":  oFsm.uniVlanFlowParamsSlice[oFsm.numUniFlows].CookieSlice,
 				"MatchVid": strconv.FormatInt(int64(loRuleParams.MatchVid), 16),
 				"SetVid":   strconv.FormatInt(int64(loRuleParams.SetVid), 16),
-				"SetPcp":   loRuleParams.SetPcp, "numberofFlows": (oFsm.numUniFlows + 1),
+				"SetPcp":   loRuleParams.SetPcp, "numberofFlows": oFsm.numUniFlows + 1,
 				"device-id": oFsm.deviceID})
 
 			oFsm.numUniFlows++
@@ -482,7 +482,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 						oFsm.uniVlanFlowParamsSlice = nil //reset the slice
 						//at this point it is evident that no flow anymore refers to a still possibly active Techprofile
 						//request that this profile gets deleted before a new flow add is allowed
-						oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, true)
+						oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, uint8(oFsm.techProfileID), true)
 						logger.Debugw("UniVlanConfigFsm flow removal - no more flows", log.Fields{
 							"device-id": oFsm.deviceID})
 					} else {
@@ -512,7 +512,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 							logger.Debugw("UniVlanConfigFsm tp-id used in deleted flow is not used anymore", log.Fields{
 								"device-id": oFsm.deviceID, "tp-id": usedTpID})
 							//request that this profile gets deleted before a new flow add is allowed
-							oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, true)
+							oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, uint8(oFsm.techProfileID), true)
 						}
 						logger.Debugw("UniVlanConfigFsm flow removal - specific flow removed from data", log.Fields{
 							"device-id": oFsm.deviceID})
@@ -536,7 +536,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 					// state transition notification is checked in deviceHandler
 					if oFsm.pDeviceHandler != nil {
 						//making use of the add->remove successor enum assumption/definition
-						go oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent((uint8(oFsm.requestEvent) + 1)))
+						go oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent(uint8(oFsm.requestEvent) + 1))
 					}
 					logger.Debugw("UniVlanConfigFsm flow removal - rule persists with still valid cookies", log.Fields{
 						"device-id": oFsm.deviceID, "cookies": oFsm.uniVlanFlowParamsSlice[flow].CookieSlice})
@@ -565,7 +565,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 		// state transition notification is checked in deviceHandler
 		if oFsm.pDeviceHandler != nil {
 			//making use of the add->remove successor enum assumption/definition
-			go oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent((uint8(oFsm.requestEvent) + 1)))
+			go oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent(uint8(oFsm.requestEvent) + 1))
 		}
 		return nil
 	} //unknown cookie
@@ -593,7 +593,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(e *fsm.Event) {
 				//cmp also usage in EVTOCDE create in omci_cc
 				oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
 
-				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniID, oFsm.techProfileID) {
+				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniID, uint8(oFsm.techProfileID)) {
 					// let the vlan processing begin
 					_ = a_pAFsm.pFsm.Event(vlanEvStartConfig)
 				} else {
@@ -684,13 +684,13 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(e *fsm.Event) {
 	// state transition notification is checked in deviceHandler
 	if oFsm.pDeviceHandler != nil {
 		//making use of the add->remove successor enum assumption/definition
-		go oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
+		go oFsm.pDeviceHandler.deviceProcStatusUpdate(OnuDeviceEvent(uint8(oFsm.requestEvent) + oFsm.requestEventOffset))
 	}
 }
 
 func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 	logger.Debugw("UniVlanConfigFsm - start config further incremental flow", log.Fields{
-		"in state": e.FSM.Current(), "recent flow-number": (oFsm.configuredUniFlow),
+		"in state": e.FSM.Current(), "recent flow-number": oFsm.configuredUniFlow,
 		"device-id": oFsm.deviceID})
 	oFsm.mutexFlowParams.Lock()
 
@@ -859,7 +859,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 						EntityID: oFsm.vtfdID,
 						Attributes: me.AttributeValueMap{
 							"VlanFilterList":  vtfdFilterList,
-							"NumberOfEntries": (oFsm.numVlanFilterEntries - 1), //one element less
+							"NumberOfEntries": oFsm.numVlanFilterEntries - 1, //one element less
 						},
 					}
 					meInstance := oFsm.pOmciCC.sendSetVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
