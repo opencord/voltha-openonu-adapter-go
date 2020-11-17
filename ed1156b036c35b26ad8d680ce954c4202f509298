@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "85959400_d589b8bc",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-17T18:08:20Z",
+      "side": 1,
+      "message": "if a nil check is done against this object we will see a failure, just making sure you changed all of these (if any)",
+      "revId": "ed1156b036c35b26ad8d680ce954c4202f509298",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6cc072cd_b1a21a75",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-17T18:08:20Z",
+      "side": 1,
+      "message": "techProfID to be consistent",
+      "revId": "ed1156b036c35b26ad8d680ce954c4202f509298",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
