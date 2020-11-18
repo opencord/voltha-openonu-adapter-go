@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "13ec1bc0_6892658f",
+        "filename": "VERSION",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-18T18:57:01Z",
+      "side": 1,
+      "message": "I created this patch https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/21730 to release 0.1.13 tag.",
+      "parentUuid": "c410761d_f6c65a0b",
+      "revId": "118c391f04c449cebd77cc4cc5663198129db5c3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cad40bde_dba5a54a",
         "filename": "internal/pkg/onuadaptercore/openonu_utils.go",
         "patchSetId": 4
