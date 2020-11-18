@@ -368,6 +368,24 @@
     },
     {
       "key": {
+        "uuid": "b49f9e0f_7ab497f9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 726,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-11-18T15:20:08Z",
+      "side": 1,
+      "message": "Yes, I need to sure about size. But why I cannot use IP x.x.x.x notation?",
+      "parentUuid": "5021dcce_41774fd1",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8ab9cc6f_d624ea5c",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -466,6 +484,24 @@
       "writtenOn": "2020-11-11T10:08:17Z",
       "side": 1,
       "message": "processOmciAniMessages() needs an acording extension to accept the response.",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "40210ed4_7953904a",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 739,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-11-18T15:20:08Z",
+      "side": 1,
+      "message": "DONE",
+      "parentUuid": "26a9adc3_25feb932",
       "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
