@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "38cffe65_afd70e9e",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-19T21:42:29Z",
+      "side": 1,
+      "message": "Yes we still need the CurrentReplica, or better we\u0027ll need it once we\u0027ll support multiple instance of this adapter (see TODO at line 289).\nThe Topic will be the a base name while the CurrentReplica will identify a single instance of this adapter. So in a single stack with 3 instances of the OpenOnuGo adapter you\u0027ll have:\n- brcm_openomci_onu_1\n- brcm_openomci_onu_2 \n- brcm_openomci_onu_3\n\nThe ability to specify a different Topic name is only required if you run multiple VOLTHA stacks sharing the same Kafka bus, for example if you have two stacks (voltha1 and voltha2) with two instances of the OpenOnuGo adapter each, you have topics:\n- voltha1_brcm_openomci_onu_1\n- voltha1_brcm_openomci_onu_2\n- voltha2_brcm_openomci_onu_1\n- voltha2_brcm_openomci_onu_2\n\nIn that way messages are never received by the \"wrong\" adatper",
+      "parentUuid": "122d19cf_7aa11a40",
+      "range": {
+        "startLine": 282,
+        "startChar": 3,
+        "endLine": 282,
+        "endChar": 17
+      },
+      "revId": "ce2547c7cfe28ae01d0024b6d08829127768cc40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3585c700_083e8726",
         "filename": "cmd/openonu-adapter/main.go",
         "patchSetId": 1
@@ -60,6 +84,30 @@
       "writtenOn": "2020-11-19T10:29:51Z",
       "side": 1,
       "message": "Comment should be adapted to the new approach to read the Endpoint from config.",
+      "range": {
+        "startLine": 290,
+        "startChar": 5,
+        "endLine": 290,
+        "endChar": 9
+      },
+      "revId": "ce2547c7cfe28ae01d0024b6d08829127768cc40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "acb1d559_664e689e",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-19T21:42:29Z",
+      "side": 1,
+      "message": "As per other comment the approach hasn\u0027t changed, the only difference is that \"brcm_openomci_onu\" is now configurable",
+      "parentUuid": "3585c700_083e8726",
       "range": {
         "startLine": 290,
         "startChar": 5,
