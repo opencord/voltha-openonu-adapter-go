@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4e0d93cc_b03adf24",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-19T10:29:51Z",
+      "side": 1,
+      "message": "Do we still need \"currentReplica\" with the new approach?",
+      "range": {
+        "startLine": 282,
+        "startChar": 3,
+        "endLine": 282,
+        "endChar": 17
+      },
+      "revId": "ce2547c7cfe28ae01d0024b6d08829127768cc40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3585c700_083e8726",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-19T10:29:51Z",
+      "side": 1,
+      "message": "Comment should be adapted to the new approach to read the Endpoint from config.",
+      "range": {
+        "startLine": 290,
+        "startChar": 5,
+        "endLine": 290,
+        "endChar": 9
+      },
+      "revId": "ce2547c7cfe28ae01d0024b6d08829127768cc40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
