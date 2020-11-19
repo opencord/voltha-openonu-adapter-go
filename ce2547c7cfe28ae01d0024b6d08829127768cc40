@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "122d19cf_7aa11a40",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-19T10:31:29Z",
+      "side": 1,
+      "message": "What is the envisioned relation between config items \"currentReplica\" and \"Topic?",
+      "parentUuid": "4e0d93cc_b03adf24",
+      "range": {
+        "startLine": 282,
+        "startChar": 3,
+        "endLine": 282,
+        "endChar": 17
+      },
+      "revId": "ce2547c7cfe28ae01d0024b6d08829127768cc40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3585c700_083e8726",
         "filename": "cmd/openonu-adapter/main.go",
         "patchSetId": 1
