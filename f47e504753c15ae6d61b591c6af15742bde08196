@@ -33,6 +33,57 @@
       "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9620e5cd_e59927ee",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-19T13:31:10Z",
+      "side": 1,
+      "message": "Well, can that be assumed, that the techProfID\u0027s start on 64? \nAnother way would be to implement some TCont counter in onuUniTechProf (onu_uni_tp.go).\nThe mentioned method via MIB-sync and ONU-DB I am still not aware off (if MIB-sync wil be done later) - perhaps that is then the real way.",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "69416889_02f40a94",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-19T13:31:10Z",
+      "side": 1,
+      "message": "Shouldn\u0027t that be an Errorw and better return here to avoid any of the subsequent processing.",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "859bdf64_ef0127aa",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 246,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-19T13:31:10Z",
+      "side": 1,
+      "message": "I know, was existing code, but same as above:\nShouldn\u0027t that be an Errorw and better return here to avoid any of the subsequent processing.",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
