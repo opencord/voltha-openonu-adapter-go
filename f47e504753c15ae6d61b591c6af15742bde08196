@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0aa9699a_78b5e21d",
+        "filename": "VERSION",
+        "patchSetId": 6
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-19T13:28:06Z",
+      "side": 1,
+      "message": "please keep dev141, for internal ADTRAN tracking",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32989adb_8f87f922",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-19T13:28:06Z",
+      "side": 1,
+      "message": "I did not really get the reason why this commented out. Is it because we are missing a periodic MibSync procedure ?",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
