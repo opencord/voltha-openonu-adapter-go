@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "08d65bd7_d495b186",
+        "filename": "VERSION",
+        "patchSetId": 6
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-19T19:29:39Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "0aa9699a_78b5e21d",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "32989adb_8f87f922",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 6
@@ -33,6 +51,24 @@
       "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f9960b04_86f122cf",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-19T19:29:39Z",
+      "side": 1,
+      "message": "Yes. It is a slightly big feature to implement. The workaround we have below is good enough for now.",
+      "parentUuid": "32989adb_8f87f922",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "190bdf94_350d6409",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-19T19:29:39Z",
+      "side": 1,
+      "message": "Yes TP ID has to start from 64. Table ID 0 to 63 are reserved for normal openflow table pipeline purposes. The rest are available for tech-profile table-id.\nYeah, the mib-resync purpose is ideal, but I think that is a big feature to implement for now. This should suffice.",
+      "parentUuid": "9620e5cd_e59927ee",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "69416889_02f40a94",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 6
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "333d3334_87273355",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-19T19:29:39Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "69416889_02f40a94",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "859bdf64_ef0127aa",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 6
@@ -84,6 +156,24 @@
       "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c891f59b_41b2133b",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 246,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-19T19:29:39Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "859bdf64_ef0127aa",
+      "revId": "f47e504753c15ae6d61b591c6af15742bde08196",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
