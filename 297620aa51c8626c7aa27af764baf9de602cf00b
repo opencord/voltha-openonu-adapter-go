@@ -16,6 +16,24 @@
       "revId": "297620aa51c8626c7aa27af764baf9de602cf00b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d4947297_54868652",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-20T09:07:21Z",
+      "side": 1,
+      "message": "Correction again: prepareAndEnterConfigState is already running as background routine, hence the corresponding requested code is a bit more simple:\n        if oFsm.chanSet {\n\t\t// indicate processing error/abort to the caller\n\t\toFsm.chSuccess \u003c- 0\n\t\toFsm.chanSet \u003d false //reset the internal channel state\n\t}\n\t//reset the state machine to enable usage on subsequent requests\n        _ \u003d aPAFsm.pFsm.Event(aniEvReset)\n        return",
+      "parentUuid": "188190a8_01682741",
+      "revId": "297620aa51c8626c7aa27af764baf9de602cf00b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
