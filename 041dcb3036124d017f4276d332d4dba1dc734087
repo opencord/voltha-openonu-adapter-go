@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "95471e93_a3e7e1ee",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-20T16:39:15Z",
+      "side": 1,
+      "message": "Unfortunately not seen with my comment above (\u0027Concerns also the toher error return\u0027). So the same handling as above is required here.\nBut I would suggest to improve that with some of the next code updates ooutside this change here now.",
+      "revId": "041dcb3036124d017f4276d332d4dba1dc734087",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
