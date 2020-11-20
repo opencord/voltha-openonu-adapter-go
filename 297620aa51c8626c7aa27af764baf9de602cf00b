@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "188190a8_01682741",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-20T08:38:16Z",
+      "side": 1,
+      "message": "Just returning in the error condition is not the best choice here, sorry I was not really aware of that at my last comments. The effect of that is, that the FSM will be \u0027stale\u0027 for quite a long time and so will also be the response sending on InterAdapter and accordingly further processing on that interface for this device.\nThe better choice would be here to indicate the error on the requested channel immediately and reset the FSM so that it can be used again at next attempt.\nThe code would be this:\n\tif oFsm.chanSet {\n\t\t// indicate processing error/abort to the caller\n\t\toFsm.chSuccess \u003c- 0\n\t\toFsm.chanSet \u003d false //reset the internal channel state\n\t}\n\t//reset the state machine to enable usage on subsequent requests\n\tpConfigAniStateAFsm :\u003d oFsm.pAdaptFsm\n\tif pConfigAniStateAFsm !\u003d nil {\n\t        // obviously calling some FSM event here directly does not work - so trying to decouple it ...\n\t\tgo func(aPAFsm *AdapterFsm) {\n\t\t\tif aPAFsm !\u003d nil \u0026\u0026 aPAFsm.pFsm !\u003d nil {\n\t\t\t\t_ \u003d aPAFsm.pFsm.Event(aniEvReset)\n\t\t\t}\n\t\t}(pConfigAniStateAFsm)\n\t}\n        return\n\nConcerns also the other error return. But as the error should be quite improbable we could leave the code as it is by now and insert the improvement in further code updates ....",
+      "revId": "297620aa51c8626c7aa27af764baf9de602cf00b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
