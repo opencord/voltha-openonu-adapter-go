@@ -16,6 +16,24 @@
       "revId": "041dcb3036124d017f4276d332d4dba1dc734087",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "745cb94b_db5928cd",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-20T16:46:10Z",
+      "side": 1,
+      "message": "Actually there are multiple places in this function where such issue is there. I was not very sure about putting such handling everywhere. May be we can solve it another way. We can do that in another patch.",
+      "parentUuid": "95471e93_a3e7e1ee",
+      "revId": "041dcb3036124d017f4276d332d4dba1dc734087",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
