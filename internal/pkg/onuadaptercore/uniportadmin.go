@@ -153,7 +153,7 @@ func newLockStateFsm(apDevOmciCC *omciCC, aAdminState bool, aRequestEvent OnuDev
 		return nil
 	}
 
-	logger.Infow("LockStateFsm created", log.Fields{"device-id": instFsm.deviceID})
+	logger.Debugw("LockStateFsm created", log.Fields{"device-id": instFsm.deviceID})
 	return instFsm
 }
 
@@ -211,7 +211,7 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(e *fsm.Event) {
 }
 
 func (oFsm *lockStateFsm) enterSettingUnisState(e *fsm.Event) {
-	logger.Infow("LockStateFSM - starting PPTP config loop", log.Fields{
+	logger.Debugw("LockStateFSM - starting PPTP config loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID, "LockState": oFsm.adminState})
 	go oFsm.performUniPortAdminSet()
 }
@@ -277,7 +277,7 @@ loop:
 		case TestMsg:
 			msg, _ := message.Data.(TestMessage)
 			if msg.TestMessageVal == AbortMessageProcessing {
-				logger.Infow("LockStateFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.deviceID})
+				logger.Debugw("LockStateFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.deviceID})
 				break loop
 			}
 			logger.Warnw("LockStateFsm unknown TestMessage", log.Fields{"device-id": oFsm.deviceID, "MessageVal": msg.TestMessageVal})
@@ -289,7 +289,7 @@ loop:
 				"message.Type": message.Type})
 		}
 	}
-	logger.Infow("End LockStateFsm Msg processing", log.Fields{"device-id": oFsm.deviceID})
+	logger.Debugw("End LockStateFsm Msg processing", log.Fields{"device-id": oFsm.deviceID})
 }
 
 func (oFsm *lockStateFsm) handleOmciLockStateMessage(msg OmciMessage) {

@@ -260,7 +260,7 @@ type OnuDeviceEntry struct {
 //newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
-	logger.Infow("init-onuDeviceEntry", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw("init-onuDeviceEntry", log.Fields{"device-id": dh.deviceID})
 	var onuDeviceEntry OnuDeviceEntry
 	onuDeviceEntry.deviceID = dh.deviceID
 	onuDeviceEntry.baseDeviceHandler = dh
@@ -432,7 +432,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 
 //start starts (logs) the omci agent
 func (oo *OnuDeviceEntry) start(ctx context.Context) error {
-	logger.Infow("OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
+	logger.Debugw("OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC == nil {
 		oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
 			oo.coreProxy, oo.adapterProxy)

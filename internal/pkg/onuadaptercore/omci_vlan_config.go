@@ -233,7 +233,7 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 
 	_ = instFsm.initUniFlowParams(aTechProfileID, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp)
 
-	logger.Infow("UniVlanConfigFsm created", log.Fields{"device-id": instFsm.deviceID,
+	logger.Debugw("UniVlanConfigFsm created", log.Fields{"device-id": instFsm.deviceID,
 		"accIncrEvto": instFsm.acceptIncrementalEvtoOption})
 	return instFsm
 }
