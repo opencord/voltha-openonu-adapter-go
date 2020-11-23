@@ -60,7 +60,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterSettingOnu2gState(e *fsm.Event) {
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterBridgeInitState(e *fsm.Event) {
-	logger.Infow("MibDownload FSM - starting bridge config port loop", log.Fields{
+	logger.Debugw("MibDownload FSM - starting bridge config port loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	go onuDeviceEntry.performInitialBridgeSetup()
 }
@@ -124,7 +124,7 @@ loop:
 		case TestMsg:
 			msg, _ := message.Data.(TestMessage)
 			if msg.TestMessageVal == AbortMessageProcessing {
-				logger.Infow("MibDownload abort ProcessMsg", log.Fields{"for device-id": onuDeviceEntry.deviceID})
+				logger.Debugw("MibDownload abort ProcessMsg", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 				break loop
 			}
 			logger.Warnw("MibDownload unknown TestMessage", log.Fields{"device-id": onuDeviceEntry.deviceID, "MessageVal": msg.TestMessageVal})
@@ -137,7 +137,7 @@ loop:
 		}
 
 	}
-	logger.Infow("End MibDownload Msg processing", log.Fields{"for device-id": onuDeviceEntry.deviceID})
+	logger.Debugw("End MibDownload Msg processing", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessage) {

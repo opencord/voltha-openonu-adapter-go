@@ -176,7 +176,7 @@ func newUniPonAniConfigFsm(apDevOmciCC *omciCC, apUniPort *onuUniPort, apUniTech
 		return nil
 	}
 
-	logger.Infow("uniPonAniConfigFsm created", log.Fields{"device-id": instFsm.deviceID})
+	logger.Debugw("uniPonAniConfigFsm created", log.Fields{"device-id": instFsm.deviceID})
 	return instFsm
 }
 
