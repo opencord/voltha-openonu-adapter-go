@@ -214,7 +214,7 @@ func (oo *OpenONUAC) Get_ofp_device_info(device *voltha.Device) (*ic.SwitchCapab
 //Process_inter_adapter_message sends messages to a target device (between adapters)
 func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) error {
 	logger.Debugw("Process_inter_adapter_message", log.Fields{"msgId": msg.Header.Id,
-		"msgProxyDeviceId": msg.Header.ProxyDeviceId, "msgToDeviceId": msg.Header.ToDeviceId})
+		"msgProxyDeviceId": msg.Header.ProxyDeviceId, "msgToDeviceId": msg.Header.ToDeviceId, "Type": msg.Header.Type})
 
 	var waitForDhInstPresent bool
 	//ToDeviceId should address a DeviceHandler instance
@@ -268,7 +268,7 @@ func (oo *OpenONUAC) Health() (*voltha.HealthStatus, error) {
 //Reconcile_device is called once when the adapter needs to re-create device - usually on core restart
 func (oo *OpenONUAC) Reconcile_device(device *voltha.Device) error {
 	if device == nil {
-		logger.Warn("voltha-device-is-nil")
+		logger.Warn("Reconcile_device: voltha-device-is-nil")
 		return errors.New("nil-device")
 	}
 	ctx := context.Background()
@@ -294,7 +294,7 @@ func (oo *OpenONUAC) Abandon_device(device *voltha.Device) error {
 
 //Disable_device disables the given device
 func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
-	logger.Debugw("Disable_device", log.Fields{"device-id": device.Id})
+	logger.Infow("Disable_device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		go handler.disableDevice(device)
 		return nil
@@ -305,7 +305,7 @@ func (oo *OpenONUAC) Disable_device(device *voltha.Device) error {
 
 //Reenable_device enables the onu device after disable
 func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
-	logger.Debugw("Reenable_device", log.Fields{"device-id": device.Id})
+	logger.Infow("Reenable_device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		go handler.reEnableDevice(device)
 		return nil
@@ -316,7 +316,7 @@ func (oo *OpenONUAC) Reenable_device(device *voltha.Device) error {
 
 //Reboot_device reboots the given device
 func (oo *OpenONUAC) Reboot_device(device *voltha.Device) error {
-	logger.Debugw("Reboot-device", log.Fields{"device-id": device.Id})
+	logger.Infow("Reboot-device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		go handler.rebootDevice(device)
 		return nil
@@ -332,7 +332,7 @@ func (oo *OpenONUAC) Self_test_device(device *voltha.Device) error {
 
 // Delete_device deletes the given device
 func (oo *OpenONUAC) Delete_device(device *voltha.Device) error {
-	logger.Debugw("Delete_device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
+	logger.Infow("Delete_device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 	if handler := oo.getDeviceHandler(device.Id, false); handler != nil {
 		err := handler.deleteDevicePersistencyData()
 		//don't leave any garbage - even in error case
@@ -357,6 +357,7 @@ func (oo *OpenONUAC) Update_flows_bulk(device *voltha.Device, flows *voltha.Flow
 func (oo *OpenONUAC) Update_flows_incrementally(device *voltha.Device,
 	flows *openflow_13.FlowChanges, groups *openflow_13.FlowGroupChanges, flowMetadata *voltha.FlowMetadata) error {
 
+	logger.Infow("Update_flows_incrementally", log.Fields{"device-id": device.Id})
 	//flow config is relayed to handler even if the device might be in some 'inactive' state
 	// let the handler or related FSM's decide, what to do with the modified flow state info
 	// at least the flow-remove must be done in respect to internal data, while OMCI activity might not be needed here

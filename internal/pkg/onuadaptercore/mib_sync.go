@@ -446,26 +446,10 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(msg OmciMessage) error {
 				return nil
 			}
 		}
-	} else if msgObj.Result == me.UnknownInstance {
-		logger.Debugw("MibSync FSM - Unknown Instance in GetResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
-		entityID := oo.PDevOmciCC.pLastTxMeInstance.GetEntityID()
-		if msgObj.EntityClass == oo.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
-			meInstance := oo.PDevOmciCC.pLastTxMeInstance.GetName()
-			switch meInstance {
-			case "IpHostConfigData":
-				logger.Debugf("MibSync FSM - Unknown Instance for IpHostConfigData received - ONU doesn't support ME - fill macAddress with zeros",
-					log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
-				oo.macAddress = cEmptyMacAddrString
-				// trigger retrieval of mib template
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
-				return nil
-			default:
-				logger.Debugf("MibSync FSM - Unknown Instance in GetResponse Data for %s", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj}, meInstance)
-			}
-		}
 	} else {
-		logger.Errorw("mibSync FSM - Omci GetResponse Error", log.Fields{"Error": msgObj.Result, "device-id": oo.deviceID})
-		err = fmt.Errorf("mibSync FSM - Omci GetResponse Error: %s", oo.deviceID)
+		if err = oo.handleOmciGetResponseErrors(msgObj); err == nil {
+			return nil
+		}
 	}
 	logger.Info("MibSync Msg", log.Fields{"Stopped handling of MibSyncChan for device-id": oo.deviceID})
 	_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
@@ -494,6 +478,33 @@ func (oo *OnuDeviceEntry) handleOmciMessage(msg OmciMessage) {
 		log.Warnw("Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
 
 	}
+}
+
+func (oo *OnuDeviceEntry) handleOmciGetResponseErrors(msgObj *omci.GetResponse) error {
+	var err error = nil
+	if msgObj.Result == me.UnknownInstance || msgObj.Result == me.ProcessingError || msgObj.Result == me.NotSupported {
+		logger.Debugw("MibSync FSM - Unknown Instance in GetResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
+		entityID := oo.PDevOmciCC.pLastTxMeInstance.GetEntityID()
+		if msgObj.EntityClass == oo.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
+			meInstance := oo.PDevOmciCC.pLastTxMeInstance.GetName()
+			switch meInstance {
+			case "IpHostConfigData":
+				logger.Debugf("MibSync FSM - Unknown Instance for IpHostConfigData received - ONU doesn't support ME - fill macAddress with zeros",
+					log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
+				oo.macAddress = cEmptyMacAddrString
+				// trigger retrieval of mib template
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
+				return nil
+			default:
+				logger.Debugf("MibSync FSM - Unknown Instance in GetResponse Data for %s", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj}, meInstance)
+				err = fmt.Errorf("mibSync FSM - Unknown Instance in GetResponse Data: %s", oo.deviceID)
+			}
+		}
+	} else {
+		logger.Errorw("mibSync FSM - Omci GetResponse Error", log.Fields{"Error": msgObj.Result, "device-id": oo.deviceID})
+		err = fmt.Errorf("mibSync FSM - Omci GetResponse Error: %s", oo.deviceID)
+	}
+	return err
 }
 
 func isSupportedClassID(meClassID me.ClassID) bool {

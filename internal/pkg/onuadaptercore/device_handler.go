@@ -90,6 +90,22 @@ const (
 	cOnuActivatedEvent = "ONU_ACTIVATED"
 )
 
+const (
+	// device reasons
+	drActivatingOnu                    = "activating-onu"
+	drStartingOpenomci                 = "starting-openomci"
+	drDiscoveryMibsyncComplete         = "discovery-mibsync-complete"
+	drInitialMibDownloaded             = "initial-mib-downloaded"
+	drTechProfileConfigDownloadSuccess = "tech-profile-config-download-success"
+	drOmciFlowsPushed                  = "omci-flows-pushed"
+	drOmciAdminLock                    = "omci-admin-lock"
+	drOnuReenabled                     = "onu-reenabled"
+	drStoppingOpenomci                 = "stopping-openomci"
+	drRebooting                        = "rebooting"
+	drOmciFlowsDeleted                 = "omci-flows-deleted"
+	drTechProfileConfigDeleteSuccess   = "tech-profile-config-delete-success"
+)
+
 //deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
 	deviceID         string
@@ -249,13 +265,13 @@ func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapte
 	msgBody := msg.GetBody()
 	onuIndication := &oop.OnuIndication{}
 	if err := ptypes.UnmarshalAny(msgBody, onuIndication); err != nil {
-		logger.Warnw("cannot-unmarshal-onu-indication-msg-body", log.Fields{
+		logger.Warnw("ONU_IND_REQUEST: cannot-unmarshal-msg-body", log.Fields{
 			"device-id": dh.deviceID, "error": err})
 		return err
 	}
 
 	onuOperstate := onuIndication.GetOperState()
-	logger.Debugw("inter-adapter-recv-onu-ind", log.Fields{"device-id": dh.deviceID,
+	logger.Infow("ONU_IND_REQUEST", log.Fields{"device-id": dh.deviceID,
 		"OnuId":      onuIndication.GetOnuId(),
 		"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
 		"SNR": onuIndication.GetSerialNumber()})
@@ -274,6 +290,8 @@ func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapte
 
 func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	msg *ic.InterAdapterMessage) error {
+
+	logger.Infow("TECH_PROFILE_DOWNLOAD_REQUEST", log.Fields{"device-id": dh.deviceID})
 
 	pDevEntry := dh.getOnuDeviceEntry(true)
 	if pDevEntry == nil {
@@ -354,6 +372,8 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 	msg *ic.InterAdapterMessage) error {
 
+	logger.Infow("DELETE_GEM_PORT_REQUEST", log.Fields{"device-id": dh.deviceID})
+
 	pDevEntry := dh.getOnuDeviceEntry(true)
 	if pDevEntry == nil {
 		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
@@ -410,6 +430,8 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 
 func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 	msg *ic.InterAdapterMessage) error {
+
+	logger.Infow("DELETE_TCONT_REQUEST", log.Fields{"device-id": dh.deviceID})
 
 	pDevEntry := dh.getOnuDeviceEntry(true)
 	if pDevEntry == nil {
@@ -671,11 +693,8 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 			logger.Debugw("DeviceReasonUpdate upon disable", log.Fields{
 				"reason": "omci-admin-lock", "device-id": dh.deviceID})
 			// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
-				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-				logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
-			}
-			dh.deviceReason = "omci-admin-lock"
+			_ = dh.deviceReasonUpdate(drOmciAdminLock)
+			dh.deviceReason = drOmciAdminLock
 		}
 	}
 }
@@ -854,12 +873,10 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "rebooting"); err != nil {
-		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
+	if err := dh.deviceReasonUpdate(drRebooting); err != nil {
 		return err
 	}
-	dh.deviceReason = "rebooting"
+	dh.deviceReason = drRebooting
 	dh.ReadyForSpecificOmciConfig = false
 	return nil
 }
@@ -884,12 +901,13 @@ func (dh *deviceHandler) doStateInit(e *fsm.Event) {
 	dh.device.Root = false
 	dh.device.Vendor = "OpenONU"
 	dh.device.Model = "go"
-	dh.device.Reason = "activating-onu"
-	dh.deviceReason = "activating-onu"
+	dh.device.Reason = drActivatingOnu
+	dh.deviceReason = drActivatingOnu
 
 	dh.logicalDeviceID = dh.deviceID // really needed - what for ??? //TODO!!!
 
 	if !dh.reconciling {
+		logger.Infow("DeviceUpdate", log.Fields{"deviceReason": dh.device.Reason, "device-id": dh.deviceID})
 		_ = dh.coreProxy.DeviceUpdate(context.TODO(), dh.device)
 	} else {
 		logger.Debugw("reconciling - don't notify core about DeviceUpdate",
@@ -1156,9 +1174,9 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc)
 		// fire deviceEntry ready event to spread to possibly waiting processing
 		dh.deviceEntrySet <- true
-		logger.Infow("onuDeviceEntry-added", log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("onuDeviceEntry-added", log.Fields{"device-id": dh.deviceID})
 	} else {
-		logger.Infow("onuDeviceEntry-add: Device already exists", log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("onuDeviceEntry-add: Device already exists", log.Fields{"device-id": dh.deviceID})
 	}
 	// might be updated with some error handling !!!
 	return nil
@@ -1207,15 +1225,12 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
 	if !dh.reconciling {
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "starting-openomci"); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to starting-openomci", log.Fields{"device-id": dh.deviceID, "error": err})
-		}
+		_ = dh.deviceReasonUpdate(drStartingOpenomci)
 	} else {
-		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to starting-openomci",
-			log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate",
+			log.Fields{"deviceReason": drStartingOpenomci, "device-id": dh.deviceID})
 	}
-	dh.deviceReason = "starting-openomci"
+	dh.deviceReason = drStartingOpenomci
 
 	/* this might be a good time for Omci Verify message?  */
 	verifyExec := make(chan bool)
@@ -1355,7 +1370,7 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
 	// (but note that the deviceReason may also have changed to e.g. TechProf*Delete_Success in between)
-	if dh.deviceReason != "stopping-openomci" {
+	if dh.deviceReason != drStoppingOpenomci {
 		logger.Debugw("updateInterface-started - stopping-device", log.Fields{"device-id": dh.deviceID})
 
 		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
@@ -1392,17 +1407,13 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 
 		dh.disableUniPortStateUpdate()
 
-		dh.deviceReason = "stopping-openomci"
+		dh.deviceReason = drStoppingOpenomci
 		dh.ReadyForSpecificOmciConfig = false
 
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "stopping-openomci"); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to stopping-openomci",
-				log.Fields{"device-id": dh.deviceID, "error": err})
+		if err := dh.deviceReasonUpdate(drStoppingOpenomci); err != nil {
 			// abort: system behavior is just unstable ...
 			return err
 		}
-
 		logger.Debugw("call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
 			"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.deviceID})
 		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
@@ -1480,20 +1491,13 @@ func (dh *deviceHandler) resetFsms() error {
 func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 	logger.Debugw("MibInSync event received, adding uni ports and locking the ONU interfaces", log.Fields{"device-id": dh.deviceID})
 	if !dh.reconciling {
-		//initiate DevStateUpdate
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "discovery-mibsync-complete"); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to mibsync-complete", log.Fields{
-				"device-id": dh.deviceID, "error": err})
-		} else {
-			logger.Infow("dev reason updated to MibSync complete", log.Fields{"device-id": dh.deviceID})
-		}
+		_ = dh.deviceReasonUpdate(drDiscoveryMibsyncComplete)
 	} else {
-		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to mibsync-complete",
-			log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate",
+			log.Fields{"deviceReason": drStartingOpenomci, "device-id": dh.deviceID})
 	}
 	//set internal state anyway - as it was done
-	dh.deviceReason = "discovery-mibsync-complete"
+	dh.deviceReason = drDiscoveryMibsyncComplete
 
 	pDevEntry := dh.getOnuDeviceEntry(false)
 	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
@@ -1591,19 +1595,13 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
 			log.Fields{"device-id": dh.deviceID})
 	}
 	if !dh.reconciling {
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "initial-mib-downloaded"); err != nil {
-			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw("error-DeviceReasonUpdate to initial-mib-downloaded",
-				log.Fields{"device-id": dh.deviceID, "error": err})
-		} else {
-			logger.Infow("dev reason updated to initial-mib-downloaded", log.Fields{"device-id": dh.deviceID})
-		}
+		_ = dh.deviceReasonUpdate(drInitialMibDownloaded)
 	} else {
-		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to initial-mib-downloaded",
-			log.Fields{"device-id": dh.deviceID})
+		logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate",
+			log.Fields{"deviceReason": drInitialMibDownloaded, "device-id": dh.deviceID})
 	}
 	//set internal state anyway - as it was done
-	dh.deviceReason = "initial-mib-downloaded"
+	dh.deviceReason = drInitialMibDownloaded
 	dh.ReadyForSpecificOmciConfig = true
 	// *** should generate UniUnlockStateDone event *****
 	if dh.pUnlockStateFsm == nil {
@@ -1638,14 +1636,10 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(devEvent OnuDeviceEvent
 		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 	}
 
-	logger.Debugw("DeviceReasonUpdate upon disable", log.Fields{
-		"reason": "omci-admin-lock", "device-id": dh.deviceID})
+	logger.Debugw("DeviceReasonUpdate upon disable", log.Fields{"reason": drOmciAdminLock, "device-id": dh.deviceID})
 	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-admin-lock"); err != nil {
-		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
-	}
-	dh.deviceReason = "omci-admin-lock"
+	_ = dh.deviceReasonUpdate(drOmciAdminLock)
+	dh.deviceReason = drOmciAdminLock
 
 	//transfer the modified logical uni port state
 	dh.disableUniPortStateUpdate()
@@ -1661,13 +1655,10 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(devEvent OnuDeviceEvent)
 	}
 
 	logger.Debugw("DeviceReasonUpdate upon re-enable", log.Fields{
-		"reason": "onu-reenabled", "device-id": dh.deviceID})
+		"reason": drOnuReenabled, "device-id": dh.deviceID})
 	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "onu-reenabled"); err != nil {
-		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-		logger.Errorw("error-updating-reason-state", log.Fields{"device-id": dh.deviceID, "error": err})
-	}
-	dh.deviceReason = "onu-reenabled"
+	_ = dh.deviceReasonUpdate(drOnuReenabled)
+	dh.deviceReason = drOnuReenabled
 
 	//transfer the modified logical uni port state
 	dh.enableUniPortStateUpdate()
@@ -1678,23 +1669,16 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) 
 		logger.Debugw("OmciAniConfigDone event received", log.Fields{"device-id": dh.deviceID})
 		// attention: the device reason update is done based on ONU-UNI-Port related activity
 		//  - which may cause some inconsistency
-		if dh.deviceReason != "tech-profile-config-download-success" {
+		if dh.deviceReason != drTechProfileConfigDownloadSuccess {
 			// which may be the case from some previous actvity even on this UNI Port (but also other UNI ports)
 			if !dh.reconciling {
-				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-download-success"); err != nil {
-					//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-					logger.Errorw("error-DeviceReasonUpdate to tech-profile-config-download-success",
-						log.Fields{"device-id": dh.deviceID, "error": err})
-				} else {
-					logger.Infow("update dev reason to tech-profile-config-download-success",
-						log.Fields{"device-id": dh.deviceID})
-				}
+				_ = dh.deviceReasonUpdate(drTechProfileConfigDownloadSuccess)
 			} else {
-				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to tech-profile-config-download-success",
-					log.Fields{"device-id": dh.deviceID})
+				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate",
+					log.Fields{"deviceReason": drTechProfileConfigDownloadSuccess, "device-id": dh.deviceID})
 			}
 			//set internal state anyway - as it was done
-			dh.deviceReason = "tech-profile-config-download-success"
+			dh.deviceReason = drTechProfileConfigDownloadSuccess
 		}
 		if dh.reconciling {
 			go dh.reconcileDeviceFlowConfig()
@@ -1703,18 +1687,12 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) 
 		logger.Debugw("OmciAniResourceRemoved event received", log.Fields{"device-id": dh.deviceID})
 		// attention: the device reason update is done based on ONU-UNI-Port related activity
 		//  - which may cause some inconsistency
-		if dh.deviceReason != "tech-profile-config-delete-success" {
+		if dh.deviceReason != drTechProfileConfigDeleteSuccess {
 			// which may be the case from some previous actvity even on this ONU port (but also other UNI ports)
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "tech-profile-config-delete-success"); err != nil {
-				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-				logger.Errorw("error-DeviceReasonUpdate to tech-profile-config-delete-success",
-					log.Fields{"device-id": dh.deviceID, "error": err})
-			} else {
-				logger.Infow("update dev reason to tech-profile-config-delete-success",
-					log.Fields{"device-id": dh.deviceID})
-			}
+			_ = dh.deviceReasonUpdate(drTechProfileConfigDeleteSuccess)
+
 			//set internal state anyway - as it was done
-			dh.deviceReason = "tech-profile-config-delete-success"
+			dh.deviceReason = drTechProfileConfigDeleteSuccess
 		}
 	}
 }
@@ -1726,40 +1704,28 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(aDevEvent OnuDeviceEvent
 	//  - which may cause some inconsistency
 
 	if aDevEvent == OmciVlanFilterAddDone {
-		if dh.deviceReason != "omci-flows-pushed" {
+		if dh.deviceReason != drOmciFlowsPushed {
 			// which may be the case from some previous actvity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
 			if !dh.reconciling {
-				if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-pushed"); err != nil {
-					logger.Errorw("error-DeviceReasonUpdate to omci-flows-pushed",
-						log.Fields{"device-id": dh.deviceID, "error": err})
-				} else {
-					logger.Infow("updated dev reason to omci-flows-pushed",
-						log.Fields{"device-id": dh.deviceID})
-				}
+				_ = dh.deviceReasonUpdate(drOmciFlowsPushed)
 			} else {
-				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate to omci-flows-pushed",
-					log.Fields{"device-id": dh.deviceID})
+				logger.Debugw("reconciling - don't notify core about DeviceReasonUpdate",
+					log.Fields{"deviceReason": drOmciFlowsPushed, "device-id": dh.deviceID})
 			}
 			//set internal state anyway - as it was done
-			dh.deviceReason = "omci-flows-pushed"
+			dh.deviceReason = drOmciFlowsPushed
 
 			if dh.reconciling {
 				go dh.reconcileMetrics()
 			}
 		}
 	} else {
-		if dh.deviceReason != "omci-flows-deleted" {
+		if dh.deviceReason != drOmciFlowsDeleted {
 			//not relevant for reconcile
-			if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, "omci-flows-deleted"); err != nil {
-				logger.Errorw("error-DeviceReasonUpdate to omci-flows-deleted",
-					log.Fields{"device-id": dh.deviceID, "error": err})
-			} else {
-				logger.Infow("updated dev reason to omci-flows-deleted",
-					log.Fields{"device-id": dh.deviceID})
-			}
+			_ = dh.deviceReasonUpdate(drOmciFlowsDeleted)
 			//set internal state anyway - as it was done
-			dh.deviceReason = "omci-flows-deleted"
+			dh.deviceReason = drOmciFlowsDeleted
 		}
 	}
 }
@@ -2381,6 +2347,17 @@ func (dh *deviceHandler) waitForCompletion(cancel context.CancelFunc, wg *sync.W
 	wg.Wait()
 	logger.Debugw("WaitGroup processing completed", log.Fields{
 		"device-id": dh.deviceID, "called from": aCallerIdent})
+}
+
+func (dh *deviceHandler) deviceReasonUpdate(deviceReason string) error {
+	//TODO with VOL-3045/VOL-3046: return the error and stop further processing at calling position
+	if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, deviceReason); err != nil {
+		logger.Errorw("DeviceReasonUpdate: error",
+			log.Fields{"deviceReason": deviceReason, "device-id": dh.deviceID, "error": err})
+		return err
+	}
+	logger.Infow("DeviceReasonUpdate: success", log.Fields{"deviceReason": deviceReason, "device-id": dh.deviceID})
+	return nil
 }
 
 func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
