@@ -40,8 +40,8 @@ import (
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 
-	"test.internal/openadapter/internal/pkg/config"
-	ac "test.internal/openadapter/internal/pkg/onuadaptercore"
+	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
+	ac "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/onuadaptercore"
 )
 
 type adapter struct {

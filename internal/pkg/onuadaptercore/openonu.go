@@ -32,7 +32,7 @@ import (
 	"github.com/opencord/voltha-protos/v3/go/openflow_13"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 
-	"test.internal/openadapter/internal/pkg/config"
+	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
 )
 
 //OpenONUAC structure holds the ONU core information
