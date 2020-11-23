@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "490cba76_9d05e3e4",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Was already done with patchset 2.",
+      "parentUuid": "2b58732f_4dfe9a28",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "97817fd7_badfb493",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "f7ab2d96_5bfa1351",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "97817fd7_badfb493",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6deeffad_12e563db",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "same, onu-ind-request.\n\nalso, why not debug ?",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e211fc6_188cb334",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Text will be changed, log-level will be kept as discussed.",
+      "parentUuid": "6deeffad_12e563db",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "031c1291_e1c32c97",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Text will be changed, log-level will be kept as discussed.",
+      "parentUuid": "010649dd_764dc1c6",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d3082b18_07b2b789",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -81,6 +153,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "same, also lower to debug",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2db3100_4b65d7fe",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 375,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Text will be changed, log-level will be kept as discussed.",
+      "parentUuid": "d3082b18_07b2b789",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "258288a0_178a4e3e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 434,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Text will be changed, log-level will be kept as discussed.",
+      "parentUuid": "6b9254b5_9426bae5",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "24097abd_d72114ac",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -115,6 +223,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "please at least log the error",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dae8a8a3_f0e604e2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 696,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "The error will already be reported in deviceReasonUpdate() itself (see also TODO in this function). Should the same error be logged again here?",
+      "parentUuid": "24097abd_d72114ac",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "55c33716_7a2d7c7e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 910,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Will be kept as discussed.",
+      "parentUuid": "f8d9a77b_b63aa54c",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "801fcb7f_39179ab6",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -149,6 +293,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "log error",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bebda8ba_4cf70716",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1228,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "The error will already be reported in deviceReasonUpdate() itself (see also TODO in this function). Should the same error be logged again here?",
+      "parentUuid": "801fcb7f_39179ab6",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -172,6 +334,24 @@
     },
     {
       "key": {
+        "uuid": "0642c138_7bd3565f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1494,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "The error will already be reported in deviceReasonUpdate() itself (see also TODO in this function). Should the same error be logged again here?",
+      "parentUuid": "7eb24c2c_57ac8597",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d5457830_67f8518c",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -183,6 +363,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "same",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f769c66e_517265fe",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1598,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "see above",
+      "parentUuid": "d5457830_67f8518c",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -206,6 +404,24 @@
     },
     {
       "key": {
+        "uuid": "b252dd34_b043eba4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1641,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "see above",
+      "parentUuid": "61af4ba7_f61473e8",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aed0af43_c9b71413",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -217,6 +433,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "same",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1dfd5978_7f5c0cf9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1711,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "see above",
+      "parentUuid": "aed0af43_c9b71413",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -240,6 +474,24 @@
     },
     {
       "key": {
+        "uuid": "7cc4504d_9a76b049",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1726,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "see above",
+      "parentUuid": "bbb48ec6_52334c84",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ec422083_2c773206",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -251,6 +503,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "device-reason-update-sucess, also move to debug.",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "64dace73_8b94dc5b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2359,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Will be kept as discussed.",
+      "parentUuid": "ec422083_2c773206",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -274,6 +544,24 @@
     },
     {
       "key": {
+        "uuid": "c3f5a5db_5e840972",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "0a091c80_7335e6ef",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5eff58c3_6313e09a",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -288,6 +576,24 @@
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ca0169f6_97a9c3cd",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 297,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5eff58c3_6313e09a",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -308,6 +614,24 @@
     },
     {
       "key": {
+        "uuid": "83ab82e1_617e5ebc",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7c034bd0_9b98b46b",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e02de859_6d6e7331",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -325,6 +649,24 @@
     },
     {
       "key": {
+        "uuid": "27c94ba9_793cb00d",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e02de859_6d6e7331",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "74ed71e6_2d7da9ea",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -336,6 +678,24 @@
       "writtenOn": "2020-11-23T11:56:46Z",
       "side": 1,
       "message": "update-flows-incrementally, move to debug and add the flows to be updated.",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1deb4988_247e9fae",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 360,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-23T14:45:58Z",
+      "side": 1,
+      "message": "Detailed flow info is printed out already later in the processing as debug log. Level will be kept as discussed.",
+      "parentUuid": "74ed71e6_2d7da9ea",
       "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
