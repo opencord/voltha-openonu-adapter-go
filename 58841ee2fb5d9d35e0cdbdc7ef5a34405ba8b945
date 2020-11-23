@@ -247,6 +247,24 @@
     },
     {
       "key": {
+        "uuid": "676bee26_5e838949",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 696,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-23T14:48:28Z",
+      "side": 1,
+      "message": "I see, ideally this should be a return err so it would not actually require the log, please at least in one of these occurrences put a comment: \"//TODO catch and return error, valid for all occurrences in the codebase\" thanks",
+      "parentUuid": "dae8a8a3_f0e604e2",
+      "revId": "58841ee2fb5d9d35e0cdbdc7ef5a34405ba8b945",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f8d9a77b_b63aa54c",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
