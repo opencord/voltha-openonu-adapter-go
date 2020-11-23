@@ -50,6 +50,23 @@
       "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "72ac7633_68f080ce",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 486,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-11-23T16:35:58Z",
+      "side": 1,
+      "message": "[nitpick] is it useful to log the msgObj.Result in this debug log. The log msg says \"Unknown Instance\" but it seems there are other possibilities.",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
