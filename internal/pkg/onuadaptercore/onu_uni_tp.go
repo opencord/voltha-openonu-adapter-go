@@ -104,7 +104,7 @@ type onuUniTechProf struct {
 //newOnuUniTechProf returns the instance of a OnuUniTechProf
 //(one instance per ONU/deviceHandler for all possible UNI's)
 func newOnuUniTechProf(ctx context.Context, aDeviceHandler *deviceHandler) *onuUniTechProf {
-	logger.Infow("init-OnuUniTechProf", log.Fields{"device-id": aDeviceHandler.deviceID})
+	logger.Debugw("init-OnuUniTechProf", log.Fields{"device-id": aDeviceHandler.deviceID})
 	var onuTP onuUniTechProf
 	onuTP.baseDeviceHandler = aDeviceHandler
 	onuTP.deviceID = aDeviceHandler.deviceID

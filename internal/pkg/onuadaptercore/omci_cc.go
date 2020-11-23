@@ -115,7 +115,7 @@ type omciCC struct {
 func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 	deviceID string, deviceHandler *deviceHandler,
 	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy) *omciCC {
-	logger.Infow("init-omciCC", log.Fields{"device-id": deviceID})
+	logger.Debugw("init-omciCC", log.Fields{"device-id": deviceID})
 	var omciCC omciCC
 	omciCC.enabled = false
 	omciCC.pOnuDeviceEntry = onuDeviceEntry
