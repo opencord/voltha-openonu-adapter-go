@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "37b87c91_76f90c2d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1227,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-23T16:15:19Z",
+      "side": 1,
+      "message": "You could perhaps also unify the dh.deviceReason setting and evaluation of reconciling by extension to \ndeviceReasonUpdate(drStartingOpenomci, dh.reconciling or true)\nsee below",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "848274be_47785a50",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1409,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-23T16:15:19Z",
+      "side": 1,
+      "message": "A bit strange now, that we set the reason here first - compared with the other processing (see also remark to deviceReasonUpdate)",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bde11092_2e3fba5b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2351,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-23T16:15:19Z",
+      "side": 1,
+      "message": "You could perhaps also unify the dh.deviceReason setting and evaluation of reconciling by extension to \ndeviceReasonUpdate(deviceReason string, coreUpdate bool) \nfor all references here",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
