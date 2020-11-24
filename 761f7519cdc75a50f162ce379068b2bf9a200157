@@ -1,0 +1,8 @@
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Code-Review+1: Holger Hildebrandt <holger.hildebrandt@adtran.com>
+Code-Review+2: Matteo Scandolo <teo@opennetworking.org>
+Submitted-by: Matteo Scandolo <teo@opennetworking.org>
+Submitted-at: Tue, 24 Nov 2020 19:37:06 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/21809
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
