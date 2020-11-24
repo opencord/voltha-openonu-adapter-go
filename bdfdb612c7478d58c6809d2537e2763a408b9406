@@ -577,6 +577,24 @@
     },
     {
       "key": {
+        "uuid": "53381170_4695f84f",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 418,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-24T13:55:23Z",
+      "side": 1,
+      "message": "removed",
+      "parentUuid": "c8be7871_1882b6b1",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aeb989d7_462197bd",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -623,6 +641,24 @@
       "side": 1,
       "message": "? it\u0027s the same. And copied from bidi gemPort handling.\nNote: Note done consistently, but it\u0027s bestPractice to use constants as first operands in comparisons which helps avoiding unintended indirections.",
       "parentUuid": "2b1aa84c_23d6b244",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3ff781bc_9e4c080b",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-24T13:55:23Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "d4197f58_9d4b1b5e",
       "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
