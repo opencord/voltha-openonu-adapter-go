@@ -46,6 +46,7 @@ import (
 
 type adapter struct {
 	//defaultAppName   string
+	configManager    *conf.ConfigManager
 	instanceID       string
 	config           *config.AdapterFlags
 	iAdapter         adapters.IAdapter // from Voltha interface adapters
@@ -102,6 +103,7 @@ func (a *adapter) start(ctx context.Context) error {
 	/* address config update acc. to [VOL-2736] */
 	addr := a.config.KVStoreHost + ":" + strconv.Itoa(a.config.KVStorePort)
 	cm := conf.NewConfigManager(a.kvClient, a.config.KVStoreType, addr, a.config.KVStoreTimeout)
+	a.configManager = cm
 	go conf.StartLogLevelConfigProcessing(cm, ctx)
 
 	// Setup Kafka Client
@@ -131,7 +133,7 @@ func (a *adapter) start(ctx context.Context) error {
 
 	// Create the open ONU interface adapter
 	if a.iAdapter, err = a.startVolthaInterfaceAdapter(ctx, a.kip, a.coreProxy, a.adapterProxy, a.eventProxy,
-		a.config); err != nil {
+		a.config, a.configManager); err != nil {
 		logger.Fatalw("error-starting-volthaInterfaceAdapter for OpenOnt", log.Fields{"error": err})
 	}
 
@@ -249,9 +251,9 @@ func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (ka
 
 func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, kip kafka.InterContainerProxy,
 	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy,
-	cfg *config.AdapterFlags) (*ac.OpenONUAC, error) {
+	cfg *config.AdapterFlags, cm *conf.ConfigManager) (*ac.OpenONUAC, error) {
 	var err error
-	sAcONU := ac.NewOpenONUAC(ctx, a.kip, cp, ap, ep, a.kvClient, cfg)
+	sAcONU := ac.NewOpenONUAC(ctx, a.kip, cp, ap, ep, a.kvClient, cfg, cm)
 
 	if err = sAcONU.Start(ctx); err != nil {
 		logger.Fatalw("error-starting-OpenOnuAdapterCore", log.Fields{"error": err})

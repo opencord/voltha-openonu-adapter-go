@@ -108,7 +108,7 @@ const (
 const (
 	cBasePathMibTemplateKvStore = "service/voltha/omci_mibs/go_templates"
 	cSuffixMibTemplateKvStore   = "%s/%s/%s"
-	cBasePathOnuKVStore         = "service/voltha/openonu"
+	cBasePathOnuKVStore         = "%s/openonu"
 )
 
 // OnuDeviceEvent - event of interest to Device Adapters and OpenOMCI State Machines
@@ -418,10 +418,11 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	}
 
 	onuDeviceEntry.onuKVStorePath = onuDeviceEntry.deviceID
-	onuDeviceEntry.onuKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(cBasePathOnuKVStore)
+	baseKvStorePath := fmt.Sprintf(cBasePathOnuKVStore, dh.pOpenOnuAc.cm.Backend.PathPrefix)
+	onuDeviceEntry.onuKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(baseKvStorePath)
 	if onuDeviceEntry.onuKVStore == nil {
 		logger.Errorw("Can't access onuKVStore - no backend connection to service",
-			log.Fields{"device-id": dh.deviceID, "service": cBasePathOnuKVStore})
+			log.Fields{"device-id": dh.deviceID, "service": baseKvStorePath})
 	}
 
 	// Alarm Synchronization Database
