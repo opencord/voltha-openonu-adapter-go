@@ -386,6 +386,24 @@
     },
     {
       "key": {
+        "uuid": "3ff4d07d_8793faca",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 726,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-24T10:38:11Z",
+      "side": 1,
+      "message": "Of course you can basically use that notation. But in the end you have to make sure, that for the me attributes only 4 bytes are written, hence the points must be cut somewhere - something I still can\u0027t see in your code.",
+      "parentUuid": "b49f9e0f_7ab497f9",
+      "revId": "bdfdb612c7478d58c6809d2537e2763a408b9406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8ab9cc6f_d624ea5c",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1

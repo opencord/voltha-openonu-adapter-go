@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ff5b7bb4_a9ecd9f1",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 719,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-24T10:38:11Z",
+      "side": 1,
+      "message": "As already marked before: I still would prefer to use \u0027direction\u0027 as differentiation between bidirectional and multicast gem ...\nThis way I still assume, that \u0027isMulticast\u0027 is nowhere else needed (at position discussed for string or bool type) ...",
+      "revId": "c31b83a57e71a2f37885bea44c3acb264d308c18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9569029f_88bb1e59",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-24T10:38:11Z",
+      "side": 1,
+      "message": "Attention: waitForResponse is already called after the following else branch (perhaps now with not quite accurate error messages), but this way you would call it twice - should not wok...",
+      "revId": "c31b83a57e71a2f37885bea44c3acb264d308c18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
