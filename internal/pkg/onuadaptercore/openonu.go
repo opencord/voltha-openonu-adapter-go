@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	conf "github.com/opencord/voltha-lib-go/v3/pkg/config"
 	"sync"
 	"time"
 
@@ -47,6 +48,7 @@ type OpenONUAC struct {
 	eventProxy                  adapterif.EventProxy
 	kafkaICProxy                kafka.InterContainerProxy
 	kvClient                    kvstore.Client
+	cm                          *conf.ConfigManager
 	config                      *config.AdapterFlags
 	numOnus                     int
 	KVStoreHost                 string
@@ -67,7 +69,7 @@ type OpenONUAC struct {
 //NewOpenONUAC returns a new instance of OpenONU_AC
 func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy,
-	eventProxy adapterif.EventProxy, kvClient kvstore.Client, cfg *config.AdapterFlags) *OpenONUAC {
+	eventProxy adapterif.EventProxy, kvClient kvstore.Client, cfg *config.AdapterFlags, cm *conf.ConfigManager) *OpenONUAC {
 	var openOnuAc OpenONUAC
 	openOnuAc.exitChannel = make(chan int, 1)
 	openOnuAc.deviceHandlers = make(map[string]*deviceHandler)
@@ -75,6 +77,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.lockDeviceHandlersMap = sync.RWMutex{}
 	openOnuAc.kafkaICProxy = kafkaICProxy
 	openOnuAc.config = cfg
+	openOnuAc.cm = cm
 	openOnuAc.numOnus = cfg.OnuNumber
 	openOnuAc.coreProxy = coreProxy
 	openOnuAc.adapterProxy = adapterProxy

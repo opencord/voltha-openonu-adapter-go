@@ -31,7 +31,7 @@ import (
 	tp "github.com/opencord/voltha-lib-go/v3/pkg/techprofile"
 )
 
-const cBasePathTechProfileKVStore = "service/voltha/technology_profiles"
+const cBasePathTechProfileKVStore = "%s/technology_profiles"
 
 //definitions for TechProfileProcessing - copied from OltAdapter:openolt_flowmgr.go
 //  could perhaps be defined more globally
@@ -114,10 +114,11 @@ func newOnuUniTechProf(ctx context.Context, aDeviceHandler *deviceHandler) *onuU
 	onuTP.mapPonAniConfig = make(map[uniTP]*tcontGemList)
 	onuTP.procResult = make(map[uniTP]error)
 	onuTP.tpProfileExists = make(map[uniTP]bool)
-	onuTP.techProfileKVStore = aDeviceHandler.setBackend(cBasePathTechProfileKVStore)
+	baseKvStorePath := fmt.Sprintf(cBasePathTechProfileKVStore, aDeviceHandler.pOpenOnuAc.cm.Backend.PathPrefix)
+	onuTP.techProfileKVStore = aDeviceHandler.setBackend(baseKvStorePath)
 	if onuTP.techProfileKVStore == nil {
 		logger.Errorw("Can't access techProfileKVStore - no backend connection to service",
-			log.Fields{"device-id": aDeviceHandler.deviceID, "service": cBasePathTechProfileKVStore})
+			log.Fields{"device-id": aDeviceHandler.deviceID, "service": baseKvStorePath})
 	}
 
 	return &onuTP
