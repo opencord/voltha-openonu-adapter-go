@@ -34,6 +34,24 @@
       "revId": "80129dbf3f425354791d92b847b20596cfa4e065",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "50285ee7_713e76a9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2306,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-24T13:40:38Z",
+      "side": 1,
+      "message": "@Andrea: The negation would then be necessary at the calling point if \"dh.reconciling\" is used to control core notification - but I understand you concerns and will change it.",
+      "parentUuid": "37a99054_32e6514c",
+      "revId": "80129dbf3f425354791d92b847b20596cfa4e065",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
