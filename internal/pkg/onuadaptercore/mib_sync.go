@@ -135,7 +135,7 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplate(e *fsm.Event) {
 
 	meStoredFromTemplate := false
 	oo.mibTemplatePath = fmt.Sprintf(cSuffixMibTemplateKvStore, oo.vendorID, oo.equipmentID, oo.activeSwVersion)
-	logger.Debugw("MibSync FSM - MibTemplate - etcd search string", log.Fields{"path": oo.mibTemplatePath})
+	logger.Debugw("MibSync FSM - MibTemplate - etcd search string", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath)})
 	Value, err := oo.mibTemplateKVStore.Get(context.TODO(), oo.mibTemplatePath)
 	if err == nil {
 		if Value != nil {
