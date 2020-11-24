@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8fa7b5dc_e20f2ddf",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1227,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-24T11:39:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "37b87c91_76f90c2d",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "848274be_47785a50",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -33,6 +51,24 @@
       "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2eb75b76_7201b754",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1409,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-24T11:39:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "848274be_47785a50",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "9b896071_83753531",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2351,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-24T11:39:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "bde11092_2e3fba5b",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "72ac7633_68f080ce",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 3
@@ -64,6 +118,24 @@
       "writtenOn": "2020-11-23T16:35:58Z",
       "side": 1,
       "message": "[nitpick] is it useful to log the msgObj.Result in this debug log. The log msg says \"Unknown Instance\" but it seems there are other possibilities.",
+      "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "69fd498c_c9bae057",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 486,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-24T11:39:12Z",
+      "side": 1,
+      "message": "msgObj.Result would already be printed together with the whole msgObj. But I\u0027ll revise the logs to make them more focussed to the Result-value.",
+      "parentUuid": "72ac7633_68f080ce",
       "revId": "578d2e6bbf916a7b064135683a92eae12d775819",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
