@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "28a36b7c_a8c7f0ff",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2306,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-24T12:21:17Z",
+      "side": 1,
+      "message": "usually boolean parameters are passed with a positive action, in this case I\u0027d call this notifyCore and pass true when needed, false otherwise, otherwise the double negation at line 2309 makes it a lot more complicated to understand.",
+      "revId": "80129dbf3f425354791d92b847b20596cfa4e065",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
