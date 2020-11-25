@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "87979263_f12d20cd",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:52:58Z",
+      "side": 1,
+      "message": "(imho) there is not really a reason to store the cm as \u0027member\u0027 variable - see below",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c0a1fbb_11b2fde0",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:52:58Z",
+      "side": 1,
+      "message": "needed?",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c28ec752_51e6bc9a",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:52:58Z",
+      "side": 1,
+      "message": "cm could be used here directly instead of \u0027member\u0027 variable a.configManager",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "330f182f_c0012bb8",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:52:58Z",
+      "side": 1,
+      "message": "If now also cBasePathOnuKVStore is parametrized, then I would assume it should be done here for  cBasePathMibTemplateKvStore as well ..",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
