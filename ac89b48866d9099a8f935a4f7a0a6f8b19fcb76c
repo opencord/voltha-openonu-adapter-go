@@ -67,6 +67,24 @@
       "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "737376ae_5ae30f20",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 389,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2020-11-25T08:56:15Z",
+      "side": 1,
+      "message": "That\u0027s good point, one ONU can have one multicast GEM.",
+      "parentUuid": "0b37a52b_4d176805",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
