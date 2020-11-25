@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "7bd17803_7cfe11b0",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-25T15:44:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "72b35f51_5f8a328a",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b21012d5_03806796",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 13
@@ -47,6 +65,24 @@
       "writtenOn": "2020-11-25T08:34:47Z",
       "side": 1,
       "message": "I would be afraid, that this is not working. We are iterating here the upstream GemPort list (of the current Techprofile) and in my point of view Multicast should never be set in this list here (but I have not checked in practice).",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "09792408_593b30f2",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-25T15:44:51Z",
+      "side": 1,
+      "message": "moved to an iteration over the downstream ports.",
+      "parentUuid": "b21012d5_03806796",
       "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
