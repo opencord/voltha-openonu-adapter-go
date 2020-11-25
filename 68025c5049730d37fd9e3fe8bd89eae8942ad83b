@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f30db02e_879547b1",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 382,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T14:37:06Z",
+      "side": 1,
+      "message": "Don\u0027t understand that comment here. Maybe - see my comment below - because you also considered to use the GemPortID as key here? Exists in the adapter interface (added by OLT adapter).",
+      "revId": "68025c5049730d37fd9e3fe8bd89eae8942ad83b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "832d871a_74cf2e66",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 435,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T14:37:06Z",
+      "side": 1,
+      "message": "I still woul build upon the GemportID element - even though I\u0027m not that sure if it set as I expect in the MC Gem port structure attributes - but well, GemPortID or McastGemID or both - that is still some other discussion ...",
+      "revId": "68025c5049730d37fd9e3fe8bd89eae8942ad83b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6bb4afbb_66fab47f",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 448,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T14:37:06Z",
+      "side": 1,
+      "message": "Acceptable as workaround as:\na) the GemPortID\u003dmcastGemId is expected to have a very high value (even though that might be more common practice), at least it should be anyway greater than 256\nb) the number  of bidirectional gemports for one ONU should normally not be greater than 255\nOne better approach could be to generally use the GemPortId also as key for the bidirectional ports, or to use an internal counter.",
+      "revId": "68025c5049730d37fd9e3fe8bd89eae8942ad83b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
