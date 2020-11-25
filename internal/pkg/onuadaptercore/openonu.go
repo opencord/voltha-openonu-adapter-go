@@ -24,12 +24,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v3/pkg/log"
 	ic "github.com/opencord/voltha-protos/v3/go/inter_container"
 	"github.com/opencord/voltha-protos/v3/go/openflow_13"
+	oop "github.com/opencord/voltha-protos/v3/go/openolt"
 	"github.com/opencord/voltha-protos/v3/go/voltha"
 
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
@@ -152,7 +154,8 @@ func (oo *OpenONUAC) getDeviceHandler(deviceID string, aWait bool) *deviceHandle
 	oo.lockDeviceHandlersMap.Lock()
 	agent, ok := oo.deviceHandlers[deviceID]
 	if aWait && !ok {
-		logger.Debugw("deviceHandler not present - wait for creation or timeout", log.Fields{"device-id": deviceID})
+		logger.Infow("Race condition: deviceHandler not present - wait for creation or timeout",
+			log.Fields{"device-id": deviceID})
 		if _, exist := oo.deviceHandlersCreateChan[deviceID]; !exist {
 			oo.deviceHandlersCreateChan[deviceID] = make(chan bool, 1)
 		}
@@ -174,6 +177,45 @@ func (oo *OpenONUAC) getDeviceHandler(deviceID string, aWait bool) *deviceHandle
 	}
 	oo.lockDeviceHandlersMap.Unlock()
 	return agent
+}
+
+func (oo *OpenONUAC) processInterAdapterONUIndReqMessage(msg *ic.InterAdapterMessage) error {
+	msgBody := msg.GetBody()
+	onuIndication := &oop.OnuIndication{}
+	if err := ptypes.UnmarshalAny(msgBody, onuIndication); err != nil {
+		logger.Warnw("onu-ind-request-cannot-unmarshal-msg-body", log.Fields{"error": err})
+		return err
+	}
+	//ToDeviceId should address a DeviceHandler instance
+	targetDevice := msg.Header.ToDeviceId
+
+	onuOperstate := onuIndication.GetOperState()
+	waitForDhInstPresent := false
+	if onuOperstate == "up" {
+		//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
+		//ONU_IND_REQUEST msg by olt-adapter could arrive a little bit earlier than rw_core was able to announce the corresponding
+		//ONU by RPC of Adopt_device(). Therefore it could be necessary to wait with processing of ONU_IND_REQUEST until call of
+		//Adopt_device() arrived and DeviceHandler instance was created
+		waitForDhInstPresent = true
+	}
+	if handler := oo.getDeviceHandler(targetDevice, waitForDhInstPresent); handler != nil {
+		logger.Infow("onu-ind-request", log.Fields{"device-id": targetDevice,
+			"OnuId":      onuIndication.GetOnuId(),
+			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
+			"SNR": onuIndication.GetSerialNumber()})
+
+		if onuOperstate == "up" {
+			return handler.createInterface(onuIndication)
+		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
+			return handler.updateInterface(onuIndication)
+		} else {
+			logger.Errorw("unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
+			return fmt.Errorf("invalidOperState: %s, %s", onuOperstate, targetDevice)
+		}
+	}
+	logger.Warnw("no handler found for received onu-ind-request", log.Fields{
+		"msgToDeviceId": targetDevice})
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
 }
 
 // Adapter interface required methods ############## begin #########
@@ -216,22 +258,13 @@ func (oo *OpenONUAC) Process_inter_adapter_message(msg *ic.InterAdapterMessage) 
 	logger.Debugw("Process_inter_adapter_message", log.Fields{"msgId": msg.Header.Id,
 		"msgProxyDeviceId": msg.Header.ProxyDeviceId, "msgToDeviceId": msg.Header.ToDeviceId, "Type": msg.Header.Type})
 
-	var waitForDhInstPresent bool
+	if msg.Header.Type == ic.InterAdapterMessageType_ONU_IND_REQUEST {
+		// we have to handle ONU_IND_REQUEST already here - see comments in processInterAdapterONUIndReqMessage()
+		return oo.processInterAdapterONUIndReqMessage(msg)
+	}
 	//ToDeviceId should address a DeviceHandler instance
 	targetDevice := msg.Header.ToDeviceId
-	// As a workaround this handling is only required for the OnuIndication with OperState=Up event.
-	// But we live without that further check and use this processing also for OperState down/unreachable events to avoid
-	// the deeper message processing at this stage. Should do no harm on the other events (except for run time)
-	if msg.Header.Type != ic.InterAdapterMessageType_ONU_IND_REQUEST {
-		waitForDhInstPresent = false
-	} else {
-		//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
-		//ONU_IND_REQUEST msg by olt-adapter could arrive a little bit earlier than rw_core was able to announce the corresponding
-		//ONU by RPC of Adopt_device()
-		logger.Debugw("ONU_IND_REQUEST - potentially wait until DeviceHandler instance is created", log.Fields{"device-id": targetDevice})
-		waitForDhInstPresent = true
-	}
-	if handler := oo.getDeviceHandler(targetDevice, waitForDhInstPresent); handler != nil {
+	if handler := oo.getDeviceHandler(targetDevice, false); handler != nil {
 		/* 200724: modification towards synchronous implementation - possible errors within processing shall be
 		 * 	 in the accordingly delayed response, some timing effect might result in Techprofile processing for multiple UNI's
 		 */

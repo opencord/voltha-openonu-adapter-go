@@ -261,33 +261,6 @@ func (dh *deviceHandler) processInterAdapterOMCIReqMessage(msg *ic.InterAdapterM
 	return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 }
 
-func (dh *deviceHandler) processInterAdapterONUIndReqMessage(msg *ic.InterAdapterMessage) error {
-	msgBody := msg.GetBody()
-	onuIndication := &oop.OnuIndication{}
-	if err := ptypes.UnmarshalAny(msgBody, onuIndication); err != nil {
-		logger.Warnw("onu-ind-request-cannot-unmarshal-msg-body", log.Fields{
-			"device-id": dh.deviceID, "error": err})
-		return err
-	}
-
-	onuOperstate := onuIndication.GetOperState()
-	logger.Infow("onu-ind-request", log.Fields{"device-id": dh.deviceID,
-		"OnuId":      onuIndication.GetOnuId(),
-		"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
-		"SNR": onuIndication.GetSerialNumber()})
-
-	//interface related functions might be error checked ....
-	if onuOperstate == "up" {
-		_ = dh.createInterface(onuIndication)
-	} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
-		_ = dh.updateInterface(onuIndication)
-	} else {
-		logger.Errorw("unknown-onu-indication operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
-		return fmt.Errorf("invalidOperState: %s, %s", onuOperstate, dh.deviceID)
-	}
-	return nil
-}
-
 func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	msg *ic.InterAdapterMessage) error {
 
@@ -506,13 +479,10 @@ func (dh *deviceHandler) processInterAdapterMessage(msg *ic.InterAdapterMessage)
 		"fromTopic": fromTopic, "toTopic": toTopic, "toDeviceID": toDeviceID, "proxyDeviceID": proxyDeviceID})
 
 	switch msgType {
+	// case ic.InterAdapterMessageType_ONU_IND_REQUEST: was handled by OpenONUAC already - see comments there
 	case ic.InterAdapterMessageType_OMCI_REQUEST:
 		{
 			return dh.processInterAdapterOMCIReqMessage(msg)
-		}
-	case ic.InterAdapterMessageType_ONU_IND_REQUEST:
-		{
-			return dh.processInterAdapterONUIndReqMessage(msg)
 		}
 	case ic.InterAdapterMessageType_TECH_PROFILE_DOWNLOAD_REQUEST:
 		{
