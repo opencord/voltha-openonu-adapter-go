@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "2b190e30_e884a966",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-25T19:06:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "87979263_f12d20cd",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7c0a1fbb_11b2fde0",
         "filename": "cmd/openonu-adapter/main.go",
         "patchSetId": 1
@@ -33,6 +51,24 @@
       "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fd020666_64a8c95d",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-25T19:06:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7c0a1fbb_11b2fde0",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "54b09642_7e187986",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-25T19:06:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c28ec752_51e6bc9a",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "330f182f_c0012bb8",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
@@ -67,6 +121,24 @@
       "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c68b6fba_79c65c78",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-25T19:06:59Z",
+      "side": 1,
+      "message": "This should stay \"service/voltha\" so that the templates are shared across multiple stacks",
+      "parentUuid": "330f182f_c0012bb8",
+      "revId": "47a313a3a97bfc0d83d845f542ca6f2aebc00bc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
