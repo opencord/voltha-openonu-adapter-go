@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ec3c5800_db8e2621",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:34:47Z",
+      "side": 1,
+      "message": "defining it as bool in onu_uni_tp.go already would make it easier (if needed at all)",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "72b35f51_5f8a328a",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:34:47Z",
+      "side": 1,
+      "message": "defining it here to boolean would make things a bit easier (see omci_ani_config.go) - and if needed at all (as discussed)",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b21012d5_03806796",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:34:47Z",
+      "side": 1,
+      "message": "I would be afraid, that this is not working. We are iterating here the upstream GemPort list (of the current Techprofile) and in my point of view Multicast should never be set in this list here (but I have not checked in practice).",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b37a52b_4d176805",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 389,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T08:34:47Z",
+      "side": 1,
+      "message": "so still pro forma: Why setting a separate mcGemPortId if the same value is already in gemPortId ?",
+      "revId": "ac89b48866d9099a8f935a4f7a0a6f8b19fcb76c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
