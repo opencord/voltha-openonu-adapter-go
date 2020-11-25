@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b8edf3cf_2392be3c",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 377,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T10:13:40Z",
+      "side": 1,
+      "message": "see below downstream GemPorts: I am not sure, if this check is still valid with the integration of the downstream-multicast gemPorts:\nPerhaps it might be, that the upstream GemPort does not start anymore on position 0 (because the entry might be reserved by the downsteam-multicast entry - see there)?",
+      "revId": "6bdf3e7cd997e05bb68b6fc79ea22f3c3bfda94e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e32f487_c24c5ea5",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T10:13:40Z",
+      "side": 1,
+      "message": "see below for accessing mapGemPortParams",
+      "revId": "6bdf3e7cd997e05bb68b6fc79ea22f3c3bfda94e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8f2d825e_21b4f37e",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-25T10:13:40Z",
+      "side": 1,
+      "message": "I\u0027m still not sure, if that is applicable. It may work in case the downstream-multicast GemEntry always uses a different GemList position in the TechProfile compared to the upstream-bidirectional entries. In theory you could have the downstream-multicast entry on position 0, and further downstream-bidirectional entries starting from position 1, while the upstream-bidirectional entries could all start from position 0 - which would conflict here.\nAt least I would feel more comfortable if first it would be checked, if the \u0027planned\u0027 mapGemPortParams entry is really \u0027empty\u0027.",
+      "revId": "6bdf3e7cd997e05bb68b6fc79ea22f3c3bfda94e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
