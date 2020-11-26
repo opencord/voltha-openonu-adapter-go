@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "036a18f9_5cf353ad",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-26T09:18:25Z",
+      "side": 1,
+      "message": "The method is 170 lines long. Wouldn\u0027t it be a good idea to split it up?",
+      "range": {
+        "startLine": 266,
+        "startChar": 11,
+        "endLine": 266,
+        "endChar": 18
+      },
+      "revId": "0baa08e11d054ad650467386d8db1c14d86e4462",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
