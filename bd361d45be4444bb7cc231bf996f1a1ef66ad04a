@@ -19,6 +19,29 @@
     },
     {
       "key": {
+        "uuid": "776ae7d9_dadd88ac",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-26T12:31:41Z",
+      "side": 1,
+      "message": "Shouldn\u0027t the name segment \"Gemiw\" correspond with the one in state aniStRemovingGemIW (also valid for other event/state-combinations)?",
+      "range": {
+        "startLine": 47,
+        "startChar": 27,
+        "endLine": 47,
+        "endChar": 40
+      },
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "72339a4f_e418e2af",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -70,6 +93,24 @@
     },
     {
       "key": {
+        "uuid": "958cf9ee_9388604a",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 560,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-26T12:31:41Z",
+      "side": 1,
+      "message": "This is a practice recommended by our company C++-coding guidelines to avoid unintentional value assignments. But as Go-compiler will find such errors, this construct is not necessary here.",
+      "parentUuid": "645fd6db_2eef3b22",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f0900614_51ab9d40",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -81,6 +122,47 @@
       "writtenOn": "2020-11-26T11:23:50Z",
       "side": 1,
       "message": "same",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "986b5ff3_a70103a4",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-26T12:31:41Z",
+      "side": 1,
+      "message": "see above",
+      "parentUuid": "f0900614_51ab9d40",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e430afae_8d416a87",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 837,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-11-26T12:31:41Z",
+      "side": 1,
+      "message": "Shouldn\u0027t this question be a TODO-comment?",
+      "range": {
+        "startLine": 837,
+        "startChar": 0,
+        "endLine": 837,
+        "endChar": 7
+      },
       "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
