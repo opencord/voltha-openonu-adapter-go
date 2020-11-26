@@ -608,6 +608,16 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(e *fsm.Event) {
 func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
+	if len(oFsm.uniVlanFlowParamsSlice) == 0 {
+		//possibly the entry is not valid anymore based on intermediate delete requests
+		//just a basic protection ...
+		oFsm.mutexFlowParams.Unlock()
+		pConfigVlanStateAFsm := oFsm.pAdaptFsm
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+		}(pConfigVlanStateAFsm)
+		return
+	}
 	if oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		// meaning transparent setup - no specific VTFD setting required
 		oFsm.mutexFlowParams.Unlock()
@@ -705,7 +715,16 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 		}(pConfigVlanStateBaseFsm)
 		return
 	}
-
+	if uint8(len(oFsm.uniVlanFlowParamsSlice)) < oFsm.configuredUniFlow {
+		//possibly the entry is not valid anymore based on intermediate delete requests
+		//just a basic protection ...
+		oFsm.mutexFlowParams.Unlock()
+		pConfigVlanStateAFsm := oFsm.pAdaptFsm
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+		}(pConfigVlanStateAFsm)
+		return
+	}
 	if oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		// meaning transparent setup - no specific VTFD setting required
 		oFsm.mutexFlowParams.Unlock()
@@ -1198,6 +1217,17 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 	} //first flow element
 
 	oFsm.mutexFlowParams.Lock()
+	if uint8(len(oFsm.uniVlanFlowParamsSlice)) < aFlowEntryNo {
+		//possibly the entry is not valid anymore based on intermediate delete requests
+		//just a basic protection ...
+		oFsm.mutexFlowParams.Unlock()
+		pConfigVlanStateAFsm := oFsm.pAdaptFsm
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+		}(pConfigVlanStateAFsm)
+		return
+	}
+
 	if oFsm.uniVlanFlowParamsSlice[aFlowEntryNo].VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		//transparent transmission required
 		oFsm.mutexFlowParams.Unlock()
