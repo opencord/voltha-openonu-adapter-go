@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f91aedf5_ad6e73ef",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "Possible. But I would prefer not to release a minor version with the state before this change. You could also make a new minor version based on this change (when completed).\nThen you would have 0.1.14-dev144 \u003d 0.1.15 \u003d 0.1.15-dev.144.\nIn your case you have 0.1.14-dev143 \u003d 0.1.15, and a different version 0.1.15-dev144.\nWell - it does not matter to me - just some small extra patch (but I would normally not provide this patch before the minor version 0.1.15 exists ..)",
+      "parentUuid": "4613e6ed_974f28cb",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "776ae7d9_dadd88ac",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -30,6 +48,30 @@
       "writtenOn": "2020-11-26T12:31:41Z",
       "side": 1,
       "message": "Shouldn\u0027t the name segment \"Gemiw\" correspond with the one in state aniStRemovingGemIW (also valid for other event/state-combinations)?",
+      "range": {
+        "startLine": 47,
+        "startChar": 27,
+        "endLine": 47,
+        "endChar": 40
+      },
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e97021ba_cad779a0",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "No, from the new events \u0027aniEvRemGemiw\u0027 and \u0027aniEvRemTcontPath\u0027 are events to be called from external to start the requested removal activities, while the other (*Resp) events are FSM internal.",
+      "parentUuid": "776ae7d9_dadd88ac",
       "range": {
         "startLine": 47,
         "startChar": 27,
@@ -59,6 +101,24 @@
     },
     {
       "key": {
+        "uuid": "51676cee_d1b541c5",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "Ack\nWell, in deed it is also the key of this particular FSM instance - as referenced from outside, but of course it is not needed in this context from inside the FSM.\nWill rename to uniTpKey.",
+      "parentUuid": "72339a4f_e418e2af",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2554971e_916b3d3b",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -70,6 +130,24 @@
       "writtenOn": "2020-11-26T11:23:50Z",
       "side": 1,
       "message": "I\u0027m wondering how this can access that map given that it\u0027s defined with key uniTp:\npAniConfigFsm            map[uniTP]*uniPonAniConfigFsm",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e5b7ba0_3294fa3d",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "I think the comment is just based on the confusing naming, discussed above. The key used here is of type uniTP - whatever the name is.",
+      "parentUuid": "2554971e_916b3d3b",
       "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -111,6 +189,24 @@
     },
     {
       "key": {
+        "uuid": "eb437299_16b3bf8d",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 560,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "Ack\n(meanwhile this c style comes naturally to me :-))",
+      "parentUuid": "958cf9ee_9388604a",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f0900614_51ab9d40",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -146,6 +242,24 @@
     },
     {
       "key": {
+        "uuid": "1687ff1c_1887d319",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "986b5ff3_a70103a4",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e430afae_8d416a87",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -169,6 +283,30 @@
     },
     {
       "key": {
+        "uuid": "25f5a716_ab0099b9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 837,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "Ack - if you want ..",
+      "parentUuid": "e430afae_8d416a87",
+      "range": {
+        "startLine": 837,
+        "startChar": 0,
+        "endLine": 837,
+        "endChar": 7
+      },
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5dba35f2_b25a49e4",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 1
@@ -180,6 +318,24 @@
       "writtenOn": "2020-11-26T11:23:50Z",
       "side": 1,
       "message": "all the methods from this line onwards are very much the same, can we refactor them to be common as much as possible ?",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1df943fb_5a6621a5",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1661,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "I don\u0027t see so much benefit in doing so - except we should need to save program memory space (in contrast to program run time). But it should be possible - even in different depths of grouping. But I would not do it in this context, if you want you can setup a separate story.",
+      "parentUuid": "5dba35f2_b25a49e4",
       "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -203,6 +359,24 @@
     },
     {
       "key": {
+        "uuid": "e7547d11_ea5ddd9d",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "Also in the predecessor version the processing was done sequentially - a must to have consistent data in the sequence of individual processing steps and also for being able to deliver the real result in the end to the interfacing requester.\nThis change her now directly evaluates (short term) processing errors insetad of wating for a long time out.",
+      "parentUuid": "edc10ce8_e95e9a61",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7f50d0bd_af286097",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -214,6 +388,24 @@
       "writtenOn": "2020-11-26T11:23:50Z",
       "side": 1,
       "message": "can we do this in this patch ? I\u0027d like to have the full solution",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "767a4655_e604bc1c",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 564,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-26T14:16:33Z",
+      "side": 1,
+      "message": "comment was not correctly updated with the multi-TCont merge. Code should be cabable f handling Multi-T-Conts also for deletion. Comment will be removed.",
+      "parentUuid": "7f50d0bd_af286097",
       "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
