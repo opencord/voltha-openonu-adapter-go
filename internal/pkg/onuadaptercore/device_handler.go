@@ -394,7 +394,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 
 	var wg sync.WaitGroup
 	wg.Add(1) // for the 1 go routine to finish
-	go dh.pOnuTP.deleteTpResource(dctx, uniID, delGemPortMsg.TpPath,
+	go dh.pOnuTP.deleteTpResource(dctx, uniID, tpID, delGemPortMsg.TpPath,
 		cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 	dh.waitForCompletion(cancel, &wg, "GemDelete") //wait for background process to finish
 
@@ -454,7 +454,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 
 		var wg sync.WaitGroup
 		wg.Add(2) // for the 2 go routines to finish
-		go dh.pOnuTP.deleteTpResource(dctx, uniID, delTcontMsg.TpPath,
+		go dh.pOnuTP.deleteTpResource(dctx, uniID, tpID, delTcontMsg.TpPath,
 			cResourceTcont, delTcontMsg.AllocId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(dctx, &wg)
@@ -845,6 +845,10 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		return err
 	}
 	dh.ReadyForSpecificOmciConfig = false
+	//no specific activity to synchronize any internal FSM to the 'rebooted' state is explicitly done here
+	//  the expectation ids for a real device, that it will be synced with the expected following 'down' indication
+	//  as BBSIM does not support this testing requires explicite disable/enable device calls in which sequence also
+	//  all other FSM's should be synchronized again
 	return nil
 }
 

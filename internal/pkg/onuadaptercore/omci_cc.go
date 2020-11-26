@@ -59,6 +59,8 @@ const macBridgeServiceProfileEID = uint16(0x201) // TODO: most all these need be
 const ieeeMapperServiceProfileEID = uint16(0x8001)
 const macBridgePortAniEID = uint16(0x2102)
 
+const unusedTcontAllocID = uint16(0xFFFF) //common unused AllocId for G.984 and G.987 systems
+
 // ### OMCI related definitions - end
 
 //callbackPairEntry to be used for OMCI send/receive correlation
@@ -142,7 +144,7 @@ func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 
 //stop stops/resets the omciCC
 func (oo *omciCC) stop(ctx context.Context) error {
-	logger.Debugw("omciCC-stopping", log.Fields{"for device-id": oo.deviceID})
+	logger.Debugw("omciCC-stopping", log.Fields{"device-id": oo.deviceID})
 	//reseting all internal data, which might also be helpful for discarding any lingering tx/rx requests
 	oo.mutexTxQueue.Lock()
 	oo.txQueue.Init() // clear the tx queue
@@ -242,17 +244,17 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 
 	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, gopacket.NoCopy)
 	if packet == nil {
-		logger.Errorw("omci-message could not be decoded", log.Fields{"deviceID": oo.deviceID})
+		logger.Errorw("omci-message could not be decoded", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf("could not decode rxMsg as OMCI %s", oo.deviceID)
 	}
 	omciLayer := packet.Layer(omci.LayerTypeOMCI)
 	if omciLayer == nil {
-		logger.Errorw("omci-message could not decode omci layer", log.Fields{"deviceID": oo.deviceID})
+		logger.Errorw("omci-message could not decode omci layer", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf("could not decode omci layer %s", oo.deviceID)
 	}
 	omciMsg, ok := omciLayer.(*omci.OMCI)
 	if !ok {
-		logger.Errorw("omci-message could not assign omci layer", log.Fields{"deviceID": oo.deviceID})
+		logger.Errorw("omci-message could not assign omci layer", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf("could not assign omci layer %s", oo.deviceID)
 	}
 	logger.Debugw("omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
@@ -265,7 +267,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		}
 		logger.Errorw("Unexpected TransCorrId != 0  not accepted for autonomous messages",
 			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload),
-				"deviceID": oo.deviceID})
+				"device-id": oo.deviceID})
 		return fmt.Errorf("autonomous Omci Message with TranSCorrId != 0 not acccepted %s", oo.deviceID)
 
 	}
@@ -281,7 +283,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.mutexRxSchedMap.Unlock()
 	} else {
 		oo.mutexRxSchedMap.Unlock()
-		logger.Errorw("omci-message-response for not registered transCorrId", log.Fields{"deviceID": oo.deviceID})
+		logger.Errorw("omci-message-response for not registered transCorrId", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf("could not find registered response handler tor transCorrId %s", oo.deviceID)
 	}
 
@@ -496,11 +498,11 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 			return fmt.Errorf("failed to fetch device %s", oo.deviceID)
 		}
 
-		logger.Debugw("omci-message-sending", log.Fields{"fromDeviceType": oo.pBaseDeviceHandler.DeviceType,
-			"toDeviceType": oo.pBaseDeviceHandler.ProxyAddressType,
-			"onuDeviceID":  oo.deviceID, "proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
-		logger.Debugw("omci-message-to-send:",
-			log.Fields{"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame)})
+		logger.Debugw("omci-message-to-send:", log.Fields{
+			"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame),
+			"device-id":     oo.deviceID,
+			"toDeviceType":  oo.pBaseDeviceHandler.ProxyAddressType,
+			"proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
 
 		omciMsg := &ic.InterAdapterOmciMessage{Message: omciTxRequest.txFrame}
 		if sendErr := oo.adapterProxy.SendInterAdapterMessage(context.Background(), omciMsg,
@@ -1652,6 +1654,190 @@ func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 		return meInstance
 	}
 	logger.Errorw("Cannot generate VTFD Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendDeleteGemIWTP(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send GemIwTp-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewGemInterworkingTerminationPoint(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode GemIwTp for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize GemIwTp delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send GemIwTp delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send GemIwTp-Delete-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate GemIwTp Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendDeleteGemNCTP(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send GemNCtp-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewGemPortNetworkCtp(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode GemNCtp for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize GemNCtp delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send GemNCtp delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send GemNCtp-Delete-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate GemNCtp Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendDeleteDot1PMapper(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send .1pMapper-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewIeee8021PMapperServiceProfile(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode .1pMapper for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize .1pMapper delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send .1pMapper delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send .1pMapper-Delete-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate .1pMapper Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendDeleteMBPConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send MBPCD-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewMacBridgePortConfigurationData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw("Cannot encode MBPCD for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize MBPCD delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send MBPCD delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send MBPCD-Delete-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate MBPCD Instance for delete", log.Fields{
 		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil
 }
