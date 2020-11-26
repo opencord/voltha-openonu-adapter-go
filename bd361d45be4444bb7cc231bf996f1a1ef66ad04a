@@ -1,0 +1,140 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4613e6ed_974f28cb",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "I\u0027m thinking if we shoudl do a minor release of this before the implementation. I can push a patch to bring to 0.1.15 and then this would become 0.1.15-dev144\nThoughts ?",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "72339a4f_e418e2af",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "this name is particularly confusing, given that later you use it to access a map with key defined to be uniTP id\u0027 at least rename it to be uniTPFsmKey.",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2554971e_916b3d3b",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "I\u0027m wondering how this can access that map given that it\u0027s defined with key uniTp:\npAniConfigFsm            map[uniTP]*uniPonAniConfigFsm",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "645fd6db_2eef3b22",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 560,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "minor: better oFsm.requestEventOffset \u003d\u003d 0",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f0900614_51ab9d40",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "same",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5dba35f2_b25a49e4",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1661,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "all the methods from this line onwards are very much the same, can we refactor them to be common as much as possible ?",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "edc10ce8_e95e9a61",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "this makes the configuration not parallel anymore but sequential, is this ok ?",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f50d0bd_af286097",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 564,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-26T11:23:50Z",
+      "side": 1,
+      "message": "can we do this in this patch ? I\u0027d like to have the full solution",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
