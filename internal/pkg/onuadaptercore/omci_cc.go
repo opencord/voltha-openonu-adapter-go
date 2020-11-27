@@ -804,13 +804,11 @@ func (oo *omciCC) sendCreateMBServiceProfile(ctx context.Context,
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"Priority":     0x8000,
-			"MaxAge":       20 * 256, //20s
-			"HelloTime":    2 * 256,  //2s
-			"ForwardDelay": 15 * 256, //15s
-			//note: DynamicFilteringAgeingTime is taken from omci lib default as
-			//  which is obviously different from default value used in python lib,
-			//  where the value seems to be 0 (ONU defined)  - to be considered in case of test artifacts ...
+			"Priority":                   0x8000,
+			"MaxAge":                     20 * 256, //20s
+			"HelloTime":                  2 * 256,  //2s
+			"ForwardDelay":               15 * 256, //15s
+			"DynamicFilteringAgeingTime": 0,
 		},
 	}
 
@@ -1874,6 +1872,45 @@ func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int
 			return nil
 		}
 		logger.Debug("send MulticastGEMIWTP-create-msg done")
+		return meInstance
+	}
+	logger.Errorw("Cannot generate MulticastGEMIWTP Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil
+}
+
+// nolint: unused
+func (oo *omciCC) sendSetMulticastGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw("send MulticastGemIWTP-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewMulticastGemInterworkingTerminationPoint(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw("Cannot encode MulticastGEMIWTP for set", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw("Cannot serialize MulticastGEMIWTP create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw("Cannot send MulticastGEMIWTP set", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug("send MulticastGEMIWTP-set-msg done")
 		return meInstance
 	}
 	logger.Errorw("Cannot generate MulticastGEMIWTP Instance", log.Fields{"Err": omciErr.GetError(),

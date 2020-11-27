@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"net"
 	"strconv"
 	"sync"
 	"time"
@@ -135,7 +136,6 @@ type UniVlanConfigFsm struct {
 	pOnuUniPort                 *onuUniPort
 	pUniTechProf                *onuUniTechProf
 	pOnuDB                      *onuDeviceDB
-	techProfileID               uint16
 	requestEvent                OnuDeviceEvent
 	omciMIdsResponseReceived    chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                   *AdapterFsm
@@ -149,7 +149,6 @@ type UniVlanConfigFsm struct {
 	numRemoveFlows              uint8
 	numVlanFilterEntries        uint8
 	vlanFilterList              [cVtfdTableSize]uint16
-	vtfdID                      uint16
 	evtocdID                    uint16
 	pLastTxMeInstance           *me.ManagedEntity
 	requestEventOffset          uint8
@@ -168,7 +167,6 @@ func NewUniVlanConfigFsm(apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, ap
 		pOnuUniPort:                 apUniPort,
 		pUniTechProf:                apUniTechProf,
 		pOnuDB:                      apOnuDB,
-		techProfileID:               aTechProfileID,
 		requestEvent:                aRequestEvent,
 		acceptIncrementalEvtoOption: aAcceptIncrementalEvto,
 		numUniFlows:                 0,
@@ -482,7 +480,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 						oFsm.uniVlanFlowParamsSlice = nil //reset the slice
 						//at this point it is evident that no flow anymore refers to a still possibly active Techprofile
 						//request that this profile gets deleted before a new flow add is allowed
-						oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, uint8(oFsm.techProfileID), true)
+						oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, uint8(loRemoveParams.vlanRuleParams.TpID), true)
 						logger.Debugw("UniVlanConfigFsm flow removal - no more flows", log.Fields{
 							"device-id": oFsm.deviceID})
 					} else {
@@ -512,7 +510,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(aCookie uint64) error {
 							logger.Debugw("UniVlanConfigFsm tp-id used in deleted flow is not used anymore", log.Fields{
 								"device-id": oFsm.deviceID, "tp-id": usedTpID})
 							//request that this profile gets deleted before a new flow add is allowed
-							oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, uint8(oFsm.techProfileID), true)
+							oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, uint8(usedTpID), true)
 						}
 						logger.Debugw("UniVlanConfigFsm flow removal - specific flow removed from data", log.Fields{
 							"device-id": oFsm.deviceID})
@@ -588,12 +586,11 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(e *fsm.Event) {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				//stick to pythonAdapter numbering scheme
-				oFsm.vtfdID = macBridgePortAniEID + oFsm.pOnuUniPort.entityID + oFsm.techProfileID
+				tpID := oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.TpID
 				//cmp also usage in EVTOCDE create in omci_cc
 				oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
 
-				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniID, uint8(oFsm.techProfileID)) {
+				if oFsm.pUniTechProf.getTechProfileDone(oFsm.pOnuUniPort.uniID, uint8(tpID)) {
 					// let the vlan processing begin
 					_ = a_pAFsm.pFsm.Event(vlanEvStartConfig)
 				} else {
@@ -630,8 +627,11 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 			_ = a_pAFsm.pFsm.Event(vlanEvRxConfigVtfd)
 		}(pConfigVlanStateAFsm)
 	} else {
+		// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
+		// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
+		vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.TpID
 		logger.Debugw("UniVlanConfigFsm create VTFD", log.Fields{
-			"EntitytId": strconv.FormatInt(int64(oFsm.vtfdID), 16),
+			"EntitytId": strconv.FormatInt(int64(vtfdID), 16),
 			"in state":  e.FSM.Current(), "device-id": oFsm.deviceID})
 		// setVid is assumed to be masked already by the caller to 12 bit
 		oFsm.vlanFilterList[0] = uint16(oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.SetVid)
@@ -640,7 +640,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(e *fsm.Event) {
 		vtfdFilterList[0] = oFsm.vlanFilterList[0]
 		oFsm.numVlanFilterEntries = 1
 		meParams := me.ParamData{
-			EntityID: oFsm.vtfdID,
+			EntityID: vtfdID,
 			Attributes: me.AttributeValueMap{
 				"VlanFilterList":   vtfdFilterList, //omci lib wants a slice for serialization
 				"ForwardOperation": uint8(0x10),    //VID investigation
@@ -664,7 +664,30 @@ func (oFsm *UniVlanConfigFsm) enterConfigEvtocd(e *fsm.Event) {
 	logger.Debugw("UniVlanConfigFsm - start config EVTOCD loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 	oFsm.requestEventOffset = 0 //0 offset for last flow-add activity
-	go oFsm.performConfigEvtocdEntries(0)
+	go func() {
+		tpID := oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.TpID
+		vlanID := oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.SetVid
+		errEvto := oFsm.performConfigEvtocdEntries(oFsm.configuredUniFlow)
+		// FIXME operating under the assumption that the uniID == gemPortID, might be wrong.
+		for _, gemPort := range oFsm.pUniTechProf.getMulticastGemPorts(oFsm.pOnuUniPort.uniID, uint8(tpID)) {
+			log.Infow("Setting multicast MEs, with first flow", log.Fields{"deviceID": oFsm.deviceID,
+				"techProfile": tpID, "gemPort": gemPort, "vlanID": vlanID, "configuredUniFlow": oFsm.configuredUniFlow})
+			//can Use the first elements in the slice because it's the first flow.
+			errCreateAllMulticastME := oFsm.performSettingMulticastME(tpID, gemPort,
+				vlanID)
+			if errCreateAllMulticastME != nil {
+				logger.Errorw("Multicast ME create failed, aborting AniConfig FSM!",
+					log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+			}
+		}
+
+		//This is correct passing scenario
+		if errEvto == nil {
+			//TODO Possibly insert new state for multicast --> possibly another jira/later time.
+			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
+		}
+	}()
 }
 
 func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(e *fsm.Event) {
@@ -732,18 +755,21 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 			"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 	} else {
 		if oFsm.numVlanFilterEntries == 0 {
+			// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
+			// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
+			vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.TpID
 			//no VTFD yet created
 			logger.Debugw("UniVlanConfigFsm create VTFD", log.Fields{
-				"EntitytId": strconv.FormatInt(int64(oFsm.vtfdID), 16),
+				"EntitytId": strconv.FormatInt(int64(vtfdID), 16),
 				"in state":  e.FSM.Current(), "device-id": oFsm.deviceID})
 			// setVid is assumed to be masked already by the caller to 12 bit
-			oFsm.vlanFilterList[0] = uint16(oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.SetVid)
+			oFsm.vlanFilterList[0] = uint16(oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams.SetVid)
 			oFsm.mutexFlowParams.Unlock()
 			vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
 			vtfdFilterList[0] = oFsm.vlanFilterList[0]
 			oFsm.numVlanFilterEntries = 1
 			meParams := me.ParamData{
-				EntityID: oFsm.vtfdID,
+				EntityID: vtfdID,
 				Attributes: me.AttributeValueMap{
 					"VlanFilterList":   vtfdFilterList,
 					"ForwardOperation": uint8(0x10), //VID investigation
@@ -759,29 +785,33 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 			//  (relevant to all used sendXX() methods in this (and other) FSM's)
 			oFsm.pLastTxMeInstance = meInstance
 		} else {
-			//VTFD already exists - just modify by 'set'
-			//TODO!!: but only if the VID is not already present, skipped by now to test basic working
+			// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
+			// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
+			vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.TpID
+
 			logger.Debugw("UniVlanConfigFsm set VTFD", log.Fields{
-				"EntitytId": strconv.FormatInt(int64(oFsm.vtfdID), 16),
+				"EntitytId": strconv.FormatInt(int64(vtfdID), 16),
 				"in state":  e.FSM.Current(), "device-id": oFsm.deviceID})
 			// setVid is assumed to be masked already by the caller to 12 bit
 			oFsm.vlanFilterList[oFsm.numVlanFilterEntries] =
 				uint16(oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.SetVid)
-			oFsm.mutexFlowParams.Unlock()
 			vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
-			for i := uint8(0); i <= oFsm.numVlanFilterEntries; i++ {
-				vtfdFilterList[i] = oFsm.vlanFilterList[i]
-			}
+
+			// VTFD has to be created afresh with a new entity ID that has the same entity ID as the MBPCD ME for every
+			// new vlan associated with a different TP.
+			vtfdFilterList[0] = uint16(oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.SetVid)
+			oFsm.mutexFlowParams.Unlock()
 
 			oFsm.numVlanFilterEntries++
 			meParams := me.ParamData{
-				EntityID: oFsm.vtfdID,
+				EntityID: vtfdID,
 				Attributes: me.AttributeValueMap{
-					"VlanFilterList":  vtfdFilterList,
-					"NumberOfEntries": oFsm.numVlanFilterEntries,
+					"VlanFilterList":   vtfdFilterList,
+					"ForwardOperation": uint8(0x10), //VID investigation
+					"NumberOfEntries":  oFsm.numVlanFilterEntries,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendSetVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
+			meInstance := oFsm.pOmciCC.sendCreateVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
@@ -803,7 +833,28 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(e *fsm.Event) {
 		}
 	}
 	oFsm.requestEventOffset = 0 //0 offset for last flow-add activity
-	go oFsm.performConfigEvtocdEntries(oFsm.configuredUniFlow)
+	go func() {
+		tpID := oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].VlanRuleParams.TpID
+		errEvto := oFsm.performConfigEvtocdEntries(oFsm.configuredUniFlow)
+		//This is correct passing scenario
+		if errEvto == nil {
+			//TODO Possibly insert new state for multicast --> possibly another jira/later time.
+			for _, gemPort := range oFsm.pUniTechProf.getMulticastGemPorts(oFsm.pOnuUniPort.uniID, uint8(tpID)) {
+				vlanID := oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow-1].VlanRuleParams.SetVid
+				log.Infow("Setting multicast MEs for additional flows", log.Fields{"deviceID": oFsm.deviceID,
+					"techProfile": tpID, "gemPort": gemPort,
+					"vlanID": vlanID, "configuredUniFlow": oFsm.configuredUniFlow})
+				//-1 is to use the last configured flow
+				errCreateAllMulticastME := oFsm.performSettingMulticastME(tpID, gemPort, vlanID)
+				if errCreateAllMulticastME != nil {
+					logger.Errorw("Multicast ME create failed, aborting AniConfig FSM!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+				}
+			}
+			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
+		}
+	}()
 }
 
 func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
@@ -831,6 +882,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 	} else {
 		vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization and 're-copy'
 		if oFsm.numVlanFilterEntries == 1 {
+			vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + loRuleParams.TpID
 			//only one active VLAN entry (hopefully the SetVID we want to remove - should be, but not verified ..)
 			//  so we can just delete the VTFD entry
 			logger.Debugw("UniVlanConfigFsm: VTFD delete (no more vlan filters)",
@@ -839,7 +891,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 			loVlanEntryClear = 1           //full VlanFilter clear request
 			if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
 				meInstance := oFsm.pOmciCC.sendDeleteVtfd(context.TODO(), ConstDefaultOmciTimeout, true,
-					oFsm.pAdaptFsm.commChan, oFsm.vtfdID)
+					oFsm.pAdaptFsm.commChan, vtfdID)
 				oFsm.pLastTxMeInstance = meInstance
 			} else {
 				logger.Debugw("UniVlanConfigFsm delete VTFD OMCI handling skipped based on device state", log.Fields{
@@ -858,6 +910,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 				}
 			}
 			if loVlanEntryRmPos < cVtfdTableSize {
+				vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + loRuleParams.TpID
 				//valid entry was found - to be eclipsed
 				loVlanEntryClear = 2 //VlanFilter remove request for a specific entry
 				for i := uint8(0); i < oFsm.numVlanFilterEntries; i++ {
@@ -870,19 +923,12 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 					}
 				}
 				logger.Debugw("UniVlanConfigFsm set VTFD", log.Fields{
-					"EntitytId":     strconv.FormatInt(int64(oFsm.vtfdID), 16),
+					"EntitytId":     strconv.FormatInt(int64(vtfdID), 16),
 					"new vlan list": vtfdFilterList, "device-id": oFsm.deviceID})
 
 				if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
-					meParams := me.ParamData{
-						EntityID: oFsm.vtfdID,
-						Attributes: me.AttributeValueMap{
-							"VlanFilterList":  vtfdFilterList,
-							"NumberOfEntries": oFsm.numVlanFilterEntries - 1, //one element less
-						},
-					}
-					meInstance := oFsm.pOmciCC.sendSetVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
-						oFsm.pAdaptFsm.commChan, meParams)
+					meInstance := oFsm.pOmciCC.sendDeleteVtfd(context.TODO(), ConstDefaultOmciTimeout, true,
+						oFsm.pAdaptFsm.commChan, vtfdID)
 					oFsm.pLastTxMeInstance = meInstance
 				} else {
 					logger.Debugw("UniVlanConfigFsm set VTFD OMCI handling skipped based on device state", log.Fields{
@@ -1083,8 +1129,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(msg OmciMessage) {
 			if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
 				msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 				switch oFsm.pLastTxMeInstance.GetName() {
-				case "VlanTaggingFilterData",
-					"ExtendedVlanTaggingOperationConfigurationData":
+				case "VlanTaggingFilterData", "ExtendedVlanTaggingOperationConfigurationData", "MulticastOperationsProfile":
 					{ // let the MultiEntity config proceed by stopping the wait function
 						oFsm.omciMIdsResponseReceived <- true
 					}
@@ -1134,7 +1179,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciCreateResponseMessage(apOmciPacket *gp.P
 		msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 		// to satisfy StaticCodeAnalysis I had to move the small processing into a separate method :-(
 		switch oFsm.pLastTxMeInstance.GetName() {
-		case "VlanTaggingFilterData":
+		case "VlanTaggingFilterData", "MulticastOperationsProfile", "MulticastSubscriberConfigInfo", "MacBridgePortConfigurationData":
 			{
 				if oFsm.pAdaptFsm.pFsm.Current() == vlanStConfigVtfd {
 					// Only if CreateResponse is received from first flow entry - let the FSM proceed ...
@@ -1183,7 +1228,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciDeleteResponseMessage(apOmciPacket *gp.P
 	return nil
 }
 
-func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
+func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) error {
 	if aFlowEntryNo == 0 {
 		// EthType set only at first flow element
 		// EVTOCD ME is expected to exist at this point already from MIB-Download (with AssociationType/Pointer)
@@ -1212,7 +1257,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 			logger.Errorw("Evtocd set TPID failed, aborting VlanConfig FSM!",
 				log.Fields{"device-id": oFsm.deviceID})
 			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-			return
+			return fmt.Errorf("evtocd set TPID failed %s, error %s", oFsm.deviceID, err)
 		}
 	} //first flow element
 
@@ -1225,7 +1270,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 		go func(a_pAFsm *AdapterFsm) {
 			_ = a_pAFsm.pFsm.Event(vlanEvReset)
 		}(pConfigVlanStateAFsm)
-		return
+		return nil
 	}
 
 	if oFsm.uniVlanFlowParamsSlice[aFlowEntryNo].VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
@@ -1275,14 +1320,19 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 			logger.Errorw("Evtocd set transparent singletagged rule failed, aborting VlanConfig FSM!",
 				log.Fields{"device-id": oFsm.deviceID})
 			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-			return
+			return fmt.Errorf("evtocd set transparent singletagged rule failed %s, error %s", oFsm.deviceID, err)
+
 		}
 	} else {
 		// according to py-code acceptIncrementalEvto program option decides upon stacking or translation scenario
 		if oFsm.acceptIncrementalEvtoOption {
+			matchPcp := oFsm.uniVlanFlowParamsSlice[aFlowEntryNo].VlanRuleParams.MatchPcp
+			matchVid := oFsm.uniVlanFlowParamsSlice[aFlowEntryNo].VlanRuleParams.MatchVid
+			setPcp := oFsm.uniVlanFlowParamsSlice[aFlowEntryNo].VlanRuleParams.SetPcp
+			setVid := oFsm.uniVlanFlowParamsSlice[aFlowEntryNo].VlanRuleParams.SetVid
 			// this defines VID translation scenario: singletagged->singletagged (if not transparent)
 			logger.Debugw("UniVlanConfigFsm Tx Set::EVTOCD single tagged translation rule", log.Fields{
-				"device-id": oFsm.deviceID})
+				"match-pcp": matchPcp, "match-vid": matchVid, "set-pcp": setPcp, "set-vid:": setVid, "device-id": oFsm.deviceID})
 			sliceEvtocdRule := make([]uint8, 16)
 			// fill vlan tagging operation table bit fields using network=bigEndian order and using slice offset 0 as highest 'word'
 			binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterOuterOffset:],
@@ -1326,7 +1376,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 				logger.Errorw("Evtocd set singletagged translation rule failed, aborting VlanConfig FSM!",
 					log.Fields{"device-id": oFsm.deviceID})
 				_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-				return
+				return fmt.Errorf("evtocd set singletagged translation rule failed %s, error %s", oFsm.deviceID, err)
 			}
 		} else {
 			//not transparent and not acceptIncrementalEvtoOption untagged/priotagged->singletagged
@@ -1378,7 +1428,8 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 					logger.Errorw("Evtocd set untagged->singletagged rule failed, aborting VlanConfig FSM!",
 						log.Fields{"device-id": oFsm.deviceID})
 					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-					return
+					return fmt.Errorf("evtocd set untagged->singletagged rule failed %s, error %s", oFsm.deviceID, err)
+
 				}
 			} // just for local var's
 			{ // just for local var's
@@ -1430,7 +1481,8 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 					logger.Errorw("Evtocd set priotagged->singletagged rule failed, aborting VlanConfig FSM!",
 						log.Fields{"device-id": oFsm.deviceID})
 					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-					return
+					return fmt.Errorf("evtocd set priotagged->singletagged rule failed %s, error %s", oFsm.deviceID, err)
+
 				}
 			} //just for local var's
 		}
@@ -1439,7 +1491,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(aFlowEntryNo uint8) {
 	// if Config has been done for all EVTOCD entries let the FSM proceed
 	logger.Debugw("EVTOCD set loop finished", log.Fields{"device-id": oFsm.deviceID})
 	oFsm.configuredUniFlow++ // one (more) flow configured
-	_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
+	return nil
 }
 
 func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(aRuleParams uniVlanRuleParams) {
@@ -1659,4 +1711,206 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse() error {
 		logger.Warnw("UniVlanConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.deviceID})
 		return fmt.Errorf("uniVlanConfigFsm multi entity responseError %s", oFsm.deviceID)
 	}
+}
+
+func (oFsm *UniVlanConfigFsm) performSettingMulticastME(tpID uint16, multicastGemPortID uint16, vlanID uint32) error {
+	logger.Debugw("Setting Multicast MEs", log.Fields{"device-id": oFsm.deviceID, "tpID": tpID,
+		"multicastGemPortID": multicastGemPortID, "vlanID": vlanID})
+	errCreateMOP := oFsm.performCreatingMulticastOperationProfile()
+	if errCreateMOP != nil {
+		logger.Errorw("MulticastOperationProfile create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("creatingMulticastSubscriberConfigInfo responseError %s, error %s", oFsm.deviceID, errCreateMOP)
+	}
+
+	errSettingMOP := oFsm.performSettingMulticastOperationProfile(multicastGemPortID, vlanID)
+	if errSettingMOP != nil {
+		logger.Errorw("MulticastOperationProfile setting failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("creatingMulticastSubscriberConfigInfo responseError %s, error %s", oFsm.deviceID, errSettingMOP)
+	}
+
+	errCreateMSCI := oFsm.performCreatingMulticastSubscriberConfigInfo()
+	if errCreateMSCI != nil {
+		logger.Errorw("MulticastOperationProfile setting failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("creatingMulticastSubscriberConfigInfo responseError %s, error %s", oFsm.deviceID, errCreateMSCI)
+	}
+
+	meParams := me.ParamData{
+		EntityID: macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo),
+		Attributes: me.AttributeValueMap{
+			"BridgeIdPointer": macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo),
+			"PortNum":         0xf0, //fixed unique ANI side indication
+			"TpType":          6,    //MCGemIWTP
+			"TpPointer":       multicastGemPortID,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMBPConfigData failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MBPConfigDataID": macBridgeServiceProfileEID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("creatingMulticastSubscriberConfigInfo responseError %s, error %s", oFsm.deviceID, err)
+	}
+
+	// ==> Start creating VTFD for mcast vlan
+
+	// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
+	// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
+	mcastVtfdID := macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
+
+	logger.Debugw("UniVlanConfigFsm set VTFD for mcast", log.Fields{
+		"EntitytId": strconv.FormatInt(int64(mcastVtfdID), 16), "mcastVlanID": vlanID,
+		"in state": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
+	vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
+
+	// VTFD has to be created afresh with a new entity ID that has the same entity ID as the MBPCD ME for every
+	// new vlan associated with a different TP.
+	vtfdFilterList[0] = uint16(vlanID)
+
+	meParams = me.ParamData{
+		EntityID: mcastVtfdID,
+		Attributes: me.AttributeValueMap{
+			"VlanFilterList":   vtfdFilterList,
+			"ForwardOperation": uint8(0x10), //VID investigation
+			"NumberOfEntries":  oFsm.numVlanFilterEntries,
+		},
+	}
+	meInstance = oFsm.pOmciCC.sendCreateVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	oFsm.pLastTxMeInstance = meInstance
+	err = oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMcastVlanFilterData failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "mcastVtfdID": mcastVtfdID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreateMcastVlanFilterData responseError %s, error %s", oFsm.deviceID, err)
+	}
+
+	return nil
+}
+
+func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo() error {
+	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
+	if err != nil {
+		log.Errorw("error fetching uni port me instance",
+			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
+		return err
+	}
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"MeType": 0,
+			//Direct reference to the Operation profile
+			//TODO ANI side used on UNI side, not the clearest option.
+			"MulticastOperationsProfilePointer": macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo),
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMulticastSubConfigInfoVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	//verify response
+	err = oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMulticastSubConfigInfo create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MulticastSubConfigInfo": instID})
+		return fmt.Errorf("creatingMulticastSubscriberConfigInfo responseError %s", oFsm.deviceID)
+	}
+	return nil
+}
+
+func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile() error {
+	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"IgmpVersion":  2,
+			"IgmpFunction": 0,
+			//0 means false
+			"ImmediateLeave":         0,
+			"Robustness":             2,
+			"QuerierIp":              0,
+			"QueryInterval":          125,
+			"QuerierMaxResponseTime": 100,
+			"LastMemberResponseTime": 10,
+			//0 means false
+			"UnauthorizedJoinBehaviour": 0,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMulticastOperationProfileVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	//verify response
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
+		return fmt.Errorf("createMulticastOperationProfile responseError %s", oFsm.deviceID)
+	}
+	return nil
+}
+
+func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(multicastGemPortID uint16, vlanID uint32) error {
+	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	//TODO check that this is correct
+	// Table control
+	//setCtrl = 1
+	//rowPartId = 0
+	//test = 0
+	//rowKey = 0
+	tableCtrlStr := "0100000000000000"
+	tableCtrl := AsByteSlice(tableCtrlStr)
+	//TODO Building it as a Table, even though the attribute is `StringAttributeType`
+	// see line 56 of multicastoperationsprofileframe.go, it's an error in the conversion.
+	// FIXED 30/12/2020 Fixed for now with a local copy of multicastoperationsprofileframe.go in vendor/omci-lib-go
+	// provided by Chip, needs upstreaming and version change.
+	dynamicAccessCL := make([]uint8, 24)
+	copy(dynamicAccessCL, tableCtrl)
+	//Multicast GemPortId
+	binary.BigEndian.PutUint16(dynamicAccessCL[2:], multicastGemPortID)
+	// python version waits for installation of flows, see line 723 onward of
+	// brcm_openomci_onu_handler.py
+	binary.BigEndian.PutUint16(dynamicAccessCL[4:], uint16(vlanID))
+	//Source IP all to 0
+	binary.BigEndian.PutUint32(dynamicAccessCL[6:], IPToInt32(net.IPv4(0, 0, 0, 0)))
+	//TODO start and end are hardcoded, get from TP
+	// Destination IP address start of range
+	binary.BigEndian.PutUint32(dynamicAccessCL[10:], IPToInt32(net.IPv4(225, 0, 0, 0)))
+	// Destination IP address end of range
+	binary.BigEndian.PutUint32(dynamicAccessCL[14:], IPToInt32(net.IPv4(239, 255, 255, 255)))
+	//imputed group bandwidth
+	binary.BigEndian.PutUint16(dynamicAccessCL[18:], 0)
+
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"DynamicAccessControlListTable": dynamicAccessCL,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendSetMulticastOperationProfileVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	//verify response
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
+		return fmt.Errorf("createMulticastOperationProfile responseError %s", oFsm.deviceID)
+	}
+	return nil
 }
