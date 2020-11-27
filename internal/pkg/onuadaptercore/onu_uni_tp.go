@@ -685,3 +685,14 @@ func (onuTP *onuUniTechProf) setProfileToDelete(aUniID uint8, aTpID uint8, aStat
 		onuTP.mapUniTpIndication[uniTpKey].techProfileToDelete = aState
 	} //else: the state is just ignored (does not exist)
 }
+
+// setProfileToDelete sets the requested techProfile toDelete state (if possible)
+func (onuTP *onuUniTechProf) getMulticastFlag(aUniID uint8, aTpID uint8) bool {
+	uniTpKey := uniTP{uniID: aUniID, tpID: aTpID}
+	onuTP.mutexTPState.Lock()
+	defer onuTP.mutexTPState.Unlock()
+	if tp, existTP := onuTP.mapPonAniConfig[uniTpKey]; existTP {
+		return tp.mapGemPortParams[uint16(aUniID)].isMulticast
+	} //else: the state is just ignored (does not exist)
+	return false
+}
