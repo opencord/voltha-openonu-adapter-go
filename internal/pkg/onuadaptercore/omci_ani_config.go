@@ -473,6 +473,12 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 	//assign the GemPorts according to the configured Prio
 	var loPrioGemPortArray [8]uint16
 	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		if gemPortAttribs.pbitString == "" {
+			logger.Warnw("uniPonAniConfigFsm PrioString empty string error", log.Fields{
+				"device-id": oFsm.deviceID, "GemPort": gemPortAttribs.gemPortID,
+				"prioString": gemPortAttribs.pbitString})
+			continue
+		}
 		for i := 0; i < 8; i++ {
 			// "lenOfPbitMap(8) - i + 1" will give i-th pbit value from LSB position in the pbit map string
 			if prio, err := strconv.Atoi(string(gemPortAttribs.pbitString[7-i])); err == nil {
@@ -480,6 +486,8 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 					if loPrioGemPortArray[i] == 0 {
 						loPrioGemPortArray[i] = gemPortAttribs.gemPortID //gemPortId=EntityID and unique
 					} else {
+						//TODO In the tech profile the pbit map is the same for upstream and downstream ports
+						// thus triggering this clause. 
 						logger.Warnw("uniPonAniConfigFsm PrioString not unique", log.Fields{
 							"device-id": oFsm.deviceID, "IgnoredGemPort": gemPortAttribs.gemPortID,
 							"SetGemPort": loPrioGemPortArray[i]})
@@ -493,6 +501,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 
 		}
 	}
+
 	var foundIwPtr = false
 	for index, value := range loPrioGemPortArray {
 		if value != 0 {
@@ -645,7 +654,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 				{ // let the FSM proceed ...
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
 				}
-			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
+			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint", "MulticastGemInterworkingTerminationPoint":
 				{ // let aniConfig Multi-Id processing proceed by stopping the wait function
 					oFsm.omciMIdsResponseReceived <- true
 				}
@@ -796,7 +805,6 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
-
 		} else {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,
