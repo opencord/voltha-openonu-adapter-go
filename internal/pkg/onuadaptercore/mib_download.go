@@ -158,7 +158,7 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(msg OmciMessa
 				return
 			}
 			logger.Debugw("CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
-			if msgObj.Result != me.Success {
+			if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
 				logger.Errorw("Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 				return
