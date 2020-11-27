@@ -66,6 +66,26 @@ const (
 	aniStResetting           = "aniStResetting"
 )
 
+type ipv4MulticastTableInfo struct {
+	gemPortID             uint16
+	secondaryKey          uint16
+	multicastIPRangeStart string
+	multicastIPRangeStop  string
+}
+
+type dynamicACL struct{
+	setCtrl  uint16
+	rowPartId uint16
+	test uint16
+	rowKey uint16
+	gemPortID uint16
+	vlanID uint16
+	sourceIP string
+	destinationIPStart string
+	destinationIPStop string
+	ipmGroupBw uint16
+}
+
 const (
 	tpIDOffset = 64
 )
@@ -797,6 +817,25 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
 
+
+			//verify response
+			err := oFsm.waitforOmciResponse()
+			if err != nil {
+				logger.Errorw("MulticastGemIwTp create failed, aborting AniConfig FSM!",
+					log.Fields{"device-id": oFsm.deviceID, "GemIndex": gemIndex})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
+
+			errCreateAllMulticastME := oFsm.performSettingMulticastME()
+			if errCreateAllMulticastME != nil {
+				logger.Errorw("Multicast ME create failed, aborting AniConfig FSM!",
+					log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
+
+
 		} else {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,
@@ -902,6 +941,151 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs() {
 	logger.Debugw("PrioQueue set loop finished", log.Fields{"device-id": oFsm.deviceID})
 	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
 }
+
+func (oFsm *uniPonAniConfigFsm) performSettingMulticastME() error{
+	meParams := me.ParamData{
+		EntityID: macBridgeServiceProfileEID,
+		Attributes: me.AttributeValueMap{
+			"BridgeIdPointer": macBridgeServiceProfileEID,
+			"PortNum":         0xFF, //fixed unique ANI side indication
+			"TpType":          3,    //for .1PMapper
+			"TpPointer":       oFsm.mapperSP0ID,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMBPConfigData failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MBPConfigDataID": macBridgeServiceProfileEID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return nil
+	}
+	errCreateMOP := oFsm.performCreatingMulticastOperationProfile()
+	if errCreateMOP != nil {
+		logger.Errorw("MulticastOperationProfile create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreatingMulticastSubscriberConfigInfo responseError %s", oFsm.deviceID)
+	}
+
+	errSettingMOP := oFsm.performSettingMulticastOperationProfile()
+	if errSettingMOP != nil {
+		logger.Errorw("MulticastOperationProfile setting failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreatingMulticastSubscriberConfigInfo responseError %s", oFsm.deviceID)
+	}
+
+	errCreateMSCI := oFsm.performCreatingMulticastSubscriberConfigInfo()
+	if errCreateMSCI != nil {
+		logger.Errorw("MulticastOperationProfile setting failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreatingMulticastSubscriberConfigInfo responseError %s", oFsm.deviceID)
+	}
+
+	return nil
+}
+
+
+func (oFsm *uniPonAniConfigFsm) performCreatingMulticastSubscriberConfigInfo() error{
+	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"MeType":  0,
+			"MulticastOperationsProfilePointer": instID,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMulticastSubConfigInfoVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	//verify response
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMulticastSubConfigInfo create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MulticastSubConfigInfo": instID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreatingMulticastSubscriberConfigInfo responseError %s", oFsm.deviceID)
+	}
+	return nil
+}
+
+
+func (oFsm *uniPonAniConfigFsm) performCreatingMulticastOperationProfile() error{
+	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"IgmpVersion":  2,
+			"IgmpFunction": 0,
+			"ImmediateLeave": false,
+			"Robustness": 2,
+			"QuerierIp": 0,
+			"QueryInterval": 125,
+			"QuerierMaxResponseTime": 100,
+			"LastMemberResponseTime": 10,
+			"UnauthorizedJoinBehaviour": false,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMulticastOperationProfileVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	//verify response
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreateMulticastOperationProfile responseError %s", oFsm.deviceID)
+	}
+	return nil
+}
+
+func (oFsm *uniPonAniConfigFsm) performSettingMulticastOperationProfile() error{
+	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	dynamicAccessCL := make([]dynamicACL, 24)
+	infoACL := dynamicACL{}
+	infoACL.setCtrl = 0
+	infoACL.rowPartId = 0
+	infoACL.test = 0
+	infoACL.rowKey = 0
+	infoACL.gemPortID = 4069
+	infoACL.vlanID = 55
+	infoACL.sourceIP ="0.0.0.0"
+	infoACL.destinationIPStart = "224.0. 0.0"
+	infoACL.destinationIPStop = "239.255. 255.255"
+	infoACL.ipmGroupBw = 0
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"DynamicAccessControlListTable" : dynamicAccessCL,
+		},
+	}
+	meInstance := oFsm.pOmciCC.sendCreateMulticastOperationProfileVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		oFsm.pAdaptFsm.commChan, meParams)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
+	//verify response
+	err := oFsm.waitforOmciResponse()
+	if err != nil {
+		logger.Errorw("CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return fmt.Errorf("CreateMulticastOperationProfile responseError %s", oFsm.deviceID)
+	}
+	return nil
+}
+
 
 func (oFsm *uniPonAniConfigFsm) waitforOmciResponse() error {
 	select {
