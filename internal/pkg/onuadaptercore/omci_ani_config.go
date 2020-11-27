@@ -272,10 +272,10 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 		mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[uniTpKey].mapGemPortParams
 		oFsm.pUniTechProf.mutexTPState.Unlock()
 
-		loGemPortAttribs := ponAniGemPortAttribs{}
 		//for all TechProfile set GemIndices
-
 		for _, gemEntry := range mapGemPortParams {
+			loGemPortAttribs := ponAniGemPortAttribs{}
+
 			//collect all GemConfigData in a separate Fsm related slice (needed also to avoid mix-up with unsorted mapPonAniConfig)
 
 			if queueInstKeys := oFsm.pOnuDB.getSortedInstKeys(me.PriorityQueueClassID); len(queueInstKeys) > 0 {
@@ -337,19 +337,24 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(aPAFsm *AdapterFsm) {
 				loGemPortAttribs.multicastGemID = gemEntry.multicastGemPortID
 				loGemPortAttribs.staticACL = gemEntry.staticACL
 				loGemPortAttribs.dynamicACL = gemEntry.dynamicACL
-			}
 
-			logger.Debugw("prio-related GemPort attributes:", log.Fields{
-				"gemPortID":      loGemPortAttribs.gemPortID,
-				"upQueueID":      loGemPortAttribs.upQueueID,
-				"downQueueID":    loGemPortAttribs.downQueueID,
-				"pbitString":     loGemPortAttribs.pbitString,
-				"prioQueueIndex": gemEntry.prioQueueIndex,
-				"isMulticast":    loGemPortAttribs.isMulticast,
-				"multicastGemID": loGemPortAttribs.multicastGemID,
-				"staticACL":      loGemPortAttribs.staticACL,
-				"dynamicACL":     loGemPortAttribs.dynamicACL,
-			})
+				logger.Debugw("Multicast GemPort attributes:", log.Fields{
+					"gemPortID":      loGemPortAttribs.gemPortID,
+					"isMulticast":    loGemPortAttribs.isMulticast,
+					"multicastGemID": loGemPortAttribs.multicastGemID,
+					"staticACL":      loGemPortAttribs.staticACL,
+					"dynamicACL":     loGemPortAttribs.dynamicACL,
+				})
+
+			} else {
+				logger.Debugw("Upstream GemPort attributes:", log.Fields{
+					"gemPortID":      loGemPortAttribs.gemPortID,
+					"upQueueID":      loGemPortAttribs.upQueueID,
+					"downQueueID":    loGemPortAttribs.downQueueID,
+					"pbitString":     loGemPortAttribs.pbitString,
+					"prioQueueIndex": gemEntry.prioQueueIndex,
+				})
+			}
 
 			oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
 		}
@@ -458,6 +463,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingPQs(e *fsm.Event) {
 }
 
 func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
+
 	logger.Debugw("uniPonAniConfigFsm Tx Set::.1pMapper with all PBits set", log.Fields{"EntitytId": 0x8042, /*cmp above*/
 		"toGemIw": 1024 /* cmp above */, "in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 
@@ -473,6 +479,18 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 	//assign the GemPorts according to the configured Prio
 	var loPrioGemPortArray [8]uint16
 	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		if gemPortAttribs.isMulticast{
+			logger.Debugw("uniPonAniConfigFsm Port is Multicast, ignoring .1pMapper", log.Fields{
+				"device-id": oFsm.deviceID, "GemPort": gemPortAttribs.gemPortID,
+				"prioString": gemPortAttribs.pbitString})
+			continue
+		}
+		if gemPortAttribs.pbitString == "" {
+			logger.Warnw("uniPonAniConfigFsm PrioString empty string error", log.Fields{
+				"device-id": oFsm.deviceID, "GemPort": gemPortAttribs.gemPortID,
+				"prioString": gemPortAttribs.pbitString})
+			continue
+		}
 		for i := 0; i < 8; i++ {
 			// "lenOfPbitMap(8) - i + 1" will give i-th pbit value from LSB position in the pbit map string
 			if prio, err := strconv.Atoi(string(gemPortAttribs.pbitString[7-i])); err == nil {
@@ -493,6 +511,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 
 		}
 	}
+
 	var foundIwPtr = false
 	for index, value := range loPrioGemPortArray {
 		if value != 0 {
@@ -507,25 +526,38 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 	}
 
 	if !foundIwPtr {
-		logger.Errorw("UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
+		logger.Debugw("UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
 			"device-id": oFsm.deviceID})
+		//TODO With multicast is possible that no upstream gem ports are not present in the tech profile,
+		// this reset needs to be performed only if the tech profile provides upstream gem ports but no priority is set
 		//let's reset the state machine in order to release all resources now
+		//pConfigAniStateAFsm := oFsm.pAdaptFsm
+		//if pConfigAniStateAFsm != nil {
+		//	// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+		//	go func(aPAFsm *AdapterFsm) {
+		//		if aPAFsm != nil && aPAFsm.pFsm != nil {
+		//			_ = aPAFsm.pFsm.Event(aniEvReset)
+		//		}
+		//	}(pConfigAniStateAFsm)
+		//}
+		//Moving forward the FSM as if the response was received correctly.
 		pConfigAniStateAFsm := oFsm.pAdaptFsm
 		if pConfigAniStateAFsm != nil {
 			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 			go func(aPAFsm *AdapterFsm) {
 				if aPAFsm != nil && aPAFsm.pFsm != nil {
-					_ = aPAFsm.pFsm.Event(aniEvReset)
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
 				}
 			}(pConfigAniStateAFsm)
 		}
+	} else {
+		meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), ConstDefaultOmciTimeout, true,
+			oFsm.pAdaptFsm.commChan, meParams)
+		//accept also nil as (error) return value for writing to LastTx
+		//  - this avoids misinterpretation of new received OMCI messages
+		oFsm.pLastTxMeInstance = meInstance
 	}
 
-	meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), ConstDefaultOmciTimeout, true,
-		oFsm.pAdaptFsm.commChan, meParams)
-	//accept also nil as (error) return value for writing to LastTx
-	//  - this avoids misinterpretation of new received OMCI messages
-	oFsm.pLastTxMeInstance = meInstance
 }
 
 func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(e *fsm.Event) {
@@ -645,7 +677,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 				{ // let the FSM proceed ...
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
 				}
-			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
+			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint", "MulticastGemInterworkingTerminationPoint":
 				{ // let aniConfig Multi-Id processing proceed by stopping the wait function
 					oFsm.omciMIdsResponseReceived <- true
 				}
@@ -796,7 +828,6 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
-
 		} else {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,
@@ -834,6 +865,12 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs() {
 	//find all upstream PrioQueues related to this T-Cont
 	loQueueMap := ordered_map.NewOrderedMap()
 	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		if gemPortAttribs.isMulticast{
+			logger.Debugw("uniPonAniConfigFsm Port is Multicast, ignoring PQs", log.Fields{
+				"device-id": oFsm.deviceID, "GemPort": gemPortAttribs.gemPortID,
+				"prioString": gemPortAttribs.pbitString})
+			continue
+		}
 		if gemPortAttribs.qosPolicy == "WRR" {
 			if _, ok := loQueueMap.Get(gemPortAttribs.upQueueID); !ok {
 				//key does not yet exist
