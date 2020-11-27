@@ -808,9 +808,7 @@ func (oo *omciCC) sendCreateMBServiceProfile(ctx context.Context,
 			"MaxAge":       20 * 256, //20s
 			"HelloTime":    2 * 256,  //2s
 			"ForwardDelay": 15 * 256, //15s
-			//note: DynamicFilteringAgeingTime is taken from omci lib default as
-			//  which is obviously different from default value used in python lib,
-			//  where the value seems to be 0 (ONU defined)  - to be considered in case of test artifacts ...
+			"DynamicFilteringAgeingTime": 0,
 		},
 	}
 
