@@ -797,6 +797,15 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
 
+			//verify response
+			err := oFsm.waitforOmciResponse()
+			if err != nil {
+				logger.Errorw("MulticastGemIwTp create failed, aborting AniConfig FSM!",
+					log.Fields{"device-id": oFsm.deviceID, "GemIndex": gemIndex})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
+
 		} else {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,

@@ -51,3 +51,23 @@ func IPToInt32(ip net.IP) uint32 {
 	}
 	return binary.BigEndian.Uint32(ip)
 }
+
+//AsByteSlice transforms a string of manually set bits to a byt array
+func AsByteSlice(bitString string) []byte {
+	var out []byte
+	var str string
+
+	for i := len(bitString); i > 0; i -= 8 {
+		if i-8 < 0 {
+			str = bitString[0:i]
+		} else {
+			str = bitString[i-8 : i]
+		}
+		v, err := strconv.ParseUint(str, 2, 8)
+		if err != nil {
+			panic(err)
+		}
+		out = append([]byte{byte(v)}, out...)
+	}
+	return out
+}
