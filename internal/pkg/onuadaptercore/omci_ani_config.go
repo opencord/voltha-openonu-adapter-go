@@ -493,6 +493,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(e *fsm.Event) {
 
 		}
 	}
+
 	var foundIwPtr = false
 	for index, value := range loPrioGemPortArray {
 		if value != 0 {
@@ -645,7 +646,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(msg Omc
 				{ // let the FSM proceed ...
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
 				}
-			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint":
+			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint", "MulticastGemInterworkingTerminationPoint":
 				{ // let aniConfig Multi-Id processing proceed by stopping the wait function
 					oFsm.omciMIdsResponseReceived <- true
 				}
@@ -796,7 +797,6 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs() {
 			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
-
 		} else {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,
