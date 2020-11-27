@@ -2306,3 +2306,13 @@ func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
 	}
 	return nil
 }
+
+// getUniPortMEEntityID takes uniPortNo as the input and returns the Entity ID corresponding to this UNI-G ME Instance
+func (dh *deviceHandler) getUniPortMEEntityID(uniPortNo uint32) (uint16, error) {
+	dh.lockDevice.RLock()
+	defer dh.lockDevice.RUnlock()
+	if uniPort, ok := dh.uniEntityMap[uniPortNo]; ok {
+		return uniPort.entityID, nil
+	}
+	return 0, errors.New("error-fetching-uni-port")
+}
