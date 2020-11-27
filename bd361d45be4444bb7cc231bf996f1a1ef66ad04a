@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "108eda83_2a415703",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-27T08:57:20Z",
+      "side": 1,
+      "message": "it\u0027s ok, we can keep 0.1.14, if something goes wrong we can always go back in time and build a custom image.",
+      "parentUuid": "f91aedf5_ad6e73ef",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "776ae7d9_dadd88ac",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -148,6 +166,24 @@
       "side": 1,
       "message": "I think the comment is just based on the confusing naming, discussed above. The key used here is of type uniTP - whatever the name is.",
       "parentUuid": "2554971e_916b3d3b",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f6bf45d5_74c37810",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-27T08:57:20Z",
+      "side": 1,
+      "message": "yes, for some reason I thought I deleted this comment, sorry",
+      "parentUuid": "1e5b7ba0_3294fa3d",
       "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -342,6 +378,24 @@
     },
     {
       "key": {
+        "uuid": "31483cfc_976ccab3",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1661,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-27T08:57:20Z",
+      "side": 1,
+      "message": "readability and bug fixes are two other big factors, if a bug presents in one of these methods it needs to be copy pasted in 5. Please do create jira.",
+      "parentUuid": "1df943fb_5a6621a5",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "edc10ce8_e95e9a61",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -377,6 +431,24 @@
     },
     {
       "key": {
+        "uuid": "cab0dc42_fb94d628",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-27T08:57:20Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e7547d11_ea5ddd9d",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7f50d0bd_af286097",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -409,6 +481,24 @@
       "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "249bb152_1740692c",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 564,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-27T08:57:20Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "767a4655_e604bc1c",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
