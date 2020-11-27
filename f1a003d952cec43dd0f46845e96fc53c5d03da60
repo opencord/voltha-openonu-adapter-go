@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "641c58b4_adeb3621",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1056,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-27T12:56:08Z",
+      "side": 1,
+      "message": "this will not work, I\u0027m uploading a patch with a fix",
+      "revId": "f1a003d952cec43dd0f46845e96fc53c5d03da60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
