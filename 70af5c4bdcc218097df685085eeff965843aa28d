@@ -16,6 +16,24 @@
       "revId": "70af5c4bdcc218097df685085eeff965843aa28d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75bd7abd_c7490b1e",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-27T17:07:45Z",
+      "side": 1,
+      "message": "Yes, somehow seems to be lost in the various merges. Hope that it can be done as part of some rebasing, that might be needed anyway ...",
+      "parentUuid": "adeb174d_d4dc9086",
+      "revId": "70af5c4bdcc218097df685085eeff965843aa28d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

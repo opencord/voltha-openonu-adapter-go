@@ -396,6 +396,24 @@
     },
     {
       "key": {
+        "uuid": "52bf7a9f_b1c6c5dc",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1661,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-11-27T17:07:45Z",
+      "side": 1,
+      "message": "Correct. Also in respect to the refactoring already mentioned herein, which would be needed on many copy/paste places ..",
+      "parentUuid": "31483cfc_976ccab3",
+      "revId": "bd361d45be4444bb7cc231bf996f1a1ef66ad04a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "edc10ce8_e95e9a61",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
