@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "74dee5a1_117a106f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:22:51Z",
+      "side": 1,
+      "message": "can you elaborate a bit on the need for splitting this up into constants with integers and a map with integer to string mapping. I\u0027m somewhat not understanding the need.",
+      "revId": "aee6f22bc72e361365dbf168b84339df1b93ee05",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
