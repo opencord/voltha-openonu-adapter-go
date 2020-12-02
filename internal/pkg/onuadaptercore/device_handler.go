@@ -92,19 +92,36 @@ const (
 
 const (
 	// device reasons
-	drActivatingOnu                    = "activating-onu"
-	drStartingOpenomci                 = "starting-openomci"
-	drDiscoveryMibsyncComplete         = "discovery-mibsync-complete"
-	drInitialMibDownloaded             = "initial-mib-downloaded"
-	drTechProfileConfigDownloadSuccess = "tech-profile-config-download-success"
-	drOmciFlowsPushed                  = "omci-flows-pushed"
-	drOmciAdminLock                    = "omci-admin-lock"
-	drOnuReenabled                     = "onu-reenabled"
-	drStoppingOpenomci                 = "stopping-openomci"
-	drRebooting                        = "rebooting"
-	drOmciFlowsDeleted                 = "omci-flows-deleted"
-	drTechProfileConfigDeleteSuccess   = "tech-profile-config-delete-success"
+	drUnset                            = 0
+	drActivatingOnu                    = 1
+	drStartingOpenomci                 = 2
+	drDiscoveryMibsyncComplete         = 3
+	drInitialMibDownloaded             = 4
+	drTechProfileConfigDownloadSuccess = 5
+	drOmciFlowsPushed                  = 6
+	drOmciAdminLock                    = 7
+	drOnuReenabled                     = 8
+	drStoppingOpenomci                 = 9
+	drRebooting                        = 10
+	drOmciFlowsDeleted                 = 11
+	drTechProfileConfigDeleteSuccess   = 12
 )
+
+var deviceReasonMap = map[uint8]string{
+	drUnset:                            "unset",
+	drActivatingOnu:                    "activating-onu",
+	drStartingOpenomci:                 "starting-openomci",
+	drDiscoveryMibsyncComplete:         "discovery-mibsync-complete",
+	drInitialMibDownloaded:             "initial-mib-downloaded",
+	drTechProfileConfigDownloadSuccess: "tech-profile-config-download-success",
+	drOmciFlowsPushed:                  "omci-flows-pushed",
+	drOmciAdminLock:                    "omci-admin-lock",
+	drOnuReenabled:                     "onu-reenabled",
+	drStoppingOpenomci:                 "stopping-openomci",
+	drRebooting:                        "rebooting",
+	drOmciFlowsDeleted:                 "omci-flows-deleted",
+	drTechProfileConfigDeleteSuccess:   "tech-profile-config-delete-success",
+}
 
 //deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
@@ -131,7 +148,7 @@ type deviceHandler struct {
 	exitChannel     chan int
 	lockDevice      sync.RWMutex
 	pOnuIndication  *oop.OnuIndication
-	deviceReason    string
+	deviceReason    uint8
 	pLockStateFsm   *lockStateFsm
 	pUnlockStateFsm *lockStateFsm
 
@@ -279,8 +296,8 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	}
 	if !dh.ReadyForSpecificOmciConfig {
 		logger.Errorw("TechProf-set rejected: improper device state", log.Fields{"device-id": dh.deviceID,
-			"device-state": dh.deviceReason})
-		return fmt.Errorf("improper device state %s on device %s", dh.deviceReason, dh.deviceID)
+			"device-state": deviceReasonMap[dh.deviceReason]})
+		return fmt.Errorf("improper device state %s on device %s", deviceReasonMap[dh.deviceReason], dh.deviceID)
 	}
 	//previous state test here was just this one, now extended for more states to reject the SetRequest:
 	// at least 'mib-downloaded' should be reached for processing of this specific ONU configuration
@@ -602,7 +619,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(apOfFlowChanges *openflow_13.Flow
 				// also abort for the other still possible flows here
 				if !dh.ReadyForSpecificOmciConfig {
 					logger.Errorw("flow-add rejected: improper device state", log.Fields{"device-id": dh.deviceID,
-						"last device-reason": dh.deviceReason})
+						"last device-reason": deviceReasonMap[dh.deviceReason]})
 					return fmt.Errorf("improper device state on device %s", dh.deviceID)
 				}
 
@@ -662,7 +679,7 @@ func (dh *deviceHandler) disableDevice(device *voltha.Device) {
 			// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
 
 			//TODO with VOL-3045/VOL-3046: catch and return error, valid for all occurrences in the codebase
-			_ = dh.deviceReasonUpdate(drOmciAdminLock, false)
+			_ = dh.deviceReasonUpdate(drOmciAdminLock, true)
 		}
 	}
 }
@@ -724,11 +741,23 @@ func (dh *deviceHandler) reconcileDeviceTechProf() {
 		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
-
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
 
+	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
+		logger.Debugw("reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
+			log.Fields{"device-id": dh.deviceID})
+		dh.reconciling = false
+		return
+	}
 	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
+		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
+		if len(uniData.PersTpPathMap) == 0 {
+			logger.Debugw("reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
+				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+			dh.reconciling = false
+			return
+		}
 		for tpID := range uniData.PersTpPathMap {
 			// deadline context to ensure completion of background routines waited for
 			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
@@ -744,6 +773,11 @@ func (dh *deviceHandler) reconcileDeviceTechProf() {
 				logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
 			}
 		}
+		if len(uniData.PersFlowParams) == 0 {
+			logger.Debugw("reconciling - no flows have been stored before adapter restart - terminate reconcilement",
+				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+			dh.reconciling = false
+		}
 	}
 }
 
@@ -755,7 +789,20 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig() {
 		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
+	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
+		logger.Debugw("reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
+			log.Fields{"device-id": dh.deviceID})
+		dh.reconciling = false
+		return
+	}
 	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
+		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
+		if len(uniData.PersFlowParams) == 0 {
+			logger.Debugw("reconciling - no flows have been stored before adapter restart - terminate reconcilement",
+				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+			dh.reconciling = false
+			return
+		}
 		var uniPort *onuUniPort
 		var exist bool
 		uniNo := mkUniPortNum(dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
@@ -779,6 +826,11 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig() {
 					logger.Errorw(err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			}
+		}
+		if len(uniData.PersTpPathMap) == 0 {
+			logger.Debugw("reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
+				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+			dh.reconciling = false
 		}
 	}
 }
@@ -841,7 +893,7 @@ func (dh *deviceHandler) rebootDevice(device *voltha.Device) error {
 		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 		return err
 	}
-	if err := dh.deviceReasonUpdate(drRebooting, false); err != nil {
+	if err := dh.deviceReasonUpdate(drRebooting, true); err != nil {
 		return err
 	}
 	dh.ReadyForSpecificOmciConfig = false
@@ -872,7 +924,7 @@ func (dh *deviceHandler) doStateInit(e *fsm.Event) {
 	dh.device.Root = false
 	dh.device.Vendor = "OpenONU"
 	dh.device.Model = "go"
-	dh.device.Reason = drActivatingOnu
+	dh.device.Reason = deviceReasonMap[drActivatingOnu]
 	dh.deviceReason = drActivatingOnu
 
 	dh.logicalDeviceID = dh.deviceID // really needed - what for ??? //TODO!!!
@@ -1153,14 +1205,22 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 	return nil
 }
 
-// doStateInit provides the device update to the core
 func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 	logger.Debugw("create_interface-started", log.Fields{"OnuId": onuind.GetOnuId(),
 		"OnuIntfId": onuind.GetIntfId(), "OnuSerialNumber": onuind.GetSerialNumber()})
 
 	dh.pOnuIndication = onuind // let's revise if storing the pointer is sufficient...
 
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
 	if !dh.reconciling {
+		if err := dh.storePersistentData(); err != nil {
+			logger.Warnw("store persistent data error - continue as there will be additional write attempts",
+				log.Fields{"device-id": dh.deviceID, "err": err})
+		}
 		logger.Debugw("call DeviceStateUpdate upon create interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 			"OperStatus": voltha.OperStatus_ACTIVATING, "device-id": dh.deviceID})
 		if err := dh.coreProxy.DeviceStateUpdate(context.TODO(), dh.deviceID,
@@ -1171,6 +1231,12 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 	} else {
 		logger.Debugw("reconciling - don't notify core about DeviceStateUpdate to ACTIVATING",
 			log.Fields{"device-id": dh.deviceID})
+
+		if !pDevEntry.sOnuPersistentData.PersUniUnlockDone {
+			logger.Debugw("reconciling - uni-ports were not unlocked before adapter restart - resume with a normal start-up",
+				log.Fields{"device-id": dh.deviceID})
+			dh.reconciling = false
+		}
 	}
 	// It does not look to me as if makes sense to work with the real core device here, (not the stored clone)?
 	// in this code the GetDevice would just make a check if the DeviceID's Device still exists in core
@@ -1186,16 +1252,11 @@ func (dh *deviceHandler) createInterface(onuind *oop.OnuIndication) error {
 			}
 	*/
 
-	pDevEntry := dh.getOnuDeviceEntry(true)
-	if pDevEntry != nil {
-		if err := pDevEntry.start(context.TODO()); err != nil {
-			return err
-		}
-	} else {
-		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
-		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	if err := pDevEntry.start(context.TODO()); err != nil {
+		return err
 	}
-	_ = dh.deviceReasonUpdate(drStartingOpenomci, dh.reconciling)
+
+	_ = dh.deviceReasonUpdate(drStartingOpenomci, !dh.reconciling)
 
 	/* this might be a good time for Omci Verify message?  */
 	verifyExec := make(chan bool)
@@ -1374,7 +1435,7 @@ func (dh *deviceHandler) updateInterface(onuind *oop.OnuIndication) error {
 
 		dh.ReadyForSpecificOmciConfig = false
 
-		if err := dh.deviceReasonUpdate(drStoppingOpenomci, false); err != nil {
+		if err := dh.deviceReasonUpdate(drStoppingOpenomci, true); err != nil {
 			// abort: system behavior is just unstable ...
 			return err
 		}
@@ -1405,7 +1466,6 @@ func (dh *deviceHandler) resetFsms() error {
 		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
-
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
 	pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
@@ -1455,8 +1515,12 @@ func (dh *deviceHandler) resetFsms() error {
 func (dh *deviceHandler) processMibDatabaseSyncEvent(devEvent OnuDeviceEvent) {
 	logger.Debugw("MibInSync event received, adding uni ports and locking the ONU interfaces", log.Fields{"device-id": dh.deviceID})
 
-	_ = dh.deviceReasonUpdate(drDiscoveryMibsyncComplete, dh.reconciling)
+	_ = dh.deviceReasonUpdate(drDiscoveryMibsyncComplete, !dh.reconciling)
 	pDevEntry := dh.getOnuDeviceEntry(false)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
 	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
 	if unigInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(me.UniGClassID); len(unigInstKeys) > 0 {
 		for _, mgmtEntityID := range unigInstKeys {
@@ -1507,6 +1571,10 @@ func (dh *deviceHandler) processUniLockStateDoneEvent(devEvent OnuDeviceEvent) {
 	***** should run over 'downloaded' state and generate MibDownloadDone event *****
 	 */
 	pDevEntry := dh.getOnuDeviceEntry(false)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
 	pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
 	if pMibDlFsm != nil {
 		if pMibDlFsm.Is(dlStDisabled) {
@@ -1548,10 +1616,21 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(devEvent OnuDeviceEvent) {
 			logger.Debugw("dev state updated to 'Oper.Active'", log.Fields{"device-id": dh.deviceID})
 		}
 	} else {
+		pDevEntry := dh.getOnuDeviceEntry(false)
+		if pDevEntry == nil {
+			logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+			return
+		}
+		if pDevEntry.sOnuPersistentData.PersUniDisableDone {
+			logger.Debugw("reconciling - uni-ports were disabled by admin before adapter restart - keep the ports locked and wait for re-enabling",
+				log.Fields{"device-id": dh.deviceID})
+			dh.reconciling = false
+			return
+		}
 		logger.Debugw("reconciling - don't notify core about DeviceStateUpdate to ACTIVE",
 			log.Fields{"device-id": dh.deviceID})
 	}
-	_ = dh.deviceReasonUpdate(drInitialMibDownloaded, dh.reconciling)
+	_ = dh.deviceReasonUpdate(drInitialMibDownloaded, !dh.reconciling)
 	dh.ReadyForSpecificOmciConfig = true
 	// *** should generate UniUnlockStateDone event *****
 	if dh.pUnlockStateFsm == nil {
@@ -1569,6 +1648,16 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(devEvent OnuDeviceEvent)
 		logger.Infow("UniUnlockStateDone event: Sending OnuUp event", log.Fields{"device-id": dh.deviceID})
 		raisedTs := time.Now().UnixNano()
 		go dh.sendOnuOperStateEvent(voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
+		pDevEntry := dh.getOnuDeviceEntry(false)
+		if pDevEntry == nil {
+			logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+			return
+		}
+		pDevEntry.sOnuPersistentData.PersUniUnlockDone = true
+		if err := dh.storePersistentData(); err != nil {
+			logger.Warnw("store persistent data error - continue for now as there will be additional write attempts",
+				log.Fields{"device-id": dh.deviceID, "err": err})
+		}
 	} else {
 		logger.Debugw("reconciling - don't notify core that onu went to active but trigger tech profile config",
 			log.Fields{"device-id": dh.deviceID})
@@ -1586,12 +1675,23 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(devEvent OnuDeviceEvent
 		logger.Errorw("error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
 	}
 
-	logger.Debugw("DeviceReasonUpdate upon disable", log.Fields{"reason": drOmciAdminLock, "device-id": dh.deviceID})
+	logger.Debugw("DeviceReasonUpdate upon disable", log.Fields{"reason": deviceReasonMap[drOmciAdminLock], "device-id": dh.deviceID})
 	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	_ = dh.deviceReasonUpdate(drOmciAdminLock, false)
+	_ = dh.deviceReasonUpdate(drOmciAdminLock, true)
 
 	//transfer the modified logical uni port state
 	dh.disableUniPortStateUpdate()
+
+	pDevEntry := dh.getOnuDeviceEntry(false)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	pDevEntry.sOnuPersistentData.PersUniDisableDone = true
+	if err := dh.storePersistentData(); err != nil {
+		logger.Warnw("store persistent data error - continue for now as there will be additional write attempts",
+			log.Fields{"device-id": dh.deviceID, "err": err})
+	}
 }
 
 func (dh *deviceHandler) processUniEnableStateDoneEvent(devEvent OnuDeviceEvent) {
@@ -1604,12 +1704,23 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(devEvent OnuDeviceEvent)
 	}
 
 	logger.Debugw("DeviceReasonUpdate upon re-enable", log.Fields{
-		"reason": drOnuReenabled, "device-id": dh.deviceID})
+		"reason": deviceReasonMap[drOnuReenabled], "device-id": dh.deviceID})
 	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	_ = dh.deviceReasonUpdate(drOnuReenabled, false)
+	_ = dh.deviceReasonUpdate(drOnuReenabled, true)
 
 	//transfer the modified logical uni port state
 	dh.enableUniPortStateUpdate()
+
+	pDevEntry := dh.getOnuDeviceEntry(false)
+	if pDevEntry == nil {
+		logger.Errorw("No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	pDevEntry.sOnuPersistentData.PersUniDisableDone = false
+	if err := dh.storePersistentData(); err != nil {
+		logger.Warnw("store persistent data error - continue for now as there will be additional write attempts",
+			log.Fields{"device-id": dh.deviceID, "err": err})
+	}
 }
 
 func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) {
@@ -1619,7 +1730,7 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) 
 		//  - which may cause some inconsistency
 		if dh.deviceReason != drTechProfileConfigDownloadSuccess {
 			// which may be the case from some previous actvity even on this UNI Port (but also other UNI ports)
-			_ = dh.deviceReasonUpdate(drTechProfileConfigDownloadSuccess, dh.reconciling)
+			_ = dh.deviceReasonUpdate(drTechProfileConfigDownloadSuccess, !dh.reconciling)
 		}
 		if dh.reconciling {
 			go dh.reconcileDeviceFlowConfig()
@@ -1630,7 +1741,7 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(devEvent OnuDeviceEvent) 
 		//  - which may cause some inconsistency
 		if dh.deviceReason != drTechProfileConfigDeleteSuccess {
 			// which may be the case from some previous actvity even on this ONU port (but also other UNI ports)
-			_ = dh.deviceReasonUpdate(drTechProfileConfigDeleteSuccess, false)
+			_ = dh.deviceReasonUpdate(drTechProfileConfigDeleteSuccess, true)
 		}
 	}
 }
@@ -1645,7 +1756,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(aDevEvent OnuDeviceEvent
 		if dh.deviceReason != drOmciFlowsPushed {
 			// which may be the case from some previous actvity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
-			_ = dh.deviceReasonUpdate(drOmciFlowsPushed, dh.reconciling)
+			_ = dh.deviceReasonUpdate(drOmciFlowsPushed, !dh.reconciling)
 			if dh.reconciling {
 				go dh.reconcileMetrics()
 			}
@@ -1653,7 +1764,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(aDevEvent OnuDeviceEvent
 	} else {
 		if dh.deviceReason != drOmciFlowsDeleted {
 			//not relevant for reconcile
-			_ = dh.deviceReasonUpdate(drOmciFlowsDeleted, false)
+			_ = dh.deviceReasonUpdate(drOmciFlowsDeleted, true)
 		}
 	}
 }
@@ -2277,20 +2388,48 @@ func (dh *deviceHandler) waitForCompletion(cancel context.CancelFunc, wg *sync.W
 		"device-id": dh.deviceID, "called from": aCallerIdent})
 }
 
-func (dh *deviceHandler) deviceReasonUpdate(deviceReason string, dontNotifyCore bool) error {
+func (dh *deviceHandler) deviceReasonUpdate(deviceReason uint8, notifyCore bool) error {
 
 	dh.deviceReason = deviceReason
-	if !dontNotifyCore {
+	if notifyCore {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing at calling position
-		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, deviceReason); err != nil {
-			logger.Errorw("DeviceReasonUpdate: error",
-				log.Fields{"deviceReason": deviceReason, "device-id": dh.deviceID, "error": err})
+		if err := dh.coreProxy.DeviceReasonUpdate(context.TODO(), dh.deviceID, deviceReasonMap[deviceReason]); err != nil {
+			logger.Errorf("DeviceReasonUpdate error: %s",
+				log.Fields{"device-id": dh.deviceID, "error": err}, deviceReasonMap[deviceReason])
 			return err
 		}
-		logger.Infow("DeviceReasonUpdate: success", log.Fields{"deviceReason": deviceReason, "device-id": dh.deviceID})
+		logger.Infof("DeviceReasonUpdate success: %s",
+			log.Fields{"device-id": dh.deviceID}, deviceReasonMap[deviceReason])
 		return nil
 	}
-	logger.Infow("Don't notify core about DeviceReasonUpdate", log.Fields{"deviceReason": deviceReason, "device-id": dh.deviceID})
+	logger.Infof("Don't notify core about DeviceReasonUpdate: %s,",
+		log.Fields{"device-id": dh.deviceID}, deviceReasonMap[deviceReason])
+	return nil
+}
+
+func (dh *deviceHandler) storePersistentData() error {
+	pDevEntry := dh.getOnuDeviceEntry(true)
+	if pDevEntry == nil {
+		logger.Warnw("No valid OnuDevice", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
+	}
+	pDevEntry.lockOnuKVStoreMutex()
+	defer pDevEntry.unlockOnuKVStoreMutex()
+
+	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
+	pDevEntry.resetKvProcessingErrorIndication()
+	var wg sync.WaitGroup
+	wg.Add(1) // for the 1 go routine to finish
+
+	go pDevEntry.updateOnuKvStore(dctx, &wg)
+	dh.waitForCompletion(cancel, &wg, "UpdateKvStore") //wait for background process to finish
+
+	if err := pDevEntry.getKvProcessingErrorIndication(); err != nil {
+		logger.Warnw("KV-processing error", log.Fields{"device-id": dh.deviceID, "err": err})
+		return err
+	}
 	return nil
 }
 
