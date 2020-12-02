@@ -32,15 +32,15 @@ import (
 	//"time"
 
 	"github.com/looplab/fsm"
-	"github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif"
-	"github.com/opencord/voltha-lib-go/v3/pkg/db"
-	"github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v4/pkg/db"
+	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
 
-	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v3/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
-	//"github.com/opencord/voltha-protos/v3/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v3/go/voltha"
+	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
+	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
+	//"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
 const (
@@ -150,7 +150,7 @@ const (
 )
 
 type activityDescr struct {
-	databaseClass func() error
+	databaseClass func(context.Context) error
 	//advertiseEvents bool
 	auditDelay uint16
 	//tasks           map[string]func() error
@@ -178,8 +178,8 @@ func NewAdapterFsm(aName string, aDeviceID string, aCommChannel chan Message) *A
 }
 
 //Start starts (logs) the omci agent
-func (oo *AdapterFsm) logFsmStateChange(e *fsm.Event) {
-	logger.Debugw("FSM state change", log.Fields{"device-id": oo.deviceID, "FSM name": oo.fsmName,
+func (oo *AdapterFsm) logFsmStateChange(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "FSM state change", log.Fields{"device-id": oo.deviceID, "FSM name": oo.fsmName,
 		"event name": string(e.Event), "src state": string(e.Src), "dst state": string(e.Dst)})
 }
 
@@ -244,7 +244,7 @@ type OnuDeviceEntry struct {
 	activeSwVersion       string
 	macAddress            string
 	//lockDeviceEntries           sync.RWMutex
-	mibDbClass    func() error
+	mibDbClass    func(context.Context) error
 	supportedFsms OmciDeviceFsms
 	devState      OnuDeviceEvent
 	// for mibUpload
@@ -263,7 +263,7 @@ type OnuDeviceEntry struct {
 //newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
-	logger.Debugw("init-onuDeviceEntry", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw(ctx, "init-onuDeviceEntry", log.Fields{"device-id": dh.deviceID})
 	var onuDeviceEntry OnuDeviceEntry
 	onuDeviceEntry.deviceID = dh.deviceID
 	onuDeviceEntry.baseDeviceHandler = dh
@@ -302,10 +302,10 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 		}
 	}
 	onuDeviceEntry.mibDbClass = onuDeviceEntry.supportedFsms["mib-synchronizer"].databaseClass
-	logger.Debug("access2mibDbClass")
-	go onuDeviceEntry.mibDbClass()
+	logger.Debug(ctx, "access2mibDbClass")
+	go onuDeviceEntry.mibDbClass(ctx)
 	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
-	logger.Debugw("MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
+	logger.Debugw(ctx, "MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
 
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
@@ -355,21 +355,21 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 		},
 
 		fsm.Callbacks{
-			"enter_state":                         func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(e) },
-			"enter_" + ulStStarting:               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(e) },
-			"enter_" + ulStResettingMib:           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(e) },
-			"enter_" + ulStGettingVendorAndSerial: func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(e) },
-			"enter_" + ulStGettingEquipmentID:     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIDState(e) },
-			"enter_" + ulStGettingFirstSwVersion:  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(e) },
-			"enter_" + ulStGettingSecondSwVersion: func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(e) },
-			"enter_" + ulStGettingMacAddress:      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(e) },
-			"enter_" + ulStGettingMibTemplate:     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(e) },
-			"enter_" + ulStUploading:              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(e) },
-			"enter_" + ulStExaminingMds:           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(e) },
-			"enter_" + ulStResynchronizing:        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(e) },
-			"enter_" + ulStAuditing:               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(e) },
-			"enter_" + ulStOutOfSync:              func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(e) },
-			"enter_" + ulStInSync:                 func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(e) },
+			"enter_state":                         func(e *fsm.Event) { onuDeviceEntry.pMibUploadFsm.logFsmStateChange(ctx, e) },
+			"enter_" + ulStStarting:               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(ctx, e) },
+			"enter_" + ulStResettingMib:           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(ctx, e) },
+			"enter_" + ulStGettingVendorAndSerial: func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(ctx, e) },
+			"enter_" + ulStGettingEquipmentID:     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIDState(ctx, e) },
+			"enter_" + ulStGettingFirstSwVersion:  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(ctx, e) },
+			"enter_" + ulStGettingSecondSwVersion: func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(ctx, e) },
+			"enter_" + ulStGettingMacAddress:      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(ctx, e) },
+			"enter_" + ulStGettingMibTemplate:     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(ctx, e) },
+			"enter_" + ulStUploading:              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(ctx, e) },
+			"enter_" + ulStExaminingMds:           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(ctx, e) },
+			"enter_" + ulStResynchronizing:        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(ctx, e) },
+			"enter_" + ulStAuditing:               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(ctx, e) },
+			"enter_" + ulStOutOfSync:              func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(ctx, e) },
+			"enter_" + ulStInSync:                 func(e *fsm.Event) { onuDeviceEntry.enterInSyncState(ctx, e) },
 		},
 	)
 	// Omci related Mib download state machine
@@ -400,31 +400,31 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 		},
 
 		fsm.Callbacks{
-			"enter_state":               func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(e) },
-			"enter_" + dlStStarting:     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(e) },
-			"enter_" + dlStCreatingGal:  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(e) },
-			"enter_" + dlStSettingOnu2g: func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(e) },
-			"enter_" + dlStBridgeInit:   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(e) },
-			"enter_" + dlStDownloaded:   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(e) },
-			"enter_" + dlStResetting:    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(e) },
+			"enter_state":               func(e *fsm.Event) { onuDeviceEntry.pMibDownloadFsm.logFsmStateChange(ctx, e) },
+			"enter_" + dlStStarting:     func(e *fsm.Event) { onuDeviceEntry.enterDLStartingState(ctx, e) },
+			"enter_" + dlStCreatingGal:  func(e *fsm.Event) { onuDeviceEntry.enterCreatingGalState(ctx, e) },
+			"enter_" + dlStSettingOnu2g: func(e *fsm.Event) { onuDeviceEntry.enterSettingOnu2gState(ctx, e) },
+			"enter_" + dlStBridgeInit:   func(e *fsm.Event) { onuDeviceEntry.enterBridgeInitState(ctx, e) },
+			"enter_" + dlStDownloaded:   func(e *fsm.Event) { onuDeviceEntry.enterDownloadedState(ctx, e) },
+			"enter_" + dlStResetting:    func(e *fsm.Event) { onuDeviceEntry.enterResettingState(ctx, e) },
 		},
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
-		logger.Errorw("MibDownloadFsm could not be instantiated", log.Fields{"device-id": dh.deviceID})
+		logger.Errorw(ctx, "MibDownloadFsm could not be instantiated", log.Fields{"device-id": dh.deviceID})
 		// TODO some specifc error treatment - or waiting for crash ?
 	}
 
-	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(cBasePathMibTemplateKvStore)
+	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(ctx, cBasePathMibTemplateKvStore)
 	if onuDeviceEntry.mibTemplateKVStore == nil {
-		logger.Errorw("Can't access mibTemplateKVStore - no backend connection to service",
+		logger.Errorw(ctx, "Can't access mibTemplateKVStore - no backend connection to service",
 			log.Fields{"device-id": dh.deviceID, "service": cBasePathMibTemplateKvStore})
 	}
 
 	onuDeviceEntry.onuKVStorePath = onuDeviceEntry.deviceID
 	baseKvStorePath := fmt.Sprintf(cBasePathOnuKVStore, dh.pOpenOnuAc.cm.Backend.PathPrefix)
-	onuDeviceEntry.onuKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(baseKvStorePath)
+	onuDeviceEntry.onuKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(ctx, baseKvStorePath)
 	if onuDeviceEntry.onuKVStore == nil {
-		logger.Errorw("Can't access onuKVStore - no backend connection to service",
+		logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service",
 			log.Fields{"device-id": dh.deviceID, "service": baseKvStorePath})
 	}
 
@@ -436,12 +436,12 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 
 //start starts (logs) the omci agent
 func (oo *OnuDeviceEntry) start(ctx context.Context) error {
-	logger.Debugw("OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
+	logger.Debugw(ctx, "OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC == nil {
 		oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
 			oo.coreProxy, oo.adapterProxy)
 		if oo.PDevOmciCC == nil {
-			logger.Errorw("Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
+			logger.Errorw(ctx, "Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
 			return fmt.Errorf("could not create devOmciCc %s", oo.deviceID)
 		}
 	}
@@ -450,7 +450,7 @@ func (oo *OnuDeviceEntry) start(ctx context.Context) error {
 
 //stop stops/resets the omciCC
 func (oo *OnuDeviceEntry) stop(ctx context.Context, abResetOmciCC bool) error {
-	logger.Debugw("OnuDeviceEntry-stopping", log.Fields{"for device-id": oo.deviceID})
+	logger.Debugw(ctx, "OnuDeviceEntry-stopping", log.Fields{"for device-id": oo.deviceID})
 	if abResetOmciCC && (oo.PDevOmciCC != nil) {
 		_ = oo.PDevOmciCC.stop(ctx)
 	}
@@ -460,20 +460,20 @@ func (oo *OnuDeviceEntry) stop(ctx context.Context, abResetOmciCC bool) error {
 }
 
 func (oo *OnuDeviceEntry) reboot(ctx context.Context) error {
-	logger.Debugw("OnuDeviceEntry-rebooting", log.Fields{"for device-id": oo.deviceID})
+	logger.Debugw(ctx, "OnuDeviceEntry-rebooting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC != nil {
 		if err := oo.PDevOmciCC.sendReboot(ctx, ConstDefaultOmciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
-			logger.Errorw("onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
+			logger.Errorw(ctx, "onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
 			return err
 		}
 	}
 	return nil
 }
 
-func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) error {
+func (oo *OnuDeviceEntry) waitForRebootResponse(ctx context.Context, responseChannel chan Message) error {
 	select {
 	case <-time.After(3 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
-		logger.Warnw("Reboot timeout", log.Fields{"for device-id": oo.deviceID})
+		logger.Warnw(ctx, "Reboot timeout", log.Fields{"for device-id": oo.deviceID})
 		return fmt.Errorf("rebootTimeout")
 	case data := <-responseChannel:
 		switch data.Data.(OmciMessage).OmciMsg.MessageType {
@@ -487,9 +487,9 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				if !msgOk {
 					return fmt.Errorf("omci Msg layer could not be assigned for RebootResponseType %s", oo.deviceID)
 				}
-				logger.Debugw("RebootResponse data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
+				logger.Debugw(ctx, "RebootResponse data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 				if msgObj.Result != me.Success {
-					logger.Errorw("Omci RebootResponse result error", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
+					logger.Errorw(ctx, "Omci RebootResponse result error", log.Fields{"device-id": oo.deviceID, "Error": msgObj.Result})
 					// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 					return fmt.Errorf("omci RebootResponse result error indication %s for device %s",
 						msgObj.Result, oo.deviceID)
@@ -497,61 +497,61 @@ func (oo *OnuDeviceEntry) waitForRebootResponse(responseChannel chan Message) er
 				return nil
 			}
 		}
-		logger.Warnw("Reboot response message type error", log.Fields{"for device-id": oo.deviceID})
+		logger.Warnw(ctx, "Reboot response message type error", log.Fields{"for device-id": oo.deviceID})
 		return fmt.Errorf("unexpected OmciResponse type received %s", oo.deviceID)
 	}
 }
 
 //Relay the InSync message via Handler to Rw core - Status update
-func (oo *OnuDeviceEntry) transferSystemEvent(devEvent OnuDeviceEvent) {
-	logger.Debugw("relaying system-event", log.Fields{"Event": devEvent})
+func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent OnuDeviceEvent) {
+	logger.Debugw(ctx, "relaying system-event", log.Fields{"Event": devEvent})
 	// decouple the handler transfer from further processing here
 	// TODO!!! check if really no synch is required within the system e.g. to ensure following steps ..
 	if devEvent == MibDatabaseSync {
 		if oo.devState < MibDatabaseSync { //devState has not been synced yet
 			oo.devState = MibDatabaseSync
-			go oo.baseDeviceHandler.deviceProcStatusUpdate(devEvent)
+			go oo.baseDeviceHandler.deviceProcStatusUpdate(ctx, devEvent)
 			//TODO!!! device control: next step: start MIB capability verification from here ?!!!
 		} else {
-			logger.Debugw("mibinsync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
+			logger.Debugw(ctx, "mibinsync-event in some already synced state - ignored", log.Fields{"state": oo.devState})
 		}
 	} else if devEvent == MibDownloadDone {
 		if oo.devState < MibDownloadDone { //devState has not been synced yet
 			oo.devState = MibDownloadDone
-			go oo.baseDeviceHandler.deviceProcStatusUpdate(devEvent)
+			go oo.baseDeviceHandler.deviceProcStatusUpdate(ctx, devEvent)
 		} else {
-			logger.Debugw("mibdownloaddone-event was already seen - ignored", log.Fields{"state": oo.devState})
+			logger.Debugw(ctx, "mibdownloaddone-event was already seen - ignored", log.Fields{"state": oo.devState})
 		}
 	} else {
-		logger.Warnw("device-event not yet handled", log.Fields{"state": devEvent})
+		logger.Warnw(ctx, "device-event not yet handled", log.Fields{"state": devEvent})
 	}
 }
 
 func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 	if oo.onuKVStore == nil {
-		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
+		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", oo.deviceID))
 	}
 	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, make([]uniPersConfig, 0)}
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	if err == nil {
 		if Value != nil {
-			logger.Debugw("ONU-data read",
+			logger.Debugw(ctx, "ONU-data read",
 				log.Fields{"Key": Value.Key, "device-id": oo.deviceID})
 			tmpBytes, _ := kvstore.ToByte(Value.Value)
 
 			if err = json.Unmarshal(tmpBytes, &oo.sOnuPersistentData); err != nil {
-				logger.Errorw("unable to unmarshal ONU-data", log.Fields{"error": err, "device-id": oo.deviceID})
+				logger.Errorw(ctx, "unable to unmarshal ONU-data", log.Fields{"error": err, "device-id": oo.deviceID})
 				return fmt.Errorf(fmt.Sprintf("unable-to-unmarshal-ONU-data-%s", oo.deviceID))
 			}
-			logger.Debugw("ONU-data", log.Fields{"sOnuPersistentData": oo.sOnuPersistentData,
+			logger.Debugw(ctx, "ONU-data", log.Fields{"sOnuPersistentData": oo.sOnuPersistentData,
 				"device-id": oo.deviceID})
 		} else {
-			logger.Debugw("no ONU-data found", log.Fields{"path": oo.onuKVStorePath, "device-id": oo.deviceID})
+			logger.Debugw(ctx, "no ONU-data found", log.Fields{"path": oo.onuKVStorePath, "device-id": oo.deviceID})
 			return fmt.Errorf("no-ONU-data-found")
 		}
 	} else {
-		logger.Errorw("unable to read from KVstore", log.Fields{"device-id": oo.deviceID})
+		logger.Errorw(ctx, "unable to read from KVstore", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf(fmt.Sprintf("unable-to-read-from-KVstore-%s", oo.deviceID))
 	}
 	return nil
@@ -561,7 +561,7 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 	defer wg.Done()
 
 	if oo.onuKVStore == nil {
-		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
+		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
 		oo.onuKVStoreprocResult = errors.New("onu-data delete aborted: onuKVStore not set")
 		return
 	}
@@ -569,7 +569,7 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 	go oo.deletePersistentData(ctx, processingStep)
 	if !oo.waitForTimeoutOrCompletion(ctx, oo.chOnuKvProcessingStep, processingStep) {
 		//timeout or error detected
-		logger.Debugw("ONU-data not deleted - abort", log.Fields{"device-id": oo.deviceID})
+		logger.Debugw(ctx, "ONU-data not deleted - abort", log.Fields{"device-id": oo.deviceID})
 		oo.onuKVStoreprocResult = errors.New("onu-data delete aborted: during kv-access")
 		return
 	}
@@ -577,14 +577,14 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 
 func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingStep uint8) {
 
-	logger.Debugw("delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
+	logger.Debugw(ctx, "delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
 	oo.sOnuPersistentData.PersUniConfig = nil                                                           //releasing all UniConfig entries to garbage collector
 	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, make([]uniPersConfig, 0)} //default entry
 
-	logger.Debugw("delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
+	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
 	if err != nil {
-		logger.Errorw("unable to delete in KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
+		logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
 		oo.chOnuKvProcessingStep <- 0 //error indication
 		return
 	}
@@ -595,7 +595,7 @@ func (oo *OnuDeviceEntry) updateOnuKvStore(ctx context.Context, wg *sync.WaitGro
 	defer wg.Done()
 
 	if oo.onuKVStore == nil {
-		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
+		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
 		oo.onuKVStoreprocResult = errors.New("onu-data update aborted: onuKVStore not set")
 		return
 	}
@@ -603,7 +603,7 @@ func (oo *OnuDeviceEntry) updateOnuKvStore(ctx context.Context, wg *sync.WaitGro
 	go oo.storeDataInOnuKvStore(ctx, processingStep)
 	if !oo.waitForTimeoutOrCompletion(ctx, oo.chOnuKvProcessingStep, processingStep) {
 		//timeout or error detected
-		logger.Debugw("ONU-data not written - abort", log.Fields{"device-id": oo.deviceID})
+		logger.Debugw(ctx, "ONU-data not written - abort", log.Fields{"device-id": oo.deviceID})
 		oo.onuKVStoreprocResult = errors.New("onu-data update aborted: during writing process")
 		return
 	}
@@ -618,44 +618,44 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	//TODO: verify usage of these values during restart UC
 	oo.sOnuPersistentData.PersAdminState = oo.baseDeviceHandler.pOnuIndication.AdminState
 	oo.sOnuPersistentData.PersOperState = oo.baseDeviceHandler.pOnuIndication.OperState
-	logger.Debugw("Update ONU-data in KVStore", log.Fields{"device-id": oo.deviceID, "sOnuPersistentData": oo.sOnuPersistentData})
+	logger.Debugw(ctx, "Update ONU-data in KVStore", log.Fields{"device-id": oo.deviceID, "sOnuPersistentData": oo.sOnuPersistentData})
 
 	Value, err := json.Marshal(oo.sOnuPersistentData)
 	if err != nil {
-		logger.Errorw("unable to marshal ONU-data", log.Fields{"sOnuPersistentData": oo.sOnuPersistentData,
+		logger.Errorw(ctx, "unable to marshal ONU-data", log.Fields{"sOnuPersistentData": oo.sOnuPersistentData,
 			"device-id": oo.deviceID, "err": err})
 		oo.chOnuKvProcessingStep <- 0 //error indication
 		return
 	}
 	err = oo.onuKVStore.Put(ctx, oo.onuKVStorePath, Value)
 	if err != nil {
-		logger.Errorw("unable to write ONU-data into KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
+		logger.Errorw(ctx, "unable to write ONU-data into KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
 		oo.chOnuKvProcessingStep <- 0 //error indication
 		return
 	}
 	oo.chOnuKvProcessingStep <- aProcessingStep //done
 }
 
-func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aTpID uint8, aPathString string) bool {
+func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, aTpID uint8, aPathString string) bool {
 	/* within some specific InterAdapter processing request write/read access to data is ensured to be sequentially,
 	   as also the complete sequence is ensured to 'run to completion' before some new request is accepted
 	   no specific concurrency protection to sOnuPersistentData is required here
 	*/
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
-			logger.Debugw("PersUniConfig-entry already exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
+			logger.Debugw(ctx, "PersUniConfig-entry already exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
 			existingPath, ok := oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID]
 			if !ok {
-				logger.Debugw("tp-does-not-exist--to-be-created-afresh", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
+				logger.Debugw(ctx, "tp-does-not-exist--to-be-created-afresh", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
 			}
 			if existingPath != aPathString {
 				if aPathString == "" {
 					//existing entry to be deleted
-					logger.Debugw("UniTp delete path value", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
+					logger.Debugw(ctx, "UniTp delete path value", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
 					oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID] = ""
 				} else {
 					//existing entry to be modified
-					logger.Debugw("UniTp modify path value", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
+					logger.Debugw(ctx, "UniTp modify path value", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
 					oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID] = aPathString
 				}
 				return true
@@ -663,18 +663,18 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aTpID uint8, aPathStr
 			//entry already exists
 			if aPathString == "" {
 				//no active TechProfile
-				logger.Debugw("UniTp path has already been removed - no AniSide config to be removed", log.Fields{
+				logger.Debugw(ctx, "UniTp path has already been removed - no AniSide config to be removed", log.Fields{
 					"device-id": oo.deviceID, "uniID": aUniID})
 				// attention 201105: this block is at the moment entered for each of subsequent GemPortDeletes and TContDelete
 				//   as the path is already cleared with the first GemPort - this will probably change with the upcoming real
 				//   TechProfile removal (still TODO), but anyway the reasonUpdate initiated here should not harm overall behavior
-				go oo.baseDeviceHandler.deviceProcStatusUpdate(OmciAniResourceRemoved)
+				go oo.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
 				// no flow config pending on 'remove' so far
 			} else {
 				//the given TechProfile already exists and is assumed to be active - update devReason as if the config has been done here
 				//was needed e.g. in voltha POD Tests:Validate authentication on a disabled ONU
 				//  (as here the TechProfile has not been removed with the disable-device before the new enable-device)
-				logger.Debugw("UniTp path already exists - TechProfile supposed to be active", log.Fields{
+				logger.Debugw(ctx, "UniTp path already exists - TechProfile supposed to be active", log.Fields{
 					"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
 				//no deviceReason update (deviceProcStatusUpdate) here to ensure 'omci_flows_pushed' state within disable/enable procedure of ATT scenario
 				//  (during which the flows are removed/re-assigned but the techProf is left active)
@@ -685,7 +685,7 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aTpID uint8, aPathStr
 				if oo.baseDeviceHandler.pOnuTP != nil {
 					oo.baseDeviceHandler.pOnuTP.setProfileToDelete(aUniID, aTpID, false)
 				}
-				go oo.baseDeviceHandler.VerifyVlanConfigRequest(aUniID)
+				go oo.baseDeviceHandler.VerifyVlanConfigRequest(ctx, aUniID)
 			}
 			return false //indicate 'no change' - nothing more to do, TechProf inter-adapter message is return with success anyway here
 		}
@@ -694,11 +694,11 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(aUniID uint8, aTpID uint8, aPathStr
 
 	if aPathString == "" {
 		//delete request in non-existing state , accept as no change
-		logger.Debugw("UniTp path already removed", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
+		logger.Debugw(ctx, "UniTp path already removed", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
 		return false
 	}
 	//new entry to be created
-	logger.Debugw("New UniTp path set", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
+	logger.Debugw(ctx, "New UniTp path set", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "path": aPathString})
 	perSubTpPathMap := make(map[uint8]string)
 	perSubTpPathMap[aTpID] = aPathString
 	oo.sOnuPersistentData.PersUniConfig =
@@ -725,7 +725,7 @@ func (oo *OnuDeviceEntry) waitForTimeoutOrCompletion(
 	ctx context.Context, aChOnuProcessingStep <-chan uint8, aProcessingStep uint8) bool {
 	select {
 	case <-ctx.Done():
-		logger.Warnw("processing not completed in-time!",
+		logger.Warnw(ctx, "processing not completed in-time!",
 			log.Fields{"device-id": oo.deviceID, "error": ctx.Err()})
 		return false
 	case rxStep := <-aChOnuProcessingStep:
@@ -733,7 +733,7 @@ func (oo *OnuDeviceEntry) waitForTimeoutOrCompletion(
 			return true
 		}
 		//all other values are not accepted - including 0 for error indication
-		logger.Warnw("Invalid processing step received: abort!",
+		logger.Warnw(ctx, "Invalid processing step received: abort!",
 			log.Fields{"device-id": oo.deviceID,
 				"wantedStep": aProcessingStep, "haveStep": rxStep})
 		return false
