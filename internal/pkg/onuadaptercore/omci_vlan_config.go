@@ -843,7 +843,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 				oFsm.pLastTxMeInstance = meInstance
 			} else {
 				logger.Debugw("UniVlanConfigFsm delete VTFD OMCI handling skipped based on device state", log.Fields{
-					"device-id": oFsm.deviceID, "device-state": oFsm.pDeviceHandler.deviceReason})
+					"device-id": oFsm.deviceID, "device-state": deviceReasonMap[oFsm.pDeviceHandler.deviceReason]})
 			}
 		} else {
 			//many VTFD already should exists - find and remove the one concerned by the actual remove rule
@@ -886,7 +886,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(e *fsm.Event) {
 					oFsm.pLastTxMeInstance = meInstance
 				} else {
 					logger.Debugw("UniVlanConfigFsm set VTFD OMCI handling skipped based on device state", log.Fields{
-						"device-id": oFsm.deviceID, "device-state": oFsm.pDeviceHandler.deviceReason})
+						"device-id": oFsm.deviceID, "device-state": deviceReasonMap[oFsm.pDeviceHandler.deviceReason]})
 				}
 			} else {
 				logger.Warnw("UniVlanConfigFsm: requested VLAN for removal not found in list - ignore and continue (no VTFD set)",
