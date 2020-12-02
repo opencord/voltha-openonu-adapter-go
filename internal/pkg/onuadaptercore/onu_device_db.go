@@ -24,7 +24,7 @@ import (
 	"sort"
 
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v3/pkg/log"
+	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 )
 
 type meDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
@@ -38,7 +38,7 @@ type onuDeviceDB struct {
 
 //newOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
 func newOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *onuDeviceDB {
-	logger.Debugw("Init OnuDeviceDB for:", log.Fields{"device-id": aPOnuDeviceEntry.deviceID})
+	logger.Debugw(ctx, "Init OnuDeviceDB for:", log.Fields{"device-id": aPOnuDeviceEntry.deviceID})
 	var onuDeviceDB onuDeviceDB
 	onuDeviceDB.ctx = ctx
 	onuDeviceDB.pOnuDeviceEntry = aPOnuDeviceEntry
@@ -47,17 +47,17 @@ func newOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *onuD
 	return &onuDeviceDB
 }
 
-func (onuDeviceDB *onuDeviceDB) PutMe(meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
+func (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
 
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassID {
 		return
 	}
 
-	//logger.Debugw("Search for key data :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID, "meClassID": meClassID, "meEntityID": meEntityID})
+	//logger.Debugw(ctx,"Search for key data :", log.Fields{"deviceId": onuDeviceDB.pOnuDeviceEntry.deviceID, "meClassID": meClassID, "meEntityID": meEntityID})
 	meInstMap, ok := onuDeviceDB.meDb[meClassID]
 	if !ok {
-		logger.Debugw("meClassID not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+		logger.Debugw(ctx, "meClassID not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 		meInstMap = make(map[uint16]me.AttributeValueMap)
 		onuDeviceDB.meDb[meClassID] = meInstMap
 		onuDeviceDB.meDb[meClassID][meEntityID] = meAttributes
@@ -65,19 +65,19 @@ func (onuDeviceDB *onuDeviceDB) PutMe(meClassID me.ClassID, meEntityID uint16, m
 		meAttribs, ok := meInstMap[meEntityID]
 		if !ok {
 			/* verbose logging, avoid in >= debug level
-			logger.Debugw("meEntityId not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+			logger.Debugw(ctx,"meEntityId not found - add to db :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 			*/
 			meInstMap[meEntityID] = meAttributes
 		} else {
 			/* verbose logging, avoid in >= debug level
-			logger.Debugw("ME-Instance exists already: merge attribute data :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
+			logger.Debugw(ctx,"ME-Instance exists already: merge attribute data :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
 			*/
 			for k, v := range meAttributes {
 				meAttribs[k] = v
 			}
 			meInstMap[meEntityID] = meAttribs
 			/* verbose logging, avoid in >= debug level
-			logger.Debugw("ME-Instance updated :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
+			logger.Debugw(ctx,"ME-Instance updated :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "meAttribs": meAttribs})
 			*/
 		}
 	}
@@ -87,7 +87,7 @@ func (onuDeviceDB *onuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) m
 
 	if meAttributes, present := onuDeviceDB.meDb[meClassID][meEntityID]; present {
 		/* verbose logging, avoid in >= debug level
-		logger.Debugw("ME found:", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttributes": meAttributes,
+		logger.Debugw(ctx,"ME found:", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttributes": meAttributes,
 			"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 		*/
 		return meAttributes
@@ -120,7 +120,7 @@ func (onuDeviceDB *onuDeviceDB) getUint16Attrib(meAttribute interface{}) (uint16
 }
 */
 
-func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(meClassID me.ClassID) []uint16 {
+func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
 
@@ -129,17 +129,17 @@ func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(meClassID me.ClassID) []uint16
 	for k := range meInstMap {
 		meInstKeys = append(meInstKeys, k)
 	}
-	logger.Debugw("meInstKeys - input order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
+	logger.Debugw(ctx, "meInstKeys - input order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
 	sort.Slice(meInstKeys, func(i, j int) bool { return meInstKeys[i] < meInstKeys[j] })
-	logger.Debugw("meInstKeys - output order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
+	logger.Debugw(ctx, "meInstKeys - output order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
 	return meInstKeys
 }
 
-func (onuDeviceDB *onuDeviceDB) logMeDb() {
-	logger.Debugw("ME instances stored for :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+func (onuDeviceDB *onuDeviceDB) logMeDb(ctx context.Context) {
+	logger.Debugw(ctx, "ME instances stored for :", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 	for meClassID, meInstMap := range onuDeviceDB.meDb {
 		for meEntityID, meAttribs := range meInstMap {
-			logger.Debugw("ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs, "device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
+			logger.Debugw(ctx, "ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs, "device-id": onuDeviceDB.pOnuDeviceEntry.deviceID})
 		}
 	}
 }

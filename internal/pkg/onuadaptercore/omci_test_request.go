@@ -28,11 +28,11 @@ import (
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 
-	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v3/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v3/go/inter_container"
-	//"github.com/opencord/voltha-protos/v3/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v3/go/voltha"
+	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
+	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
+	//"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
 //omciTestRequest structure holds the information for the OMCI test
@@ -51,7 +51,7 @@ type omciTestRequest struct {
 func newOmciTestRequest(ctx context.Context,
 	deviceID string, omciCc *omciCC,
 	exclusive bool, allowFailure bool) *omciTestRequest {
-	logger.Debug("omciTestRequest-init")
+	logger.Debug(ctx, "omciTestRequest-init")
 	var omciTestRequest omciTestRequest
 	omciTestRequest.deviceID = deviceID
 	omciTestRequest.pDevOmciCC = omciCc
@@ -65,32 +65,32 @@ func newOmciTestRequest(ctx context.Context,
 
 //
 func (oo *omciTestRequest) performOmciTest(ctx context.Context, execChannel chan<- bool) {
-	logger.Debug("omciTestRequest-start-test")
+	logger.Debug(ctx, "omciTestRequest-start-test")
 
 	if oo.pDevOmciCC != nil {
 		oo.verifyDone = execChannel
 		// test functionality is limited to ONU-2G get request for the moment
 		// without yet checking the received response automatically here (might be improved ??)
 		tid := oo.pDevOmciCC.getNextTid(false)
-		onu2gBaseGet, _ := oo.createOnu2gBaseGet(tid)
+		onu2gBaseGet, _ := oo.createOnu2gBaseGet(ctx, tid)
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
 			cbEntry: callbackPairEntry{nil, oo.receiveOmciVerifyResponse},
 		}
 
-		logger.Debugw("performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID})
+		logger.Debugw(ctx, "performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID})
 		// send with default timeout and normal prio
 		go oo.pDevOmciCC.send(ctx, onu2gBaseGet, ConstDefaultOmciTimeout, 0, false, omciRxCallbackPair)
 
 	} else {
-		logger.Errorw("performOmciTest: Device does not exist", log.Fields{"for device-id": oo.deviceID})
+		logger.Errorw(ctx, "performOmciTest: Device does not exist", log.Fields{"for device-id": oo.deviceID})
 	}
 }
 
 // these are OMCI related functions, could/should be collected in a separate file? TODO!!!
 // for a simple start just included in here
 //basic approach copied from bbsim, cmp /devices/onu.go and /internal/common/omci/mibpackets.go
-func (oo *omciTestRequest) createOnu2gBaseGet(tid uint16) ([]byte, error) {
+func (oo *omciTestRequest) createOnu2gBaseGet(ctx context.Context, tid uint16) ([]byte, error) {
 
 	request := &omci.GetRequest{
 		MeBasePacket: omci.MeBasePacket{
@@ -101,10 +101,10 @@ func (oo *omciTestRequest) createOnu2gBaseGet(tid uint16) ([]byte, error) {
 	}
 
 	oo.txSeqNo = tid
-	pkt, err := serialize(omci.GetRequestType, request, tid)
+	pkt, err := serialize(ctx, omci.GetRequestType, request, tid)
 	if err != nil {
 		//omciLogger.WithFields(log.Fields{ ...
-		logger.Errorw("Cannot serialize Onu2-G GetRequest", log.Fields{"device-id": oo.deviceID, "Err": err})
+		logger.Errorw(ctx, "Cannot serialize Onu2-G GetRequest", log.Fields{"device-id": oo.deviceID, "Err": err})
 		return nil, err
 	}
 	// hexEncode would probably work as well, but not needed and leads to wrong logs on OltAdapter frame
@@ -113,23 +113,23 @@ func (oo *omciTestRequest) createOnu2gBaseGet(tid uint16) ([]byte, error) {
 }
 
 //supply a response handler - in this testobject the message is evaluated directly, no response channel used
-func (oo *omciTestRequest) receiveOmciVerifyResponse(omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
+func (oo *omciTestRequest) receiveOmciVerifyResponse(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
 
-	logger.Debugw("verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
+	logger.Debugw(ctx, "verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": omciMsg.TransactionID, "DeviceIdent": omciMsg.DeviceIdentifier})
 
 	if omciMsg.TransactionID == oo.txSeqNo {
-		logger.Debugw("verify-omci-message-response", log.Fields{"correct TransCorrId": omciMsg.TransactionID})
+		logger.Debugw(ctx, "verify-omci-message-response", log.Fields{"correct TransCorrId": omciMsg.TransactionID})
 	} else {
-		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect TransCorrId": omciMsg.TransactionID,
+		logger.Debugw(ctx, "verify-omci-message-response error", log.Fields{"incorrect TransCorrId": omciMsg.TransactionID,
 			"expected": oo.txSeqNo})
 		oo.verifyDone <- false
 		return fmt.Errorf("unexpected TransCorrId %s", oo.deviceID)
 	}
 	if omciMsg.MessageType == omci.GetResponseType {
-		logger.Debugw("verify-omci-message-response", log.Fields{"correct RespType": omciMsg.MessageType})
+		logger.Debugw(ctx, "verify-omci-message-response", log.Fields{"correct RespType": omciMsg.MessageType})
 	} else {
-		logger.Debugw("verify-omci-message-response error", log.Fields{"incorrect RespType": omciMsg.MessageType,
+		logger.Debugw(ctx, "verify-omci-message-response error", log.Fields{"incorrect RespType": omciMsg.MessageType,
 			"expected": omci.GetResponseType})
 		oo.verifyDone <- false
 		return fmt.Errorf("unexpected MessageType %s", oo.deviceID)
