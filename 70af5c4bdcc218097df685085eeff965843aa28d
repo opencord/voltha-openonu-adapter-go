@@ -78,6 +78,30 @@
     },
     {
       "key": {
+        "uuid": "b6181c21_1e78cf92",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T07:34:06Z",
+      "side": 1,
+      "message": "I\u0027d rather leave it as \u0027debug\u0027 as it can be a normal situation based on the sequence of the incoming requests from OLT adapter - and should not have any bad impact on the overall behavior.",
+      "parentUuid": "163bbdaf_cab3aad2",
+      "range": {
+        "startLine": 555,
+        "startChar": 10,
+        "endLine": 555,
+        "endChar": 16
+      },
+      "revId": "70af5c4bdcc218097df685085eeff965843aa28d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9c29452f_00acb3ff",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 2
@@ -89,6 +113,30 @@
       "writtenOn": "2020-12-01T05:53:02Z",
       "side": 1,
       "message": "should this be a warn?",
+      "range": {
+        "startLine": 635,
+        "startChar": 10,
+        "endLine": 635,
+        "endChar": 16
+      },
+      "revId": "70af5c4bdcc218097df685085eeff965843aa28d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3936c43_378696fb",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 635,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T07:34:06Z",
+      "side": 1,
+      "message": "Same as above first comment.",
+      "parentUuid": "9c29452f_00acb3ff",
       "range": {
         "startLine": 635,
         "startChar": 10,
