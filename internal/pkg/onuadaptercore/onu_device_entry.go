@@ -210,12 +210,14 @@ type uniPersConfig struct {
 }
 
 type onuPersistentData struct {
-	PersOnuID      uint32          `json:"onu_id"`
-	PersIntfID     uint32          `json:"intf_id"`
-	PersSnr        string          `json:"serial_number"`
-	PersAdminState string          `json:"admin_state"`
-	PersOperState  string          `json:"oper_state"`
-	PersUniConfig  []uniPersConfig `json:"uni_config"`
+	PersOnuID          uint32          `json:"onu_id"`
+	PersIntfID         uint32          `json:"intf_id"`
+	PersSnr            string          `json:"serial_number"`
+	PersAdminState     string          `json:"admin_state"`
+	PersOperState      string          `json:"oper_state"`
+	PersUniUnlockDone  bool            `json:"uni_unlock_done"`
+	PersUniDisableDone bool            `json:"uni_disable_done"`
+	PersUniConfig      []uniPersConfig `json:"uni_config"`
 }
 
 // OnuDeviceEntry - ONU device info and FSM events.
@@ -530,7 +532,7 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 		logger.Debugw("onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", oo.deviceID))
 	}
-	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", make([]uniPersConfig, 0)}
+	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, make([]uniPersConfig, 0)}
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	if err == nil {
 		if Value != nil {
@@ -576,8 +578,8 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingStep uint8) {
 
 	logger.Debugw("delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
-	oo.sOnuPersistentData.PersUniConfig = nil                                             //releasing all UniConfig entries to garbage collector
-	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", make([]uniPersConfig, 0)} //default entry
+	oo.sOnuPersistentData.PersUniConfig = nil                                                           //releasing all UniConfig entries to garbage collector
+	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, make([]uniPersConfig, 0)} //default entry
 
 	logger.Debugw("delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
@@ -614,9 +616,8 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	oo.sOnuPersistentData.PersIntfID = oo.baseDeviceHandler.pOnuIndication.IntfId
 	oo.sOnuPersistentData.PersSnr = oo.baseDeviceHandler.pOnuOmciDevice.serialNumber
 	//TODO: verify usage of these values during restart UC
-	oo.sOnuPersistentData.PersAdminState = "up"
-	oo.sOnuPersistentData.PersOperState = "active"
-
+	oo.sOnuPersistentData.PersAdminState = oo.baseDeviceHandler.pOnuIndication.AdminState
+	oo.sOnuPersistentData.PersOperState = oo.baseDeviceHandler.pOnuIndication.OperState
 	logger.Debugw("Update ONU-data in KVStore", log.Fields{"device-id": oo.deviceID, "sOnuPersistentData": oo.sOnuPersistentData})
 
 	Value, err := json.Marshal(oo.sOnuPersistentData)
