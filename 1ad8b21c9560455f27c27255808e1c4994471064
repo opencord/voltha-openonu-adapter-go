@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1407016a_1cc70ebf",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 501,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eb158f8b_f6f827af",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9b7ff6bd_1a1a380f",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -50,6 +68,24 @@
       "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e931f79_e78eb6c4",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 659,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4a6a76d3_b5a6bf48",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -87,6 +123,24 @@
     },
     {
       "key": {
+        "uuid": "33fcbc29_091ef393",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 670,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5dc280ba_bc6d6fe0",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "06122dc4_6441b10b",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -98,6 +152,24 @@
       "writtenOn": "2020-12-02T10:40:17Z",
       "side": 1,
       "message": "Possibly do some error treatment: at least FSM reset?",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "78d320df_4943a361",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 677,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "the FMS reset is already done in case of errors inside oFsm.performConfigEvtocdEntries",
+      "parentUuid": "06122dc4_6441b10b",
       "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -121,6 +193,24 @@
     },
     {
       "key": {
+        "uuid": "b701b834_b4cde123",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "61ea07cd_0bab5e35",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c1bb0bcc_a51a2f62",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -132,6 +222,24 @@
       "writtenOn": "2020-12-02T10:40:17Z",
       "side": 1,
       "message": "compare \u0027enterConfigEvtocd\u0027 comments: error treatment recommended",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e8ff0f8a_d5304b61",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 826,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "same, the error is handled insite the evto method",
+      "parentUuid": "c1bb0bcc_a51a2f62",
       "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -155,6 +263,24 @@
     },
     {
       "key": {
+        "uuid": "8232e4ce_22b53a7e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1687,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c15ee8b4_346176ee",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "22be9f34_fb833c09",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -172,6 +298,24 @@
     },
     {
       "key": {
+        "uuid": "3bcd3b3a_776fe920",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1688,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "22be9f34_fb833c09",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2c6117af_8461fb90",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -186,6 +330,24 @@
       "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f2bd454_f8e0053c",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1759,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-02T13:13:02Z",
+      "side": 1,
+      "message": "Done, I\u0027ve split create and set. \nChip has a change, not sure it works 100%\nhttps://gerrit.opencord.org/c/omci-lib-go/+/21894",
+      "parentUuid": "2c6117af_8461fb90",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
