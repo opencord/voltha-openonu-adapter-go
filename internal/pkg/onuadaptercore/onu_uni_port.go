@@ -26,11 +26,11 @@ import (
 	//"sync"
 	//"time"
 
-	//"github.com/opencord/voltha-lib-go/v3/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v3/pkg/log"
-	vc "github.com/opencord/voltha-protos/v3/go/common"
-	of "github.com/opencord/voltha-protos/v3/go/openflow_13"
-	"github.com/opencord/voltha-protos/v3/go/voltha"
+	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	vc "github.com/opencord/voltha-protos/v4/go/common"
+	of "github.com/opencord/voltha-protos/v4/go/openflow_13"
+	"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
 type uniPortType uint8
@@ -59,9 +59,9 @@ type onuUniPort struct {
 }
 
 //newOnuUniPort returns a new instance of a OnuUniPort
-func newOnuUniPort(aUniID uint8, aPortNo uint32, aInstNo uint16,
+func newOnuUniPort(ctx context.Context, aUniID uint8, aPortNo uint32, aInstNo uint16,
 	aPortType uniPortType) *onuUniPort {
-	logger.Infow("init-onuUniPort", log.Fields{"uniID": aUniID,
+	logger.Infow(ctx, "init-onuUniPort", log.Fields{"uniID": aUniID,
 		"portNo": aPortNo, "InstNo": aInstNo, "type": aPortType})
 	var onuUniPort onuUniPort
 	onuUniPort.enabled = false
@@ -80,8 +80,8 @@ func newOnuUniPort(aUniID uint8, aPortNo uint32, aInstNo uint16,
 }
 
 //createVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
-func (oo *onuUniPort) createVolthaPort(apDeviceHandler *deviceHandler) error {
-	logger.Debugw("creating-voltha-uni-port", log.Fields{
+func (oo *onuUniPort) createVolthaPort(ctx context.Context, apDeviceHandler *deviceHandler) error {
+	logger.Debugw(ctx, "creating-voltha-uni-port", log.Fields{
 		"device-id": apDeviceHandler.device.Id, "portNo": oo.portNo})
 	//200630: per [VOL-3202] OF port info is now to be delivered within UniPort create
 	//  not doing so crashes rw_core processing (at least still in 200630 version)
@@ -106,7 +106,7 @@ func (oo *onuUniPort) createVolthaPort(apDeviceHandler *deviceHandler) error {
 			ofUniPortState = of.OfpPortState_OFPPS_LIVE
 		}
 	*/
-	logger.Debugw("ofPort values", log.Fields{
+	logger.Debugw(ctx, "ofPort values", log.Fields{
 		"forUniPortName": oo.name, "forMacBase": hwAddr,
 		"name": name, "hwAddr": ofHwAddr, "OperState": ofUniPortState})
 
@@ -132,15 +132,15 @@ func (oo *onuUniPort) createVolthaPort(apDeviceHandler *deviceHandler) error {
 	if pUniPort != nil {
 		if err := apDeviceHandler.coreProxy.PortCreated(context.TODO(),
 			apDeviceHandler.deviceID, pUniPort); err != nil {
-			logger.Fatalf("adding-uni-port: create-VOLTHA-Port-failed-%s", err)
+			logger.Fatalf(ctx, "adding-uni-port: create-VOLTHA-Port-failed-%s", err)
 			return err
 		}
-		logger.Infow("Voltha onuUniPort-added", log.Fields{
+		logger.Infow(ctx, "Voltha onuUniPort-added", log.Fields{
 			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
 		oo.pPort = pUniPort
 		oo.operState = vc.OperStatus_DISCOVERED
 	} else {
-		logger.Warnw("could not create Voltha UniPort", log.Fields{
+		logger.Warnw(ctx, "could not create Voltha UniPort", log.Fields{
 			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
 		return fmt.Errorf("create Voltha UniPort %d failed on %s", oo.portNo, apDeviceHandler.device.Id)
 	}
