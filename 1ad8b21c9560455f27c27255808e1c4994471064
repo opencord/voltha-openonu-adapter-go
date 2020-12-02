@@ -1,0 +1,191 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eb158f8b_f6f827af",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 501,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "comment can be removed, multicast is now checked above",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b7ff6bd_1a1a380f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "What is the advantage of the change to using the rule based stored TechProfID instead of the \u0027member\u0027 stored techProfileID? I would guess they should still be the same as the FSM is bound to UNI and TechProfileId and then access to the \u0027member\u0027 variable should be more effective.",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a6a76d3_b5a6bf48",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 659,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "I would think that using index 0 is still the right choice instead of index oFsm.configuredUniFlow in this state. Based on ongoing flow configuration configuredUniFlow might already be increased for further rules, but here in this state just the first rule is to be processed (all other in the *Incr* states).",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6d46a3e8_17fbfca8",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 661,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "Compare handling in \u0027enterConfigIncrFlow\u0027: errEvto could/should be evaluaeted already before possibly continuing with the MC configuration.",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5dc280ba_bc6d6fe0",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 670,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "Possibly do some error treatment: at least FSM reset?",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "06122dc4_6441b10b",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 677,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "Possibly do some error treatment: at least FSM reset?",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "61ea07cd_0bab5e35",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "compare \u0027enterConfigEvtocd\u0027 comments: error treatment recommended",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c1bb0bcc_a51a2f62",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 826,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "compare \u0027enterConfigEvtocd\u0027 comments: error treatment recommended",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c15ee8b4_346176ee",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1687,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "I think this should be 6 - Multicast GEM interworking termination point",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22be9f34_fb833c09",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1688,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "accordingly this should be the EID of the Multicast GEM interworking termination point",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c6117af_8461fb90",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1759,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T10:40:17Z",
+      "side": 1,
+      "message": "Hmm, yes, omci-lib is not strictly correct - but the behavior here is not right as well: the dynamicAccessControlListTable cannot be set on create. If you want to set it, then you need an extra set operation. And if you use only one table entry, the definition in the omci lib might still be sufficient.\nIf not: How ist the handled from data storage point of view - another gerrit CID for the change in vendor?",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
