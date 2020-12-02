@@ -16,6 +16,24 @@
       "revId": "aee6f22bc72e361365dbf168b84339df1b93ee05",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ce993cd9_d46be0c7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-12-02T13:49:19Z",
+      "side": 1,
+      "message": "It was done to ease and speed-up comparisons - even to enable to check if a reason indicates a \"lower\" processing state than another one. Furthermore it saves some memory and KV-storage ;-)",
+      "parentUuid": "74dee5a1_117a106f",
+      "revId": "aee6f22bc72e361365dbf168b84339df1b93ee05",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
