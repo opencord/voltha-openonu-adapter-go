@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7afe989d_b776cc2b",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 820,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T15:16:18Z",
+      "side": 1,
+      "message": "I suppose, the -1 is incorrect here. In the *incr* states we are just operating on configuredUniFlow.",
+      "revId": "3578b6015fa26fb92bae77101303a86625b54a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a1e2e5c0_22d11cb8",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 1109,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T15:16:18Z",
+      "side": 1,
+      "message": "MulticastOperationProfile missing here now - using omciMIdsResponseReceived here should be fine",
+      "revId": "3578b6015fa26fb92bae77101303a86625b54a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2cbbd537_50272786",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 1689,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-02T15:16:18Z",
+      "side": 1,
+      "message": "comment is still wrong - MCGemIWTP",
+      "revId": "3578b6015fa26fb92bae77101303a86625b54a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
