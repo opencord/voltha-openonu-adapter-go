@@ -18,8 +18,9 @@
 package adaptercoreonu
 
 import (
+	"context"
 	"errors"
-	//"github.com/opencord/voltha-lib-go/v3/pkg/log"
+	//"github.com/opencord/voltha-lib-go/v4/pkg/log"
 )
 
 /*
@@ -89,8 +90,8 @@ OpenOmciAgentDefaults = {
 const cMibAuditDelayImpl = 0
 
 //suppose global methods per adapter ...
-func mibDbVolatileDictImpl() error {
-	logger.Debug("MibVolatileDict-called")
+func mibDbVolatileDictImpl(ctx context.Context) error {
+	logger.Debug(ctx, "MibVolatileDict-called")
 	return errors.New("not_implemented")
 }
 

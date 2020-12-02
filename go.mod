@@ -9,8 +9,8 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/looplab/fsm v0.1.0
 	github.com/opencord/omci-lib-go v0.13.4
-	github.com/opencord/voltha-lib-go/v3 v3.1.23
-	github.com/opencord/voltha-protos/v3 v3.3.9
+	github.com/opencord/voltha-lib-go/v4 v4.0.3
+	github.com/opencord/voltha-protos/v4 v4.0.5
 	github.com/stretchr/testify v1.6.1
 	google.golang.org/grpc v1.25.1 // indirect
 )

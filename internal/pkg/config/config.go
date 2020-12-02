@@ -58,6 +58,11 @@ const (
 	defaultCurrentReplica             = 1
 	defaultTotalReplicas              = 1
 	defaultMaxTimeoutInterAdapterComm = 30 * time.Second
+
+	// For Tracing
+	defaultTraceEnabled          = false
+	defaultTraceAgentAddress     = "127.0.0.1:6831"
+	defaultLogCorrelationEnabled = true
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -91,6 +96,9 @@ type AdapterFlags struct {
 	CurrentReplica              int
 	TotalReplicas               int
 	MaxTimeoutInterAdapterComm  time.Duration
+	TraceEnabled                bool
+	TraceAgentAddress           string
+	LogCorrelationEnabled       bool
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -124,6 +132,9 @@ func NewAdapterFlags() *AdapterFlags {
 		CurrentReplica:              defaultCurrentReplica,
 		TotalReplicas:               defaultTotalReplicas,
 		MaxTimeoutInterAdapterComm:  defaultMaxTimeoutInterAdapterComm,
+		TraceEnabled:                defaultTraceEnabled,
+		TraceAgentAddress:           defaultTraceAgentAddress,
+		LogCorrelationEnabled:       defaultLogCorrelationEnabled,
 	}
 	return &adapterFlags
 }
@@ -212,6 +223,15 @@ func (so *AdapterFlags) ParseCommandArguments() {
 	help = fmt.Sprintf("Maximum Number of seconds for the default interadapter communication timeout")
 	flag.DurationVar(&(so.MaxTimeoutInterAdapterComm), "max_timeout_interadapter_comm",
 		defaultMaxTimeoutInterAdapterComm, help)
+
+	help = fmt.Sprintf("Whether to send logs to tracing agent?")
+	flag.BoolVar(&(so.TraceEnabled), "trace_enabled", defaultTraceEnabled, help)
+
+	help = fmt.Sprintf("The address of tracing agent to which span info should be sent.")
+	flag.StringVar(&(so.TraceAgentAddress), "trace_agent_address", defaultTraceAgentAddress, help)
+
+	help = fmt.Sprintf("Whether to enrich log statements with fields denoting operation being executed for achieving correlation?")
+	flag.BoolVar(&(so.LogCorrelationEnabled), "log_correlation_enabled", defaultLogCorrelationEnabled, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()

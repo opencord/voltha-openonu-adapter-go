@@ -19,6 +19,8 @@
 //Package main invokes the application
 package main
 
-func realMain() {
-	logger.Infoln("NOT PROFILING")
+import "context"
+
+func realMain(ctx context.Context) {
+	logger.Infoln(ctx, "NOT PROFILING")
 }

@@ -17,6 +17,8 @@
 //Package adaptercoreonu provides the utility for onu devices, flows and statistics
 package adaptercoreonu
 
+import "context"
+
 //Attention: this file is more or less a coopy of file olt_platform.go from the voltha-openolt-adapter
 // which includes system wide definitions and thus normally should be stored more centrally (within some voltha libs)!!
 
@@ -129,19 +131,19 @@ var controllerPorts = []uint32{0xfffd, 0x7ffffffd, 0xfffffffd}
 */
 
 //mkUniPortNum returns new UNIportNum based on intfID, onuID and uniID
-func mkUniPortNum(intfID, onuID, uniID uint32) uint32 {
+func mkUniPortNum(ctx context.Context, intfID, onuID, uniID uint32) uint32 {
 	//extended for checks available in the python onu adapter:!!
 	var limit = int(intfID)
 	if limit > maxPonsPerOlt {
-		logger.Warn("Warning: exceeded the MAX pons per OLT")
+		logger.Warn(ctx, "Warning: exceeded the MAX pons per OLT")
 	}
 	limit = int(onuID)
 	if limit > maxOnusPerPon {
-		logger.Warn("Warning: exceeded the MAX ONUS per PON")
+		logger.Warn(ctx, "Warning: exceeded the MAX ONUS per PON")
 	}
 	limit = int(uniID)
 	if limit > maxUnisPerOnu {
-		logger.Warn("Warning: exceeded the MAX UNIS per ONU")
+		logger.Warn(ctx, "Warning: exceeded the MAX UNIS per ONU")
 	}
 	return (intfID << (bitsForUniID + bitsForONUID)) | (onuID << bitsForUniID) | uniID
 }
@@ -187,7 +189,7 @@ func portNoToIntfID(portno uint32, intfType voltha.Port_PortType) uint32 {
 //intfIDFromNniPortNum returns Intf ID derived from portNum
 func intfIDFromNniPortNum(portNum uint32) (uint32, error) {
 	if portNum < minNniIntPortNum || portNum > maxNniPortNum {
-		logger.Errorw("NNIPortNumber is not in valid range", log.Fields{"portNum": portNum})
+		logger.Errorw(ctx,"NNIPortNumber is not in valid range", log.Fields{"portNum": portNum})
 		return uint32(0), errors.New("invalid-port-range") //olterrors.ErrInvalidPortRange
 	}
 	return (portNum & 0xFFFF), nil
@@ -285,7 +287,7 @@ func flowExtractInfo(flow *ofp.OfpFlowStats, flowDirection string) (uint32, uint
 	onuID = onuIDFromUniPortNum(uniPortNo)
 	uniID = uniIDFromPortNum(uniPortNo)
 
-	logger.Debugw("flow extract info result",
+	logger.Debugw(ctx,"flow extract info result",
 		log.Fields{"uniPortNo": uniPortNo, "ponIntf": ponIntf,
 			"onuID": onuID, "uniID": uniID, "inPort": inPort, "ethType": ethType})
 

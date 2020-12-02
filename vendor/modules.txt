@@ -74,27 +74,28 @@ github.com/mitchellh/mapstructure
 # github.com/opencord/omci-lib-go v0.13.4
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v3 v3.1.23
-github.com/opencord/voltha-lib-go/v3/pkg/adapters
-github.com/opencord/voltha-lib-go/v3/pkg/adapters/adapterif
-github.com/opencord/voltha-lib-go/v3/pkg/adapters/common
-github.com/opencord/voltha-lib-go/v3/pkg/config
-github.com/opencord/voltha-lib-go/v3/pkg/db
-github.com/opencord/voltha-lib-go/v3/pkg/db/kvstore
-github.com/opencord/voltha-lib-go/v3/pkg/flows
-github.com/opencord/voltha-lib-go/v3/pkg/kafka
-github.com/opencord/voltha-lib-go/v3/pkg/log
-github.com/opencord/voltha-lib-go/v3/pkg/probe
-github.com/opencord/voltha-lib-go/v3/pkg/techprofile
-github.com/opencord/voltha-lib-go/v3/pkg/version
-# github.com/opencord/voltha-protos/v3 v3.3.9
-github.com/opencord/voltha-protos/v3/go/common
-github.com/opencord/voltha-protos/v3/go/inter_container
-github.com/opencord/voltha-protos/v3/go/omci
-github.com/opencord/voltha-protos/v3/go/openflow_13
-github.com/opencord/voltha-protos/v3/go/openolt
-github.com/opencord/voltha-protos/v3/go/tech_profile
-github.com/opencord/voltha-protos/v3/go/voltha
+# github.com/opencord/voltha-lib-go/v4 v4.0.3
+github.com/opencord/voltha-lib-go/v4/pkg/adapters
+github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif
+github.com/opencord/voltha-lib-go/v4/pkg/adapters/common
+github.com/opencord/voltha-lib-go/v4/pkg/config
+github.com/opencord/voltha-lib-go/v4/pkg/db
+github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore
+github.com/opencord/voltha-lib-go/v4/pkg/flows
+github.com/opencord/voltha-lib-go/v4/pkg/kafka
+github.com/opencord/voltha-lib-go/v4/pkg/log
+github.com/opencord/voltha-lib-go/v4/pkg/probe
+github.com/opencord/voltha-lib-go/v4/pkg/techprofile
+github.com/opencord/voltha-lib-go/v4/pkg/version
+# github.com/opencord/voltha-protos/v4 v4.0.5
+github.com/opencord/voltha-protos/v4/go/common
+github.com/opencord/voltha-protos/v4/go/ext/config
+github.com/opencord/voltha-protos/v4/go/inter_container
+github.com/opencord/voltha-protos/v4/go/omci
+github.com/opencord/voltha-protos/v4/go/openflow_13
+github.com/opencord/voltha-protos/v4/go/openolt
+github.com/opencord/voltha-protos/v4/go/tech_profile
+github.com/opencord/voltha-protos/v4/go/voltha
 # github.com/opentracing/opentracing-go v1.1.0
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
