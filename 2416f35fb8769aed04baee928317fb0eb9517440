@@ -88,6 +88,24 @@
     },
     {
       "key": {
+        "uuid": "675ad3a2_e9cf417a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 1794,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T11:18:07Z",
+      "side": 1,
+      "message": "Clarified, used per reference from SubscrConfigInfo with the EID used here - so fine (even though I personally don\u0027t like the ANIside related numbering)",
+      "parentUuid": "399a4e48_c8dad177",
+      "revId": "2416f35fb8769aed04baee928317fb0eb9517440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "290f0034_1f18f09d",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 18
@@ -102,6 +120,24 @@
       "revId": "2416f35fb8769aed04baee928317fb0eb9517440",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "081b5837_c3d8272a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 1827,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T11:18:07Z",
+      "side": 1,
+      "message": "clarified.",
+      "parentUuid": "290f0034_1f18f09d",
+      "revId": "2416f35fb8769aed04baee928317fb0eb9517440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
