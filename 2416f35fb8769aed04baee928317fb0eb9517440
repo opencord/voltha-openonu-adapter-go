@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "37c2b87c_3431c22c",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 1739,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T08:41:10Z",
+      "side": 1,
+      "message": "Ok, so the hope is, that there is only one MC path (gemPort) - might be valid in most cases.",
+      "revId": "2416f35fb8769aed04baee928317fb0eb9517440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "41bde580_2f81e217",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 1743,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T08:41:10Z",
+      "side": 1,
+      "message": "comment is still wrong - MCGemIWTP",
+      "revId": "2416f35fb8769aed04baee928317fb0eb9517440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d7325184_6895a299",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 1765,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T08:41:10Z",
+      "side": 1,
+      "message": "what\u0027s the usage of this data retrieval?",
+      "revId": "2416f35fb8769aed04baee928317fb0eb9517440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
