@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f6f75dbc_c5ad336e",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 865,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T15:08:58Z",
+      "side": 1,
+      "message": "MulticastGemInterworkingTerminationPoint to be added here now",
+      "revId": "53f585dcd9f97398c83f59ebd92b3647765db0c4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d4d26f33_c71b996c",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 1016,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-03T15:08:58Z",
+      "side": 1,
+      "message": "err :\u003d oFsm.waitforOmciResponse() .. should wait for the create Resp here",
+      "revId": "53f585dcd9f97398c83f59ebd92b3647765db0c4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
