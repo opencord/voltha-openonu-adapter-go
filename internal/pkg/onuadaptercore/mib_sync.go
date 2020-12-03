@@ -336,25 +336,26 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadResponseMessage(msg OmciMessage) {
 func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadNextResponse)
 
-	//TODO: temporary change due to VOL-3532
-	// if msgLayer == nil {
-	// 	logger.Errorw("Omci Msg layer could not be detected", log.Fields{"device-id": onuDeviceEntry.deviceID})
-	// 	return
-	// }
-	if msgLayer != nil {
-		msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
-		if !msgOk {
-			logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"device-id": oo.deviceID})
-			return
-		}
-		logger.Debugw("MibUploadNextResponse Data for:", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
+	if msgLayer == nil {
+		logger.Errorw("Omci Msg layer could not be detected", log.Fields{"device-id": oo.deviceID})
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
+	if !msgOk {
+		logger.Errorw("Omci Msg layer could not be assigned", log.Fields{"device-id": oo.deviceID})
+		return
+	}
+	meName := msgObj.ReportedME.GetName()
+	if meName == "UnknownItuG988ManagedEntity" || meName == "UnknownVendorSpecificManagedEntity" {
+		logger.Debugw("MibUploadNextResponse Data for unknown ME received - temporary workaround is to ignore it!",
+			log.Fields{"device-id": oo.deviceID, "data-fields": msgObj, "meName": meName})
+	} else {
+		logger.Debugw("MibUploadNextResponse Data for:",
+			log.Fields{"device-id": oo.deviceID, "meName": meName, "data-fields": msgObj})
 		meClassID := msgObj.ReportedME.GetClassID()
 		meEntityID := msgObj.ReportedME.GetEntityID()
 		meAttributes := msgObj.ReportedME.GetAttributeValueMap()
-
 		oo.pOnuDB.PutMe(meClassID, meEntityID, meAttributes)
-	} else {
-		logger.Warnw("msgLayer could not be decoded - temporary workaround for VOL-3532 in place!", log.Fields{"device-id": oo.deviceID})
 	}
 	if oo.PDevOmciCC.uploadSequNo < oo.PDevOmciCC.uploadNoOfCmds {
 		_ = oo.PDevOmciCC.sendMibUploadNext(context.TODO(), ConstDefaultOmciTimeout, true)
