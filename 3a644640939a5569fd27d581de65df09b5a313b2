@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "acad646e_a30bab5f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 830,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-12-04T12:43:26Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c725b0a0_de1698b8",
+      "revId": "3a644640939a5569fd27d581de65df09b5a313b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e0c8fe5b_0a56b92b",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 4
@@ -30,6 +48,24 @@
       "writtenOn": "2020-12-04T09:51:01Z",
       "side": 1,
       "message": "Up to now here obviously was no DevEntry pointer check, as \u0027normally\u0027 there is no chance, that the pointer is not set here. It must be initialized as the MIB Sync was done and it only gets invalid with the deleteDevice again. There might be just a very small uncertainty if the deleteDevice comes in parallel to the MIBSync event and there is some critical sequence in the (go internal) sequence of garbage clean up. \nThe comment on the usage of the check applies to some other code positions as well - I\u0027d say no problem to have it in the code as it is, the comment is just related to the case we have to save some microseconds ;-)",
+      "revId": "3a644640939a5569fd27d581de65df09b5a313b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0fe9e9c8_bffc981b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1520,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-12-04T12:43:26Z",
+      "side": 1,
+      "message": "Due to Murphys Law I would spend the additional microseconds and keep the additional checks in place. ;-)",
+      "parentUuid": "e0c8fe5b_0a56b92b",
       "revId": "3a644640939a5569fd27d581de65df09b5a313b2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
