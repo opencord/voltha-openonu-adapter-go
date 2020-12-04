@@ -106,6 +106,24 @@
     },
     {
       "key": {
+        "uuid": "0966839b_669ad06d",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 661,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T12:21:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6d46a3e8_17fbfca8",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5dc280ba_bc6d6fe0",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -176,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "b1af4fb8_d2a00e0e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 677,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T12:21:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "78d320df_4943a361",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "61ea07cd_0bab5e35",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
@@ -243,6 +279,24 @@
       "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b52c3071_8d5be5ae",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 826,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T12:21:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e8ff0f8a_d5304b61",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
