@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "93e2bb02_7835c8b1",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T12:59:34Z",
+      "side": 1,
+      "message": "from my perspective is a stronger insurance to get the correct one, but I\u0027ll let Girish comment on it.",
+      "parentUuid": "6206598c_4d9bd600",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4a6a76d3_b5a6bf48",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
