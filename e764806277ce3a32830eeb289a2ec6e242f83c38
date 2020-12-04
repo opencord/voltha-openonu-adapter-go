@@ -1,0 +1,140 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3bc49e2f_4ca95fd4",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 632,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "similar to comment on line 139 (patch#12): \nWhat is the advantage of the change to using the rule based vtfdID on multiple code positions instead of the \u0027member\u0027 stored vtfdID? \n\u0027member\u0027 stored vtfdID was initialized in enterConfigStarting based on TpID of first rule, but all rules of this FSM instance should have the same TpID",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6d978f67_7a48253a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 683,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "Andreas comment on patch 12 should have been similar to the one done on line 677 of patch#12:\nerrot treatment with FSM reset is already done within performSettingMulticastME, so not needed here anymore (possibly ignored double reset event)",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c4a2145_813fdc6e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "I don\u0027t suppose this is correct: The first (relevant) VTFD list entry may result also from one of the incremental (\u003e0) rules - in case the first rule(s) are not relevant for VTFD.\nProbably not an real issue by now - current known scenarios use just one rule per FSM.",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ce3a422d_04e1e4cc",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 799,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "I would disagree: with multiple rules per tag profile there is just one ANI MBPCD for all bidirectional traffic that is assigned one VTFD instance which can collect up to 12 VLAN\u0027s.\n(processing here refers to one instance of the uniEntity/TechProfileID pair).\n- refers to the processing in the following lines",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ea46d61_3b07190b",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 929,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "refers to handling/comment in line 799ff: I suppose the different VLAN\u0027s from different rules of on techProfile have to set in the VTFD list - hence they have to removed fronm there also by the according \u0027setOperation\u0027.",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "338db56c_840d8a6c",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1743,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "Correct, change to include some UNI indication is needed in case multiple UNI\u0027s are used per ONU (so not relevant for current constellation).",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5e757371_cc57a006",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1764,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "comment relevant to the VTFD block here:\nInteresting view: In my point of view such is not needed. It would realize some filtering on the MC stream VLAN\u0027s in downstream (if so supported by the ONU). But in my point of view the downstream MC flow can be trusted and moreover if wanted MC streams can be further filtered (on VID and IP) on the UNI interface based on some set IGMP processing.\nSo I think it does no harm here, but it is also not needed.\nCompare also G988 fig. 8.2.2-10: VTFD not natively mentioned here.",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9720f8e6_0c61428d",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1777,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T15:28:00Z",
+      "side": 1,
+      "message": "In theory there could be again multiple VLAN rules for the MC related techprofile entry. They would have to be considered here in the list of VLAN\u0027s then. - It is easier not to specifiy the filter at all. Such would be required e..g. when allowing multiple MC ServiceProviders on the PON interface (while there data path connections could be defined in separate TechProfiles).",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
