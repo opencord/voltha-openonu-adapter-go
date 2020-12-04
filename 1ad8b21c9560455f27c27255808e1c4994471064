@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "6206598c_4d9bd600",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T12:47:36Z",
+      "side": 1,
+      "message": "\u003e What is the advantage of the change to using the rule based stored TechProfID instead of the \u0027member\u0027 stored techProfileID? I would guess they should still be the same as the FSM is bound to UNI and TechProfileId and then access to the \u0027member\u0027 variable should be more effective.\n\nStill open.",
+      "parentUuid": "9b7ff6bd_1a1a380f",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4a6a76d3_b5a6bf48",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12
