@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c725b0a0_de1698b8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 830,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T09:51:01Z",
+      "side": 1,
+      "message": "This check is irrelevant here, I would remove it. \nIf flow data exists in-store but no TechProfile, then the OLT adapter is responsible for sending the TechProfile after the PortUp indication. And the check on TechProfile-existance in-store is already done and traced in reconcileDeviceTechProf().",
+      "revId": "3a644640939a5569fd27d581de65df09b5a313b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e0c8fe5b_0a56b92b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1520,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-04T09:51:01Z",
+      "side": 1,
+      "message": "Up to now here obviously was no DevEntry pointer check, as \u0027normally\u0027 there is no chance, that the pointer is not set here. It must be initialized as the MIB Sync was done and it only gets invalid with the deleteDevice again. There might be just a very small uncertainty if the deleteDevice comes in parallel to the MIBSync event and there is some critical sequence in the (go internal) sequence of garbage clean up. \nThe comment on the usage of the check applies to some other code positions as well - I\u0027d say no problem to have it in the code as it is, the comment is just related to the case we have to save some microseconds ;-)",
+      "revId": "3a644640939a5569fd27d581de65df09b5a313b2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
