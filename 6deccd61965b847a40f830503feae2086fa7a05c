@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9ae9c74c_eefc0ff8",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 802,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T09:05:44Z",
+      "side": 1,
+      "message": "this assumes that there is only one vlan per slice correct ? is that a valid assumption ?",
+      "revId": "6deccd61965b847a40f830503feae2086fa7a05c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3125ebe2_72d7a84a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 930,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T09:05:44Z",
+      "side": 1,
+      "message": "why are we sending a delete here ?",
+      "revId": "6deccd61965b847a40f830503feae2086fa7a05c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
