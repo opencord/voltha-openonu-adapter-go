@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "47562d51_441da59d",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 683,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T16:06:38Z",
+      "side": 1,
+      "message": "unless I\u0027m mistaken having the reset here at line 683 is correct because we want to reset if the mcast went wrong. Or I misunderstood your comment ?",
+      "parentUuid": "6d978f67_7a48253a",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9c4a2145_813fdc6e",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -47,6 +65,24 @@
       "writtenOn": "2020-12-04T15:28:00Z",
       "side": 1,
       "message": "I don\u0027t suppose this is correct: The first (relevant) VTFD list entry may result also from one of the incremental (\u003e0) rules - in case the first rule(s) are not relevant for VTFD.\nProbably not an real issue by now - current known scenarios use just one rule per FSM.",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d70a8bdd_286aae85",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-04T16:06:38Z",
+      "side": 1,
+      "message": "added FIXME and open a jira story for this but left as is. https://jira.opencord.org/browse/VOL-3683",
+      "parentUuid": "9c4a2145_813fdc6e",
       "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
