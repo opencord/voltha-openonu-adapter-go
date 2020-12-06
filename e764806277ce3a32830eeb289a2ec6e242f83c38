@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7ae77c3d_722036d0",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 632,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "There could be more than one TP ID associated with the same UNI (for ex: in TT workflow where we have HSI, VoD/Mcast, VoIP).",
+      "parentUuid": "3bc49e2f_4ca95fd4",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6d978f67_7a48253a",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -89,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "f07687ed_8089d2d6",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "I do not see issue here as in this particular case the number of oFsm.numVlanFilterEntries is still 0 which would also mean there is only one entry in the oFsm.uniVlanFlowParamsSlice slice. So accessing the 0th index should be fine.",
+      "parentUuid": "d70a8bdd_286aae85",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ce3a422d_04e1e4cc",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -106,6 +142,24 @@
     },
     {
       "key": {
+        "uuid": "34782712_a1158c58",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 799,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "I agree with you here. In theory there can be more than one vlans associated with the same TP-ID but we currently do not have such a use case for any of the workflows. I can create a jira for this enhancement.",
+      "parentUuid": "ce3a422d_04e1e4cc",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4ea46d61_3b07190b",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -117,6 +171,24 @@
       "writtenOn": "2020-12-04T15:28:00Z",
       "side": 1,
       "message": "refers to handling/comment in line 799ff: I suppose the different VLAN\u0027s from different rules of on techProfile have to set in the VTFD list - hence they have to removed fronm there also by the according \u0027setOperation\u0027.",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5bb2e60f_84bacb96",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 929,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "Agree. But for now since we do have any use case where there are multiple vlans associated with the same TP ID, I prefer to address as part of a separate jira if that is OK.",
+      "parentUuid": "4ea46d61_3b07190b",
       "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -157,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "4044c726_68a16e1f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1764,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "If it is Ok, I prefer to leave it this way for now.",
+      "parentUuid": "5e757371_cc57a006",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9720f8e6_0c61428d",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -168,6 +258,24 @@
       "writtenOn": "2020-12-04T15:28:00Z",
       "side": 1,
       "message": "In theory there could be again multiple VLAN rules for the MC related techprofile entry. They would have to be considered here in the list of VLAN\u0027s then. - It is easier not to specifiy the filter at all. Such would be required e..g. when allowing multiple MC ServiceProviders on the PON interface (while there data path connections could be defined in separate TechProfiles).",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0780783e_53b01d83",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1777,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "Agree. I think there can be more than one vlans in the VTFD list for a given TP ID (but we do not have such a use case now). I will create a jira for this for future enhancement",
+      "parentUuid": "9720f8e6_0c61428d",
       "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true

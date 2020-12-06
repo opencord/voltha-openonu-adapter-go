@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "cac7040a_b27d5255",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "There could be more than one tpID associated with the same UNI, for example in TT workflow. In TT workflow, there are three different rules for different TP-ID and has unique vlans. So, I choose to access the rules based TP-ID as that would be generic across all workflows.",
+      "parentUuid": "93e2bb02_7835c8b1",
+      "revId": "1ad8b21c9560455f27c27255808e1c4994471064",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4a6a76d3_b5a6bf48",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 12

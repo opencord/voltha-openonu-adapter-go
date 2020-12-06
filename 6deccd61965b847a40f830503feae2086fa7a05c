@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "6f2c8ac7_641961c9",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 802,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "Currently yes. But in theory we could have more than one. A new jira can be created for this enhancement.",
+      "parentUuid": "9ae9c74c_eefc0ff8",
+      "revId": "6deccd61965b847a40f830503feae2086fa7a05c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3125ebe2_72d7a84a",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 22
@@ -30,6 +48,24 @@
       "writtenOn": "2020-12-04T09:05:44Z",
       "side": 1,
       "message": "why are we sending a delete here ?",
+      "revId": "6deccd61965b847a40f830503feae2086fa7a05c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19b31f52_5c5d5b4b",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 930,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-06T22:12:32Z",
+      "side": 1,
+      "message": "We currently have only vlan associated with each TP ID. So the VTFD ME is created on flow install for a TP. It is removed on flow remove for a given TP.\nIn theory there could be multiple vlans associated with the same TP as Michael pointed out, but we do not have any such scenario currently for any workflow. A new jira can be created for this as an enhancement in the future.",
+      "parentUuid": "3125ebe2_72d7a84a",
       "revId": "6deccd61965b847a40f830503feae2086fa7a05c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
