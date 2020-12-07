@@ -161,6 +161,24 @@
     },
     {
       "key": {
+        "uuid": "8ce99181_8e27421d",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "For now added a FIXME comment with VOL-3683 that Andrea created.",
+      "parentUuid": "2b31e9a3_b63f3a7a",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ce3a422d_04e1e4cc",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23

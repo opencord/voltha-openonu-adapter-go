@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9056269e_b2c6884c",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1586,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "I think this is the convention in all the functions in this file, not just new ones. So I will leave it this way for now.",
+      "parentUuid": "9efb70fb_d3293011",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9663d543_86b298f8",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 26
@@ -33,6 +51,24 @@
       "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c63f1579_628d8c48",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1655,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9663d543_86b298f8",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "d4b3cd73_fc9e9aed",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 671,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c991b906_2d6ce2a1",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "436c1615_53719de3",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 26
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "abc21516_0c522ea9",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 684,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "436c1615_53719de3",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "05f9be9a_7483450a",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 26
@@ -81,6 +153,24 @@
       "writtenOn": "2020-12-07T12:10:34Z",
       "side": 1,
       "message": "MeExistence is not accepted on many other OMCI processing so far and could/should possibly accepted more general?\nIt imposes the question, what happens to the attributes possible set in the create, which could possibly be different from from create to create. Which properties are really set in the ONU hereafter, from first or second/following  create?\nMaybe I consider also to remove ETVOCD creation from MibDownload as a later improvement ...",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cfc62c43_0569dbbe",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1171,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "MeExistance check is applicable only for CreateRequest. So I put this check in other places where we are handling CreateResponse.\nI would think the last SET would be applied on the ONU after the instance has been created, but I am not 100% sure.",
+      "parentUuid": "05f9be9a_7483450a",
       "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "a8ad333a_7031e070",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1249,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Agree. The Alpha ONUs we use accept these parameters during Create, probably because it is R/W. But we cannot make that generalization for all ONUs. Let me fix it in next patch.",
+      "parentUuid": "80ebdcfc_6b629293",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ef6211e3_7faac561",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 26
@@ -118,6 +226,24 @@
       "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "593274d7_a5583b6e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1602,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ef6211e3_7faac561",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "4ea584b1_634b8552",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1608,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b3d24299_322d79e8",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "52998244_34303be1",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 26
@@ -149,6 +293,24 @@
       "writtenOn": "2020-12-07T12:10:34Z",
       "side": 1,
       "message": "Why this? Perhaps you mean \u0027in current user configuration scenarios\u0027 relevant here (DT/ATT) - as they use just one rule.",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89b48189_fea4944d",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1623,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-07T21:59:28Z",
+      "side": 1,
+      "message": "Yes, when oFsm.acceptIncrementalEvtoOption is false we expect it to be a single rule case.Yes, this is true for ATT/DT case. Let me add more comments.",
+      "parentUuid": "52998244_34303be1",
       "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
