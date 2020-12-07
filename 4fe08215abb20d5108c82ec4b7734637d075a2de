@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9efb70fb_d3293011",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1586,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-07T10:38:19Z",
+      "side": 1,
+      "message": "please insert a FIXME/TODO in this method and in the one belo to return error when error actually happens, can be part of error refactoring post 2.6",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c991b906_2d6ce2a1",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 671,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-07T10:38:19Z",
+      "side": 1,
+      "message": "this fixme can be removed, not valid anymore",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "436c1615_53719de3",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 684,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-07T10:38:19Z",
+      "side": 1,
+      "message": "this should be performed only if errEvto \u003d\u003d nil. Please move the check in line 686 to line 672 (see how it was done in patch 23.",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
