@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "9663d543_86b298f8",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1655,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "I would prefer a sendDeleteEvtocd() method instead of the *Var() method, compare all the other sendDelete* methods in this file.(but of course working this way as well)",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c991b906_2d6ce2a1",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 26
@@ -47,6 +64,91 @@
       "writtenOn": "2020-12-07T10:38:19Z",
       "side": 1,
       "message": "this should be performed only if errEvto \u003d\u003d nil. Please move the check in line 686 to line 672 (see how it was done in patch 23.",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05f9be9a_7483450a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1171,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "MeExistence is not accepted on many other OMCI processing so far and could/should possibly accepted more general?\nIt imposes the question, what happens to the attributes possible set in the create, which could possibly be different from from create to create. Which properties are really set in the ONU hereafter, from first or second/following  create?\nMaybe I consider also to remove ETVOCD creation from MibDownload as a later improvement ...",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "80ebdcfc_6b629293",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1249,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "InputTpid and OutputTpid can\u0027t be set within create",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ef6211e3_7faac561",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1602,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Please add a note, that this seems to be obviously a workaround to fix EVTOCD configuration issue with (which?) specific ONU types (as the tagging rule reset obviously does not work on them correctly)",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3d24299_322d79e8",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1608,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "I would prefer a simple sendDeleteEvtocd() method, no variable parameters needed (just the UniPort pointer). But of course working this way as well ...",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "52998244_34303be1",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1623,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Why this? Perhaps you mean \u0027in current user configuration scenarios\u0027 relevant here (DT/ATT) - as they use just one rule.",
       "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true

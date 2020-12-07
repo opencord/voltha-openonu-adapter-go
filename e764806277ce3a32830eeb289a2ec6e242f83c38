@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "21933de3_3cc2b3e4",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 632,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Yes, you are right. It was only in my imagination, that the vlan_config_fsm was updated to uni+tp base in the course of the Multi-Tcont extension, but it was not.\nNow data storage within that FSM was not really prepared to handle data for different techProfiles, and may be on top of your needed changes it is still not fully. It may also result into not intended sequences when configuring different techProfiles for the UNI in parallel.\nBut the vlan_config_fsm can indeed not be seperated to uni+tp base, as only one EVTOCD ME can be used to handle requests from different TechProfiles. \nI would like to have a deeper look on the \u0027Multi-TCont behavior\u0027 of the FSM later on  to verify if Multi-TCont usage is really covered with latest changes here.",
+      "parentUuid": "7ae77c3d_722036d0",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6d978f67_7a48253a",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -125,6 +143,24 @@
     },
     {
       "key": {
+        "uuid": "2b31e9a3_b63f3a7a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "there is no issue for accessing oFsm.vlanFilterList[0] - this one is correct, but using oFsm.uniVlanFlowParamsSlice[0] is incorrect here, as the relevant (first) VTFD may result from some incremented rule (not all rules enforce a VTFD configuration).",
+      "parentUuid": "f07687ed_8089d2d6",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ce3a422d_04e1e4cc",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -160,6 +196,24 @@
     },
     {
       "key": {
+        "uuid": "63333920_577b059f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 799,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Ack - new Jira.",
+      "parentUuid": "34782712_a1158c58",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4ea46d61_3b07190b",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -192,6 +246,24 @@
       "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f73767e6_5eaef98f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 929,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Ack - new Jira.",
+      "parentUuid": "5bb2e60f_84bacb96",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -247,6 +319,24 @@
     },
     {
       "key": {
+        "uuid": "aac70b0c_e2beb916",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1764,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Ack - may be should be later verified if this really has some effect on some of the available tests (If not - then it should be removed again)",
+      "parentUuid": "4044c726_68a16e1f",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9720f8e6_0c61428d",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 23
@@ -279,6 +369,24 @@
       "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f84dc4f7_def32ad4",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1777,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-07T12:10:34Z",
+      "side": 1,
+      "message": "Ack - with some new Jira.",
+      "parentUuid": "0780783e_53b01d83",
+      "revId": "e764806277ce3a32830eeb289a2ec6e242f83c38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
