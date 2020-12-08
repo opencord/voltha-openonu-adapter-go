@@ -604,7 +604,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 
 func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "uniPonAniConfigFsm ani config done", log.Fields{
-		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
+		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
 	//use DeviceHandler event notification directly
 	oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
 	//store that the UNI related techProfile processing is done for the given Profile and Uni
@@ -612,7 +612,7 @@ func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 	//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
 	//  but only in case the techProfile was configured (not deleted)
 	if oFsm.requestEventOffset == 0 {
-		go oFsm.pDeviceHandler.verifyUniVlanConfigRequest(ctx, oFsm.pOnuUniPort)
+		go oFsm.pDeviceHandler.verifyUniVlanConfigRequest(ctx, oFsm.pOnuUniPort, oFsm.techProfileID)
 	}
 
 	if oFsm.chanSet {
