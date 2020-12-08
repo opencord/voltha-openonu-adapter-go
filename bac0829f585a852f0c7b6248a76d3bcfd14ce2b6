@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a329e395_f1608624",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 311,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-08T23:36:12Z",
+      "side": 1,
+      "message": "Could use RLock and RUnlock, but this is Ok too.",
+      "range": {
+        "startLine": 310,
+        "startChar": 0,
+        "endLine": 311,
+        "endChar": 36
+      },
+      "revId": "bac0829f585a852f0c7b6248a76d3bcfd14ce2b6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e7b552b_b2dd8526",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 751,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-08T23:36:12Z",
+      "side": 1,
+      "message": "Should oFsm.mutexFlowParams.Unlock() be after setting the oFsm.TpIDWaitingFor",
+      "revId": "bac0829f585a852f0c7b6248a76d3bcfd14ce2b6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
