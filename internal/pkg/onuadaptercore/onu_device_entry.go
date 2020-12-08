@@ -685,7 +685,7 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 				if oo.baseDeviceHandler.pOnuTP != nil {
 					oo.baseDeviceHandler.pOnuTP.setProfileToDelete(aUniID, aTpID, false)
 				}
-				go oo.baseDeviceHandler.VerifyVlanConfigRequest(ctx, aUniID)
+				go oo.baseDeviceHandler.VerifyVlanConfigRequest(ctx, aUniID, aTpID)
 			}
 			return false //indicate 'no change' - nothing more to do, TechProf inter-adapter message is return with success anyway here
 		}
