@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d234c5e8_c5cb00b3",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 27
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-08T09:39:04Z",
+      "side": 1,
+      "message": "Now - admitting \u0027InstanceExist\u0027 here is not really what was meant in my comments.\nreceiving this response here in the MibDownload would really be quite strange as this is always only done after MIBUpload with the according MIB reset - normally there should neve be already existing instances.\nBut the change does no real harm here, so we could leave it here and consider a more specific treatment here later.",
+      "revId": "b5000ef433da802d76e4d2ac8ac639b918e67a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "87091a32_d8b43425",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 27
+      },
+      "lineNbr": 1655,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-08T09:39:04Z",
+      "side": 1,
+      "message": "It\u0027s still not fully the way I wanted. The sendDel* methods commonly use the InstId as only parameter (nothing else needed) - different from the *Var method which supply the opportunity to transfer variable ME parameters for sending. \nBut I would not touch this now, we can align that in some later version.",
+      "revId": "b5000ef433da802d76e4d2ac8ac639b918e67a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81b25440_177b9f81",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 27
+      },
+      "lineNbr": 1647,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-08T09:39:04Z",
+      "side": 1,
+      "message": "It\u0027s still not fully the way I wanted. The sendDel* methods commonly use the InstId as only parameter, but as noticed for omci_cc we should do that alignment later (not that important).",
+      "revId": "b5000ef433da802d76e4d2ac8ac639b918e67a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

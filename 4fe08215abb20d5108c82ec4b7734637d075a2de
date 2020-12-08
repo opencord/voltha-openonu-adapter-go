@@ -212,6 +212,24 @@
     },
     {
       "key": {
+        "uuid": "baed33b0_5dd1b044",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1249,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-08T09:39:04Z",
+      "side": 1,
+      "message": "I don\u0027t suppose the ONU\u0027s really receive these parameters at all. I have not checked the traces for that, but I\u0027m pretty sure the parameters are already ignored by the OMCI-LIB in the adapter code itself. But as you send the parameters in the following set request with patch#27, the behavior on OMCI is correct.",
+      "parentUuid": "a8ad333a_7031e070",
+      "revId": "4fe08215abb20d5108c82ec4b7734637d075a2de",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ef6211e3_7faac561",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 26
