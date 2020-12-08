@@ -2158,7 +2158,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 			log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("flow-add invalid metadata: %s", dh.deviceID)
 	}
-	loTpID := flow.GetTechProfileIDFromWriteMetaData(ctx, metadata)
+	loTpID := uint8(flow.GetTechProfileIDFromWriteMetaData(ctx, metadata))
 	loCookie := apFlowItem.GetCookie()
 	loCookieSlice := []uint64{loCookie}
 	logger.Debugw(ctx, "flow-add base indications", log.Fields{"device-id": dh.deviceID,
@@ -2221,11 +2221,11 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	for _, field := range flow.GetOfbFields(apFlowItem) {
 		if field.Type == of.OxmOfbFieldTypes_OFPXMT_OFB_IP_PROTO {
 			loIPProto := field.GetIpProto()
-			logger.Debugw("flow type IpProto", log.Fields{"device-id": dh.deviceID,
+			logger.Debugw(ctx, "flow type IpProto", log.Fields{"device-id": dh.deviceID,
 				"IpProto": strconv.FormatInt(int64(loIPProto), 16)})
 			if loIPProto == 2 {
 				// some workaround for TT workflow on proto == 2 (IGMP trap) -> the flow was not added, no need to remove
-				logger.Debugw("flow-remove type IpProto 2: TT workaround: ignore flow",
+				logger.Debugw(ctx, "flow-remove type IpProto 2: TT workaround: ignore flow",
 					log.Fields{"device-id": dh.deviceID})
 				return nil
 			}
@@ -2246,7 +2246,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 }
 
 // createVlanFilterFsm initializes and runs the VlanFilter FSM to transfer OMCI related VLAN config
-func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onuUniPort, aTpID uint16, aCookieSlice []uint64,
+func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onuUniPort, aTpID uint8, aCookieSlice []uint64,
 	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent) error {
 	chVlanFilterFsm := make(chan Message, 2048)
 
@@ -2292,7 +2292,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 
 //VerifyVlanConfigRequest checks on existence of a given uniPort
 // and starts verification of flow config based on that
-func (dh *deviceHandler) VerifyVlanConfigRequest(ctx context.Context, aUniID uint8) {
+func (dh *deviceHandler) VerifyVlanConfigRequest(ctx context.Context, aUniID uint8, aTpID uint8) {
 	//ensure that the given uniID is available (configured) in the UniPort class (used for OMCI entities)
 	var pCurrentUniPort *onuUniPort
 	for _, uniPort := range dh.uniEntityMap {
@@ -2307,11 +2307,11 @@ func (dh *deviceHandler) VerifyVlanConfigRequest(ctx context.Context, aUniID uin
 			log.Fields{"device-id": dh.deviceID, "uni-id": aUniID})
 		return
 	}
-	dh.verifyUniVlanConfigRequest(ctx, pCurrentUniPort)
+	dh.verifyUniVlanConfigRequest(ctx, pCurrentUniPort, aTpID)
 }
 
 //verifyUniVlanConfigRequest checks on existence of flow configuration and starts it accordingly
-func (dh *deviceHandler) verifyUniVlanConfigRequest(ctx context.Context, apUniPort *onuUniPort) {
+func (dh *deviceHandler) verifyUniVlanConfigRequest(ctx context.Context, apUniPort *onuUniPort, aTpID uint8) {
 	//TODO!! verify and start pending flow configuration
 	//some pending config request my exist in case the UniVlanConfig FSM was already started - with internal data -
 	//but execution was set to 'on hold' as first the TechProfile config had to be applied
@@ -2319,24 +2319,42 @@ func (dh *deviceHandler) verifyUniVlanConfigRequest(ctx context.Context, apUniPo
 		//VlanFilterFsm exists and was already started (assumed to wait for TechProfile execution here)
 		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 		if pVlanFilterStatemachine != nil {
-			if pVlanFilterStatemachine.Is(vlanStWaitingTechProf) {
-				if err := pVlanFilterStatemachine.Event(vlanEvContinueConfig); err != nil {
-					logger.Warnw(ctx, "UniVlanConfigFsm: can't continue processing", log.Fields{"err": err})
+			//if this was an event of the TP processing that was waited for in the VlanFilterFsm
+			if pVlanFilterFsm.GetWaitingTpID() == aTpID {
+				if pVlanFilterStatemachine.Is(vlanStWaitingTechProf) {
+					if err := pVlanFilterStatemachine.Event(vlanEvContinueConfig); err != nil {
+						logger.Warnw(ctx, "UniVlanConfigFsm: can't continue processing", log.Fields{"err": err,
+							"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
+					} else {
+						/***** UniVlanConfigFsm continued */
+						logger.Debugw(ctx, "UniVlanConfigFsm continued", log.Fields{
+							"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
+							"UniPort": apUniPort.portNo})
+					}
+				} else if pVlanFilterStatemachine.Is(vlanStIncrFlowWaitTP) {
+					if err := pVlanFilterStatemachine.Event(vlanEvIncrFlowConfig); err != nil {
+						logger.Warnw(ctx, "UniVlanConfigFsm: can't continue processing", log.Fields{"err": err,
+							"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
+					} else {
+						/***** UniVlanConfigFsm continued */
+						logger.Debugw(ctx, "UniVlanConfigFsm continued with incremental flow", log.Fields{
+							"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
+							"UniPort": apUniPort.portNo})
+					}
 				} else {
-					/***** UniVlanConfigFsm continued */
-					logger.Debugw(ctx, "UniVlanConfigFsm continued", log.Fields{
-						"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
+					logger.Debugw(ctx, "no state of UniVlanConfigFsm to be continued", log.Fields{
+						"have": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
 						"UniPort": apUniPort.portNo})
 				}
 			} else {
-				logger.Debugw(ctx, "no state of UniVlanConfigFsm to be continued", log.Fields{
-					"have": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID})
+				logger.Debugw(ctx, "TechProfile Ready event for TpId that was not waited for in the VlanConfigFsm - continue waiting", log.Fields{
+					"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
+					"UniPort": apUniPort.portNo, "techprofile-id (done)": aTpID})
 			}
 		} else {
 			logger.Debugw(ctx, "UniVlanConfigFsm StateMachine does not exist, no flow processing", log.Fields{
-				"device-id": dh.deviceID})
+				"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
 		}
-
 	} // else: nothing to do
 }
 
