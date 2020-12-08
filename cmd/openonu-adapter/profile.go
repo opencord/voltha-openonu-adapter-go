@@ -19,13 +19,14 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	_ "net/http/pprof"
 )
 
-func realMain() {
+func realMain(ctx context.Context) {
 	go func() {
-		logger.Fatal(http.ListenAndServe("0.0.0.0:6060", nil))
+		logger.Fatal(ctx, http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
 
 }
