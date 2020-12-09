@@ -32,6 +32,7 @@ import (
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/db"
+	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	flow "github.com/opencord/voltha-lib-go/v4/pkg/flows"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	vc "github.com/opencord/voltha-protos/v4/go/common"
@@ -137,7 +138,7 @@ type deviceHandler struct {
 
 	coreProxy    adapterif.CoreProxy
 	AdapterProxy adapterif.AdapterProxy
-	EventProxy   adapterif.EventProxy
+	EventProxy   eventif.EventProxy
 
 	pOpenOnuAc      *OpenONUAC
 	pDeviceStateFsm *fsm.FSM
@@ -170,7 +171,7 @@ type deviceHandler struct {
 }
 
 //newDeviceHandler creates a new device handler
-func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy, device *voltha.Device, adapter *OpenONUAC) *deviceHandler {
+func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep eventif.EventProxy, device *voltha.Device, adapter *OpenONUAC) *deviceHandler {
 	var dh deviceHandler
 	dh.coreProxy = cp
 	dh.AdapterProxy = ap
@@ -928,14 +929,14 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 	dh.device.Root = false
 	dh.device.Vendor = "OpenONU"
 	dh.device.Model = "go"
-	dh.device.Reason = deviceReasonMap[drActivatingOnu]
 	dh.deviceReason = drActivatingOnu
 
 	dh.logicalDeviceID = dh.deviceID // really needed - what for ??? //TODO!!!
 
 	if !dh.reconciling {
-		logger.Infow(ctx, "DeviceUpdate", log.Fields{"deviceReason": dh.device.Reason, "device-id": dh.deviceID})
+		logger.Infow(ctx, "DeviceUpdate", log.Fields{"device-id": dh.deviceID})
 		_ = dh.coreProxy.DeviceUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.device)
+		//TODO Need to Update Device Reason To CORE as part of device update userstory
 	} else {
 		logger.Debugw(ctx, "reconciling - don't notify core about DeviceUpdate",
 			log.Fields{"device-id": dh.deviceID})
