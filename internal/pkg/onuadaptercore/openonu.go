@@ -28,6 +28,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v4/pkg/events"
 	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
@@ -46,7 +47,7 @@ type OpenONUAC struct {
 	lockDeviceHandlersMap       sync.RWMutex
 	coreProxy                   adapterif.CoreProxy
 	adapterProxy                adapterif.AdapterProxy
-	eventProxy                  adapterif.EventProxy
+	eventProxy                  events.EventProxy
 	kafkaICProxy                kafka.InterContainerProxy
 	kvClient                    kvstore.Client
 	cm                          *conf.ConfigManager
@@ -70,7 +71,7 @@ type OpenONUAC struct {
 //NewOpenONUAC returns a new instance of OpenONU_AC
 func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy,
-	eventProxy adapterif.EventProxy, kvClient kvstore.Client, cfg *config.AdapterFlags, cm *conf.ConfigManager) *OpenONUAC {
+	eventProxy events.EventProxy, kvClient kvstore.Client, cfg *config.AdapterFlags, cm *conf.ConfigManager) *OpenONUAC {
 	var openOnuAc OpenONUAC
 	openOnuAc.exitChannel = make(chan int, 1)
 	openOnuAc.deviceHandlers = make(map[string]*deviceHandler)
