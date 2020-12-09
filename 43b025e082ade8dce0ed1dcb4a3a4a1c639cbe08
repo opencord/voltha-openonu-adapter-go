@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e5144fab_a135eb9a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2326,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-09T15:50:13Z",
+      "side": 1,
+      "message": "possibly error, also, is there any reset that needs to happen ?",
+      "revId": "43b025e082ade8dce0ed1dcb4a3a4a1c639cbe08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c119f0aa_1cd0a484",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2337,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-09T15:50:13Z",
+      "side": 1,
+      "message": "same here",
+      "revId": "43b025e082ade8dce0ed1dcb4a3a4a1c639cbe08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
