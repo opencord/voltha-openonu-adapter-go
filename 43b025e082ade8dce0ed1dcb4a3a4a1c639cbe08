@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "2526c013_85696767",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2326,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-09T15:57:52Z",
+      "side": 1,
+      "message": "Yes, can be error log as well.\nError treatment would not be that easy, If the event can\u0027t be processed anymore, we can not simply reset the FSM from here as well. Remove/restart with all consequences would be some solution - which might have many side effects.\nIt\u0027s just an improbable error - I would rather hope it never occurs. (yeaah - what about Murphy\u0027law ;-) )",
+      "parentUuid": "e5144fab_a135eb9a",
+      "revId": "43b025e082ade8dce0ed1dcb4a3a4a1c639cbe08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c119f0aa_1cd0a484",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 5
@@ -30,6 +48,24 @@
       "writtenOn": "2020-12-09T15:50:13Z",
       "side": 1,
       "message": "same here",
+      "revId": "43b025e082ade8dce0ed1dcb4a3a4a1c639cbe08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fd305529_8ae146ba",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2337,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-09T15:57:52Z",
+      "side": 1,
+      "message": "yes, same as above.",
+      "parentUuid": "c119f0aa_1cd0a484",
       "revId": "43b025e082ade8dce0ed1dcb4a3a4a1c639cbe08",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
