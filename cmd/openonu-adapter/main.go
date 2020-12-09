@@ -33,6 +33,8 @@ import (
 	com "github.com/opencord/voltha-lib-go/v4/pkg/adapters/common"
 	conf "github.com/opencord/voltha-lib-go/v4/pkg/config"
 	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v4/pkg/events"
+	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	"github.com/opencord/voltha-lib-go/v4/pkg/probe"
@@ -54,7 +56,7 @@ type adapter struct {
 	kip              kafka.InterContainerProxy
 	coreProxy        adapterif.CoreProxy
 	adapterProxy     adapterif.AdapterProxy
-	eventProxy       adapterif.EventProxy
+	eventProxy       eventif.EventProxy
 	halted           bool
 	exitChannel      chan int
 	receiverChannels []<-chan *ic.InterContainerMessage //from inter-container
@@ -128,7 +130,7 @@ func (a *adapter) start(ctx context.Context) error {
 	a.adapterProxy = com.NewAdapterProxy(ctx, a.kip, a.config.CoreTopic, cm.Backend)
 
 	// Create the event proxy to post events to KAFKA
-	a.eventProxy = com.NewEventProxy(com.MsgClient(a.kafkaClient), com.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))
+	a.eventProxy = events.NewEventProxy(events.MsgClient(a.kafkaClient), events.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))
 
 	// Create the open ONU interface adapter
 	if a.iAdapter, err = a.startVolthaInterfaceAdapter(ctx, a.kip, a.coreProxy, a.adapterProxy, a.eventProxy,
@@ -249,7 +251,7 @@ func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (ka
 }
 
 func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, kip kafka.InterContainerProxy,
-	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep adapterif.EventProxy,
+	cp adapterif.CoreProxy, ap adapterif.AdapterProxy, ep eventif.EventProxy,
 	cfg *config.AdapterFlags, cm *conf.ConfigManager) (*ac.OpenONUAC, error) {
 	var err error
 	sAcONU := ac.NewOpenONUAC(ctx, a.kip, cp, ap, ep, a.kvClient, cfg, cm)
