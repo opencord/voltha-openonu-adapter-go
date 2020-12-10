@@ -52,6 +52,24 @@
       "revId": "441a017321d032398ca3f29cc919ad83c7d13f73",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a1edeba4_32d8990c",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2020-12-10T15:47:16Z",
+      "side": 1,
+      "message": "\"exists\" only indicates the existence of a map-element for the current ONU-type at all. It means, that there was a previous attempt to create a mib-template by another ONU of the same type. The value of this map-element indicates whether this creation attempt was sussessful or not. But I see your point - it would also be possible to take the information whether the corresponding map-element itself exists or not as differentiator. But I would like to leave it as it is, as the map in its current form stores the information, whether there was a mib-template generation attempt for a particular ONU-type at all and whether it was successful or not. This information could potentially be useful for debugging.",
+      "parentUuid": "c6647f37_1f2f59e2",
+      "revId": "441a017321d032398ca3f29cc919ad83c7d13f73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
