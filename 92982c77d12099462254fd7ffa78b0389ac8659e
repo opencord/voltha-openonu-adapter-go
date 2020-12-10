@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bfa7fc83_07d22d16",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-10T17:27:02Z",
+      "side": 1,
+      "message": "I would appreciate a note on the reason of this change, which is also not given in the Jira:\nIn my point of view this scheme shall prevent the possible overlapping of the map entries (keys) between the upstream(bidirectional) and downstream(multicast) GemPorts, which was previously possibly by using the index. So something like: ensure unique map keys for the GemPort map across downstream and upstream GemPorts by using the GemPortId or McastGemId directly\n(or perhaps still the link to the Jira with an updated comment there)",
+      "revId": "92982c77d12099462254fd7ffa78b0389ac8659e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b2960e0e_0e171f38",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 394,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-10T17:27:02Z",
+      "side": 1,
+      "message": "Just a thought: To go a step further, we would not really need to store the GemPortId/McastGemId anymore but could use the key directly where needed - but well, I would not really go that far ...",
+      "revId": "92982c77d12099462254fd7ffa78b0389ac8659e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89567f5d_badf6312",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 566,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-10T17:27:02Z",
+      "side": 1,
+      "message": "Would you add the GemPortId here again in the log?",
+      "revId": "92982c77d12099462254fd7ffa78b0389ac8659e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
