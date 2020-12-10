@@ -34,6 +34,24 @@
       "revId": "4d3a0dc08fb07ecc136a002c960cc87f56cf2ae5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f0a1b4d_7349c6f1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 931,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-10T17:46:02Z",
+      "side": 0,
+      "message": "A more elaborate hint would be welcome without the need of checking all changes in that change.\nI can see that \u0027Reason\u0027 was removed from the voltha.Device. Yes - but why? Where is it stored now - or nowhere? What happens to the coreProxy.DeviceReasonUpdate as used in line 2400?",
+      "parentUuid": "0b2a8521_6b3c35de",
+      "revId": "4d3a0dc08fb07ecc136a002c960cc87f56cf2ae5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

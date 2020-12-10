@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6af58252_e7049493",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 937,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-10T17:46:02Z",
+      "side": 1,
+      "message": "If the reason was removed from device, then please log dh.deviceReason here.",
+      "revId": "1a7f9b00985ff198a2ccbe38e513e3215bc0aeaa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
