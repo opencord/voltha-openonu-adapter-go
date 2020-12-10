@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a8a0fd30_fb85189f",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-10T14:05:52Z",
+      "side": 1,
+      "message": "given your log at lines 203, shouldn\u0027t this be !exists ?",
+      "revId": "441a017321d032398ca3f29cc919ad83c7d13f73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
