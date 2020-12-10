@@ -73,7 +73,7 @@ type gemPortParamStruct struct {
 	//maxQueueSize     uint16
 	queueSchedPolicy string
 	queueWeight      uint8
-	removeIndex      uint16
+	removeGemID      uint16
 	isMulticast      bool
 	//TODO check if this has any value/difference from gemPortId
 	multicastGemPortID uint16
@@ -389,15 +389,13 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 			loGemPortRead = true
 		} else {
 			//for all further GemPorts we need to extend the mapGemPortParams
-			//FIXME one can use uint16(content.GemportID) as key to the map
-			// see jira https://jira.opencord.org/browse/VOL-3667
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)] = &gemPortParamStruct{}
+			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)] = &gemPortParamStruct{}
 		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].gemPortID =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].gemPortID =
 			uint16(content.GemportID)
 		//direction can be correlated later with Downstream list,
 		//  for now just assume bidirectional (upstream never exists alone)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].direction = 3 //as defined in G.988
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].direction = 3 //as defined in G.988
 		// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
 		if content.PriorityQueue > 7 {
 			logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
@@ -407,21 +405,21 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 			onuTP.chTpConfigProcessingStep <- 0 //error indication
 			return
 		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].prioQueueIndex =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].prioQueueIndex =
 			uint8(content.PriorityQueue)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].pbitString =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].pbitString =
 			strings.TrimPrefix(content.PbitMap, binaryStringPrefix)
 		if content.AesEncryption == "True" {
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].gemPortEncState = 1
+			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].gemPortEncState = 1
 		} else {
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].gemPortEncState = 0
+			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].gemPortEncState = 0
 		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].discardPolicy =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].discardPolicy =
 			content.DiscardPolicy
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].queueSchedPolicy =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].queueSchedPolicy =
 			content.SchedulingPolicy
 		//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(pos)].queueWeight =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportID)].queueWeight =
 			uint8(content.Weight)
 	}
 
@@ -513,10 +511,9 @@ func (onuTP *onuUniTechProf) readAniSideConfigFromTechProfile(
 	logger.Debugw(ctx, "PonAniConfig read from TechProfile", log.Fields{
 		"device-id": onuTP.deviceID, "uni-id": aUniID,
 		"AllocId": onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID})
-	for gemIndex, gemEntry := range onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams {
+	for gemPortID, gemEntry := range onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams {
 		logger.Debugw(ctx, "PonAniConfig read from TechProfile", log.Fields{
-			"GemIndex":        gemIndex,
-			"GemPort":         gemEntry.gemPortID,
+			"GemPort":         gemPortID,
 			"QueueScheduling": gemEntry.queueSchedPolicy})
 	}
 
@@ -561,13 +558,13 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID})
 			return
 		}
-		for gemIndex, gemEntry := range pLocAniConfigOnUni.mapGemPortParams {
-			if gemEntry.gemPortID == uint16(aEntryID) {
+		for gemPortID, gemEntry := range pLocAniConfigOnUni.mapGemPortParams {
+			if gemPortID == uint16(aEntryID) {
 				//GemEntry to be deleted found
-				gemEntry.removeIndex = gemIndex //store the index for later removal
-				onuTP.mapRemoveGemEntry[uniTPKey] = pLocAniConfigOnUni.mapGemPortParams[gemIndex]
+				gemEntry.removeGemID = gemPortID //store the index for later removal
+				onuTP.mapRemoveGemEntry[uniTPKey] = pLocAniConfigOnUni.mapGemPortParams[gemPortID]
 				logger.Debugw(ctx, "Remove-GemEntry stored", log.Fields{
-					"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID, "GemIndex": gemIndex})
+					"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID, "GemPort": aEntryID})
 				break //abort loop, always only one GemPort to remove
 			}
 		}
@@ -597,7 +594,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				*/
 				//if the FSM is not valid, also TP related remove data should not be valid:
 				// remove GemPort from config DB
-				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeIndex)
+				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
 				// remove the removeEntry
 				delete(onuTP.mapRemoveGemEntry, uniTPKey)
 				return
@@ -611,7 +608,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				*/
 				//if the FSM is not valid, also TP related remove data should not be valid:
 				// remove GemPort from config DB
-				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeIndex)
+				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
 				// remove the removeEntry
 				delete(onuTP.mapRemoveGemEntry, uniTPKey)
 				return
@@ -640,7 +637,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.deviceReason})
 		}
 		// remove GemPort from config DB
-		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeIndex)
+		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
 		// remove the removeEntry
 		delete(onuTP.mapRemoveGemEntry, uniTPKey)
 		//  deviceHandler StatusEvent (reason update) (see end of function) is only generated in case some element really was removed
