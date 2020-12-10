@@ -195,8 +195,18 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplate(ctx context.Context, e *fsm.Ev
 	} else {
 		logger.Debug(ctx, "MibSync FSM - no valid MEs stored from template - perform MIB-upload!")
 		fsmMsg = LoadMibTemplateFailed
-	}
 
+		oo.pOpenOnuAc.lockMibTemplateGenerated.Lock()
+		if mibTemplateIsGenerated, exist := oo.pOpenOnuAc.mibTemplatesGenerated[oo.mibTemplatePath]; exist {
+			if mibTemplateIsGenerated {
+				logger.Debugw(ctx,
+					"MibSync FSM - template was successfully generated before, but doesn't exist or isn't usable anymore - reset flag in map",
+					log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+				oo.pOpenOnuAc.mibTemplatesGenerated[oo.mibTemplatePath] = false
+			}
+		}
+		oo.pOpenOnuAc.lockMibTemplateGenerated.Unlock()
+	}
 	mibSyncMsg := Message{
 		Type: TestMsg,
 		Data: TestMessage{
