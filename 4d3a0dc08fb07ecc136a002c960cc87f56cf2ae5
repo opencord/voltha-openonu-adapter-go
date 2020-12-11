@@ -70,6 +70,24 @@
       "revId": "4d3a0dc08fb07ecc136a002c960cc87f56cf2ae5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "72e09e46_5097fa34",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 931,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-11T15:49:35Z",
+      "side": 0,
+      "message": "Having made that clear it is obvious that on this code position now the deviceReasonUpdate ist to be called here with drActivatingOnu, this way:\n_ \u003d dh.deviceReasonUpdate(ctx, drActivatingOnu, true)",
+      "parentUuid": "611d8b23_223001ea",
+      "revId": "4d3a0dc08fb07ecc136a002c960cc87f56cf2ae5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
