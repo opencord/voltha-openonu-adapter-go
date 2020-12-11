@@ -52,6 +52,24 @@
       "revId": "4d3a0dc08fb07ecc136a002c960cc87f56cf2ae5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "611d8b23_223001ea",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 931,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2020-12-11T15:25:44Z",
+      "side": 0,
+      "message": "To be clear, the Reason field is removed from the device structure but the data is still being stored.  The idea behind this is instead of having 1 reason field that keeps getting overwritten with the latest reason, we will not have a separate \"device updates\" structure that will keeps all the updates (including reasons) to the device.  Please see the last page at https://docs.google.com/document/d/1sOv5R7iOBTlzXcCVaUfOOzd5617ISQGnseadhx8pb3w/edit#heading\u003dh.bcu4xguzyf1w for an example.\n\nThis means that in order to update a device reason, an explicit \"device reason update\" call needs to be made instead of wrapping it up with the device structure itself.",
+      "parentUuid": "0f0a1b4d_7349c6f1",
+      "revId": "4d3a0dc08fb07ecc136a002c960cc87f56cf2ae5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
