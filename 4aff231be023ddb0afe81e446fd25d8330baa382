@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5ffef01a_53bf9571",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-14T19:38:35Z",
+      "side": 1,
+      "message": "just for the benefit of adorn internal work please leave the 150",
+      "revId": "4aff231be023ddb0afe81e446fd25d8330baa382",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
