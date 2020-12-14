@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "23456937_55d9b651",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-14T09:24:51Z",
+      "side": 1,
+      "message": "I think 1.0.0 here is enough.",
+      "revId": "fdb482040f9e4a8fed691328ceb9351fb9918804",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
