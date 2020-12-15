@@ -327,7 +327,7 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg Om
 				{ // let the FSM proceed ...
 					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
 				}
-			case "PhysicalPathTerminationPointEthernetUni", "VEIP":
+			case "PhysicalPathTerminationPointEthernetUni", "VirtualEthernetInterfacePoint":
 				{ // let the PPTP init proceed by stopping the wait function
 					oFsm.omciLockResponseReceived <- true
 				}
