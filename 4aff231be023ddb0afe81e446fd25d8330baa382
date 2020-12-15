@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "52422c38_548bdc66",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 931,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2020-12-15T15:01:10Z",
+      "side": 0,
+      "message": "On second thought, please leave this change out as it needs to be part of the set of device update changes.",
+      "revId": "4aff231be023ddb0afe81e446fd25d8330baa382",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
