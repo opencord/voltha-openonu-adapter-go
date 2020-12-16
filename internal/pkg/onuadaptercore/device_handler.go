@@ -162,8 +162,8 @@ type deviceHandler struct {
 	//metrics            *pmmetrics.PmMetrics
 	stopCollector              chan bool
 	stopHeartbeatCheck         chan bool
-	activePorts                sync.Map
 	uniEntityMap               map[uint32]*onuUniPort
+	lockVlanConfig             sync.Mutex
 	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
 	reconciling                bool
 	ReadyForSpecificOmciConfig bool
@@ -187,9 +187,9 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.stopCollector = make(chan bool, 2)
 	dh.stopHeartbeatCheck = make(chan bool, 2)
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
-	dh.activePorts = sync.Map{}
 	//TODO initialize the support classes.
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
+	dh.lockVlanConfig = sync.Mutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
 	dh.ReadyForSpecificOmciConfig = false
@@ -2196,6 +2196,11 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		}
 		logger.Debugw(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.deviceID})
 	}
+
+	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
+	dh.lockVlanConfig.Lock()
+	defer dh.lockVlanConfig.Unlock()
+	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
 			loMatchVlan, loSetVlan, loSetPcp)
@@ -2233,6 +2238,9 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	} //for all OfbFields
 	*/
 
+	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
+	dh.lockVlanConfig.Lock()
+	defer dh.lockVlanConfig.Unlock()
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(ctx, loCookie)
 	}
@@ -2256,6 +2264,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 		return fmt.Errorf("no valid OnuDevice for device-id %x - aborting", dh.deviceID)
 	}
 
+	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
 	pVlanFilterFsm := NewUniVlanConfigFsm(ctx, dh, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
 		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
 		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp)
