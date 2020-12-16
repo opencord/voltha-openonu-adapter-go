@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "e34553ee_7c30dab7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2267,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-16T17:35:05Z",
+      "side": 1,
+      "message": "please remove then",
+      "parentUuid": "0627e494_9c41a4d1",
+      "revId": "c341ca80fd2748c58b76e394e0b421e05730123c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "91225ca3_6aa9b9d6",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "Well ;-) ...Could be done, but used on different code points that way.",
       "parentUuid": "91225ca3_6aa9b9d6",
+      "revId": "c341ca80fd2748c58b76e394e0b421e05730123c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4965f668_b5101132",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 658,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-12-16T17:35:05Z",
+      "side": 1,
+      "message": "one small step to fix them all :D",
+      "parentUuid": "60f4bb5d_edde6fcb",
       "revId": "c341ca80fd2748c58b76e394e0b421e05730123c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
