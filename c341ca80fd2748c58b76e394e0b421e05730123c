@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0627e494_9c41a4d1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2267,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-16T17:13:44Z",
+      "side": 1,
+      "message": "Comment is from some interim experimental implementation state, can be removed.\ncreateVlanFilterFsm() itself is now already protected by the Mutex when invoked from possibly concurrent rwCore rpc\u0027s.",
+      "parentUuid": "59f5432a_d685ff23",
+      "revId": "c341ca80fd2748c58b76e394e0b421e05730123c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "91225ca3_6aa9b9d6",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2020-12-16T16:56:52Z",
       "side": 1,
       "message": "please have a more basic commit such as\n// Can\u0027t call FMS directly, decoupling it",
+      "revId": "c341ca80fd2748c58b76e394e0b421e05730123c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "60f4bb5d_edde6fcb",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 658,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-16T17:13:44Z",
+      "side": 1,
+      "message": "Well ;-) ...Could be done, but used on different code points that way.",
+      "parentUuid": "91225ca3_6aa9b9d6",
       "revId": "c341ca80fd2748c58b76e394e0b421e05730123c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
