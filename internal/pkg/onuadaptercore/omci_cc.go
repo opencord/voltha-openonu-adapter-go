@@ -1187,8 +1187,19 @@ func (oo *omciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(aInstID), 16)})
 
 	meParams := me.ParamData{
-		EntityID:   aInstID,
-		Attributes: me.AttributeValueMap{},
+		EntityID: aInstID,
+		Attributes: me.AttributeValueMap{
+			//workaround for unsuitable omci-lib default values, cmp VOL-3729
+			"TpPointer":                          0xFFFF,
+			"InterworkTpPointerForPBitPriority0": 0xFFFF,
+			"InterworkTpPointerForPBitPriority1": 0xFFFF,
+			"InterworkTpPointerForPBitPriority2": 0xFFFF,
+			"InterworkTpPointerForPBitPriority3": 0xFFFF,
+			"InterworkTpPointerForPBitPriority4": 0xFFFF,
+			"InterworkTpPointerForPBitPriority5": 0xFFFF,
+			"InterworkTpPointerForPBitPriority6": 0xFFFF,
+			"InterworkTpPointerForPBitPriority7": 0xFFFF,
+		},
 	}
 	meInstance, omciErr := me.NewIeee8021PMapperServiceProfile(meParams)
 	if omciErr.GetError() == nil {
