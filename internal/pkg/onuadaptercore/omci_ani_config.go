@@ -562,10 +562,14 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 				"device-id": oFsm.deviceID})
 		} else {
 			// The null pointer 0xFFFF specifies that frames with the associated priority are to be discarded.
+			// setting this parameter is not strictly needed anymore with the ensured .1pMapper create default setting
+			// but except for processing effort does not really harm - left to keep changes low
 			meParams.Attributes[meAttribute] = 0xffff
 		}
 	}
 	// The TP type value 0 also indicates bridging mapping, and the TP pointer should be set to 0xFFFF
+	// setting this parameter is not strictly needed anymore with the ensured .1pMapper create default setting
+	// but except for processing effort does not really harm - left to keep changes low
 	meParams.Attributes["TpPointer"] = 0xffff
 
 	if !foundIwPtr {

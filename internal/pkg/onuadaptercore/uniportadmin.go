@@ -211,7 +211,7 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 }
 
 func (oFsm *lockStateFsm) enterSettingUnisState(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "LockStateFSM - starting PPTP config loop", log.Fields{
+	logger.Debugw(ctx, "LockStateFSM - starting UniTP adminState loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID, "LockState": oFsm.adminState})
 	go oFsm.performUniPortAdminSet(ctx)
 }
@@ -348,36 +348,41 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 	requestedAttributes := me.AttributeValueMap{"AdministrativeState": omciAdminState}
 
 	for uniNo, uniPort := range oFsm.pOmciCC.pBaseDeviceHandler.uniEntityMap {
-		logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{
-			"device-id": oFsm.deviceID, "for PortNo": uniNo})
+		// only unlock the UniPort in case it is defined for usage (R2.6 limit only one port),
+		// compare also limitation for logical voltha port in dh.enableUniPortStateUpdate()
+		if (omciAdminState == 1) || (1<<uniPort.uniID)&activeUniPortStateUpdateMask == (1<<uniPort.uniID) {
+			var meInstance *me.ManagedEntity
+			if uniPort.portType == uniPPTP {
+				logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{
+					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
+				meInstance = oFsm.pOmciCC.sendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, ConstDefaultOmciTimeout,
+					true, requestedAttributes, oFsm.pAdaptFsm.commChan)
+				oFsm.pLastTxMeInstance = meInstance
+			} else if uniPort.portType == uniVEIP {
+				logger.Debugw(ctx, "Setting VEIP admin state", log.Fields{
+					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
+				meInstance = oFsm.pOmciCC.sendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, ConstDefaultOmciTimeout,
+					true, requestedAttributes, oFsm.pAdaptFsm.commChan)
+				oFsm.pLastTxMeInstance = meInstance
+			} else {
+				logger.Warnw(ctx, "Unsupported UniTP type - skip",
+					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
+				continue
+			}
 
-		var meInstance *me.ManagedEntity
-		if uniPort.portType == uniPPTP {
-			meInstance = oFsm.pOmciCC.sendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, ConstDefaultOmciTimeout,
-				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
-			oFsm.pLastTxMeInstance = meInstance
-		} else if uniPort.portType == uniVEIP {
-			meInstance = oFsm.pOmciCC.sendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, ConstDefaultOmciTimeout,
-				true, requestedAttributes, oFsm.pAdaptFsm.commChan)
-			oFsm.pLastTxMeInstance = meInstance
-		} else {
-			logger.Warnw(ctx, "Unsupported PPTP type - skip",
-				log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
-			continue
-		}
-
-		//verify response
-		err := oFsm.waitforOmciResponse(ctx, meInstance)
-		if err != nil {
-			logger.Errorw(ctx, "PPTP Admin State set failed, aborting LockState set!",
-				log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
-			_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
-			return
+			//verify response
+			err := oFsm.waitforOmciResponse(ctx, meInstance)
+			if err != nil {
+				logger.Errorw(ctx, "UniTP Admin State set failed, aborting LockState set!",
+					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
+				_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+				return
+			}
 		}
 	} //for all UNI ports
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
-	logger.Infow(ctx, "PPTP config loop finished", log.Fields{"device-id": oFsm.deviceID})
+	logger.Infow(ctx, "UniTP adminState loop finished", log.Fields{"device-id": oFsm.deviceID})
 	_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxUnisResp)
 }
 

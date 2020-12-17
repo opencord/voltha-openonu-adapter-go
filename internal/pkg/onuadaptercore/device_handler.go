@@ -1526,19 +1526,21 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEve
 		return
 	}
 	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
-	if unigInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(ctx, me.UniGClassID); len(unigInstKeys) > 0 {
-		for _, mgmtEntityID := range unigInstKeys {
-			logger.Debugw(ctx, "Add UNI port for stored UniG instance:", log.Fields{
-				"device-id": dh.deviceID, "UnigMe EntityID": mgmtEntityID})
+	if pptpInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
+		ctx, me.PhysicalPathTerminationPointEthernetUniClassID); len(pptpInstKeys) > 0 {
+		for _, mgmtEntityID := range pptpInstKeys {
+			logger.Debugw(ctx, "Add PPTPEthUni port for MIB-stored instance:", log.Fields{
+				"device-id": dh.deviceID, "PPTPEthUni EntityID": mgmtEntityID})
 			dh.addUniPort(ctx, mgmtEntityID, i, uniPPTP)
 			i++
 		}
 	} else {
 		logger.Debugw(ctx, "No UniG instances found", log.Fields{"device-id": dh.deviceID})
 	}
-	if veipInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(ctx, me.VirtualEthernetInterfacePointClassID); len(veipInstKeys) > 0 {
+	if veipInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
+		ctx, me.VirtualEthernetInterfacePointClassID); len(veipInstKeys) > 0 {
 		for _, mgmtEntityID := range veipInstKeys {
-			logger.Debugw(ctx, "Add VEIP acc. to stored VEIP instance:", log.Fields{
+			logger.Debugw(ctx, "Add VEIP for MIB-stored instance:", log.Fields{
 				"device-id": dh.deviceID, "VEIP EntityID": mgmtEntityID})
 			dh.addUniPort(ctx, mgmtEntityID, i, uniVEIP)
 			i++
