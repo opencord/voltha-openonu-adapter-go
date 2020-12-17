@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d74e2661_dc87dddf",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-17T12:21:32Z",
+      "side": 1,
+      "message": "That\u0027s the one I selected already for the vlanConfig changes.\nDo you want to keep that the same?",
+      "revId": "0c3e20a16345705653fd420ea22ab83891d9deae",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
