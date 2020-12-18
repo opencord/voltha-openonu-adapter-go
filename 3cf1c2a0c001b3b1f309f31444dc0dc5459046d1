@@ -16,6 +16,24 @@
       "revId": "3cf1c2a0c001b3b1f309f31444dc0dc5459046d1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "766a4c22_01dc6e0c",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 353,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2020-12-18T15:17:19Z",
+      "side": 1,
+      "message": "don\u0027t think it is really needed. Info/comment is given in line 343 above.",
+      "parentUuid": "62c57235_29050d1d",
+      "revId": "3cf1c2a0c001b3b1f309f31444dc0dc5459046d1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
