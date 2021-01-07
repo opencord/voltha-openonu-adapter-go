@@ -16,6 +16,24 @@
       "revId": "c07fda0e6be7ccaabf896b577ccb1664e66b92d7",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bcfd11d7_7353609e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 940,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-01-07T09:10:24Z",
+      "side": 1,
+      "message": "No this is separate task for code refactoring for event handling in voltha lib. As part of device update user story, I will do the changes for this TODO. After the demonstration for device update, I will take this task up. just a small change",
+      "parentUuid": "af1a9a28_c64d0029",
+      "revId": "c07fda0e6be7ccaabf896b577ccb1664e66b92d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
