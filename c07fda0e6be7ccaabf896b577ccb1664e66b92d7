@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "af1a9a28_c64d0029",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 940,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-07T09:06:19Z",
+      "side": 1,
+      "message": "I thought the decision was precisely not to do this because we are reconciling. @Holger, @Michael, thoughts ?",
+      "revId": "c07fda0e6be7ccaabf896b577ccb1664e66b92d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
