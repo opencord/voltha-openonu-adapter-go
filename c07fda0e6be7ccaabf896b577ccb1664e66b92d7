@@ -34,6 +34,24 @@
       "revId": "c07fda0e6be7ccaabf896b577ccb1664e66b92d7",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8053b03e_1940e5bd",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 940,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-08T08:49:59Z",
+      "side": 1,
+      "message": "Don\u0027t know, if it is a good idea to try to make some reason update as part of the device update within voltha lib (used quite seldom this way - just at init). Anyway changes may come up in this respect as part of the device reason list handling.\n@Andrea: Here we are in the non-reconcile case.",
+      "parentUuid": "bcfd11d7_7353609e",
+      "revId": "c07fda0e6be7ccaabf896b577ccb1664e66b92d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
