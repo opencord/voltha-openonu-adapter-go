@@ -278,6 +278,10 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
 		go rxCallbackEntry.cbFunction(ctx, omciMsg, &packet, rxCallbackEntry.cbRespChannel)
+		if omciMsg.MessageType == omci.CreateResponseType || omciMsg.MessageType == omci.DeleteResponseType ||
+			omciMsg.MessageType == omci.SetResponseType || omciMsg.MessageType == omci.StartSoftwareDownloadResponseType {
+			oo.pOnuDeviceEntry.incrementMibDataSync(ctx)
+		}
 		// having posted the response the request is regarded as 'done'
 		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
 		oo.mutexRxSchedMap.Unlock()
