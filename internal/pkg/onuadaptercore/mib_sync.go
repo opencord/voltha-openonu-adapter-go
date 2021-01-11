@@ -222,13 +222,19 @@ func (oo *OnuDeviceEntry) enterUploadingState(ctx context.Context, e *fsm.Event)
 }
 
 func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
+	oo.mibLastDbSync = uint32(time.Now().Unix())
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"send notification to core in State": e.FSM.Current(), "device-id": oo.deviceID})
 	oo.transferSystemEvent(ctx, MibDatabaseSync)
 }
 
 func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start GetMds processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	logger.Debug(ctx, "function not implemented yet")
+	requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+		me.OnuDataClassID, onuDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oo.PDevOmciCC.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.Event) {
@@ -300,6 +306,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 			if msgOk {
 				logger.Debugw(ctx, "MibResetResponse Data", log.Fields{"data-fields": msgObj})
 				if msgObj.Result == me.Success {
+					oo.mibDataSyncAdpt = 0
 					// trigger retrieval of VendorId and SerialNumber
 					_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetVendorAndSerial)
 					return
@@ -455,6 +462,19 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				// trigger retrieval of mib template
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
 				return nil
+			case "OnuData":
+				mibDataSyncOnu := meAttributes["MibDataSync"].(uint8)
+				logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-Data - MibDataSync", log.Fields{"device-id": oo.deviceID,
+					"mibDataSyncOnu": mibDataSyncOnu, "oo.mibDataSyncAdpt": oo.mibDataSyncAdpt})
+				if oo.pMibUploadFsm.pFsm.Is(ulStExaminingMds) {
+					// Examine MDS value
+					if mibDataSyncOnu > 0 && oo.mibDataSyncAdpt == mibDataSyncOnu {
+						_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+					} else {
+						_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+					}
+				}
+				return nil
 			}
 		}
 	} else {
@@ -517,6 +537,10 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseErrors(ctx context.Context, msgOb
 		err = fmt.Errorf("erroneous result in GetResponse Data: %s - %s", msgObj.Result, oo.deviceID)
 	}
 	return err
+}
+
+func (oo *OnuDeviceEntry) isNewOnu() bool {
+	return oo.mibLastDbSync == 0
 }
 
 func isSupportedClassID(meClassID me.ClassID) bool {
@@ -612,6 +636,16 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 	}
 	logger.Debugw(ctx, "MibSync - MibTemplate - Stored the template to etcd", log.Fields{"device-id": oo.deviceID})
 	return nil
+}
+
+func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
+	logger.Debugw(ctx, "Request MDS value", log.Fields{"device-id": oo.deviceID})
+	requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+		me.OnuDataClassID, onuDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oo.PDevOmciCC.pLastTxMeInstance = meInstance
 }
 
 // func (onuDeviceEntry *OnuDeviceEntry) MibTemplateTask() error {
