@@ -112,6 +112,16 @@ type omciCC struct {
 	pLastTxMeInstance *me.ManagedEntity
 }
 
+var responsesOnConfiguration = []omci.MessageType{
+	omci.CreateResponseType,
+	omci.DeleteResponseType,
+	omci.SetResponseType,
+	omci.StartSoftwareDownloadResponseType,
+	omci.EndSoftwareDownloadResponseType,
+	omci.ActivateSoftwareResponseType,
+	omci.CommitSoftwareResponseType,
+}
+
 //newOmciCC constructor returns a new instance of a OmciCC
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
@@ -278,6 +288,9 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
 		go rxCallbackEntry.cbFunction(ctx, omciMsg, &packet, rxCallbackEntry.cbRespChannel)
+		if isResponseOnConfiguration(omciMsg.MessageType) {
+			oo.pOnuDeviceEntry.incrementMibDataSync(ctx)
+		}
 		// having posted the response the request is regarded as 'done'
 		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
 		oo.mutexRxSchedMap.Unlock()
@@ -2136,4 +2149,13 @@ func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 	logger.Errorw(ctx, "Cannot generate MulticastSubConfigInfo Instance", log.Fields{"Err": omciErr.GetError(),
 		"device-id": oo.deviceID})
 	return nil
+}
+
+func isResponseOnConfiguration(msgType omci.MessageType) bool {
+	for _, v := range responsesOnConfiguration {
+		if v == msgType {
+			return true
+		}
+	}
+	return false
 }

@@ -189,6 +189,7 @@ const (
 	firstSwImageMeID  = 0
 	secondSwImageMeID = 1
 )
+const onuDataMeID = 0
 const onugMeID = 0
 const onu2gMeID = 0
 const ipHostConfigDataMeID = 1
@@ -247,8 +248,10 @@ type OnuDeviceEntry struct {
 	mibDbClass    func(context.Context) error
 	supportedFsms OmciDeviceFsms
 	devState      OnuDeviceEvent
-	// for mibUpload
-	mibAuditDelay uint16
+	// Audit and MDS
+	mibAuditDelay   uint16
+	mibLastDbSync   uint32
+	mibDataSyncAdpt uint8
 
 	// for mibUpload
 	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
@@ -306,6 +309,8 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	go onuDeviceEntry.mibDbClass(ctx)
 	onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
 	logger.Debugw(ctx, "MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
+	onuDeviceEntry.mibLastDbSync = 0
+	onuDeviceEntry.mibDataSyncAdpt = 0
 
 	// Omci related Mib upload sync state machine
 	mibUploadChan := make(chan Message, 2048)
@@ -331,7 +336,10 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 			{Name: ulEvSuccess, Src: []string{ulStUploading}, Dst: ulStInSync},
 
 			{Name: ulEvSuccess, Src: []string{ulStExaminingMds}, Dst: ulStInSync},
-			{Name: ulEvMismatch, Src: []string{ulStExaminingMds}, Dst: ulStResynchronizing},
+			// TODO: As long as mib-resynchronizing is not implemented, failed MDS-examination triggers
+			// mib-reset and new provisioning at this point
+			//{Name: ulEvMismatch, Src: []string{ulStExaminingMds}, Dst: ulStResynchronizing},
+			{Name: ulEvMismatch, Src: []string{ulStExaminingMds}, Dst: ulStResettingMib},
 
 			{Name: ulEvAuditMib, Src: []string{ulStInSync}, Dst: ulStAuditing},
 
@@ -753,4 +761,14 @@ func (oo *OnuDeviceEntry) lockOnuKVStoreMutex() {
 
 func (oo *OnuDeviceEntry) unlockOnuKVStoreMutex() {
 	oo.onuKVStoreMutex.Unlock()
+}
+
+func (oo *OnuDeviceEntry) incrementMibDataSync(ctx context.Context) {
+	if oo.mibDataSyncAdpt < 255 {
+		oo.mibDataSyncAdpt++
+	} else {
+		// per G.984 and G.988 overflow starts over at 1 given 0 is reserved for reset
+		oo.mibDataSyncAdpt = 1
+	}
+	logger.Debugf(ctx, "mibDataSync updated - mds: %d - device-id: %s", oo.mibDataSyncAdpt, oo.deviceID)
 }

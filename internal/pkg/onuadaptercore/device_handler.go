@@ -1370,7 +1370,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			logger.Debugw(ctx, "MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 			//Determine ONU status and start/re-start MIB Synchronization tasks
 			//Determine if this ONU has ever synchronized
-			if true { //TODO: insert valid check
+			if pDevEntry.isNewOnu() {
 				if err := pMibUlFsm.Event(ulEvResetMib); err != nil {
 					logger.Errorw(ctx, "MibSyncFsm: Can't go to state resetting_mib", log.Fields{"device-id": dh.deviceID, "err": err})
 					return fmt.Errorf("can't go to state resetting_mib: %s", dh.deviceID)
@@ -1381,11 +1381,6 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 					return fmt.Errorf("can't go to examine_mds: %s", dh.deviceID)
 				}
 				logger.Debugw(ctx, "state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
-				//Examine the MIB Data Sync
-				// callbacks to be handled:
-				// Event(ulEvSuccess)
-				// Event(ulEvTimeout)
-				// Event(ulEvMismatch)
 			}
 		} else {
 			logger.Errorw(ctx, "wrong state of MibSyncFsm - want: disabled", log.Fields{"have": string(pMibUlFsm.Current()),
@@ -1765,6 +1760,8 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 			// which may be the case from some previous actvity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
 			_ = dh.deviceReasonUpdate(ctx, drOmciFlowsPushed, !dh.reconciling)
+			// request MDS-value for test and logging purposes
+			dh.pOnuOmciDevice.requestMdsValue(ctx)
 			if dh.reconciling {
 				go dh.reconcileMetrics(ctx)
 			}
