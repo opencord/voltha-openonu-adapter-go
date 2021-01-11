@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "5689abb0_bd53a911",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-11T17:06:27Z",
+      "side": 1,
+      "message": "This seems like a duplicate code of requestMdsValue function. Is just invoking requestMdsValue ok?",
+      "range": {
+        "startLine": 232,
+        "startChar": 0,
+        "endLine": 237,
+        "endChar": 45
+      },
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a87f1c15_5730d942",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 3
@@ -19,6 +42,24 @@
     },
     {
       "key": {
+        "uuid": "30a28412_164ee010",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 471,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-11T17:06:27Z",
+      "side": 1,
+      "message": "Are you sure? From the specifications it seems like 0 is reserved value. I quote below from the specification. \n\nWhen incremented, the sequence number that follows 255 is 1. Zero is reserved for the following cases:\n1) default MIB with which the ONU left the factory;\n2) an ONU which after initialization cannot restore its MIB.\n\nIt seems like we should ideally never see 0 as MDS counter",
+      "parentUuid": "a87f1c15_5730d942",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "07507f13_2e55e3ce",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 3
@@ -30,6 +71,29 @@
       "writtenOn": "2021-01-11T15:03:10Z",
       "side": 1,
       "message": "also EndSoftwareDownloadResponseType, ActivateSoftwareResponseType and CommitSoftwareResponseType would be required here",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ab59f1b2_a0bdb46b",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-11T17:06:27Z",
+      "side": 1,
+      "message": "I am unable to find in this patch or old code where this is done periodically. Is it done periodically or what triggers examining the MDS?",
+      "range": {
+        "startLine": 342,
+        "startChar": 38,
+        "endLine": 342,
+        "endChar": 54
+      },
       "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
