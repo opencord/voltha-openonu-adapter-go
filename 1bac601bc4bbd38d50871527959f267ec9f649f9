@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a87f1c15_5730d942",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 471,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-11T15:03:10Z",
+      "side": 1,
+      "message": "I think the check on mibDataSyncOnu \u003e 0 can be omitted.\nIf ONU indicates 0 then also OLT counter should be 0 which would be valid in my point of view.",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "07507f13_2e55e3ce",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-11T15:03:10Z",
+      "side": 1,
+      "message": "also EndSoftwareDownloadResponseType, ActivateSoftwareResponseType and CommitSoftwareResponseType would be required here",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "73ca6a6b_d64db844",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 771,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-11T15:03:10Z",
+      "side": 1,
+      "message": "should be in some else branch, otherwise increment from 255 to 2.",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
