@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "18763a48_30d658cb",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-12T12:19:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5689abb0_bd53a911",
+      "range": {
+        "startLine": 232,
+        "startChar": 0,
+        "endLine": 237,
+        "endChar": 45
+      },
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a87f1c15_5730d942",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 3
@@ -60,6 +84,24 @@
     },
     {
       "key": {
+        "uuid": "ec52b541_49275e40",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 471,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-12T12:19:43Z",
+      "side": 1,
+      "message": "My understanding is - please correct me if I\u0027m wrong - that the zero would be sent by the ONU even until after the mib upload was completed, since no OMCI configurations were done by the adapter until then. We can see that the mib upload was completed during the previous startup by the fact, that we got into the \"ulStExaminingMds\" state in the first place. So, after all, in this specific case it seems to be possible to send the ONU directly to the \"ulStInSync\" state via the \"ulEvSuccess\" event.",
+      "parentUuid": "a87f1c15_5730d942",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "07507f13_2e55e3ce",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 3
@@ -74,6 +116,24 @@
       "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b7f5e371_2a3d6ab7",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-12T12:19:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "07507f13_2e55e3ce",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -100,6 +160,30 @@
     },
     {
       "key": {
+        "uuid": "9ca782cc_b6feed0a",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-12T12:19:43Z",
+      "side": 1,
+      "message": "The goal of this little story was merely the basic MDS-handling to provide the counterpart for a first test with ONU (esp. BBSIM). Going to set up a new story for the periodic audit.",
+      "parentUuid": "ab59f1b2_a0bdb46b",
+      "range": {
+        "startLine": 342,
+        "startChar": 38,
+        "endLine": 342,
+        "endChar": 54
+      },
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "73ca6a6b_d64db844",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 3
@@ -114,6 +198,24 @@
       "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24a39b1a_2118a916",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 771,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-12T12:19:43Z",
+      "side": 1,
+      "message": "Ack - Was disimproved after \"sca-check\"!",
+      "parentUuid": "73ca6a6b_d64db844",
+      "revId": "1bac601bc4bbd38d50871527959f267ec9f649f9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
