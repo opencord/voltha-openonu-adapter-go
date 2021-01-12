@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ae7c0179_93f37947",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-12T15:22:18Z",
+      "side": 1,
+      "message": "I would prefer \u0027responsesWithMibSync\u0027",
+      "revId": "87514be8b4cf80e566ae285d7a419c5bca719536",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dbbe9bf8_3a0125b1",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 291,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-12T15:22:18Z",
+      "side": 1,
+      "message": "I would prefer isResponsesWithMibSync",
+      "revId": "87514be8b4cf80e566ae285d7a419c5bca719536",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "040f339e_32ac049a",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2154,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-12T15:22:18Z",
+      "side": 1,
+      "message": "s.a.: I would prefer isResponsesWithMibSync",
+      "revId": "87514be8b4cf80e566ae285d7a419c5bca719536",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
