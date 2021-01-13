@@ -74,7 +74,7 @@ github.com/mitchellh/mapstructure
 # github.com/opencord/omci-lib-go v0.13.4
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v4 v4.0.4
+# github.com/opencord/voltha-lib-go/v4 v4.0.6
 github.com/opencord/voltha-lib-go/v4/pkg/adapters
 github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif
 github.com/opencord/voltha-lib-go/v4/pkg/adapters/common
@@ -89,9 +89,10 @@ github.com/opencord/voltha-lib-go/v4/pkg/log
 github.com/opencord/voltha-lib-go/v4/pkg/probe
 github.com/opencord/voltha-lib-go/v4/pkg/techprofile
 github.com/opencord/voltha-lib-go/v4/pkg/version
-# github.com/opencord/voltha-protos/v4 v4.0.6
+# github.com/opencord/voltha-protos/v4 v4.0.8
 github.com/opencord/voltha-protos/v4/go/common
 github.com/opencord/voltha-protos/v4/go/ext/config
+github.com/opencord/voltha-protos/v4/go/extension
 github.com/opencord/voltha-protos/v4/go/inter_container
 github.com/opencord/voltha-protos/v4/go/omci
 github.com/opencord/voltha-protos/v4/go/openflow_13

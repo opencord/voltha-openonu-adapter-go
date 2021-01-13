@@ -32,6 +32,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-protos/v4/go/extension"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	oop "github.com/opencord/voltha-protos/v4/go/openolt"
@@ -420,7 +421,14 @@ func (oo *OpenONUAC) Update_flows_incrementally(ctx context.Context, device *vol
 
 //Update_pm_config returns PmConfigs nil or error
 func (oo *OpenONUAC) Update_pm_config(ctx context.Context, device *voltha.Device, pmConfigs *voltha.PmConfigs) error {
-	return errors.New("unImplemented")
+	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": device.Id})
+	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
+		handler.updatePmConfig(ctx, pmConfigs)
+	} else {
+		logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": device.Id})
+		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	}
+	return nil
 }
 
 //Receive_packet_out sends packet out to the device
@@ -486,6 +494,11 @@ func (oo *OpenONUAC) Start_omci_test(ctx context.Context, device *voltha.Device,
 
 // Get_ext_value - unimplemented
 func (oo *OpenONUAC) Get_ext_value(ctx context.Context, deviceID string, device *voltha.Device, valueparam voltha.ValueType_Type) (*voltha.ReturnValues, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// Single_get_value_request - unimplemented
+func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request extension.SingleGetValueRequest) (*extension.SingleGetValueResponse, error) {
 	return nil, errors.New("unImplemented")
 }
 
