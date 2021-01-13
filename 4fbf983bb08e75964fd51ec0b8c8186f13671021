@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c66d398c_72baef95",
+        "filename": "VERSION",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T08:39:19Z",
+      "side": 1,
+      "message": "1.1.0-dev155",
+      "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2bad8662_86b378aa",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T08:39:19Z",
+      "side": 1,
+      "message": "will this remove automatically the flows if provisioned ?",
+      "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
