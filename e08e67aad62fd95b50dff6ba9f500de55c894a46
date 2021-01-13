@@ -2,6 +2,57 @@
   "comments": [
     {
       "key": {
+        "uuid": "4f1dffba_b985e926",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "I\u0027d prefer this import on place below, where all the opencord import are done",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33d4ed56_e56565d7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "Throughout modified usage: Does not look to me like some PM functionaliy that is implemented here - in the sense of 15min and so on counter collection. \nHence I would prefer perhaps the wording \u0027metrics\u0027 here instead of PM - as already done on some inserted code positions.",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9bf51192_8f11049c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "Looks strange to me to handle all these parameters as \u0027Gauge\u0027 values.\nCompare comment on value-read activity.",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3bb08f39_d57244d7",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -42,6 +93,23 @@
     },
     {
       "key": {
+        "uuid": "f07240b4_e3d42dcc",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "At least a comment would be welcome, what means frequency 150?\nSeems rather to be a duration - really 150s - 2min30? strange ...",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "98fdf3b4_d005ad9d",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -53,6 +121,23 @@
       "writtenOn": "2021-01-13T11:52:03Z",
       "side": 1,
       "message": "do we need to restart the collector given the difference?",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bc3bd9e3_e259d15b",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "My preferred naming (acc. to some further comment) would be \u0027onu_metrics_manager\u0027",
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -76,6 +161,40 @@
     },
     {
       "key": {
+        "uuid": "818744cd_41bf4bc0",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "This should not work as possibly expected here.\nAs usual in this adapter code an OMCI response should be expected (to be assigned to some receiver channel) which then must be parsed concerning the received attributes.\nAnd then the interesting question arises what would be the reaction on response error indications ...",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0cb650cc_8e896bce",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "You\u0027re sure you assigne the names with correct ANI-G attributes? I would believe they are mixed up.\nOpticalSignalLevel is the downstream level received by the ONU! I would not understand that as \u0027tranmitPower\u0027",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cb6ff461_aa7a690e",
         "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
         "patchSetId": 1
@@ -87,6 +206,108 @@
       "writtenOn": "2021-01-13T11:52:03Z",
       "side": 1,
       "message": "same about all of these, can we retrieve them from OMCi library ? if not at least please extract is as constant. valid for all other hardcoded constants",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bb383d3c_22e934eb",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "Who is interested in UNI-G parameters?\nEspecially AdminState: See G988: \"It is recommended that this attribute not be used ...\"",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5bb7dd2e_5986ab6a",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "This should not work as possibly expected here - see same comment above",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "40e0a71c_a6c0ce38",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "Not really nice data conversion. But at least I would expect \u0027PmConfig_GAUGE\u0027 here.",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6cb27789_d7f63115",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "Instead (or add.to) UNI-G VEIP indications might be interesting - depending on ONU data model - compare Holger H comment on other code position.",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8256af2e_6f7ee56b",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "This should not work as possibly expected here - see same comment above",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bd4190f9_f0cef05c",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-13T15:28:07Z",
+      "side": 1,
+      "message": "here and in the following: Not really nice data conversion. But at least I would expect \u0027PmConfig_GAUGE\u0027 here.",
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
