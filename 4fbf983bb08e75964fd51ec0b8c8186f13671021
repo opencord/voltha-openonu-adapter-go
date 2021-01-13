@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1f5a4b34_98de2257",
+        "filename": "VERSION",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-13T11:58:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c66d398c_72baef95",
+      "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2bad8662_86b378aa",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 5
@@ -30,6 +48,24 @@
       "writtenOn": "2021-01-13T08:39:19Z",
       "side": 1,
       "message": "will this remove automatically the flows if provisioned ?",
+      "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7627bb15_d90a687f",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-13T11:58:10Z",
+      "side": 1,
+      "message": "What use case are you referring to? The status \"ulStExaminingMds\" is only reached when an onu-up-indication arrives for an ONU that has already brought up before. Then we should already have received an onu-down-indication for this ONU, which has cleaned up the flows internally.\nNote: For the periodical audit (to be done) we have a separate FSM state.",
+      "parentUuid": "2bad8662_86b378aa",
       "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
