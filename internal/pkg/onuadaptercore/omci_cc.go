@@ -1193,6 +1193,46 @@ func (oo *omciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 	return nil
 }
 
+func (oo *omciCC) sendGetMetricsMe(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap,
+	timeout int, highPrio bool) *me.ManagedEntity {
+
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send get-request-msg-for-metrics-collection", log.Fields{"classID": classID, "device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	meParams := me.ParamData{
+		EntityID:   entityID,
+		Attributes: requestedAttributes,
+	}
+	meInstance, omciErr := me.LoadManagedEntityDefinition(classID, meParams)
+	if omciErr.GetError() == nil {
+		meClassIDName := meInstance.GetName()
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorf(ctx, "Cannot encode instance for get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{(*oo.pBaseDeviceHandler).pOnuMetricsMgr.commMetricsChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send get-request-msg", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debugw(ctx, "send get-request-msg done", log.Fields{"meClassIDName": meClassIDName, "device-id": oo.deviceID})
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
 func (oo *omciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPrio bool,
 	aInstID uint16, rxChan chan Message) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
