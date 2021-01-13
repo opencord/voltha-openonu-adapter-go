@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/common"
 	"strconv"
 	"sync"
 	"time"
@@ -124,6 +125,20 @@ var deviceReasonMap = map[uint8]string{
 	drTechProfileConfigDeleteSuccess:   "tech-profile-config-delete-success",
 }
 
+// OmciOpticalPmNames are supported optical pm names
+var OmciOpticalPmNames = map[string]voltha.PmConfig_PmType{
+	"transmit_power": voltha.PmConfig_GAUGE,
+	"receive_power":  voltha.PmConfig_GAUGE,
+}
+
+// OmciUniPmNames are supported UNI status names
+var OmciUniPmNames = map[string]voltha.PmConfig_PmType{
+	"ethernet_type":    voltha.PmConfig_GAUGE,
+	"oper_status":      voltha.PmConfig_GAUGE,
+	"pptp_admin_state": voltha.PmConfig_GAUGE,
+	"uni_admin_state":  voltha.PmConfig_GAUGE,
+}
+
 //deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
 	deviceID         string
@@ -140,12 +155,15 @@ type deviceHandler struct {
 	AdapterProxy adapterif.AdapterProxy
 	EventProxy   eventif.EventProxy
 
+	pmMetrics *common.PmMetrics
+
 	pOpenOnuAc      *OpenONUAC
 	pDeviceStateFsm *fsm.FSM
 	//pPonPort        *voltha.Port
 	deviceEntrySet  chan bool //channel for DeviceEntry set event
 	pOnuOmciDevice  *OnuDeviceEntry
 	pOnuTP          *onuUniTechProf
+	pOnuStatsMgr    *onuStatsManager
 	exitChannel     chan int
 	lockDevice      sync.RWMutex
 	pOnuIndication  *oop.OnuIndication
@@ -160,7 +178,6 @@ type deviceHandler struct {
 	//discOnus sync.Map
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
-	//metrics            *pmmetrics.PmMetrics
 	stopCollector              chan bool
 	stopHeartbeatCheck         chan bool
 	uniEntityMap               map[uint32]*onuUniPort
@@ -195,6 +212,21 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.reconciling = false
 	dh.ReadyForSpecificOmciConfig = false
 
+	dh.pmMetrics = common.NewPmMetrics(cloned.Id, common.Frequency(150), common.FrequencyOverride(false), common.Grouped(false), nil)
+	for pmName, pmType := range OmciOpticalPmNames {
+		dh.pmMetrics.ToPmConfigs().Metrics = append(dh.pmMetrics.ToPmConfigs().Metrics, &voltha.PmConfig{
+			Name:    pmName,
+			Type:    pmType,
+			Enabled: true,
+		})
+	}
+	for pmName, pmType := range OmciUniPmNames {
+		dh.pmMetrics.ToPmConfigs().Metrics = append(dh.pmMetrics.ToPmConfigs().Metrics, &voltha.PmConfig{
+			Name:    pmName,
+			Type:    pmType,
+			Enabled: true,
+		})
+	}
 	// Device related state machine
 	dh.pDeviceStateFsm = fsm.NewFSM(
 		devStNull,
@@ -1180,11 +1212,12 @@ func (dh *deviceHandler) getOnuDeviceEntry(ctx context.Context, aWait bool) *Onu
 
 //setOnuDeviceEntry sets the ONU device entry within the handler
 func (dh *deviceHandler) setOnuDeviceEntry(
-	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf) {
+	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuStatsMgr *onuStatsManager) {
 	dh.lockDevice.Lock()
 	defer dh.lockDevice.Unlock()
 	dh.pOnuOmciDevice = apDeviceEntry
 	dh.pOnuTP = apOnuTp
+	dh.pOnuStatsMgr = apOnuStatsMgr
 }
 
 //addOnuDeviceEntry creates a new ONU device or returns the existing
@@ -1199,8 +1232,9 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		/* and no alarm_db yet (oo.alarm_db)  */
 		deviceEntry = newOnuDeviceEntry(ctx, dh)
 		onuTechProfProc := newOnuUniTechProf(ctx, dh)
+		onuStatsMgr := newOnuStatsManager(ctx, dh)
 		//error treatment possible //TODO!!!
-		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc)
+		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuStatsMgr)
 		// fire deviceEntry ready event to spread to possibly waiting processing
 		dh.deviceEntrySet <- true
 		logger.Debugw(ctx, "onuDeviceEntry-added", log.Fields{"device-id": dh.deviceID})
@@ -1396,6 +1430,10 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Errorw(ctx, "MibSyncFsm invalid - cannot be executed!!", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("can't execute MibSync: %s", dh.deviceID)
 	}
+
+	// Start PM collector routine
+	go dh.startCollector(ctx)
+
 	return nil
 }
 
@@ -1514,7 +1552,9 @@ func (dh *deviceHandler) resetFsms(ctx context.Context) error {
 			}
 		}
 	}
-	//TODO!!! care about PM/Alarm processing once started
+	// Stop collector routine for PM Counters
+	dh.stopCollector <- true
+
 	return nil
 }
 
@@ -2487,4 +2527,38 @@ func (dh *deviceHandler) getUniPortMEEntityID(uniPortNo uint32) (uint16, error) 
 		return uniPort.entityID, nil
 	}
 	return 0, errors.New("error-fetching-uni-port")
+}
+
+// updatePmConfig updates the pm metrics config.
+func (dh *deviceHandler) updatePmConfig(ctx context.Context, pmConfigs *voltha.PmConfigs) {
+	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": dh.device.Id, "pm-configs": pmConfigs})
+
+	// TODO: Currently support only updating the PM Sampling Frequency
+	if pmConfigs.DefaultFreq != dh.pmMetrics.ToPmConfigs().DefaultFreq {
+		dh.pmMetrics.ToPmConfigs().DefaultFreq = pmConfigs.DefaultFreq
+		logger.Debug(ctx, "frequency-updated")
+	} else {
+		logger.Debugw(ctx, "new-frequency-same-as-old--not-updating", log.Fields{"frequency": pmConfigs.DefaultFreq})
+	}
+}
+
+func (dh *deviceHandler) startCollector(ctx context.Context) {
+	logger.Debugf(ctx, "starting-collector")
+	for {
+		select {
+		case <-dh.stopCollector:
+			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
+			return
+		case <-time.After(time.Duration(dh.pmMetrics.ToPmConfigs().DefaultFreq) * time.Second):
+			go func() {
+				metricInfo := dh.pOnuStatsMgr.collectOpticalMetrics(ctx)
+				dh.pOnuStatsMgr.publishMetrics(ctx, metricInfo)
+			}()
+
+			go func() {
+				metricInfo := dh.pOnuStatsMgr.collectUniStatusMetrics(ctx)
+				dh.pOnuStatsMgr.publishMetrics(ctx, metricInfo)
+			}()
+		}
+	}
 }
