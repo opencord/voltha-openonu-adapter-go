@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4c036246_2be64d89",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T11:52:03Z",
+      "side": 1,
+      "message": "can we make this configurable via runtime parameter and helm ?",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "98fdf3b4_d005ad9d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2538,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T11:52:03Z",
+      "side": 1,
+      "message": "do we need to restart the collector given the difference?",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cc0e96a_4c900919",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T11:52:03Z",
+      "side": 1,
+      "message": "can it be retrieved from somewhere? is this a property of omci ?",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cb6ff461_aa7a690e",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T11:52:03Z",
+      "side": 1,
+      "message": "same about all of these, can we retrieve them from OMCi library ? if not at least please extract is as constant. valid for all other hardcoded constants",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
