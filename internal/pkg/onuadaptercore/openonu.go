@@ -424,7 +424,14 @@ func (oo *OpenONUAC) Update_flows_incrementally(ctx context.Context, device *vol
 
 //Update_pm_config returns PmConfigs nil or error
 func (oo *OpenONUAC) Update_pm_config(ctx context.Context, device *voltha.Device, pmConfigs *voltha.PmConfigs) error {
-	return errors.New("unImplemented")
+	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": device.Id})
+	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
+		handler.updatePmConfig(ctx, pmConfigs)
+	} else {
+		logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": device.Id})
+		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	}
+	return nil
 }
 
 //Receive_packet_out sends packet out to the device
@@ -506,7 +513,7 @@ func (oo *OpenONUAC) Get_ext_value(ctx context.Context, deviceID string, device 
 	return nil, errors.New("unImplemented")
 }
 
-//Single_get_value_request as needed by voltha-lib-go update to 4.0.xx?
+// Single_get_value_request - unimplemented
 func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request extension.SingleGetValueRequest) (*extension.SingleGetValueResponse, error) {
 	return nil, errors.New("unImplemented")
 }

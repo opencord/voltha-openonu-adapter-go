@@ -83,7 +83,7 @@ func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Eve
 func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting VendorId and SerialNumber in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"VendorId": "", "SerialNumber": 0}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, onugMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, onugMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -92,7 +92,7 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting EquipmentId in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"EquipmentId": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, onu2gMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, onu2gMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -101,7 +101,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"IsActive": 0, "Version": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -110,7 +110,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"IsActive": 0, "Version": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -119,7 +119,7 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting MacAddress in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"MacAddress": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, ipHostConfigDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, ipHostConfigDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -637,7 +637,7 @@ func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 	logger.Debugw(ctx, "Request MDS value", log.Fields{"device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
-		me.OnuDataClassID, onuDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true)
+		me.OnuDataClassID, onuDataMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance

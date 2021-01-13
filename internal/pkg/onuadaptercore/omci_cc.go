@@ -1189,7 +1189,7 @@ func (oo *omciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 }
 
 func (oo *omciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap,
-	timeout int, highPrio bool) *me.ManagedEntity {
+	timeout int, highPrio bool, rxChan chan Message) *me.ManagedEntity {
 
 	tid := oo.getNextTid(highPrio)
 	logger.Debugw(ctx, "send get-request-msg", log.Fields{"classID": classID, "device-id": oo.deviceID,
@@ -1214,7 +1214,7 @@ func (oo *omciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		}
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {

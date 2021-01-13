@@ -74,7 +74,7 @@ github.com/mitchellh/mapstructure
 # github.com/opencord/omci-lib-go v0.13.4
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v4 v4.0.5
+# github.com/opencord/voltha-lib-go/v4 v4.0.6
 github.com/opencord/voltha-lib-go/v4/pkg/adapters
 github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif
 github.com/opencord/voltha-lib-go/v4/pkg/adapters/common
