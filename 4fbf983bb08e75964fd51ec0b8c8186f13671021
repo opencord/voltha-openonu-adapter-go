@@ -69,6 +69,24 @@
       "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "53423a0e_c5928faf",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-13T12:41:06Z",
+      "side": 1,
+      "message": "ok, I was thinking of the periodic one which woudl trigger this case and not the up/down/up case. thanks",
+      "parentUuid": "7627bb15_d90a687f",
+      "revId": "4fbf983bb08e75964fd51ec0b8c8186f13671021",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
