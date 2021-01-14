@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "a5257a35_7114d8e0",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "33d4ed56_e56565d7",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9bf51192_8f11049c",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -64,6 +82,30 @@
       "writtenOn": "2021-01-13T12:10:10Z",
       "side": 1,
       "message": "Regarding pptp_admin_state: Don\u0027t we need it for VEIP-based ports too?",
+      "range": {
+        "startLine": 140,
+        "startChar": 0,
+        "endLine": 140,
+        "endChar": 1
+      },
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "82f19526_a824ab77",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "The python implementation did not have the support. But let me check if we can capture for veip ports too.",
+      "parentUuid": "3bb08f39_d57244d7",
       "range": {
         "startLine": 140,
         "startChar": 0,
@@ -110,6 +152,42 @@
     },
     {
       "key": {
+        "uuid": "42d45777_ad1c29f7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "it is 150s. I will comment it.",
+      "parentUuid": "f07240b4_e3d42dcc",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4b25e4e5_7be07640",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "May not be needed to make it run time configurable, as these could also be modfied at runtime. At least this is how it is done in python onu adapter and olt adapter.",
+      "parentUuid": "4c036246_2be64d89",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "98fdf3b4_d005ad9d",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -121,6 +199,24 @@
       "writtenOn": "2021-01-13T11:52:03Z",
       "side": 1,
       "message": "do we need to restart the collector given the difference?",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed120e3e_21eab6ed",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2538,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Not, it will not be necessary. The latest value will be read by startCollector routine to start the timer",
+      "parentUuid": "98fdf3b4_d005ad9d",
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -144,6 +240,24 @@
     },
     {
       "key": {
+        "uuid": "a906fe71_bd4b4f39",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "bc3bd9e3_e259d15b",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8cc0e96a_4c900919",
         "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
         "patchSetId": 1
@@ -155,6 +269,24 @@
       "writtenOn": "2021-01-13T11:52:03Z",
       "side": 1,
       "message": "can it be retrieved from somewhere? is this a property of omci ?",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cd545cd6_2f3448a7",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "No unfortunately it is not something available from OMCI. It is just a name for the Metric. May be I can define it as a constant.",
+      "parentUuid": "8cc0e96a_4c900919",
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -178,6 +310,24 @@
     },
     {
       "key": {
+        "uuid": "eba8e0ce_f9361b61",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "818744cd_41bf4bc0",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0cb650cc_8e896bce",
         "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
         "patchSetId": 1
@@ -192,6 +342,24 @@
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ebc46a32_9668243d",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "0cb650cc_8e896bce",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -246,6 +414,24 @@
     },
     {
       "key": {
+        "uuid": "c18153b0_c79735b7",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5bb7dd2e_5986ab6a",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "40e0a71c_a6c0ce38",
         "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
         "patchSetId": 1
@@ -257,6 +443,24 @@
       "writtenOn": "2021-01-13T15:28:07Z",
       "side": 1,
       "message": "Not really nice data conversion. But at least I would expect \u0027PmConfig_GAUGE\u0027 here.",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a31259d_06f34393",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Not sure I understand. The meAttributes[\"AdministrativeState\"] is an interface{} type which needs to be read as byte and then converted to float32 as that is the expected value type for Metrics",
+      "parentUuid": "40e0a71c_a6c0ce38",
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -294,6 +498,24 @@
       "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "be82f963_52df429e",
+        "filename": "internal/pkg/onuadaptercore/onu_stats_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-14T19:13:11Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8256af2e_6f7ee56b",
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
