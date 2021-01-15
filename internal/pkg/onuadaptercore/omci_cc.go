@@ -239,7 +239,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	//logger.Debugw(ctx,"cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
 	if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
 		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
-		//  (am extendedFormat message could be destroyed this way!)
+		//  (an extendedFormat message could be destroyed this way!)
 		trailerLenData := rxMsg[42:44]
 		trailerLen := binary.BigEndian.Uint16(trailerLenData)
 		//logger.Debugw(ctx,"omci-received-trailer-len", log.Fields{"Length": trailerLen})
@@ -247,6 +247,14 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 			binary.BigEndian.PutUint16(rxMsg[42:44], 40)
 			logger.Debug(ctx, "cc-corrected-omci-message: trailer len inserted")
 		}
+	} else if len(rxMsg) >= 40 { // workaround for Adtran OLT Sim, which currently does not send trailer bytes at all!
+		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
+		//  (an extendedFormat message could be destroyed this way!)
+		// extend/overwrite with trailer
+		trailer := make([]byte, 8)
+		binary.BigEndian.PutUint16(trailer[2:], 40) //set the defined baseline length
+		rxMsg = append(rxMsg[:40], trailer...)
+		logger.Debugw(ctx, "autocorrected-omci-message: trailer inserted", log.Fields{"new-length": len(rxMsg)})
 	} else {
 		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
 		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
@@ -291,6 +299,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		if isResponseWithMibDataSync(omciMsg.MessageType) {
 			oo.pOnuDeviceEntry.incrementMibDataSync(ctx)
 		}
+
 		// having posted the response the request is regarded as 'done'
 		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
 		oo.mutexRxSchedMap.Unlock()
