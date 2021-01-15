@@ -32,6 +32,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-protos/v4/go/extension"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	oop "github.com/opencord/voltha-protos/v4/go/openolt"
@@ -66,6 +67,7 @@ type OpenONUAC struct {
 	//GrpcTimeoutInterval         time.Duration
 	pSupportedFsms             *OmciDeviceFsms
 	maxTimeoutInterAdapterComm time.Duration
+	pDownloadManager           *adapterDownloadManager
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -114,13 +116,15 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 		},
 	}
 
+	openOnuAc.pDownloadManager = newAdapterDownloadManager(ctx)
+
 	return &openOnuAc
 }
 
 //Start starts (logs) the adapter
 func (oo *OpenONUAC) Start(ctx context.Context) error {
 	logger.Info(ctx, "starting-openonu-adapter")
-	logger.Info(ctx, "openonu-adapter-started")
+
 	return nil
 }
 
@@ -438,9 +442,17 @@ func (oo *OpenONUAC) Unsuppress_event(ctx context.Context, filter *voltha.EventF
 	return errors.New("unImplemented")
 }
 
-//Download_image unimplemented
-func (oo *OpenONUAC) Download_image(ctx context.Context, device *voltha.Device, request *voltha.ImageDownload) (*voltha.ImageDownload, error) {
-	return nil, errors.New("unImplemented")
+//Download_image according to download image indications as given in apRequest
+func (oo *OpenONUAC) Download_image(ctx context.Context, device *voltha.Device, apRequest *voltha.ImageDownload) (*voltha.ImageDownload, error) {
+	if !oo.pDownloadManager.imageExists(ctx, apRequest) {
+		logger.Debugw(ctx, "start image download", log.Fields{"image-description": apRequest})
+		// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
+		// the download itself is later done in background
+		err := oo.pDownloadManager.startDownload(ctx, apRequest)
+		return apRequest, err
+	}
+	// image already exists
+	return apRequest, nil
 }
 
 //Get_image_download_status unimplemented
@@ -454,8 +466,13 @@ func (oo *OpenONUAC) Cancel_image_download(ctx context.Context, device *voltha.D
 }
 
 //Activate_image_update unimplemented
-func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, request *voltha.ImageDownload) (*voltha.ImageDownload, error) {
-	return nil, errors.New("unImplemented")
+func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, apRequest *voltha.ImageDownload) (*voltha.ImageDownload, error) {
+	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
+		err := handler.doOnuSwUpgrade(ctx, apRequest)
+		return apRequest, err
+	}
+	logger.Warnw(ctx, "no handler found for Onu image activation", log.Fields{"device-id": device.Id})
+	return apRequest, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Revert_image_update unimplemented
@@ -486,6 +503,11 @@ func (oo *OpenONUAC) Start_omci_test(ctx context.Context, device *voltha.Device,
 
 // Get_ext_value - unimplemented
 func (oo *OpenONUAC) Get_ext_value(ctx context.Context, deviceID string, device *voltha.Device, valueparam voltha.ValueType_Type) (*voltha.ReturnValues, error) {
+	return nil, errors.New("unImplemented")
+}
+
+//Single_get_value_request as needed by voltha-lib-go update to 4.0.xx?
+func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request extension.SingleGetValueRequest) (*extension.SingleGetValueResponse, error) {
 	return nil, errors.New("unImplemented")
 }
 

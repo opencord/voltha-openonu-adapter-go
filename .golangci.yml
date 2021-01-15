@@ -83,6 +83,7 @@ issues:
     - "don't use underscores in Go names; method Child_device_lost"
     - "don't use underscores in Go names; method Start_omci_test"
     - "don't use underscores in Go names; method Get_ext_value"
+    - "don't use underscores in Go names; method Single_get_value_request"
     - "Error return value of `dh.coreProxy.PortStateUpdate` is not checked"
     - "Error return value of `rxCallbackEntry.cbFunction` is not checked"
     - "Error return value of `oo.sendNextRequest` is not checked"
