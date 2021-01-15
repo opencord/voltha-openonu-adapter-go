@@ -25,6 +25,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-protos/v4/go/extension"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
@@ -732,4 +733,35 @@ func (rhp *RequestHandlerProxy) Get_ext_value(ctx context.Context, args []*ic.Ar
 
 	//Invoke the Get_value API on the adapter
 	return rhp.adapter.Get_ext_value(ctx, pDeviceId.Val, device, voltha.ValueType_Type(valuetype.Val))
+}
+
+func (rhp *RequestHandlerProxy) Single_get_value_request(ctx context.Context, args []*ic.Argument) (*extension.SingleGetValueResponse, error) {
+	logger.Debugw(ctx, "req handler Single_get_value_request", log.Fields{"no of args": len(args), "args": args})
+
+	if len(args) < 1 {
+		logger.Warn(ctx, "invalid-number-of-args", log.Fields{"args": args})
+		return nil, errors.New("invalid-number-of-args")
+	}
+	singleGetvalueReq := extension.SingleGetValueRequest{}
+	errResp := func(status extension.GetValueResponse_Status, reason extension.GetValueResponse_ErrorReason) *extension.SingleGetValueResponse {
+		return &extension.SingleGetValueResponse{
+			Response: &extension.GetValueResponse{
+				Status:    status,
+				ErrReason: reason,
+			},
+		}
+	}
+	for _, arg := range args {
+		switch arg.Key {
+		case "request":
+			if err := ptypes.UnmarshalAny(arg.Value, &singleGetvalueReq); err != nil {
+				logger.Warnw(ctx, "cannot-unmarshal-singleGetvalueReq", log.Fields{"error": err})
+				return errResp(extension.GetValueResponse_ERROR, extension.GetValueResponse_REASON_UNDEFINED), nil
+			}
+		default:
+			logger.Warnw(ctx, "key-not-found", log.Fields{"arg.Key": arg.Key})
+		}
+	}
+	logger.Debugw(ctx, "invoke rhp.adapter.Single_get_value_request ", log.Fields{"singleGetvalueReq": singleGetvalueReq})
+	return rhp.adapter.Single_get_value_request(ctx, singleGetvalueReq)
 }

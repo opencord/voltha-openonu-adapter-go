@@ -61,6 +61,20 @@ const macBridgePortAniEID = uint16(0x2102)
 
 const unusedTcontAllocID = uint16(0xFFFF) //common unused AllocId for G.984 and G.987 systems
 
+const cOmciBaseMessageTrailerLen = 40
+
+// tOmciReceiveError - enum type for detected problems/errors in the received OMCI message (format)
+type tOmciReceiveError uint8
+
+const (
+	// cOmciMessageReceiveNoError - default start state
+	cOmciMessageReceiveNoError tOmciReceiveError = iota
+	// Error indication wrong trailer length within the message
+	cOmciMessageReceiveErrorTrailerLen
+	// Error indication missing trailer within the message
+	cOmciMessageReceiveErrorMissTrailer
+)
+
 // ### OMCI related definitions - end
 
 //callbackPairEntry to be used for OMCI send/receive correlation
@@ -91,9 +105,8 @@ type omciCC struct {
 	coreProxy          adapterif.CoreProxy
 	adapterProxy       adapterif.AdapterProxy
 	supportExtMsg      bool
-	//txRequest
-	//rxResponse
-	//pendingRequest
+	rxOmciFrameError   tOmciReceiveError
+
 	txFrames, txOnuFrames                uint32
 	rxFrames, rxOnuFrames, rxOnuDiscards uint32
 
@@ -136,6 +149,7 @@ func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 	omciCC.coreProxy = coreProxy
 	omciCC.adapterProxy = adapterProxy
 	omciCC.supportExtMsg = false
+	omciCC.rxOmciFrameError = cOmciMessageReceiveNoError
 	omciCC.txFrames = 0
 	omciCC.txOnuFrames = 0
 	omciCC.rxFrames = 0
@@ -173,6 +187,7 @@ func (oo *omciCC) stop(ctx context.Context) error {
 	//reset control values
 	oo.uploadSequNo = 0
 	oo.uploadNoOfCmds = 0
+	oo.rxOmciFrameError = cOmciMessageReceiveNoError
 	//reset the stats counter - which might be topic of discussion ...
 	oo.txFrames = 0
 	oo.txOnuFrames = 0
@@ -239,16 +254,35 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	//logger.Debugw(ctx,"cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
 	if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
 		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
-		//  (am extendedFormat message could be destroyed this way!)
+		//  (an extendedFormat message could be destroyed this way!)
 		trailerLenData := rxMsg[42:44]
 		trailerLen := binary.BigEndian.Uint16(trailerLenData)
 		//logger.Debugw(ctx,"omci-received-trailer-len", log.Fields{"Length": trailerLen})
-		if trailerLen != 40 { // invalid base Format entry -> autocorrect
-			binary.BigEndian.PutUint16(rxMsg[42:44], 40)
-			logger.Debug(ctx, "cc-corrected-omci-message: trailer len inserted")
+		if trailerLen != cOmciBaseMessageTrailerLen { // invalid base Format entry -> autocorrect
+			binary.BigEndian.PutUint16(rxMsg[42:44], cOmciBaseMessageTrailerLen)
+			if oo.rxOmciFrameError != cOmciMessageReceiveErrorTrailerLen {
+				//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
+				logger.Errorw(ctx, "wrong omci-message trailer length: trailer len auto-corrected",
+					log.Fields{"trailer-length": trailerLen, "device-id": oo.deviceID})
+				oo.rxOmciFrameError = cOmciMessageReceiveErrorTrailerLen
+			}
+		}
+	} else if len(rxMsg) >= cOmciBaseMessageTrailerLen { // workaround for Adtran OLT Sim, which currently does not send trailer bytes at all!
+		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
+		//  (an extendedFormat message could be destroyed this way!)
+		// extend/overwrite with trailer
+		trailer := make([]byte, 8)
+		binary.BigEndian.PutUint16(trailer[2:], cOmciBaseMessageTrailerLen) //set the defined baseline length
+		rxMsg = append(rxMsg[:cOmciBaseMessageTrailerLen], trailer...)
+		if oo.rxOmciFrameError != cOmciMessageReceiveErrorMissTrailer {
+			//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
+			logger.Errorw(ctx, "omci-message to short to include trailer len: trailer auto-corrected (added)",
+				log.Fields{"message-length": len(rxMsg), "device-id": oo.deviceID})
+			oo.rxOmciFrameError = cOmciMessageReceiveErrorMissTrailer
 		}
 	} else {
-		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
+		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort",
+			log.Fields{"Length": len(rxMsg), "device-id": oo.deviceID})
 		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
 	}
 
@@ -291,6 +325,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		if isResponseWithMibDataSync(omciMsg.MessageType) {
 			oo.pOnuDeviceEntry.incrementMibDataSync(ctx)
 		}
+
 		// having posted the response the request is regarded as 'done'
 		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
 		oo.mutexRxSchedMap.Unlock()
