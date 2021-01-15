@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "34d97ae1_9336461d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-15T17:14:37Z",
+      "side": 1,
+      "message": "Yeah for clarity. They are different set of metrics.",
+      "parentUuid": "42951c22_214e4300",
+      "revId": "a25e115839cfce1510ea6c66690cf5c3be3d06df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f8f51b9f_098d2d1a",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2021-01-15T08:23:56Z",
       "side": 1,
       "message": "Is this 5 seconda  timeout something that you picked ? Can we make it configurable ? Also at a later time and put a TODO here",
+      "revId": "a25e115839cfce1510ea6c66690cf5c3be3d06df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0ecb204c_6041f3b7",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-15T17:14:37Z",
+      "side": 1,
+      "message": "It is hardcoded to 30s in omci_ani_config.go. But I thought that is too much and choose 5s. On another note, I see ConstDefaultOmciTimeout defined in omci_cc.go which is 10s and seems reasonable. Let me use that.",
+      "parentUuid": "f8f51b9f_098d2d1a",
       "revId": "a25e115839cfce1510ea6c66690cf5c3be3d06df",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
