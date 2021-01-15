@@ -909,6 +909,13 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, device *voltha.Device
 	return nil
 }
 
+//doOnuSwUpgrade initiates the SW download transfer to the ONU and on success activates the (inactive) image
+func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
+	logger.Warnw(ctx, "onuSwUpgrade not yet implemented in deviceHandler", log.Fields{
+		"device-id": dh.deviceID, "image-name": (*apImageDsc).Name})
+	return fmt.Errorf("onuSwUpgrade not yet implemented in deviceHandler: %s", dh.deviceID)
+}
+
 //  deviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
