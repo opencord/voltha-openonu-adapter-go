@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f564eb14_321df43e",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 250,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-15T16:05:23Z",
+      "side": 1,
+      "message": "is this to be considered a bug in Adtran olt-sim ?",
+      "revId": "859e99a7f945cacc3849ff247a221992b83e40dc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "416b2318_f98316e3",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 471,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-15T16:05:23Z",
+      "side": 1,
+      "message": "is this supposed to be a blocking call ?",
+      "revId": "859e99a7f945cacc3849ff247a221992b83e40dc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
