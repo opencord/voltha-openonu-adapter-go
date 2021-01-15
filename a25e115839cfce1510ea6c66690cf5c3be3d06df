@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "42951c22_214e4300",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-15T08:23:56Z",
+      "side": 1,
+      "message": "Why did you separate the two maps ? Just out of better clarity ?",
+      "revId": "a25e115839cfce1510ea6c66690cf5c3be3d06df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f8f51b9f_098d2d1a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-15T08:23:56Z",
+      "side": 1,
+      "message": "Is this 5 seconda  timeout something that you picked ? Can we make it configurable ? Also at a later time and put a TODO here",
+      "revId": "a25e115839cfce1510ea6c66690cf5c3be3d06df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0d053de_8342ef1a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-15T08:23:56Z",
+      "side": 1,
+      "message": "Same, at least extract",
+      "revId": "a25e115839cfce1510ea6c66690cf5c3be3d06df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
