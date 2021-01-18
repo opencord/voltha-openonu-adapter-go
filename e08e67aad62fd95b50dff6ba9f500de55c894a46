@@ -118,6 +118,30 @@
     },
     {
       "key": {
+        "uuid": "b497c215_e82f4e1e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-18T11:09:30Z",
+      "side": 1,
+      "message": "Yes, that would be desirable. Especially since we have already received complaints about the lack of support for ONUs with Veip ports.",
+      "parentUuid": "82f19526_a824ab77",
+      "range": {
+        "startLine": 140,
+        "startChar": 0,
+        "endLine": 140,
+        "endChar": 1
+      },
+      "revId": "e08e67aad62fd95b50dff6ba9f500de55c894a46",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4c036246_2be64d89",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
