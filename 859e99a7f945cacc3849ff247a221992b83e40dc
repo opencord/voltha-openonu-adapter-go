@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "8a95100e_8f5ae0af",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 250,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-18T08:56:53Z",
+      "side": 1,
+      "message": "indeed, let\u0027s put a TODO in there to remove when Adtran SIM is fixed. thanks",
+      "parentUuid": "126e5035_37c9d518",
+      "revId": "859e99a7f945cacc3849ff247a221992b83e40dc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "416b2318_f98316e3",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -69,6 +87,24 @@
       "revId": "859e99a7f945cacc3849ff247a221992b83e40dc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff824308_1b92301c",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 471,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-18T08:56:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d0f78c83_3c96ef42",
+      "revId": "859e99a7f945cacc3849ff247a221992b83e40dc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
