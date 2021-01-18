@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "36f0ae33_38717074",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 250,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-18T11:03:10Z",
+      "side": 1,
+      "message": "I would support the one-time error message approach.",
+      "parentUuid": "2c610e98_7b8c1ef5",
+      "revId": "859e99a7f945cacc3849ff247a221992b83e40dc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "416b2318_f98316e3",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
