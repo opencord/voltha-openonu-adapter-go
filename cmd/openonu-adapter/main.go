@@ -126,7 +126,7 @@ func (a *adapter) start(ctx context.Context) error {
 	// Create the core proxy to handle requests to the Core
 	a.coreProxy = com.NewCoreProxy(ctx, a.kip, a.config.Topic, a.config.CoreTopic)
 
-	logger.Debugw(ctx, "create adapter proxy", log.Fields{"OltTopic": a.config.OltTopic, "CoreTopic": a.config.CoreTopic})
+	logger.Debugw(ctx, "create adapter proxy", log.Fields{"CoreTopic": a.config.CoreTopic})
 	a.adapterProxy = com.NewAdapterProxy(ctx, a.kip, a.config.CoreTopic, cm.Backend)
 
 	// Create the event proxy to post events to KAFKA
@@ -286,11 +286,9 @@ func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 		"totalReplicas":  a.config.TotalReplicas,
 	})
 	adapterDescription := &voltha.Adapter{
-		Id:      adapterID, // Unique name for the device type ->exact type required for OLT comm????
-		Vendor:  "VOLTHA OpenONUGo",
-		Version: version.VersionInfo.Version,
-		// TODO once we'll be ready to support multiple versions of the adapter
-		// the Endpoint will have to change to `brcm_openomci_onu_<currentReplica`>
+		Id:             adapterID, // Unique name for the device type ->exact type required for OLT comm????
+		Vendor:         "VOLTHA OpenONUGo",
+		Version:        version.VersionInfo.Version,
 		Endpoint:       a.config.Topic,
 		Type:           "brcm_openomci_onu",
 		CurrentReplica: int32(a.config.CurrentReplica),

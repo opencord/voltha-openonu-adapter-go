@@ -2018,10 +2018,6 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 	//rowKey = 0
 	tableCtrlStr := "0100000000000000"
 	tableCtrl := AsByteSlice(tableCtrlStr)
-	//TODO Building it as a Table, even though the attribute is `StringAttributeType`
-	// see line 56 of multicastoperationsprofileframe.go, it's an error in the conversion.
-	// FIXED 30/12/2020 Fixed for now with a local copy of multicastoperationsprofileframe.go in vendor/omci-lib-go
-	// provided by Chip, needs upstreaming and version change.
 	dynamicAccessCL := make([]uint8, 24)
 	copy(dynamicAccessCL, tableCtrl)
 	//Multicast GemPortId
