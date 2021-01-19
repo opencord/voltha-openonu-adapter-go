@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -144,7 +145,7 @@ func (a *adapter) start(ctx context.Context) error {
 	}
 
 	// Register this adapter to the Core - retries indefinitely
-	if err = a.registerWithCore(ctx, -1); err != nil {
+	if err = a.registerWithCore(ctx,-1); err != nil {
 		logger.Fatalw(ctx, "error-registering-with-core", log.Fields{"error": err})
 	}
 
@@ -280,10 +281,12 @@ func (a *adapter) setupRequestHandler(ctx context.Context, coreInstanceID string
 
 func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 	adapterID := fmt.Sprintf("brcm_openomci_onu_%d", a.config.CurrentReplica)
+	vendorIdsList := strings.Split(a.config.OnuVendorIds, ",")
 	logger.Infow(ctx, "registering-with-core", log.Fields{
 		"adapterID":      adapterID,
 		"currentReplica": a.config.CurrentReplica,
 		"totalReplicas":  a.config.TotalReplicas,
+		"onuVendorIdsParameter": vendorIdsList,
 	})
 	adapterDescription := &voltha.Adapter{
 		Id:             adapterID, // Unique name for the device type ->exact type required for OLT comm????
@@ -295,8 +298,7 @@ func (a *adapter) registerWithCore(ctx context.Context, retries int) error {
 		TotalReplicas:  int32(a.config.TotalReplicas),
 	}
 	types := []*voltha.DeviceType{{Id: "brcm_openomci_onu",
-		VendorIds: []string{"OPEN", "ALCL", "BRCM", "TWSH", "ALPH", "ISKT", "SFAA", "BBSM", "SCOM",
-			"ARPX", "DACM", "ERSN", "HWTC", "CIGG", "ADTN", "ARCA", "AVMG"},
+		VendorIds: vendorIdsList,
 		Adapter:                     "brcm_openomci_onu", // Name of the adapter that handles device type
 		AcceptsBulkFlowUpdate:       false,               // Currently openolt adapter does not support bulk flow handling
 		AcceptsAddRemoveFlowUpdates: true}}

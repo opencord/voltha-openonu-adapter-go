@@ -57,6 +57,7 @@ const (
 	defaultCurrentReplica             = 1
 	defaultTotalReplicas              = 1
 	defaultMaxTimeoutInterAdapterComm = 30 * time.Second
+	defaultOnuVendorIds               = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG"
 
 	// For Tracing
 	defaultTraceEnabled          = false
@@ -97,6 +98,7 @@ type AdapterFlags struct {
 	TraceEnabled                bool
 	TraceAgentAddress           string
 	LogCorrelationEnabled       bool
+	OnuVendorIds                string
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -132,6 +134,7 @@ func NewAdapterFlags() *AdapterFlags {
 		TraceEnabled:                defaultTraceEnabled,
 		TraceAgentAddress:           defaultTraceAgentAddress,
 		LogCorrelationEnabled:       defaultLogCorrelationEnabled,
+		OnuVendorIds:                defaultOnuVendorIds,
 	}
 	return &adapterFlags
 }
@@ -226,6 +229,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("Whether to enrich log statements with fields denoting operation being executed for achieving correlation?")
 	flag.BoolVar(&(so.LogCorrelationEnabled), "log_correlation_enabled", defaultLogCorrelationEnabled, help)
+
+	help = fmt.Sprintf("List of Allowed ONU Vendor Ids")
+	flag.StringVar(&(so.OnuVendorIds), "allowed_onu_vendors", defaultOnuVendorIds, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
