@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "84df27ec_6f4fb7e5",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2021-01-19T22:43:38Z",
+      "side": 1,
+      "message": "This is not related to the removal of the olt_adapter_topic and is breaking things as we\u0027re listening on \"brcm_openomci_onu_1\" but we\u0027re actually listening on \"brcm_openomci_onu\".\nInstead of setting the topic name here let\u0027s do that in the Config so that the correct value is used everywhere we reference \"a.config.Topic\"",
+      "range": {
+        "startLine": 292,
+        "startChar": 18,
+        "endLine": 292,
+        "endChar": 86
+      },
+      "revId": "f743e770792993965ee0c29494acab9b8eb2f6a5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
