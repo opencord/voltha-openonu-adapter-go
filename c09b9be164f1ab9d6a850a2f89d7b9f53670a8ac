@@ -1,0 +1,191 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "598a45d8_e109ff38",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "not used anymore in this code issue",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4e4b1a9d_6bf6ba05",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1057,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "You could still leave the py-code comments for the alarm handler sequence here as still in patch 1 - as a reminder on outstanding implementation here.",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "911e6b78_a095d20e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2527,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "Maybe this debug can be omitted as the follwoing go routine has already a similar debug entry.\nBut the the deviceId should be inserted there (below)",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b8559264_7abd0064",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1196,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "My preferred solution would still be to use a common sendGetMe() method.\nBut this would require \n- an extension of the parameters like this:\nfunc (oo *omciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap, \ntimeout int, highPrio bool, rxChan chan Message) *me.ManagedEntity\n(compare also according other send* methods which already make use of the rxChan parameter)\n- insert the parameter rxChan in line 1222\n- needs update of mib_sync.go on according code positions to insert MibUploadFsm.commChan as argument for sendGetMe calls",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "23dbc045_69c947d6",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "Still valid comment from patch 1: all opticalMetric values are defined as \u0027voltha.PmConfig_GAUGE\u0027 - see deviceHandler line 129ff. Accordingly data conversion should be doen to this type here.\nComment refers to all according conversions below as well.",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84c94152_bbcb77ac",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "What\u0027s the intention of this comment? Just a remark, that UNI metric collection might be not relevant (but implemented like in the py-adapter?)",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "687d8fe3_1bd516ea",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "There can be multiple PPTP instances on the ONU.\nAt the moment we only enable the first one, but it looks like the metric request shall be done for all PPTP\u0027s. But assume so: then how the different PPTP\u0027s are indicated in the metricInfo? Just by the slice offset (which might be not ordered)? I miss some correlation between some physical port index and the metric info.\nSame applies to VEIP, even though there the probabilty is quite good, that only one VEIP exists (but not sure).",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "07c27052_94bb7e1f",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "VEIP missing as it was poosibly sent, see line 221ff",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "271bc0ea_dc7b82a2",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 362,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "certainly you wanted opticalMetricsChan here.",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fca44fa6_5d6a6ac2",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "\"optical\"",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7910ff23_59120bcc",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-19T11:24:38Z",
+      "side": 1,
+      "message": "would prefer to have that down below in the import block for voltha-lib-go",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
