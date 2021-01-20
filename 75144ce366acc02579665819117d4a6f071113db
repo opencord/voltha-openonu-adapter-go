@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5dfec059_e0819d00",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-20T10:14:20Z",
+      "side": 1,
+      "message": "Yes, you are right. Metrics map value (type) is float32 (probably to have some common base type). \nWhat is then still unclear to me  is, how this correlates to definitions made in deviceHandler line 129ff for dh.pmMetrics.ToPmConfigs().Metrics - that use the PmConfig_GAUGE type. What are these definitions in the deviceHandler used for (and should they possibly changed to float32?)",
+      "revId": "75144ce366acc02579665819117d4a6f071113db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f8aecd7_43a040a6",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-20T10:14:20Z",
+      "side": 1,
+      "message": "Todo!!: clarify usage of multi-instance metric type later.",
+      "revId": "75144ce366acc02579665819117d4a6f071113db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
