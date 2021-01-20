@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5536bd27_93e98e2d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "598a45d8_e109ff38",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4e4b1a9d_6bf6ba05",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -33,6 +51,24 @@
       "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e436354f_7d5aa70e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1057,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4e4b1a9d_6bf6ba05",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "3e36ffcf_08f6a924",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2527,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "911e6b78_a095d20e",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b8559264_7abd0064",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 3
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "9e841b37_0ff958b0",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1196,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b8559264_7abd0064",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "23dbc045_69c947d6",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 3
@@ -81,6 +153,24 @@
       "writtenOn": "2021-01-19T11:24:38Z",
       "side": 1,
       "message": "Still valid comment from patch 1: all opticalMetric values are defined as \u0027voltha.PmConfig_GAUGE\u0027 - see deviceHandler line 129ff. Accordingly data conversion should be doen to this type here.\nComment refers to all according conversions below as well.",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9f3d9509_f0a56a42",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Not sure I understood your comment. Can you put the code snippet in comment below? The opticalMetrics type is map[string]float32.",
+      "parentUuid": "23dbc045_69c947d6",
       "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "6b365332_59be6479",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Yes, it is just a remark.",
+      "parentUuid": "84c94152_bbcb77ac",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "687d8fe3_1bd516ea",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 3
@@ -118,6 +226,24 @@
       "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9e3eefe4_f3946a66",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "You have a valid point here and I certainly had the same concerns, but I fell short of addressing it. I think \"metricsContext\" may be the right place of putting this information and the key could be \"instance-id\" and the value is ME instance id (of uni-g/pptp/veip). What do you think?",
+      "parentUuid": "687d8fe3_1bd516ea",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "d5f82446_6a2a0b01",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "07c27052_94bb7e1f",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "271bc0ea_dc7b82a2",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 3
@@ -152,6 +296,24 @@
       "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89a92129_dbc3fddd",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 362,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "271bc0ea_dc7b82a2",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -172,6 +334,24 @@
     },
     {
       "key": {
+        "uuid": "da13f7fe_edd3a7b1",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "fca44fa6_5d6a6ac2",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7910ff23_59120bcc",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 3
@@ -186,6 +366,24 @@
       "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ee7e8659_79a4cccb",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-20T00:28:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7910ff23_59120bcc",
+      "revId": "c09b9be164f1ab9d6a850a2f89d7b9f53670a8ac",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
