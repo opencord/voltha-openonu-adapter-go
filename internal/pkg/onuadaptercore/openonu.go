@@ -459,6 +459,7 @@ func (oo *OpenONUAC) Download_image(ctx context.Context, device *voltha.Device, 
 		return apRequest, err
 	}
 	// image already exists
+	logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": apRequest})
 	return apRequest, nil
 }
 
@@ -474,12 +475,18 @@ func (oo *OpenONUAC) Cancel_image_download(ctx context.Context, device *voltha.D
 
 //Activate_image_update unimplemented
 func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, apRequest *voltha.ImageDownload) (*voltha.ImageDownload, error) {
-	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
-		err := handler.doOnuSwUpgrade(ctx, apRequest)
-		return apRequest, err
+	if oo.pDownloadManager.imageExists(ctx, apRequest) {
+		if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
+			logger.Debugw(ctx, "image download on omci requested", log.Fields{
+				"image-description": apRequest, "device-id": device.Id})
+			err := handler.doOnuSwUpgrade(ctx, apRequest)
+			return apRequest, err
+		}
+		logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": device.Id})
+		return apRequest, fmt.Errorf(fmt.Sprintf("handler-not-found - device-id: %s", device.Id))
 	}
-	logger.Warnw(ctx, "no handler found for Onu image activation", log.Fields{"device-id": device.Id})
-	return apRequest, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	logger.Debugw(ctx, "image not yet downloaded on activate request", log.Fields{"image-description": apRequest})
+	return apRequest, fmt.Errorf(fmt.Sprintf("image-not-yet-downloaded - device-id: %s", device.Id))
 }
 
 //Revert_image_update unimplemented
