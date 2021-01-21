@@ -19,7 +19,7 @@ package adaptercoreonu
 
 import (
 	"context"
-	"errors"
+	//"errors"
 	"sync"
 
 	//"time"
@@ -71,7 +71,9 @@ func (dm *adapterDownloadManager) imageExists(ctx context.Context, apImageDsc *v
 
 //startDownload returns true if the download of the requested image could be started
 func (dm *adapterDownloadManager) startDownload(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
-	logger.Debugw(ctx, "image download requested", log.Fields{"image-name": apImageDsc.Name})
-	//so far just return error
-	return errors.New("could not start downloading")
+	logger.Warnw(ctx, "image download requested - but not yet processed", log.Fields{"image-name": apImageDsc.Name})
+	//return success to comfort the core processing during integration
+	return nil
+	// TODO!!: also verify error response behavior
+	//return fmt.Errorf("onuSwUpgrade not yet implemented")
 }
