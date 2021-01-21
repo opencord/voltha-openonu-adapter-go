@@ -125,8 +125,8 @@ func (oo *onuUniPort) createVolthaPort(ctx context.Context, apDeviceHandler *dev
 			Curr:       capacity,
 			Advertised: capacity,
 			Peer:       capacity,
-			CurrSpeed:  uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
-			MaxSpeed:   uint32(of.OfpPortFeatures_OFPPF_1GB_FD),
+			CurrSpeed:  1000,
+			MaxSpeed:   1000,
 		},
 	}
 	if pUniPort != nil {
