@@ -546,7 +546,8 @@ func (dh *deviceHandler) processInterAdapterMessage(ctx context.Context, msg *ic
 
 	switch msgType {
 	// case ic.InterAdapterMessageType_ONU_IND_REQUEST: was handled by OpenONUAC already - see comments there
-	case ic.InterAdapterMessageType_OMCI_REQUEST:
+	//OMCI_RESPONSE also accepted acc. to VOL-3756 (OMCI_REQUEST request was legacy code)
+	case ic.InterAdapterMessageType_OMCI_RESPONSE, ic.InterAdapterMessageType_OMCI_REQUEST:
 		{
 			return dh.processInterAdapterOMCIReqMessage(ctx, msg)
 		}
@@ -958,7 +959,10 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, device *voltha.Device
 func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
 	logger.Warnw(ctx, "onuSwUpgrade not yet implemented in deviceHandler", log.Fields{
 		"device-id": dh.deviceID, "image-name": (*apImageDsc).Name})
-	return fmt.Errorf("onuSwUpgrade not yet implemented in deviceHandler: %s", dh.deviceID)
+	//return success to comfort the core processing during integration
+	return nil
+	// TODO!!: also verify error response behavior
+	//return fmt.Errorf("onuSwUpgrade not yet implemented in deviceHandler: %s", dh.deviceID)
 }
 
 //  deviceHandler methods that implement the adapters interface requests## end #########
