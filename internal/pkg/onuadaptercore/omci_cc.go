@@ -296,7 +296,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.mutexRxSchedMap.Unlock()
 	} else {
 		oo.mutexRxSchedMap.Unlock()
-		logger.Errorw(ctx, "omci-message-response for not registered transCorrId", log.Fields{"device-id": oo.deviceID})
+		logger.Errorw(ctx, "omci-message-response for not registered transCorrId", log.Fields{"device-id": oo.deviceID, "omciMsg": omciMsg, "transCorrId": omciMsg.TransactionID})
 		return fmt.Errorf("could not find registered response handler tor transCorrId %s", oo.deviceID)
 	}
 
