@@ -471,6 +471,8 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				}
 				return nil
 			}
+		} else {
+			logger.Warnf(ctx, "MibSync FSM - Received GetResponse Data for %s with wrong classID or entityID ", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj}, msgObj.EntityClass)
 		}
 	} else {
 		if err = oo.handleOmciGetResponseErrors(ctx, msgObj); err == nil {
