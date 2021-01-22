@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "52adf317_77be9657",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 552,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-22T07:58:55Z",
+      "side": 1,
+      "message": "Function should be renamed to reflect extended purpose.",
+      "range": {
+        "startLine": 552,
+        "startChar": 13,
+        "endLine": 552,
+        "endChar": 46
+      },
+      "revId": "f302a435aef8feed96120006d0a8d7da5bca00a7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0abaa5e2_5ab9879e",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 476,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-22T07:58:55Z",
+      "side": 1,
+      "message": "Is this still the case?",
+      "range": {
+        "startLine": 476,
+        "startChar": 24,
+        "endLine": 476,
+        "endChar": 37
+      },
+      "revId": "f302a435aef8feed96120006d0a8d7da5bca00a7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
