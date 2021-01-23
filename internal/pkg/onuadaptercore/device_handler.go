@@ -31,7 +31,6 @@ import (
 	"github.com/looplab/fsm"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
-	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/common"
 	"github.com/opencord/voltha-lib-go/v4/pkg/db"
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	flow "github.com/opencord/voltha-lib-go/v4/pkg/flows"
@@ -125,19 +124,6 @@ var deviceReasonMap = map[uint8]string{
 	drTechProfileConfigDeleteSuccess:   "tech-profile-config-delete-success",
 }
 
-// OmciOpticalMetricsNames are supported optical pm names
-var OmciOpticalMetricsNames = map[string]voltha.PmConfig_PmType{
-	"transmit_power": voltha.PmConfig_GAUGE,
-	"receive_power":  voltha.PmConfig_GAUGE,
-}
-
-// OmciUniMetricsNames are supported UNI status names
-var OmciUniMetricsNames = map[string]voltha.PmConfig_PmType{
-	"ethernet_type":   voltha.PmConfig_GAUGE,
-	"oper_status":     voltha.PmConfig_GAUGE,
-	"uni_admin_state": voltha.PmConfig_GAUGE,
-}
-
 //deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
 	deviceID         string
@@ -154,7 +140,7 @@ type deviceHandler struct {
 	AdapterProxy adapterif.AdapterProxy
 	EventProxy   eventif.EventProxy
 
-	pmMetrics *common.PmMetrics
+	pmConfigs *voltha.PmConfigs
 
 	pOpenOnuAc      *OpenONUAC
 	pDeviceStateFsm *fsm.FSM
@@ -210,32 +196,13 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
 	dh.ReadyForSpecificOmciConfig = false
-	metricNames := make([]string, len(OmciOpticalMetricsNames)+len(OmciUniMetricsNames))
 
-	for k := range OmciOpticalMetricsNames {
-		metricNames = append(metricNames, k)
-	}
+	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
+		dh.pmConfigs = cloned.PmConfigs
+	} /* else {
+		// will be populated when onu_metrics_mananger is initialized.
+	}*/
 
-	for k := range OmciUniMetricsNames {
-		metricNames = append(metricNames, k)
-	}
-
-	// The frequency is in seconds.
-	dh.pmMetrics = common.NewPmMetrics(cloned.Id, common.Frequency(150), common.FrequencyOverride(false), common.Grouped(false), common.Metrics(metricNames))
-	for pmName, pmType := range OmciOpticalMetricsNames {
-		dh.pmMetrics.ToPmConfigs().Metrics = append(dh.pmMetrics.ToPmConfigs().Metrics, &voltha.PmConfig{
-			Name:    pmName,
-			Type:    pmType,
-			Enabled: true,
-		})
-	}
-	for pmName, pmType := range OmciUniMetricsNames {
-		dh.pmMetrics.ToPmConfigs().Metrics = append(dh.pmMetrics.ToPmConfigs().Metrics, &voltha.PmConfig{
-			Name:    pmName,
-			Type:    pmType,
-			Enabled: true,
-		})
-	}
 	// Device related state machine
 	dh.pDeviceStateFsm = fsm.NewFSM(
 		devStNull,
@@ -289,9 +256,11 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 			logger.Errorw(ctx, "Device FSM: Can't go to state DeviceInit", log.Fields{"err": err})
 		}
 		logger.Debugw(ctx, "Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
-		// Now, set the initial PM configuration for that device
-		if err := dh.coreProxy.DevicePMConfigUpdate(ctx, dh.pmMetrics.ToPmConfigs()); err != nil {
-			logger.Errorw(ctx, "error updating pm config to core", log.Fields{"device-id": dh.deviceID, "err": err})
+		if device.PmConfigs == nil { // device.PmConfigs is not nil in cases when adapter restarts. We should not re-set the core again.
+			// Now, set the initial PM configuration for that device
+			if err := dh.coreProxy.DevicePMConfigUpdate(ctx, dh.pmConfigs); err != nil {
+				logger.Errorw(ctx, "error updating pm config to core", log.Fields{"device-id": dh.deviceID, "err": err})
+			}
 		}
 	} else {
 		logger.Debugw(ctx, "AdoptOrReconcileDevice: Agent/device init already done", log.Fields{"device-id": device.Id})
@@ -2553,42 +2522,160 @@ func (dh *deviceHandler) getUniPortMEEntityID(uniPortNo uint32) (uint16, error) 
 }
 
 // updatePmConfig updates the pm metrics config.
-func (dh *deviceHandler) updatePmConfig(ctx context.Context, pmConfigs *voltha.PmConfigs) {
-	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": dh.device.Id, "pm-configs": pmConfigs})
+func (dh *deviceHandler) updatePmConfig(ctx context.Context, pmConfigs *voltha.PmConfigs) error {
+	var errorsList []error
+	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": dh.device.Id, "new-pm-configs": pmConfigs, "old-pm-config": dh.pmConfigs})
 
-	// TODO: Currently support only updating the PM Sampling Frequency
-	if pmConfigs.DefaultFreq != dh.pmMetrics.ToPmConfigs().DefaultFreq {
-		dh.pmMetrics.UpdateFrequency(pmConfigs.DefaultFreq)
-		logger.Debugw(ctx, "frequency-updated--new-frequency", log.Fields{"device-id": dh.deviceID, "frequency": dh.pmMetrics.ToPmConfigs().DefaultFreq})
-	} else {
-		logger.Debugw(ctx, "new-frequency-same-as-old--not-updating", log.Fields{"frequency": pmConfigs.DefaultFreq})
+	errorsList = append(dh.handleGlobalPmConfigUpdates(ctx, pmConfigs), errorsList...)
+	errorsList = append(dh.handleGroupPmConfigUpdates(ctx, pmConfigs), errorsList...)
+	errorsList = append(dh.handleStandalonePmConfigUpdates(ctx, pmConfigs), errorsList...)
+
+	// Note that if more than one pm config field is updated in a given call, it is possible that partial pm config is handled
+	// successfully.
+	// TODO: Although it is possible to revert to old config in case of partial failure, the code becomes quite complex. Needs more investigation
+	// Is it possible the rw-core reverts to old config on partial failure but adapter retains a partial new config?
+	if len(errorsList) > 0 {
+		logger.Errorw(ctx, "one-or-more-pm-config-failed", log.Fields{"device-id": dh.deviceID, "pmConfig": dh.pmConfigs})
+		return fmt.Errorf("errors-handling-one-or-more-pm-config, errors:%v", errorsList)
 	}
+	logger.Infow(ctx, "pm-config-updated", log.Fields{"device-id": dh.deviceID, "pmConfig": dh.pmConfigs})
+	return nil
 }
 
+func (dh *deviceHandler) handleGlobalPmConfigUpdates(ctx context.Context, pmConfigs *voltha.PmConfigs) []error {
+	var err error
+	var errorsList []error
+	logger.Infow(ctx, "handling-global-pm-config-params", log.Fields{"device-id": dh.device.Id})
+
+	if pmConfigs.DefaultFreq != dh.pmConfigs.DefaultFreq {
+		if err = dh.pOnuMetricsMgr.updateDefaultFrequency(ctx, pmConfigs); err != nil {
+			errorsList = append(errorsList, err)
+		}
+	}
+	if pmConfigs.FreqOverride != dh.pmConfigs.FreqOverride {
+		if err = dh.pOnuMetricsMgr.updateFrequencyOverride(ctx, pmConfigs); err != nil {
+			errorsList = append(errorsList, err)
+		}
+	}
+	if pmConfigs.Grouped != dh.pmConfigs.Grouped {
+		if err = dh.pOnuMetricsMgr.updateGroupsSupport(ctx, pmConfigs); err != nil {
+			errorsList = append(errorsList, err)
+		}
+	}
+	return errorsList
+}
+
+func (dh *deviceHandler) handleGroupPmConfigUpdates(ctx context.Context, pmConfigs *voltha.PmConfigs) []error {
+	var err error
+	var errorsList []error
+	logger.Infow(ctx, "handling-group-pm-config-params", log.Fields{"device-id": dh.device.Id})
+	// Check if group metric related config is updated
+	for _, v := range pmConfigs.Groups {
+		dh.pOnuMetricsMgr.onuMetricsManagerLock.RLock()
+		m, ok := dh.pOnuMetricsMgr.groupMetricMap[v.GroupName]
+		dh.pOnuMetricsMgr.onuMetricsManagerLock.RUnlock()
+
+		if ok && m.frequency != v.GroupFreq {
+			if err = dh.pOnuMetricsMgr.updateGroupFreq(ctx, v.GroupName, pmConfigs); err != nil {
+				errorsList = append(errorsList, err)
+			}
+		}
+		if ok && m.enabled != v.Enabled {
+			if err = dh.pOnuMetricsMgr.updateGroupSupport(ctx, v.GroupName, pmConfigs); err != nil {
+				errorsList = append(errorsList, err)
+			}
+		}
+	}
+	return errorsList
+}
+
+func (dh *deviceHandler) handleStandalonePmConfigUpdates(ctx context.Context, pmConfigs *voltha.PmConfigs) []error {
+	var err error
+	var errorsList []error
+	logger.Infow(ctx, "handling-individual-pm-config-params", log.Fields{"device-id": dh.device.Id})
+	// Check if standalone metric related config is updated
+	for _, v := range pmConfigs.Metrics {
+		dh.pOnuMetricsMgr.onuMetricsManagerLock.RLock()
+		m, ok := dh.pOnuMetricsMgr.groupMetricMap[v.Name]
+		dh.pOnuMetricsMgr.onuMetricsManagerLock.RUnlock()
+
+		if ok && m.frequency != v.SampleFreq {
+			if err = dh.pOnuMetricsMgr.updateMetricFreq(ctx, v.Name, pmConfigs); err != nil {
+				errorsList = append(errorsList, err)
+			}
+		}
+		if ok && m.enabled != v.Enabled {
+			if err = dh.pOnuMetricsMgr.updateMetricSupport(ctx, v.Name, pmConfigs); err != nil {
+				errorsList = append(errorsList, err)
+			}
+		}
+	}
+	return errorsList
+}
+
+// nolint: gocyclo
 func (dh *deviceHandler) startCollector(ctx context.Context) {
 	logger.Debugf(ctx, "startingCollector")
 
 	// Start routine to process OMCI GET Responses
 	go dh.pOnuMetricsMgr.processOmciMessages(ctx)
-
+	// Initialize the next metric collection time.
+	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
+	// reset like onu rebooted.
+	dh.pOnuMetricsMgr.initializeMetricCollectionTime(ctx)
 	for {
 		select {
 		case <-dh.stopCollector:
 			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
 			dh.pOnuMetricsMgr.stopProcessingOmciResponses <- true // Stop the OMCI GET response processing routine
 			return
-		case <-time.After(time.Duration(dh.pmMetrics.ToPmConfigs().DefaultFreq) * time.Second):
-			go func() {
-				logger.Debug(ctx, "startCollector before collecting optical metrics")
-				metricInfo := dh.pOnuMetricsMgr.collectOpticalMetrics(ctx)
-				dh.pOnuMetricsMgr.publishMetrics(ctx, metricInfo)
-			}()
+		case <-time.After(time.Duration(FrequencyGranularity) * time.Second): // Check every FrequencyGranularity to see if it is time for collecting metrics
+			if !dh.pmConfigs.FreqOverride { // If FreqOverride is false, then nextGlobalMetricCollectionTime applies
+				// If the current time is eqaul to or greater than the nextGlobalMetricCollectionTime, collect the group and standalone metrics
+				if time.Now().Equal(dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime) || time.Now().After(dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime) {
+					go dh.pOnuMetricsMgr.collectAllGroupAndStandaloneMetrics(ctx)
+				}
+				// Update the next metric collection time.
+				dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime = time.Now().Add(time.Duration(dh.pmConfigs.DefaultFreq) * time.Second)
+			} else {
+				if dh.pmConfigs.Grouped { // metrics are managed as a group
+					// parse through the group and standalone metrics to see it is time to collect their metrics
+					dh.pOnuMetricsMgr.onuMetricsManagerLock.RLock() // Rlock as we are reading groupMetricMap and standaloneMetricMap
 
-			go func() {
-				logger.Debug(ctx, "startCollector before collecting uni metrics")
-				metricInfo := dh.pOnuMetricsMgr.collectUniStatusMetrics(ctx)
-				dh.pOnuMetricsMgr.publishMetrics(ctx, metricInfo)
-			}()
+					for n, g := range dh.pOnuMetricsMgr.groupMetricMap {
+						// If the group is enabled AND (current time is equal to OR after nextCollectionInterval, collect the group metric)
+						if g.enabled && (time.Now().Equal(g.nextCollectionInterval) || time.Now().After(g.nextCollectionInterval)) {
+							go dh.pOnuMetricsMgr.collectGroupMetric(ctx, n)
+						}
+					}
+					for n, m := range dh.pOnuMetricsMgr.standaloneMetricMap {
+						// If the standalone is enabled AND (current time is equal to OR after nextCollectionInterval, collect the metric)
+						if m.enabled && (time.Now().Equal(m.nextCollectionInterval) || time.Now().After(m.nextCollectionInterval)) {
+							go dh.pOnuMetricsMgr.collectStandaloneMetric(ctx, n)
+						}
+					}
+					dh.pOnuMetricsMgr.onuMetricsManagerLock.RUnlock()
+
+					// parse through the group and update the next metric collection time
+					dh.pOnuMetricsMgr.onuMetricsManagerLock.Lock() // Lock as we are writing the next metric collection time
+					for _, g := range dh.pOnuMetricsMgr.groupMetricMap {
+						// If group enabled, and the nextCollectionInterval is old (before or equal to current time), update the next collection time stamp
+						if g.enabled && (g.nextCollectionInterval.Before(time.Now()) || g.nextCollectionInterval.Equal(time.Now())) {
+							g.nextCollectionInterval = time.Now().Add(time.Duration(g.frequency) * time.Second)
+						}
+					}
+					// parse through the standalone metrics and update the next metric collection time
+					for _, m := range dh.pOnuMetricsMgr.standaloneMetricMap {
+						// If standalone metrics enabled, and the nextCollectionInterval is old (before or equal to current time), update the next collection time stamp
+						if m.enabled && (m.nextCollectionInterval.Before(time.Now()) || m.nextCollectionInterval.Equal(time.Now())) {
+							m.nextCollectionInterval = time.Now().Add(time.Duration(m.frequency) * time.Second)
+						}
+					}
+					dh.pOnuMetricsMgr.onuMetricsManagerLock.Unlock()
+				} else { // metrics are not managed as a group
+					// TODO: We currently do not have standalone metrics. When available, add code here to fetch the metric.
+				}
+			}
 		}
 	}
 }
