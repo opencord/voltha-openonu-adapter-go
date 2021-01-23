@@ -426,12 +426,10 @@ func (oo *OpenONUAC) Update_flows_incrementally(ctx context.Context, device *vol
 func (oo *OpenONUAC) Update_pm_config(ctx context.Context, device *voltha.Device, pmConfigs *voltha.PmConfigs) error {
 	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
-		handler.updatePmConfig(ctx, pmConfigs)
-	} else {
-		logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": device.Id})
-		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+		return handler.updatePmConfig(ctx, pmConfigs)
 	}
-	return nil
+	logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": device.Id})
+	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
 //Receive_packet_out sends packet out to the device
