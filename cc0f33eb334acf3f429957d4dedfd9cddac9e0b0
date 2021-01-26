@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3a12cfc8_c1b5f786",
+        "filename": "PM_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "280bd4fc_b331313d",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7a043522_42326db7",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 7
@@ -33,6 +51,24 @@
       "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bd809ac3_4ab4e42d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2571,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7a043522_42326db7",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "6578707d_255258d8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2595,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ab0fed04_304fd0db",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a63f284d_b26d7fdd",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
@@ -64,6 +118,24 @@
       "writtenOn": "2021-01-26T11:48:07Z",
       "side": 1,
       "message": "why can\u0027t this be changed ?",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8617c84e_bfa71650",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "You are right, this can be changed. I accidentally put this as cannot be changed.\nAlso note that voltctl currently does not have support to change group frequency, but the openonu-go code supports it if such a configuration arrives.\nI can look into the changes required for voltctl to support this.",
+      "parentUuid": "a63f284d_b26d7fdd",
       "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "0ddb36d5_6dce2209",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "This actually comes from the proto definition where groups are placed in slice. There are not many groups practically - there are at most 5 to 10 groups so it does not take much cpu hit. In theory yes maps may work better than this iteration.\nSince this needs a proto definition updated, I would like to defer addressing this if possible.",
+      "parentUuid": "0c865ef5_30e53fdb",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "05c11f1b_0657bbab",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "a3d0239b_2b08a6c5",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "05c11f1b_0657bbab",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cb557d6e_5c29f987",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
@@ -115,6 +223,24 @@
       "writtenOn": "2021-01-26T11:48:07Z",
       "side": 1,
       "message": "same, possibly worth having in a map",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4571b775_59160edc",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 305,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "same response as above.",
+      "parentUuid": "cb557d6e_5c29f987",
       "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "fb0ddca1_6198a98d",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d17706e5_1fbc4257",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "abfc21f3_9d49844c",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
@@ -152,6 +296,24 @@
       "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "80179709_9a3813c8",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-26T21:02:06Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "abfc21f3_9d49844c",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
