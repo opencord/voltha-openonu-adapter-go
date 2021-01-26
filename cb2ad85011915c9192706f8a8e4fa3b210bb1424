@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8c712202_5a969b3f",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T15:16:12Z",
+      "side": 1,
+      "message": "unrelated to this patch specifically, but can we remove this python code now ?",
+      "revId": "cb2ad85011915c9192706f8a8e4fa3b210bb1424",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
