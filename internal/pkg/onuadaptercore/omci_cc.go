@@ -61,6 +61,20 @@ const macBridgePortAniEID = uint16(0x2102)
 
 const unusedTcontAllocID = uint16(0xFFFF) //common unused AllocId for G.984 and G.987 systems
 
+const cOmciBaseMessageTrailerLen = 40
+
+// tOmciReceiveError - enum type for detected problems/errors in the received OMCI message (format)
+type tOmciReceiveError uint8
+
+const (
+	// cOmciMessageReceiveNoError - default start state
+	cOmciMessageReceiveNoError tOmciReceiveError = iota
+	// Error indication wrong trailer length within the message
+	cOmciMessageReceiveErrorTrailerLen
+	// Error indication missing trailer within the message
+	cOmciMessageReceiveErrorMissTrailer
+)
+
 // ### OMCI related definitions - end
 
 //callbackPairEntry to be used for OMCI send/receive correlation
@@ -91,9 +105,8 @@ type omciCC struct {
 	coreProxy          adapterif.CoreProxy
 	adapterProxy       adapterif.AdapterProxy
 	supportExtMsg      bool
-	//txRequest
-	//rxResponse
-	//pendingRequest
+	rxOmciFrameError   tOmciReceiveError
+
 	txFrames, txOnuFrames                uint32
 	rxFrames, rxOnuFrames, rxOnuDiscards uint32
 
@@ -126,6 +139,7 @@ func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 	omciCC.coreProxy = coreProxy
 	omciCC.adapterProxy = adapterProxy
 	omciCC.supportExtMsg = false
+	omciCC.rxOmciFrameError = cOmciMessageReceiveNoError
 	omciCC.txFrames = 0
 	omciCC.txOnuFrames = 0
 	omciCC.rxFrames = 0
@@ -163,6 +177,7 @@ func (oo *omciCC) stop(ctx context.Context) error {
 	//reset control values
 	oo.uploadSequNo = 0
 	oo.uploadNoOfCmds = 0
+	oo.rxOmciFrameError = cOmciMessageReceiveNoError
 	//reset the stats counter - which might be topic of discussion ...
 	oo.txFrames = 0
 	oo.txOnuFrames = 0
@@ -229,16 +244,35 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	//logger.Debugw(ctx,"cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
 	if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
 		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
-		//  (am extendedFormat message could be destroyed this way!)
+		//  (an extendedFormat message could be destroyed this way!)
 		trailerLenData := rxMsg[42:44]
 		trailerLen := binary.BigEndian.Uint16(trailerLenData)
 		//logger.Debugw(ctx,"omci-received-trailer-len", log.Fields{"Length": trailerLen})
-		if trailerLen != 40 { // invalid base Format entry -> autocorrect
-			binary.BigEndian.PutUint16(rxMsg[42:44], 40)
-			logger.Debug(ctx, "cc-corrected-omci-message: trailer len inserted")
+		if trailerLen != cOmciBaseMessageTrailerLen { // invalid base Format entry -> autocorrect
+			binary.BigEndian.PutUint16(rxMsg[42:44], cOmciBaseMessageTrailerLen)
+			if oo.rxOmciFrameError != cOmciMessageReceiveErrorTrailerLen {
+				//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
+				logger.Errorw(ctx, "wrong omci-message trailer length: trailer len auto-corrected",
+					log.Fields{"trailer-length": trailerLen, "device-id": oo.deviceID})
+				oo.rxOmciFrameError = cOmciMessageReceiveErrorTrailerLen
+			}
+		}
+	} else if len(rxMsg) >= cOmciBaseMessageTrailerLen { // workaround for Adtran OLT Sim, which currently does not send trailer bytes at all!
+		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
+		//  (an extendedFormat message could be destroyed this way!)
+		// extend/overwrite with trailer
+		trailer := make([]byte, 8)
+		binary.BigEndian.PutUint16(trailer[2:], cOmciBaseMessageTrailerLen) //set the defined baseline length
+		rxMsg = append(rxMsg[:cOmciBaseMessageTrailerLen], trailer...)
+		if oo.rxOmciFrameError != cOmciMessageReceiveErrorMissTrailer {
+			//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
+			logger.Errorw(ctx, "omci-message to short to include trailer len: trailer auto-corrected (added)",
+				log.Fields{"message-length": len(rxMsg), "device-id": oo.deviceID})
+			oo.rxOmciFrameError = cOmciMessageReceiveErrorMissTrailer
 		}
 	} else {
-		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort", log.Fields{"Length": len(rxMsg)})
+		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort",
+			log.Fields{"Length": len(rxMsg), "device-id": oo.deviceID})
 		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
 	}
 
@@ -278,6 +312,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
 		go rxCallbackEntry.cbFunction(ctx, omciMsg, &packet, rxCallbackEntry.cbRespChannel)
+
 		// having posted the response the request is regarded as 'done'
 		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
 		oo.mutexRxSchedMap.Unlock()
@@ -290,24 +325,20 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	return nil
 	/* py code was:
 	           Receive and OMCI message from the proxy channel to the OLT.
-
 	           Call this from your ONU Adapter on a new OMCI Rx on the proxy channel
 	           :param msg: (str) OMCI binary message (used as input to Scapy packet decoder)
 	           """
 	           if not self.enabled:
 	               return
-
 	           try:
 	               now = arrow.utcnow()
 	               d = None
-
 	               # NOTE: Since we may need to do an independent ME map on a per-ONU basis
 	               #       save the current value of the entity_id_to_class_map, then
 	               #       replace it with our custom one before decode, and then finally
 	               #       restore it later. Tried other ways but really made the code messy.
 	               saved_me_map = omci_entities.entity_id_to_class_map
 	               omci_entities.entity_id_to_class_map = self._me_map
-
 	               try:
 	                   rx_frame = msg if isinstance(msg, OmciFrame) else OmciFrame(msg)
 	                   self.logger.debug('recv-omci-msg', omci_msg=hexlify(msg))
@@ -316,14 +347,11 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	                   self.logger.debug('frame-decode-key-error', omci_msg=hexlify(msg), e=e)
 	                   rx_frame = self._decode_unknown_me(msg)
 	                   self._rx_unknown_me += 1
-
 	               except Exception as e:
 	                   self.logger.exception('frame-decode', omci_msg=hexlify(msg), e=e)
 	                   return
-
 	               finally:
 	                   omci_entities.entity_id_to_class_map = saved_me_map     # Always restore it.
-
 	               rx_tid = rx_frame.fields['transaction_id']
 	               msg_type = rx_frame.fields['message_type']
 	               self.logger.debug('Received message for rx_tid', rx_tid = rx_tid, msg_type = msg_type)
@@ -332,23 +360,18 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	               if rx_tid == 0 or msg_type == EntityOperations.TestResult.value:
 	                   self.logger.debug('Receive ONU message', rx_tid=0)
 	                   return self._receive_onu_message(rx_frame)
-
 	               # Previously unreachable if this is the very first round-trip Rx or we
 	               # have been running consecutive errors
 	               if self._rx_frames == 0 or self._consecutive_errors != 0:
 	                   self.logger.debug('Consecutive errors for rx', err = self._consecutive_errors)
 	                   self.reactor.callLater(0, self._publish_connectivity_event, True)
-
 	               self._rx_frames += 1
 	               self._consecutive_errors = 0
-
 	               try:
 	                   high_priority = self._tid_is_high_priority(rx_tid)
 	                   index = self._get_priority_index(high_priority)
-
 	                   # (timestamp, defer, frame, timeout, retry, delayedCall)
 	                   last_tx_tuple = self._tx_request[index]
-
 	                   if last_tx_tuple is None or \
 	                           last_tx_tuple[OMCI_CC.REQUEST_FRAME].fields.get('transaction_id') != rx_tid:
 	                       # Possible late Rx on a message that timed-out
@@ -358,34 +381,27 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	                       self._rx_unknown_tid += 1
 	                       self._rx_late += 1
 	                       return
-
 	                   ts, d, tx_frame, timeout, retry, dc = last_tx_tuple
 	                   if dc is not None and not dc.cancelled and not dc.called:
 	                       dc.cancel()
-
 	                   _secs = self._update_rx_tx_stats(now, ts)
-
 	                   # Late arrival already serviced by a timeout?
 	                   if d.called:
 	                       self._rx_late += 1
 	                       self.logger.debug('Serviced by timeout. Late arrival', rx_late = self._rx_late)
 	                       return
-
 	               except Exception as e:
 	                   self.logger.exception('frame-match', msg=hexlify(msg), e=e)
 	                   if d is not None:
 	                       return d.errback(failure.Failure(e))
 	                   return
-
 	               # Publish Rx event to listeners in a different task
 	               self.logger.debug('Publish rx event', rx_tid = rx_tid,
 	                              tx_tid = tx_frame.fields['transaction_id'])
 	               reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
-
 	               # begin success callback chain (will cancel timeout and queue next Tx message)
 	               self._rx_response[index] = rx_frame
 	               d.callback(rx_frame)
-
 	           except Exception as e:
 	   			self.logger.exception('rx-msg', e=e)
 	*/
