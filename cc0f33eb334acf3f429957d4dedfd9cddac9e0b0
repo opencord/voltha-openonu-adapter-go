@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "280bd4fc_b331313d",
+        "filename": "PM_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "2 useless spaces",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7a043522_42326db7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2571,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "debug",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ab0fed04_304fd0db",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2595,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "debug",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a63f284d_b26d7fdd",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "why can\u0027t this be changed ?",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c865ef5_30e53fdb",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "is it worth having this in a map with name--\u003e group ? to avoid this tipe of iterative for",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05c11f1b_0657bbab",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "nit, it\u0027s usually the other way around, if !found {return error} progress normally",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cb557d6e_5c29f987",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 305,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "same, possibly worth having in a map",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d17706e5_1fbc4257",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "same",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "abfc21f3_9d49844c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-26T11:48:07Z",
+      "side": 1,
+      "message": "same",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
