@@ -16,6 +16,24 @@
       "revId": "cb2ad85011915c9192706f8a8e4fa3b210bb1424",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0fe7f16d_d4287ccf",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-01-26T15:26:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8c712202_5a969b3f",
+      "revId": "cb2ad85011915c9192706f8a8e4fa3b210bb1424",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
