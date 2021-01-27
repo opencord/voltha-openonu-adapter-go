@@ -74,9 +74,12 @@ func (oo *OnuDeviceEntry) enterStartingState(ctx context.Context, e *fsm.Event) 
 func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibTemplate processing in State": e.FSM.Current(), "device-id": oo.deviceID})
 
+	if !oo.isNewOnu() {
+		oo.baseDeviceHandler.prepareReconcilingWithActiveAdapter(ctx)
+		oo.devState = DeviceStatusInit
+	}
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"send mibReset in State": e.FSM.Current(), "device-id": oo.deviceID})
 	_ = oo.PDevOmciCC.sendMibReset(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true)
-
 	//TODO: needs to handle timeouts
 }
 
@@ -148,29 +151,29 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplate(ctx context.Context, e *fsm.Ev
 			mibTmpBytes := []byte(mibTmpString)
 			logger.Debugf(ctx, "MibSync FSM - MibTemplate tokens swapped out: %s", mibTmpBytes)
 
-			var fistLevelMap map[string]interface{}
-			if err = json.Unmarshal(mibTmpBytes, &fistLevelMap); err != nil {
+			var firstLevelMap map[string]interface{}
+			if err = json.Unmarshal(mibTmpBytes, &firstLevelMap); err != nil {
 				logger.Errorw(ctx, "MibSync FSM - Failed to unmarshal template", log.Fields{"error": err, "device-id": oo.deviceID})
 			} else {
-				for fistLevelKey, firstLevelValue := range fistLevelMap {
-					logger.Debugw(ctx, "MibSync FSM - fistLevelKey", log.Fields{"fistLevelKey": fistLevelKey})
-					if uint16ValidNumber, err := strconv.ParseUint(fistLevelKey, 10, 16); err == nil {
+				for firstLevelKey, firstLevelValue := range firstLevelMap {
+					//logger.Debugw(ctx, "MibSync FSM - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
+					if uint16ValidNumber, err := strconv.ParseUint(firstLevelKey, 10, 16); err == nil {
 						meClassID := me.ClassID(uint16ValidNumber)
-						logger.Debugw(ctx, "MibSync FSM - fistLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
+						//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
 						if isSupportedClassID(meClassID) {
-							logger.Debugw(ctx, "MibSync FSM - fistLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
+							//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
 							secondLevelMap := firstLevelValue.(map[string]interface{})
 							for secondLevelKey, secondLevelValue := range secondLevelMap {
-								logger.Debugw(ctx, "MibSync FSM - secondLevelKey", log.Fields{"secondLevelKey": secondLevelKey})
+								//logger.Debugw(ctx, "MibSync FSM - secondLevelKey", log.Fields{"secondLevelKey": secondLevelKey})
 								if uint16ValidNumber, err := strconv.ParseUint(secondLevelKey, 10, 16); err == nil {
 									meEntityID := uint16(uint16ValidNumber)
-									logger.Debugw(ctx, "MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityID": meEntityID})
+									//logger.Debugw(ctx, "MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityID": meEntityID})
 									thirdLevelMap := secondLevelValue.(map[string]interface{})
 									for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
 										if thirdLevelKey == "Attributes" {
-											logger.Debugw(ctx, "MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
+											//logger.Debugw(ctx, "MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
 											attributesMap := thirdLevelValue.(map[string]interface{})
-											logger.Debugw(ctx, "MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
+											//logger.Debugw(ctx, "MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
 											oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, attributesMap)
 											meStoredFromTemplate = true
 										}
@@ -221,10 +224,25 @@ func (oo *OnuDeviceEntry) enterUploadingState(ctx context.Context, e *fsm.Event)
 	_ = oo.PDevOmciCC.sendMibUpload(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true)
 }
 
-func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
-	oo.mibLastDbSync = uint32(time.Now().Unix())
+func (oo *OnuDeviceEntry) enterUploadDoneState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"send notification to core in State": e.FSM.Current(), "device-id": oo.deviceID})
 	oo.transferSystemEvent(ctx, MibDatabaseSync)
+	go func() {
+		_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+	}()
+}
+
+func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
+	oo.sOnuPersistentData.PersMibLastDbSync = uint32(time.Now().Unix())
+	if oo.mibAuditDelay > 0 {
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"trigger next Audit in State": e.FSM.Current(), "oo.mibAuditDelay": oo.mibAuditDelay, "device-id": oo.deviceID})
+		go func() {
+			time.Sleep(time.Duration(oo.mibAuditDelay) * time.Second)
+			if err := oo.pMibUploadFsm.pFsm.Event(ulEvAuditMib); err != nil {
+				logger.Debugw(ctx, "MibSyncFsm: Can't go to state auditing", log.Fields{"device-id": oo.deviceID, "err": err})
+			}
+		}()
+	}
 }
 
 func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Event) {
@@ -235,11 +253,35 @@ func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Eve
 func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibResync processing in State": e.FSM.Current(), "device-id": oo.deviceID})
 	logger.Debug(ctx, "function not implemented yet")
+	// TODOs:
+	// VOL-3805 - Provide exclusive OMCI channel for one FSM
+	// VOL-3785 - New event notifications and corresponding performance counters for openonu-adapter-go
+	// VOL-3792 - Support periodical audit via mib resync
+	// VOL-3793 - ONU-reconcile handling after adapter restart based on mib resync
 }
 
 func (oo *OnuDeviceEntry) enterAuditingState(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibResync processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	logger.Debug(ctx, "function not implemented yet")
+	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibAudit processing in State": e.FSM.Current(), "device-id": oo.deviceID})
+	if oo.baseDeviceHandler.allButCallingFsmInIdleState(ctx, cUploadFsm) {
+		oo.requestMdsValue(ctx)
+	} else {
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"Configuration is ongoing - skip auditing!": e.FSM.Current(), "device-id": oo.deviceID})
+		go func() {
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+		}()
+	}
+}
+
+func (oo *OnuDeviceEntry) enterReAuditingState(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start retest MdsValue processing in State": e.FSM.Current(), "device-id": oo.deviceID})
+	if oo.baseDeviceHandler.allButCallingFsmInIdleState(ctx, cUploadFsm) {
+		oo.requestMdsValue(ctx)
+	} else {
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"Configuration is ongoing - skip re-auditing!": e.FSM.Current(), "device-id": oo.deviceID})
+		go func() {
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+		}()
+	}
 }
 
 func (oo *OnuDeviceEntry) enterOutOfSyncState(ctx context.Context, e *fsm.Event) {
@@ -301,7 +343,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 			if msgOk {
 				logger.Debugw(ctx, "MibResetResponse Data", log.Fields{"data-fields": msgObj})
 				if msgObj.Result == me.Success {
-					oo.mibDataSyncAdpt = 0
+					oo.sOnuPersistentData.PersMibDataSyncAdpt = 0
 					// trigger retrieval of VendorId and SerialNumber
 					_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetVendorAndSerial)
 					return
@@ -458,17 +500,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
 				return nil
 			case "OnuData":
-				mibDataSyncOnu := meAttributes["MibDataSync"].(uint8)
-				logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-Data - MibDataSync", log.Fields{"device-id": oo.deviceID,
-					"mibDataSyncOnu": mibDataSyncOnu, "oo.mibDataSyncAdpt": oo.mibDataSyncAdpt})
-				if oo.pMibUploadFsm.pFsm.Is(ulStExaminingMds) {
-					// Examine MDS value
-					if oo.mibDataSyncAdpt == mibDataSyncOnu {
-						_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
-					} else {
-						_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
-					}
-				}
+				oo.checkMdsValue(ctx, meAttributes["MibDataSync"].(uint8))
 				return nil
 			}
 		} else {
@@ -537,7 +569,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseErrors(ctx context.Context, msgOb
 }
 
 func (oo *OnuDeviceEntry) isNewOnu() bool {
-	return oo.mibLastDbSync == 0
+	return oo.sOnuPersistentData.PersMibLastDbSync == 0
 }
 
 func isSupportedClassID(meClassID me.ClassID) bool {
@@ -645,18 +677,37 @@ func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
 }
 
-// func (onuDeviceEntry *OnuDeviceEntry) MibTemplateTask() error {
-// 	return errors.New("not_implemented")
-// }
-// func (onuDeviceEntry *OnuDeviceEntry) MibUploadTask() error {
-// 	return errors.New("not_implemented")
-// }
-// func (onuDeviceEntry *OnuDeviceEntry) GetMdsTask() error {
-// 	return errors.New("not_implemented")
-// }
-// func (onuDeviceEntry *OnuDeviceEntry) MibResyncTask() error {
-// 	return errors.New("not_implemented")
-// }
-// func (onuDeviceEntry *OnuDeviceEntry) MibReconcileTask() error {
-// 	return errors.New("not_implemented")
-// }
+func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint8) {
+	logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-Data - MibDataSync", log.Fields{"device-id": oo.deviceID,
+		"mibDataSyncOnu": mibDataSyncOnu, "PersMibDataSyncAdpt": oo.sOnuPersistentData.PersMibDataSyncAdpt})
+
+	mdsCheckOk := oo.sOnuPersistentData.PersMibDataSyncAdpt == mibDataSyncOnu
+	if oo.pMibUploadFsm.pFsm.Is(ulStAuditing) {
+		if mdsCheckOk {
+			logger.Debugw(ctx, "MibSync FSM - mib audit - MDS check ok", log.Fields{"device-id": oo.deviceID})
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+		} else {
+			logger.Warnw(ctx, "MibSync FSM - mib audit - MDS check failed for the first time!", log.Fields{"device-id": oo.deviceID})
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+		}
+	} else if oo.pMibUploadFsm.pFsm.Is(ulStReAuditing) {
+		if mdsCheckOk {
+			logger.Debugw(ctx, "MibSync FSM - mib reaudit - MDS check ok", log.Fields{"device-id": oo.deviceID})
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+		} else {
+			logger.Errorw(ctx, "MibSync FSM - mib audit - MDS check failed for the second time!", log.Fields{"device-id": oo.deviceID})
+			//TODO: send new event notification "MDS counter mismatch" to the core
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+		}
+	} else if oo.pMibUploadFsm.pFsm.Is(ulStExaminingMds) {
+		if mdsCheckOk {
+			logger.Debugw(ctx, "MibSync FSM - MDS examination ok", log.Fields{"device-id": oo.deviceID})
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+		} else {
+			logger.Debugw(ctx, "MibSync FSM - MDS examination failed - new provisioning", log.Fields{"device-id": oo.deviceID})
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+		}
+	} else {
+		logger.Warnw(ctx, "wrong state for MDS evaluation!", log.Fields{"state": oo.pMibUploadFsm.pFsm.Current(), "device-id": oo.deviceID})
+	}
+}

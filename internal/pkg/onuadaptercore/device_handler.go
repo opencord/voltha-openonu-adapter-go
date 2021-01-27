@@ -92,6 +92,31 @@ const (
 	cOnuActivatedEvent = "ONU_ACTIVATED"
 )
 
+type usedOmciConfigFsms int
+
+const (
+	cUploadFsm usedOmciConfigFsms = iota
+	cDownloadFsm
+	cUniLockFsm
+	cUniUnLockFsm
+	cAniConfigFsm
+	cUniVlanConfigFsm
+)
+
+type idleCheckStruct struct {
+	idleCheckFunc func(*deviceHandler, context.Context, string) bool
+	idleState     string
+}
+
+var fsmIdleStateFuncMap = map[usedOmciConfigFsms]idleCheckStruct{
+	cUploadFsm:        {(*deviceHandler).mibUploadFsmInIdleState, cMibUlFsmIdleState},
+	cDownloadFsm:      {(*deviceHandler).mibDownloadFsmInIdleState, cMibDlFsmIdleState},
+	cUniLockFsm:       {(*deviceHandler).devUniLockFsmInIdleState, cUniFsmIdleState},
+	cUniUnLockFsm:     {(*deviceHandler).devUniUnlockFsmInIdleState, cUniFsmIdleState},
+	cAniConfigFsm:     {(*deviceHandler).devAniConfigFsmInIdleState, cAniFsmIdleState},
+	cUniVlanConfigFsm: {(*deviceHandler).devUniVlanConfigFsmInIdleState, cVlanFsmIdleState},
+}
+
 const (
 	// device reasons
 	drUnset                            = 0
@@ -164,6 +189,8 @@ type deviceHandler struct {
 	//discOnus sync.Map
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
+	collectorIsRunning         bool
+	mutexCollectorFlag         sync.RWMutex
 	stopCollector              chan bool
 	stopHeartbeatCheck         chan bool
 	uniEntityMap               map[uint32]*onuUniPort
@@ -188,6 +215,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.exitChannel = make(chan int, 1)
 	dh.lockDevice = sync.RWMutex{}
 	dh.deviceEntrySet = make(chan bool, 1)
+	dh.collectorIsRunning = false
 	dh.stopCollector = make(chan bool, 2)
 	dh.stopHeartbeatCheck = make(chan bool, 2)
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
@@ -1423,9 +1451,10 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		return fmt.Errorf("can't execute MibSync: %s", dh.deviceID)
 	}
 
-	// Start PM collector routine
-	go dh.startCollector(ctx)
-
+	if !dh.getCollectorIsRunning() {
+		// Start PM collector routine
+		go dh.startCollector(ctx)
+	}
 	return nil
 }
 
@@ -1438,7 +1467,7 @@ func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuInd
 		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
 		//here no conflict with aborted FSM's should arise as a complete OMCI initialization is assumed on ONU-Up
 		//but that might change with some simple MDS check on ONU-Up treatment -> attention!!!
-		if err := dh.resetFsms(ctx); err != nil {
+		if err := dh.resetFsms(ctx, true); err != nil {
 			logger.Errorw(ctx, "error-updateInterface at FSM stop",
 				log.Fields{"device-id": dh.deviceID, "error": err})
 			// abort: system behavior is just unstable ...
@@ -1491,7 +1520,7 @@ func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuInd
 	return nil
 }
 
-func (dh *deviceHandler) resetFsms(ctx context.Context) error {
+func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool) error {
 	//all possible FSM's are stopped or reset here to ensure their transition to 'disabled'
 	//it is not sufficient to stop/reset the latest running FSM as done in previous versions
 	//  as after down/up procedures all FSM's might be active/ongoing (in theory)
@@ -1502,11 +1531,13 @@ func (dh *deviceHandler) resetFsms(ctx context.Context) error {
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
-	//the MibSync FSM might be active all the ONU-active time,
-	// hence it must be stopped unconditionally
-	pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
-	if pMibUlFsm != nil {
-		_ = pMibUlFsm.Event(ulEvStop) //TODO!! verify if MibSyncFsm stop-processing is sufficient (to allow it again afterwards)
+	if includingMibSyncFsm {
+		//the MibSync FSM might be active all the ONU-active time,
+		// hence it must be stopped unconditionally
+		pMibUlFsm := pDevEntry.pMibUploadFsm.pFsm
+		if pMibUlFsm != nil {
+			_ = pMibUlFsm.Event(ulEvStop) //TODO!! verify if MibSyncFsm stop-processing is sufficient (to allow it again afterwards)
+		}
 	}
 	//MibDownload may run
 	pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
@@ -1544,10 +1575,10 @@ func (dh *deviceHandler) resetFsms(ctx context.Context) error {
 			}
 		}
 	}
-
-	// Stop collector routine
-	dh.stopCollector <- true
-
+	if dh.getCollectorIsRunning() {
+		// Stop collector routine
+		dh.stopCollector <- true
+	}
 	return nil
 }
 
@@ -1798,8 +1829,6 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 			// which may be the case from some previous actvity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
 			_ = dh.deviceReasonUpdate(ctx, drOmciFlowsPushed, !dh.reconciling)
-			// request MDS-value for test and logging purposes
-			dh.pOnuOmciDevice.requestMdsValue(ctx)
 			if dh.reconciling {
 				go dh.reconcileMetrics(ctx)
 			}
@@ -1809,6 +1838,10 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 			//not relevant for reconcile
 			_ = dh.deviceReasonUpdate(ctx, drOmciFlowsDeleted, true)
 		}
+	}
+	if err := dh.storePersistentData(ctx); err != nil {
+		logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
+			log.Fields{"device-id": dh.deviceID, "err": err})
 	}
 }
 
@@ -2646,9 +2679,11 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
 	// reset like onu rebooted.
 	dh.pOnuMetricsMgr.initializeMetricCollectionTime(ctx)
+	dh.setCollectorIsRunning(true)
 	for {
 		select {
 		case <-dh.stopCollector:
+			dh.setCollectorIsRunning(false)
 			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
 			dh.pOnuMetricsMgr.stopProcessingOmciResponses <- true // Stop the OMCI GET response processing routine
 			return
@@ -2707,4 +2742,96 @@ func (dh *deviceHandler) getUniPortStatus(ctx context.Context, uniInfo *extensio
 
 	portStatus := NewUniPortStatus(dh.pOnuOmciDevice.PDevOmciCC)
 	return portStatus.getUniPortStatus(ctx, uniInfo.UniIndex)
+}
+
+func (dh *deviceHandler) isFsmInState(ctx context.Context, pFsm *fsm.FSM, wantedState string) bool {
+	var currentState string
+	if pFsm != nil {
+		currentState = pFsm.Current()
+		if currentState == wantedState {
+			return true
+		}
+	} else {
+		logger.Warnw(ctx, "FSM not defined!", log.Fields{"wantedState": wantedState, "device-id": dh.deviceID})
+	}
+	return false
+}
+
+func (dh *deviceHandler) mibUploadFsmInIdleState(ctx context.Context, idleState string) bool {
+	return dh.isFsmInState(ctx, dh.pOnuOmciDevice.pMibUploadFsm.pFsm, idleState)
+}
+
+func (dh *deviceHandler) mibDownloadFsmInIdleState(ctx context.Context, idleState string) bool {
+	return dh.isFsmInState(ctx, dh.pOnuOmciDevice.pMibDownloadFsm.pFsm, idleState)
+}
+
+func (dh *deviceHandler) devUniLockFsmInIdleState(ctx context.Context, idleState string) bool {
+	return dh.isFsmInState(ctx, dh.pLockStateFsm.pAdaptFsm.pFsm, idleState)
+}
+
+func (dh *deviceHandler) devUniUnlockFsmInIdleState(ctx context.Context, idleState string) bool {
+	return dh.isFsmInState(ctx, dh.pUnlockStateFsm.pAdaptFsm.pFsm, idleState)
+}
+
+func (dh *deviceHandler) devAniConfigFsmInIdleState(ctx context.Context, idleState string) bool {
+	if dh.pOnuTP.pAniConfigFsm != nil {
+		for _, v := range dh.pOnuTP.pAniConfigFsm {
+			if !dh.isFsmInState(ctx, v.pAdaptFsm.pFsm, idleState) {
+				return false
+			}
+		}
+		return true
+	}
+	logger.Warnw(ctx, "AniConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
+	return false
+}
+
+func (dh *deviceHandler) devUniVlanConfigFsmInIdleState(ctx context.Context, idleState string) bool {
+	if dh.UniVlanConfigFsmMap != nil {
+		for _, v := range dh.UniVlanConfigFsmMap {
+			if !dh.isFsmInState(ctx, v.pAdaptFsm.pFsm, idleState) {
+				return false
+			}
+		}
+		return true
+	}
+	logger.Warnw(ctx, "UniVlanConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
+	return false
+}
+
+func (dh *deviceHandler) allButCallingFsmInIdleState(ctx context.Context, callingFsm usedOmciConfigFsms) bool {
+	for fsmName, fsmStruct := range fsmIdleStateFuncMap {
+		if fsmName != callingFsm && !fsmStruct.idleCheckFunc(dh, ctx, fsmStruct.idleState) {
+			return false
+		}
+	}
+	return true
+}
+
+func (dh *deviceHandler) prepareReconcilingWithActiveAdapter(ctx context.Context) {
+	logger.Debugw(ctx, "prepare to reconcile the ONU with adapter using persistency data", log.Fields{"device-id": dh.device.Id})
+	if err := dh.resetFsms(ctx, false); err != nil {
+		logger.Errorw(ctx, "reset of FSMs failed!", log.Fields{"device-id": dh.deviceID, "error": err})
+		// TODO: fatal error reset ONU, delete deviceHandler!
+		return
+	}
+	if !dh.getCollectorIsRunning() {
+		// Start PM collector routine
+		go dh.startCollector(ctx)
+	}
+	dh.uniEntityMap = make(map[uint32]*onuUniPort)
+	dh.reconciling = true
+}
+
+func (dh *deviceHandler) setCollectorIsRunning(flagValue bool) {
+	dh.mutexCollectorFlag.Lock()
+	dh.collectorIsRunning = flagValue
+	dh.mutexCollectorFlag.Unlock()
+}
+
+func (dh *deviceHandler) getCollectorIsRunning() bool {
+	dh.mutexCollectorFlag.RLock()
+	flagValue := dh.collectorIsRunning
+	dh.mutexCollectorFlag.RUnlock()
+	return flagValue
 }
