@@ -37,6 +37,7 @@ import (
 	flow "github.com/opencord/voltha-lib-go/v4/pkg/flows"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	vc "github.com/opencord/voltha-protos/v4/go/common"
+	"github.com/opencord/voltha-protos/v4/go/extension"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	of "github.com/opencord/voltha-protos/v4/go/openflow_13"
@@ -2587,4 +2588,10 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 			}()
 		}
 	}
+}
+
+func (dh *deviceHandler) getUniPortStatus(ctx context.Context, uniInfo *extension.GetOnuUniInfoRequest) *extension.SingleGetValueResponse {
+
+	portStatus := NewUniPortStatus(dh.pOnuOmciDevice.PDevOmciCC)
+	return portStatus.getUniPortStatus(ctx, uniInfo.UniIndex)
 }

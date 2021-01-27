@@ -2194,3 +2194,48 @@ func isResponseWithMibDataSync(msgType omci.MessageType) bool {
 	}
 	return false
 }
+
+func (oo *omciCC) sendGetPptpEthUni(ctx context.Context, aInstNo uint16, timeout int,
+	highPrio bool, requestedAttributes me.AttributeValueMap, rxChan chan Message) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send PPTPEthUni-Get-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	// PPTPEthUni ME-ID is taken from Mib Upload stored OnuUniPort instance (argument)
+	meParams := me.ParamData{
+		EntityID:   aInstNo,
+		Attributes: requestedAttributes,
+	}
+	meInstance, omciErr := me.NewPhysicalPathTerminationPointEthernetUni(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode PPTPEthUni-Get", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize PPTPEthUni-Get", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "cannot send PPTPEthUni-Set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug(ctx, "send PPTPEthUni-get-msg done")
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate PPTPEthUni", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
