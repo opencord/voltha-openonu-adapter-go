@@ -256,7 +256,9 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 			logger.Errorw(ctx, "Device FSM: Can't go to state DeviceInit", log.Fields{"err": err})
 		}
 		logger.Debugw(ctx, "Device FSM: ", log.Fields{"state": string(dh.pDeviceStateFsm.Current())})
-		if device.PmConfigs == nil { // device.PmConfigs is not nil in cases when adapter restarts. We should not re-set the core again.
+		// device.PmConfigs is not nil in cases when adapter restarts. We should not re-set the core again.
+		// Also do this only if metrics is enabled for the adapter.
+		if device.PmConfigs == nil && dh.pOpenOnuAc.metricsEnabled {
 			// Now, set the initial PM configuration for that device
 			if err := dh.coreProxy.DevicePMConfigUpdate(ctx, dh.pmConfigs); err != nil {
 				logger.Errorw(ctx, "error updating pm config to core", log.Fields{"device-id": dh.deviceID, "err": err})
@@ -1421,8 +1423,10 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		return fmt.Errorf("can't execute MibSync: %s", dh.deviceID)
 	}
 
-	// Start PM collector routine
-	go dh.startCollector(ctx)
+	// Start PM collector routine if metrics is enabled.
+	if dh.pOpenOnuAc.metricsEnabled {
+		go dh.startCollector(ctx)
+	}
 
 	return nil
 }
@@ -1542,8 +1546,11 @@ func (dh *deviceHandler) resetFsms(ctx context.Context) error {
 			}
 		}
 	}
-	// Stop collector routine for PM Counters
-	dh.stopCollector <- true
+
+	// Stop collector routine for PM Counters if it was enabled.
+	if dh.pOpenOnuAc.metricsEnabled {
+		dh.stopCollector <- true
+	}
 
 	return nil
 }
@@ -2587,7 +2594,7 @@ func (dh *deviceHandler) handleStandalonePmConfigUpdates(ctx context.Context, pm
 	// Check if standalone metric related config is updated
 	for _, v := range pmConfigs.Metrics {
 		dh.pOnuMetricsMgr.onuMetricsManagerLock.RLock()
-		m, ok := dh.pOnuMetricsMgr.groupMetricMap[v.Name]
+		m, ok := dh.pOnuMetricsMgr.standaloneMetricMap[v.Name]
 		dh.pOnuMetricsMgr.onuMetricsManagerLock.RUnlock()
 
 		if ok && m.frequency != v.SampleFreq {
@@ -2625,9 +2632,9 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 				// If the current time is eqaul to or greater than the nextGlobalMetricCollectionTime, collect the group and standalone metrics
 				if time.Now().Equal(dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime) || time.Now().After(dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime) {
 					go dh.pOnuMetricsMgr.collectAllGroupAndStandaloneMetrics(ctx)
+					// Update the next metric collection time.
+					dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime = time.Now().Add(time.Duration(dh.pmConfigs.DefaultFreq) * time.Second)
 				}
-				// Update the next metric collection time.
-				dh.pOnuMetricsMgr.nextGlobalMetricCollectionTime = time.Now().Add(time.Duration(dh.pmConfigs.DefaultFreq) * time.Second)
 			} else {
 				if dh.pmConfigs.Grouped { // metrics are managed as a group
 					// parse through the group and standalone metrics to see it is time to collect their metrics

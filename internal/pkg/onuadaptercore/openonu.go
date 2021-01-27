@@ -68,6 +68,7 @@ type OpenONUAC struct {
 	pSupportedFsms             *OmciDeviceFsms
 	maxTimeoutInterAdapterComm time.Duration
 	pDownloadManager           *adapterDownloadManager
+	metricsEnabled             bool
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -98,6 +99,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.AcceptIncrementalEvto = cfg.AccIncrEvto
 	openOnuAc.maxTimeoutInterAdapterComm = cfg.MaxTimeoutInterAdapterComm
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
+	openOnuAc.metricsEnabled = cfg.MetricsEnabled
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {
@@ -426,6 +428,10 @@ func (oo *OpenONUAC) Update_flows_incrementally(ctx context.Context, device *vol
 func (oo *OpenONUAC) Update_pm_config(ctx context.Context, device *voltha.Device, pmConfigs *voltha.PmConfigs) error {
 	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
+		if !handler.pOpenOnuAc.metricsEnabled {
+			logger.Errorw(ctx, "metrics not enabled for device", log.Fields{"device-id": handler.deviceID})
+			return fmt.Errorf("metrics-not-enabled-for-device-%s", handler.deviceID)
+		}
 		return handler.updatePmConfig(ctx, pmConfigs)
 	}
 	logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": device.Id})
