@@ -135,7 +135,7 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		}
 		opticalPowerGroupMetric := voltha.PmGroupConfig{
 			GroupName: OpticalPowerGroupMetricName,
-			Enabled:   OpticalPowerGroupMetricEnabled,
+			Enabled:   OpticalPowerGroupMetricEnabled && dh.pOpenOnuAc.metricsEnabled,
 			GroupFreq: OpticalPowerMetricGroupCollectionFrequency,
 			Metrics:   opPmConfigSlice,
 		}
@@ -148,7 +148,7 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		}
 		uniStatusGroupMetric := voltha.PmGroupConfig{
 			GroupName: UniStatusGroupMetricName,
-			Enabled:   UniStatusGroupMetricEnabled,
+			Enabled:   UniStatusGroupMetricEnabled && dh.pOpenOnuAc.metricsEnabled,
 			GroupFreq: UniStatusMetricGroupCollectionFrequency,
 			Metrics:   uniStPmConfigSlice,
 		}
@@ -220,7 +220,7 @@ func (mm *onuMetricsManager) initializeMetricCollectionTime(ctx context.Context)
 
 func (mm *onuMetricsManager) updateDefaultFrequency(ctx context.Context, pmConfigs *voltha.PmConfigs) error {
 	// Verify that the configured DefaultFrequency is > 0 and is a multiple of FrequencyGranularity
-	if pmConfigs.DefaultFreq == 0 && pmConfigs.DefaultFreq%FrequencyGranularity != 0 {
+	if pmConfigs.DefaultFreq == 0 || (pmConfigs.DefaultFreq > 0 && pmConfigs.DefaultFreq%FrequencyGranularity != 0) {
 		logger.Errorf(ctx, "frequency-%u-should-be-a-multiple-of-%u", pmConfigs.DefaultFreq, FrequencyGranularity)
 		return fmt.Errorf("frequency-%d-should-be-a-multiple-of-%d", pmConfigs.DefaultFreq, FrequencyGranularity)
 	}
@@ -238,11 +238,14 @@ func (mm *onuMetricsManager) updateGroupFreq(ctx context.Context, aGroupName str
 	var group *voltha.PmGroupConfig
 	for groupSliceIdx, group = range pmConfigs.Groups {
 		if group.GroupName == aGroupName {
-			if group.GroupFreq != 0 { // freq 0 not allowed
-				newGroupFreq = group.GroupFreq
-				found = true
-				break
+			// freq 0 is not allowed and it should be multiple of FrequencyGranularity
+			if group.GroupFreq == 0 || (group.GroupFreq > 0 && group.GroupFreq%FrequencyGranularity != 0) {
+				logger.Errorf(ctx, "frequency-%u-should-be-a-multiple-of-%u", group.GroupFreq, FrequencyGranularity)
+				return fmt.Errorf("frequency-%d-should-be-a-multiple-of-%d", group.GroupFreq, FrequencyGranularity)
 			}
+			newGroupFreq = group.GroupFreq
+			found = true
+			break
 		}
 	}
 	// if not found update group freq and next collection interval for the group
@@ -255,7 +258,7 @@ func (mm *onuMetricsManager) updateGroupFreq(ctx context.Context, aGroupName str
 	mm.onuMetricsManagerLock.Lock()
 	defer mm.onuMetricsManagerLock.Unlock()
 	for k, v := range mm.groupMetricMap {
-		if k == aGroupName && newGroupFreq != 0 { // freq 0 not allowed
+		if k == aGroupName {
 			v.frequency = newGroupFreq
 			// update internal pm config
 			mm.pDeviceHandler.pmConfigs.Groups[groupSliceIdx].GroupFreq = newGroupFreq
@@ -279,11 +282,14 @@ func (mm *onuMetricsManager) updateMetricFreq(ctx context.Context, aMetricName s
 	var metric *voltha.PmConfig
 	for metricSliceIdx, metric = range pmConfigs.Metrics {
 		if metric.Name == aMetricName {
-			if metric.SampleFreq != 0 { // freq 0 not allowed
-				newMetricFreq = metric.SampleFreq
-				found = true
-				break
+			// freq 0 is not allowed and it should be multiple of FrequencyGranularity
+			if metric.SampleFreq  == 0 || (metric.SampleFreq  > 0 && metric.SampleFreq %FrequencyGranularity != 0) {
+				logger.Errorf(ctx, "frequency-%u-should-be-a-multiple-of-%u", metric.SampleFreq , FrequencyGranularity)
+				return fmt.Errorf("frequency-%d-should-be-a-multiple-of-%d", metric.SampleFreq , FrequencyGranularity)
 			}
+			newMetricFreq = metric.SampleFreq
+			found = true
+			break
 		}
 	}
 	if !found {
@@ -295,7 +301,7 @@ func (mm *onuMetricsManager) updateMetricFreq(ctx context.Context, aMetricName s
 	mm.onuMetricsManagerLock.Lock()
 	defer mm.onuMetricsManagerLock.Unlock()
 	for k, v := range mm.groupMetricMap {
-		if k == aMetricName && newMetricFreq != 0 {
+		if k == aMetricName {
 			v.frequency = newMetricFreq
 			// update internal pm config
 			mm.pDeviceHandler.pmConfigs.Metrics[metricSliceIdx].SampleFreq = newMetricFreq
