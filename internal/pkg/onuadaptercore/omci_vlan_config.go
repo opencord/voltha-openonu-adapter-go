@@ -77,7 +77,7 @@ const (
 )
 
 const (
-	// events of config PON ANI port FSM
+	// events of config UNI port VLAN FSM
 	vlanEvStart           = "vlanEvStart"
 	vlanEvWaitTechProf    = "vlanEvWaitTechProf"
 	vlanEvContinueConfig  = "vlanEvContinueConfig"
@@ -97,7 +97,7 @@ const (
 )
 
 const (
-	// states of config PON ANI port FSM
+	// states of config UNI port VLAN FSM
 	vlanStDisabled        = "vlanStDisabled"
 	vlanStStarting        = "vlanStStarting"
 	vlanStWaitingTechProf = "vlanStWaitingTechProf"
@@ -110,6 +110,7 @@ const (
 	vlanStCleanupDone     = "vlanStCleanupDone"
 	vlanStResetting       = "vlanStResetting"
 )
+const cVlanFsmIdleState = vlanStConfigDone
 
 type uniVlanRuleParams struct {
 	TpID         uint8  `json:"tp_id"`

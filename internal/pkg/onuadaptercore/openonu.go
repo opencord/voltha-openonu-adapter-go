@@ -106,6 +106,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 			//mibSyncFsm,        // Implements the MIB synchronization state machine
 			mibDbVolatileDictImpl, // Implements volatile ME MIB database
 			//true,                  // Advertise events on OpenOMCI event bus
+			//TODO: audit delay should come from command parameters configured via helm charts (covered by VOL-3786)
 			cMibAuditDelayImpl, // Time to wait between MIB audits.  0 to disable audits.
 			// map[string]func() error{
 			// 	"mib-upload":    onuDeviceEntry.MibUploadTask,
