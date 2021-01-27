@@ -142,6 +142,24 @@
     },
     {
       "key": {
+        "uuid": "115077e3_f39db98a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-27T09:27:26Z",
+      "side": 1,
+      "message": "I\u0027d say prepare the support he for this to be changed, then open a jira and work on voltctl at a later time, but +1 for changing it.",
+      "parentUuid": "8617c84e_bfa71650",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0c865ef5_30e53fdb",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
@@ -171,6 +189,24 @@
       "side": 1,
       "message": "This actually comes from the proto definition where groups are placed in slice. There are not many groups practically - there are at most 5 to 10 groups so it does not take much cpu hit. In theory yes maps may work better than this iteration.\nSince this needs a proto definition updated, I would like to defer addressing this if possible.",
       "parentUuid": "0c865ef5_30e53fdb",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f0472f01_69bd512c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-27T09:27:26Z",
+      "side": 1,
+      "message": "+1 to deferring. maybe open jira",
+      "parentUuid": "0ddb36d5_6dce2209",
       "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -244,6 +280,24 @@
       "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c3bafcc5_70478b06",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 305,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-01-27T09:27:26Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4571b775_59160edc",
+      "revId": "cc0f33eb334acf3f429957d4dedfd9cddac9e0b0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
