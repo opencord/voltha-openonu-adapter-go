@@ -89,7 +89,7 @@ github.com/opencord/voltha-lib-go/v4/pkg/log
 github.com/opencord/voltha-lib-go/v4/pkg/probe
 github.com/opencord/voltha-lib-go/v4/pkg/techprofile
 github.com/opencord/voltha-lib-go/v4/pkg/version
-# github.com/opencord/voltha-protos/v4 v4.0.8
+# github.com/opencord/voltha-protos/v4 v4.0.11
 github.com/opencord/voltha-protos/v4/go/common
 github.com/opencord/voltha-protos/v4/go/ext/config
 github.com/opencord/voltha-protos/v4/go/extension

@@ -223,6 +223,8 @@ github.com/opencord/voltha-lib-go/v4 v4.0.6 h1:Mc/bkYDR3YcpWPeW35ju9h3sO2cGByz8X
 github.com/opencord/voltha-lib-go/v4 v4.0.6/go.mod h1:8NFUZz/mp4OvRmilBRhkLOUrw4G01ruSAVdzQu2ivPc=
 github.com/opencord/voltha-protos/v4 v4.0.8 h1:/P9IYuWPTp/aabS5n1fakQgHCFNzKjW1JHw3TOLAfKE=
 github.com/opencord/voltha-protos/v4 v4.0.8/go.mod h1:W/OIFIyvFh/C0vchRUuarIsMylEhzCRM9pNxLvkPtKc=
+github.com/opencord/voltha-protos/v4 v4.0.11 h1:pJMNvjVxmCPGEUVPSLgqvT9P2ei2J+8Z9KsHJru2MRI=
+github.com/opencord/voltha-protos/v4 v4.0.11/go.mod h1:W/OIFIyvFh/C0vchRUuarIsMylEhzCRM9pNxLvkPtKc=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
