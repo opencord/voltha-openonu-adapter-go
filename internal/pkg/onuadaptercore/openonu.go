@@ -521,9 +521,21 @@ func (oo *OpenONUAC) Get_ext_value(ctx context.Context, deviceID string, device 
 	return nil, errors.New("unImplemented")
 }
 
-// Single_get_value_request - unimplemented
+//Single_get_value_request handles the core request to retrieve uni status
 func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request extension.SingleGetValueRequest) (*extension.SingleGetValueResponse, error) {
-	return nil, errors.New("unImplemented")
+	logger.Infow(ctx, "Single_get_value_request", log.Fields{"request": request})
+
+	if handler := oo.getDeviceHandler(ctx, request.TargetId, false); handler != nil {
+		switch reqType := request.GetRequest().GetRequest().(type) {
+		case *extension.GetValueRequest_UniInfo:
+			return handler.getUniPortStatus(ctx, reqType.UniInfo), nil
+		default:
+			return postUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
+
+		}
+	}
+	logger.Errorw(ctx, "Single_get_value_request failed ", log.Fields{"request": request})
+	return postUniStatusErrResponse(extension.GetValueResponse_INVALID_DEVICE_ID), nil
 }
 
 // Adapter interface required methods ################ end #########
