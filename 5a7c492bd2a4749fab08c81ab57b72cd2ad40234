@@ -22,6 +22,29 @@
       "revId": "5a7c492bd2a4749fab08c81ab57b72cd2ad40234",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3d4a801_15acd34a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 2590,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-01-27T16:23:07Z",
+      "side": 1,
+      "message": "should that be groupMetricMap or standaloneMetricMap?",
+      "range": {
+        "startLine": 2590,
+        "startChar": 29,
+        "endLine": 2590,
+        "endChar": 43
+      },
+      "revId": "5a7c492bd2a4749fab08c81ab57b72cd2ad40234",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
