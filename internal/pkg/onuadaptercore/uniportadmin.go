@@ -63,6 +63,7 @@ const (
 	uniStAdminDone   = "uniStAdminDone"
 	uniStResetting   = "uniStResetting"
 )
+const cUniFsmIdleState = uniStDisabled
 
 //newLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
 func newLockStateFsm(ctx context.Context, apDevOmciCC *omciCC, aAdminState bool, aRequestEvent OnuDeviceEvent,

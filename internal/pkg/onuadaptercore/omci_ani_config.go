@@ -81,6 +81,7 @@ const (
 	aniStRemoveDone          = "aniStRemoveDone"
 	aniStResetting           = "aniStResetting"
 )
+const cAniFsmIdleState = aniStConfigDone
 
 const (
 	tpIDOffset = 64
