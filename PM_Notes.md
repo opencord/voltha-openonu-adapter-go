@@ -146,11 +146,26 @@ Note1: Sampling rate unit is in seconds
 
 Note2: default sample rate is applicable only if frequency override is false
 
+Note3 : The `frequency` has to be greater than 0 and a multiple of _FrequencyGranularity_ which is currently set to 5.
+
 ### Disable a group metric
 
 ```
 voltctl device pmconfig group disable <onu-device-id> <group-name>
 ```
+
+### Enable a group metric
+
+```
+voltctl device pmconfig group enable <onu-device-id> <group-name>
+```
+
+### Set group frequency
+
+```
+voltctl device pmconfig group set <frequency> <onu-device-id> <group-name>
+```
+Note1 : The `frequency` has to be greater than 0 and a multiple of _FrequencyGranularity_ which is currently set to 5.
 
 ### Listen for KPI events on kafka
 
