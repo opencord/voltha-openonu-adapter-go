@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dfbb0e2d_bdc0af01",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2597,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-27T13:55:17Z",
+      "side": 1,
+      "message": "getUniPortStatus is supposed to be rarely used? Otherwise uniPortStatus could also be made member of the deviceHandler to save some overhead",
+      "revId": "4a4561c0a44568168ab97aa7ab1287dec2ff5d83",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37d07765_b07b1b5b",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2198,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-27T13:55:17Z",
+      "side": 1,
+      "message": "Perhaps simply use the existing sendGetMe() method?",
+      "revId": "4a4561c0a44568168ab97aa7ab1287dec2ff5d83",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
