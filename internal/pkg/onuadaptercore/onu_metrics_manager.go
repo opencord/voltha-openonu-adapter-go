@@ -135,7 +135,7 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		}
 		opticalPowerGroupMetric := voltha.PmGroupConfig{
 			GroupName: OpticalPowerGroupMetricName,
-			Enabled:   OpticalPowerGroupMetricEnabled,
+			Enabled:   OpticalPowerGroupMetricEnabled && dh.pOpenOnuAc.metricsEnabled,
 			GroupFreq: OpticalPowerMetricGroupCollectionFrequency,
 			Metrics:   opPmConfigSlice,
 		}
@@ -148,7 +148,7 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		}
 		uniStatusGroupMetric := voltha.PmGroupConfig{
 			GroupName: UniStatusGroupMetricName,
-			Enabled:   UniStatusGroupMetricEnabled,
+			Enabled:   UniStatusGroupMetricEnabled && dh.pOpenOnuAc.metricsEnabled,
 			GroupFreq: UniStatusMetricGroupCollectionFrequency,
 			Metrics:   uniStPmConfigSlice,
 		}

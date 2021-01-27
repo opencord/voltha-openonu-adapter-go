@@ -68,6 +68,7 @@ type OpenONUAC struct {
 	pSupportedFsms             *OmciDeviceFsms
 	maxTimeoutInterAdapterComm time.Duration
 	pDownloadManager           *adapterDownloadManager
+	metricsEnabled             bool
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -98,6 +99,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.AcceptIncrementalEvto = cfg.AccIncrEvto
 	openOnuAc.maxTimeoutInterAdapterComm = cfg.MaxTimeoutInterAdapterComm
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
+	openOnuAc.metricsEnabled = cfg.MetricsEnabled
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {

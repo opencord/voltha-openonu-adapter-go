@@ -63,6 +63,8 @@ const (
 	defaultTraceEnabled          = false
 	defaultTraceAgentAddress     = "127.0.0.1:6831"
 	defaultLogCorrelationEnabled = true
+
+	defaultMetricsEnabled = true
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -99,6 +101,7 @@ type AdapterFlags struct {
 	TraceAgentAddress           string
 	LogCorrelationEnabled       bool
 	OnuVendorIds                string
+	MetricsEnabled              bool
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -135,6 +138,7 @@ func NewAdapterFlags() *AdapterFlags {
 		TraceAgentAddress:           defaultTraceAgentAddress,
 		LogCorrelationEnabled:       defaultLogCorrelationEnabled,
 		OnuVendorIds:                defaultOnuVendorIds,
+		MetricsEnabled:              defaultMetricsEnabled,
 	}
 	return &adapterFlags
 }
@@ -232,6 +236,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("List of Allowed ONU Vendor Ids")
 	flag.StringVar(&(so.OnuVendorIds), "allowed_onu_vendors", defaultOnuVendorIds, help)
+
+	help = fmt.Sprintf("Whether to enable metrics collection")
+	flag.BoolVar(&(so.MetricsEnabled), "metrics_enabled", defaultMetricsEnabled, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
