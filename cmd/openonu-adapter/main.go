@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -103,13 +102,11 @@ func (a *adapter) start(ctx context.Context) error {
 	}
 
 	// Setup Log Config
-	/* address config update acc. to [VOL-2736] */
-	addr := a.config.KVStoreHost + ":" + strconv.Itoa(a.config.KVStorePort)
-	cm := conf.NewConfigManager(ctx, a.kvClient, a.config.KVStoreType, addr, a.config.KVStoreTimeout)
+	cm := conf.NewConfigManager(ctx, a.kvClient, a.config.KVStoreType, a.config.KVStoreAddress, a.config.KVStoreTimeout)
 	go conf.StartLogLevelConfigProcessing(cm, ctx)
 
 	// Setup Kafka Client
-	if a.kafkaClient, err = newKafkaClient(ctx, "sarama", a.config.KafkaAdapterHost, a.config.KafkaAdapterPort); err != nil {
+	if a.kafkaClient, err = newKafkaClient(ctx, "sarama", a.config.KafkaAdapterAddress); err != nil {
 		logger.Fatalw(ctx, "Unsupported-common-client", log.Fields{"error": err})
 	}
 
@@ -190,11 +187,9 @@ func newKVClient(ctx context.Context, storeType, address string, timeout time.Du
 	return nil, errors.New("unsupported-kv-store")
 }
 
-func newKafkaClient(ctx context.Context, clientType, host string, port int) (kafka.Client, error) {
+func newKafkaClient(ctx context.Context, clientType, addr string) (kafka.Client, error) {
 
 	logger.Infow(ctx, "common-client-type", log.Fields{"client": clientType})
-	/* address config update acc. to [VOL-2736] */
-	addr := host + ":" + strconv.Itoa(port)
 
 	switch clientType {
 	case "sarama":
@@ -211,8 +206,7 @@ func newKafkaClient(ctx context.Context, clientType, host string, port int) (kaf
 }
 
 func (a *adapter) setKVClient(ctx context.Context) error {
-	addr := a.config.KVStoreHost + ":" + strconv.Itoa(a.config.KVStorePort)
-	client, err := newKVClient(ctx, a.config.KVStoreType, addr, a.config.KVStoreTimeout)
+	client, err := newKVClient(ctx, a.config.KVStoreType, a.config.KVStoreAddress, a.config.KVStoreTimeout)
 	if err != nil {
 		a.kvClient = nil
 		logger.Errorw(ctx, "error-starting-KVClient", log.Fields{"error": err})
@@ -223,13 +217,11 @@ func (a *adapter) setKVClient(ctx context.Context) error {
 }
 
 func (a *adapter) startInterContainerProxy(ctx context.Context, retries int) (kafka.InterContainerProxy, error) {
-	logger.Infow(ctx, "starting-intercontainer-messaging-proxy", log.Fields{"host": a.config.KafkaAdapterHost,
-		"port": a.config.KafkaAdapterPort, "topic": a.config.Topic})
+	logger.Infow(ctx, "starting-intercontainer-messaging-proxy", log.Fields{"addr": a.config.KafkaAdapterAddress, "topic": a.config.Topic})
 	var err error
 	/* address config update acc. to [VOL-2736] */
-	addr := a.config.KafkaAdapterHost + ":" + strconv.Itoa(a.config.KafkaAdapterPort)
 	kip := kafka.NewInterContainerProxy(
-		kafka.InterContainerAddress(addr),
+		kafka.InterContainerAddress(a.config.KafkaAdapterAddress),
 		kafka.MsgClient(a.kafkaClient),
 		kafka.DefaultTopic(&kafka.Topic{Name: a.config.Topic}))
 	count := 0
