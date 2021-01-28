@@ -28,14 +28,11 @@ import (
 const (
 	etcdStoreName               = "etcd"
 	defaultInstanceid           = "openonu"
-	defaultKafkaadapterhost     = "192.168.0.20"
-	defaultKafkaadapterport     = 9092
-	defaultKafkaclusterhost     = "10.100.198.220"
-	defaultKafkaclusterport     = 9092
+	defaultKafkaadapteraddress  = "127.0.0.1:9092"
+	defaultKafkaclusteraddress  = "127.0.0.1:9092"
 	defaultKvstoretype          = etcdStoreName
 	defaultKvstoretimeout       = 5 * time.Second
-	defaultKvstorehost          = "localhost"
-	defaultKvstoreport          = 2379 // Consul = 8500; Etcd = 2379
+	defaultKvstoreaddress       = "127.0.0.1:2379"
 	defaultLoglevel             = "WARN"
 	defaultBanner               = false
 	defaultDisplayVersionOnly   = false
@@ -69,14 +66,11 @@ const (
 type AdapterFlags struct {
 	// Command line parameters
 	InstanceID                  string
-	KafkaAdapterHost            string
-	KafkaAdapterPort            int
-	KafkaClusterHost            string
-	KafkaClusterPort            int
+	KafkaAdapterAddress         string
+	KafkaClusterAddress         string // NOTE this is unused across the adapter
 	KVStoreType                 string
 	KVStoreTimeout              time.Duration
-	KVStoreHost                 string
-	KVStorePort                 int
+	KVStoreAddress              string
 	Topic                       string
 	CoreTopic                   string
 	EventTopic                  string
@@ -105,14 +99,11 @@ type AdapterFlags struct {
 func NewAdapterFlags() *AdapterFlags {
 	var adapterFlags = AdapterFlags{ // Default values
 		InstanceID:                  defaultInstanceid,
-		KafkaAdapterHost:            defaultKafkaadapterhost,
-		KafkaAdapterPort:            defaultKafkaadapterport,
-		KafkaClusterHost:            defaultKafkaclusterhost,
-		KafkaClusterPort:            defaultKafkaclusterport,
+		KafkaAdapterAddress:         defaultKafkaadapteraddress,
+		KafkaClusterAddress:         defaultKafkaclusteraddress,
 		KVStoreType:                 defaultKvstoretype,
 		KVStoreTimeout:              defaultKvstoretimeout,
-		KVStoreHost:                 defaultKvstorehost,
-		KVStorePort:                 defaultKvstoreport,
+		KVStoreAddress:              defaultKvstoreaddress,
 		Topic:                       defaultTopic,
 		CoreTopic:                   defaultCoreTopic,
 		EventTopic:                  defaultEventTopic,
@@ -142,17 +133,11 @@ func NewAdapterFlags() *AdapterFlags {
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
 func (so *AdapterFlags) ParseCommandArguments() {
 
-	help := fmt.Sprintf("Kafka - Adapter messaging host")
-	flag.StringVar(&(so.KafkaAdapterHost), "kafka_adapter_host", defaultKafkaadapterhost, help)
+	help := fmt.Sprintf("Kafka - Adapter messaging address")
+	flag.StringVar(&(so.KafkaAdapterAddress), "kafka_adapter_address", defaultKafkaadapteraddress, help)
 
-	help = fmt.Sprintf("Kafka - Adapter messaging port")
-	flag.IntVar(&(so.KafkaAdapterPort), "kafka_adapter_port", defaultKafkaadapterport, help)
-
-	help = fmt.Sprintf("Kafka - Cluster messaging host")
-	flag.StringVar(&(so.KafkaClusterHost), "kafka_cluster_host", defaultKafkaclusterhost, help)
-
-	help = fmt.Sprintf("Kafka - Cluster messaging port")
-	flag.IntVar(&(so.KafkaClusterPort), "kafka_cluster_port", defaultKafkaclusterport, help)
+	help = fmt.Sprintf("Kafka - Cluster messaging address")
+	flag.StringVar(&(so.KafkaClusterAddress), "kafka_cluster_address", defaultKafkaclusteraddress, help)
 
 	help = fmt.Sprintf("Open ONU topic")
 	baseAdapterTopic := flag.String("adapter_topic", defaultTopic, help)
@@ -169,11 +154,8 @@ func (so *AdapterFlags) ParseCommandArguments() {
 	help = fmt.Sprintf("The default timeout when making a kv store request")
 	flag.DurationVar(&(so.KVStoreTimeout), "kv_store_request_timeout", defaultKvstoretimeout, help)
 
-	help = fmt.Sprintf("KV store host")
-	flag.StringVar(&(so.KVStoreHost), "kv_store_host", defaultKvstorehost, help)
-
-	help = fmt.Sprintf("KV store port")
-	flag.IntVar(&(so.KVStorePort), "kv_store_port", defaultKvstoreport, help)
+	help = fmt.Sprintf("KV store address")
+	flag.StringVar(&(so.KVStoreAddress), "kv_store_address", defaultKvstoreaddress, help)
 
 	help = fmt.Sprintf("Log level")
 	flag.StringVar(&(so.LogLevel), "log_level", defaultLoglevel, help)

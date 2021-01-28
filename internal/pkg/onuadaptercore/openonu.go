@@ -54,8 +54,7 @@ type OpenONUAC struct {
 	cm                          *conf.ConfigManager
 	config                      *config.AdapterFlags
 	numOnus                     int
-	KVStoreHost                 string
-	KVStorePort                 int
+	KVStoreAddress              string
 	KVStoreType                 string
 	KVStoreTimeout              time.Duration
 	mibTemplatesGenerated       map[string]bool
@@ -87,8 +86,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.adapterProxy = adapterProxy
 	openOnuAc.eventProxy = eventProxy
 	openOnuAc.kvClient = kvClient
-	openOnuAc.KVStoreHost = cfg.KVStoreHost
-	openOnuAc.KVStorePort = cfg.KVStorePort
+	openOnuAc.KVStoreAddress = cfg.KVStoreAddress
 	openOnuAc.KVStoreType = cfg.KVStoreType
 	openOnuAc.KVStoreTimeout = cfg.KVStoreTimeout
 	openOnuAc.mibTemplatesGenerated = make(map[string]bool)
