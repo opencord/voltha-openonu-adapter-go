@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a0888c6e_e2ac9255",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2630,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-28T08:58:45Z",
+      "side": 1,
+      "message": "What is the reason to keep the interval stable and not use the time that is configured via frequency or as given below directly with the time according to nextGlobalMetricCollectionTime?",
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "475d3824_4cb8aee5",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 430,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-28T08:58:45Z",
+      "side": 1,
+      "message": "As the metricsEnabled scheme was choosen to be \u0027per adapter\u0027 the simpler and more consistent approach would be here vice-versa:\nif oo.metricsEnabled {\n  if handler :\u003d oo.getDeviceHandler(...\n     ...\n} else {\n  // I would not use an error log here, this might be just a normal scenario ...\n  logger.Debugw(ctx, \"metrics not enabled for device\", log.Fields{\"device-id\": handler.deviceID})\n  return fmt.Errorf(\"....\n}",
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
