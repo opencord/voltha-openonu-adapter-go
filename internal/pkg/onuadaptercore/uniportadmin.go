@@ -332,6 +332,9 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg Om
 					oFsm.omciLockResponseReceived <- true
 				}
 			}
+		} else {
+			logger.Warnf(ctx, "LockStateFsm - Received SetResponse Data for %s with wrong classID or entityID ",
+				log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj}, msgObj.EntityClass)
 		}
 	} else {
 		logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
