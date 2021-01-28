@@ -2037,14 +2037,14 @@ func (dh *deviceHandler) runUniLockFsm(ctx context.Context, aAdminState bool) {
 
 //setBackend provides a DB backend for the specified path on the existing KV client
 func (dh *deviceHandler) setBackend(ctx context.Context, aBasePathKvStore string) *db.Backend {
-	addr := dh.pOpenOnuAc.KVStoreHost + ":" + strconv.Itoa(dh.pOpenOnuAc.KVStorePort)
-	logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": addr,
+
+	logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": dh.pOpenOnuAc.KVStoreAddress,
 		"BasePathKvStore": aBasePathKvStore, "device-id": dh.deviceID})
 	kvbackend := &db.Backend{
 		Client:    dh.pOpenOnuAc.kvClient,
 		StoreType: dh.pOpenOnuAc.KVStoreType,
 		/* address config update acc. to [VOL-2736] */
-		Address:    addr,
+		Address:    dh.pOpenOnuAc.KVStoreAddress,
 		Timeout:    dh.pOpenOnuAc.KVStoreTimeout,
 		PathPrefix: aBasePathKvStore}
 
