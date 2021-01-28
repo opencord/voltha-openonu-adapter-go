@@ -2,6 +2,52 @@
   "comments": [
     {
       "key": {
+        "uuid": "4a921207_4da0ced3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1428,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-01-28T20:37:44Z",
+      "side": 1,
+      "message": "Better to start collection thread and check the enabled counters in the thread and don\u0027t collect the disabled counters. This way we can be able to enable/disable some counter groups in runtime.",
+      "range": {
+        "startLine": 1428,
+        "startChar": 0,
+        "endLine": 1428,
+        "endChar": 27
+      },
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e3f19d59_6eea01c1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1551,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-01-28T20:37:44Z",
+      "side": 1,
+      "message": "Refer to the comment above stop it anyway.",
+      "range": {
+        "startLine": 1551,
+        "startChar": 0,
+        "endLine": 1551,
+        "endChar": 34
+      },
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a0888c6e_e2ac9255",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -30,6 +76,29 @@
       "writtenOn": "2021-01-28T08:58:45Z",
       "side": 1,
       "message": "As the metricsEnabled scheme was choosen to be \u0027per adapter\u0027 the simpler and more consistent approach would be here vice-versa:\nif oo.metricsEnabled {\n  if handler :\u003d oo.getDeviceHandler(...\n     ...\n} else {\n  // I would not use an error log here, this might be just a normal scenario ...\n  logger.Debugw(ctx, \"metrics not enabled for device\", log.Fields{\"device-id\": handler.deviceID})\n  return fmt.Errorf(\"....\n}",
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5d16f792_770e2c6c",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 431,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-01-28T20:37:44Z",
+      "side": 1,
+      "message": "This shouldn\u0027t be a flag that controls the config itself. This should be an initial value to set the \u0027enabled\u0027 flags of PM configurations. We need to update PM config in order to enable counters again for ex. So we don\u0027t need this check here.",
+      "range": {
+        "startLine": 431,
+        "startChar": 25,
+        "endLine": 431,
+        "endChar": 39
+      },
       "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
