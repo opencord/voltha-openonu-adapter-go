@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "96908e37_47a53fbf",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1428,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-28T21:14:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4a921207_4da0ced3",
+      "range": {
+        "startLine": 1428,
+        "startChar": 0,
+        "endLine": 1428,
+        "endChar": 27
+      },
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e3f19d59_6eea01c1",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "ceae938e_61deb4fe",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1551,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-28T21:14:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e3f19d59_6eea01c1",
+      "range": {
+        "startLine": 1551,
+        "startChar": 0,
+        "endLine": 1551,
+        "endChar": 34
+      },
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a0888c6e_e2ac9255",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -59,6 +107,24 @@
       "writtenOn": "2021-01-28T08:58:45Z",
       "side": 1,
       "message": "What is the reason to keep the interval stable and not use the time that is configured via frequency or as given below directly with the time according to nextGlobalMetricCollectionTime?",
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89be548d_7acb71fa",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2630,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-28T21:14:02Z",
+      "side": 1,
+      "message": "There are different frequencies.\nWe could have \n - a global frequency if freq_override is false\n - group specific frequency if freq_override is true\n\nSince many possibilities of frequency value exist, I define a frequency granularity and check every interval for lapsed intervals to collect metrics.",
+      "parentUuid": "a0888c6e_e2ac9255",
       "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -82,6 +148,24 @@
     },
     {
       "key": {
+        "uuid": "514515de_67160a4c",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 430,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-28T21:14:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "475d3824_4cb8aee5",
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5d16f792_770e2c6c",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 1
@@ -102,6 +186,30 @@
       "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fadc66bc_34481291",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 431,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-28T21:14:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5d16f792_770e2c6c",
+      "range": {
+        "startLine": 431,
+        "startChar": 25,
+        "endLine": 431,
+        "endChar": 39
+      },
+      "revId": "74ea31a73a57f5f4c03833b39bb739f9b13d5396",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
