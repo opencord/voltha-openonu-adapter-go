@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aba1a557_19e47ee8",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-29T08:06:49Z",
+      "side": 1,
+      "message": "Now with latest changes the question arises: If now metricsEnabled is not anymore used within OpenOnuAc, why should it be a member there. The only reason could be to still store it as a \u0027global\u0027 variable, valid for all ONU\u0027s. But I think it could be as well stored without to much overhead as ONU specific variable, which would mean it could get a member e.g. of this metricsManager. This would have the advantage that it could easily be used that way even if the decision should be at a certain time to provide some configuration that allows the enable control per ONU (which I would anyway favour, perhaps still with some management way to switch that property for all ONU\u0027s at once).",
+      "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9907eb3d_acb8e8b3",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-01-29T08:06:49Z",
+      "side": 1,
+      "message": "And a second comment on enable control (just used this line to have different comments here): The code already shows a possible question: why is some extra enable-variable used at all. In theory the enable state could be configured by an extra groupEnable PM configuration (disabled per default). The advantage of the extra metricsEnabled variable would then still perhaps be given, if it would allow for ONU specific setting. But anyway the control of the metricsEnabled variable form adapter config (via helm chart) does not seem necessary to me anymore (except for current testing - as long as the voltctl control for that is still missing)",
+      "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
