@@ -33,6 +33,24 @@
       "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "926261e6_f6f938fa",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-01-29T10:28:14Z",
+      "side": 1,
+      "message": "TT requires onu-adapter to set initial configuration for PM collection as disabled for all ONUs. On the other hand I guess DT requires it enabled. The initial PM configuration when the device is discovered(Adopt_device) can be different from deployment to deployment. The configuration is for arranging this initial value.",
+      "parentUuid": "9907eb3d_acb8e8b3",
+      "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
