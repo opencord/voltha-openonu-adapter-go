@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "a1b6b312_e77a7462",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-29T18:43:38Z",
+      "side": 1,
+      "message": "This is only the initial configuration when the device PM config is initialized for the first time. We never hit this path again.\n\nAlthough I initially expected that the \"metrics_enabled\" global config to be available from proto later, I am not sure if it is necessary.\nthe \"metricsEnabled\" flag is exposed via helm chart, so the initial config is controlled via that. Then if operator needs, they can automate\nPM configuration per device per group basis.\n\nFrankly, afaik, the PM configurations are not changed quite often. You will set a global config once on bring up of ONU device the first time by voltha stack,\nand then per device PM config as once they are detected by NEM layer.",
+      "parentUuid": "aba1a557_19e47ee8",
+      "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9907eb3d_acb8e8b3",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 4
@@ -48,6 +66,24 @@
       "side": 1,
       "message": "TT requires onu-adapter to set initial configuration for PM collection as disabled for all ONUs. On the other hand I guess DT requires it enabled. The initial PM configuration when the device is discovered(Adopt_device) can be different from deployment to deployment. The configuration is for arranging this initial value.",
       "parentUuid": "9907eb3d_acb8e8b3",
+      "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "279806cd_58bc78ff",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-01-29T18:43:38Z",
+      "side": 1,
+      "message": "Yes this is for setting only the initial value. Once the device is provisioned, the operator can automate setting the required per group PM config (enable/disable group, set group frequency)",
+      "parentUuid": "926261e6_f6f938fa",
       "revId": "864ad307ccf8c62699dc6d93b1620147c962030c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
