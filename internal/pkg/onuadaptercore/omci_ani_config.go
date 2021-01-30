@@ -47,6 +47,8 @@ const (
 	aniEvRxPrioqsResp      = "aniEvRxPrioqsResp"
 	aniEvRxDot1pmapSResp   = "aniEvRxDot1pmapSResp"
 	aniEvRemGemiw          = "aniEvRemGemiw"
+	aniEvWaitFlowRem       = "aniEvWaitFlowRem"
+	aniEvFlowRemDone       = "aniEvFlowRemDone"
 	aniEvRxRemGemiwResp    = "aniEvRxRemGemiwResp"
 	aniEvRxRemGemntpResp   = "aniEvRxRemGemntpResp"
 	aniEvRemTcontPath      = "aniEvRemTcontPath"
@@ -71,6 +73,7 @@ const (
 	aniStSettingDot1PMapper  = "aniStSettingDot1PMapper"
 	aniStConfigDone          = "aniStConfigDone"
 	aniStRemovingGemIW       = "aniStRemovingGemIW"
+	aniStWaitingFlowRem      = "aniStWaitingFlowRem"
 	aniStRemovingGemNCTP     = "aniStRemovingGemNCTP"
 	aniStResetTcont          = "aniStResetTcont"
 	aniStRemDot1PMapper      = "aniStRemDot1PMapper"
@@ -167,6 +170,8 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 
 			//for removing Gem related resources
 			{Name: aniEvRemGemiw, Src: []string{aniStConfigDone}, Dst: aniStRemovingGemIW},
+			{Name: aniEvWaitFlowRem, Src: []string{aniStRemovingGemIW}, Dst: aniStWaitingFlowRem},
+			{Name: aniEvFlowRemDone, Src: []string{aniStWaitingFlowRem}, Dst: aniStRemovingGemIW},
 			{Name: aniEvRxRemGemiwResp, Src: []string{aniStRemovingGemIW}, Dst: aniStRemovingGemNCTP},
 			{Name: aniEvRxRemGemntpResp, Src: []string{aniStRemovingGemNCTP}, Dst: aniStConfigDone},
 
@@ -631,6 +636,25 @@ func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 }
 
 func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.Event) {
+
+	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending() {
+		logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
+			log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+		// if flow remove is pending then wait for flow remove to finish first before proceeding with gem port delete
+		pConfigAniStateAFsm := oFsm.pAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.pFsm != nil {
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvWaitFlowRem)
+				}
+			}(pConfigAniStateAFsm)
+		} else {
+			logger.Errorw(ctx, "pConfigAniStateAFsm is nil", log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+		}
+		return
+	}
+
 	// get the related GemPort entity Id from pUniTechProf, OMCI Gem* entityID is set to be equal to GemPortId!
 	oFsm.pUniTechProf.mutexTPState.Lock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID

@@ -1061,12 +1061,20 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 			"device-id": oFsm.deviceID})
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pBaseFsm *fsm.FSM) {
-			_ = a_pBaseFsm.Event(vlanEvRemFlowDone)
+			_ = a_pBaseFsm.Event(vlanEvRemFlowDone, loRuleParams.TpID)
 		}(pConfigVlanStateBaseFsm)
 	}
 }
 
 func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(ctx context.Context, e *fsm.Event) {
+	var tpID uint8
+	// Extract the tpID
+	if len(e.Args) > 0 {
+		tpID = e.Args[0].(uint8)
+		logger.Debugw(ctx, "UniVlanConfigFsm - flow removed for tp id", log.Fields{"device-id": oFsm.deviceID, "tpID": e.Args[0].(uint8)})
+	} else {
+		logger.Warnw(ctx, "UniVlanConfigFsm - tp id not available", log.Fields{"device-id": oFsm.deviceID})
+	}
 	logger.Debugw(ctx, "UniVlanConfigFsm - removing the removal data", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 
@@ -1095,6 +1103,16 @@ func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(ctx context.Context, e *fsm.E
 				_ = a_pAFsm.pFsm.Event(vlanEvFlowDataRemoved)
 			}
 		}(pConfigVlanStateAFsm)
+	}
+
+	oFsm.mutexFlowParams.RLock()
+	noOfFlowRem := len(oFsm.uniRemoveFlowsSlice)
+	oFsm.mutexFlowParams.RUnlock()
+	// If all pending flow removes are completed and TP ID is valid, processing any pending TP delete
+	if noOfFlowRem == 0 && tpID > 0 {
+		logger.Debugw(ctx, "processing pending tp delete", log.Fields{"device-id": oFsm.deviceID, "tpID": tpID})
+		// If we are here then all flows are removed.
+		oFsm.pDeviceHandler.ProcessPendingTpDelete(ctx, oFsm.pOnuUniPort, tpID)
 	}
 }
 
@@ -1835,7 +1853,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 
 	// if Config has been done for all EVTOCD entries let the FSM proceed
 	logger.Debugw(ctx, "EVTOCD filter remove loop finished", log.Fields{"device-id": oFsm.deviceID})
-	_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRemFlowDone)
+	_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRemFlowDone, aRuleParams.TpID)
 }
 
 func (oFsm *UniVlanConfigFsm) waitforOmciResponse(ctx context.Context) error {
@@ -2054,4 +2072,11 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 		return fmt.Errorf("createMulticastOperationProfile responseError %s", oFsm.deviceID)
 	}
 	return nil
+}
+
+// IsFlowRemovePending returns true if there are pending flows to remove, else false.
+func (oFsm *UniVlanConfigFsm) IsFlowRemovePending() bool {
+	oFsm.mutexFlowParams.RLock()
+	defer oFsm.mutexFlowParams.RUnlock()
+	return len(oFsm.uniRemoveFlowsSlice) > 0
 }
