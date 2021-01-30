@@ -2412,6 +2412,31 @@ func (dh *deviceHandler) RemoveVlanFilterFsm(ctx context.Context, apUniPort *onu
 	delete(dh.UniVlanConfigFsmMap, apUniPort.uniID)
 }
 
+//ProcessPendingTpDelete processes any pending TP delete (if available)
+func (dh *deviceHandler) ProcessPendingTpDelete(ctx context.Context, apUniPort *onuUniPort, aTpID uint8) {
+	if apUniPort == nil {
+		logger.Errorw(ctx, "uni port is nil", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	k := uniTP{uniID: apUniPort.uniID, tpID: aTpID}
+	dh.pOnuTP.lockTpProcMutex()
+	if pAniConfigFsm, ok := dh.pOnuTP.pAniConfigFsm[k]; pAniConfigFsm != nil && ok {
+		dh.pOnuTP.unlockTpProcMutex()
+		pAniConfigStatemachine := pAniConfigFsm.pAdaptFsm.pFsm
+		if pAniConfigStatemachine != nil {
+			//If the gem port delete was waiting on flow remove, re-trigger flow remove
+			if pAniConfigStatemachine.Is(aniStWaitingFlowRem) {
+				if err := pAniConfigStatemachine.Event(aniEvFlowRemDone); err != nil {
+					logger.Warnw(ctx, "AniConfigFsm: can't continue processing", log.Fields{"err": err,
+						"device-id": dh.deviceID, "UniPort": apUniPort.portNo, "tpID": aTpID})
+				}
+			}
+		}
+		return
+	}
+	dh.pOnuTP.unlockTpProcMutex()
+}
+
 //storePersUniFlowConfig updates local storage of OnuUniFlowConfig and writes it into kv-store afterwards to have it
 //available for potential reconcilement
 

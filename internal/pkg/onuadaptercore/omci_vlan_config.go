@@ -1064,6 +1064,11 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 			_ = a_pBaseFsm.Event(vlanEvRemFlowDone)
 		}(pConfigVlanStateBaseFsm)
 	}
+
+	if len(oFsm.uniRemoveFlowsSlice) <= 1 {
+		// If we are here then all flows are removed.
+		oFsm.pDeviceHandler.ProcessPendingTpDelete(ctx, oFsm.pOnuUniPort, loRuleParams.TpID)
+	}
 }
 
 func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(ctx context.Context, e *fsm.Event) {
@@ -2054,4 +2059,11 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 		return fmt.Errorf("createMulticastOperationProfile responseError %s", oFsm.deviceID)
 	}
 	return nil
+}
+
+// IsFlowRemovePending returns true if there are pending flows to remove, else false.
+func (oFsm *UniVlanConfigFsm) IsFlowRemovePending() bool {
+	oFsm.mutexFlowParams.RLock()
+	defer oFsm.mutexFlowParams.RUnlock()
+	return len(oFsm.uniVlanFlowParamsSlice) > 0
 }
