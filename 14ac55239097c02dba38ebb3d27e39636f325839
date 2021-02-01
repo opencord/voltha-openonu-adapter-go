@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8d656901_d4cc7f18",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2420,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-01T18:19:15Z",
+      "side": 1,
+      "message": "Actually it does not matter to the calling function as it cannot handle the error as it is an FSM callback function. However the ANI CONFIG FSM is going to timeout anyway if there is any error in this function and ANI CONFIG FSM was waiting on an event from here.",
+      "parentUuid": "d0289b70_2a41285f",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a81ae77f_b909d0b8",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "fbeb6da9_93b25dcf",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2431,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-01T18:19:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a81ae77f_b909d0b8",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "571e6072_b0ca70db",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -47,6 +83,24 @@
       "writtenOn": "2021-02-01T17:03:33Z",
       "side": 1,
       "message": "is it ok to continue processing ?",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b27b556_cfa66092",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2435,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-01T18:19:15Z",
+      "side": 1,
+      "message": "it can return from here.",
+      "parentUuid": "571e6072_b0ca70db",
       "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "5e1a7346_f5b156cc",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 653,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-01T18:19:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "76ec3a56_ae3bdf63",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5941dce2_7ad89d5c",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 3
@@ -81,6 +153,24 @@
       "writtenOn": "2021-02-01T17:03:33Z",
       "side": 1,
       "message": "given we need the tpID should we return here with error ?",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "776b908e_8fd8b19f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1076,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-01T18:19:15Z",
+      "side": 1,
+      "message": "I do not think it matters. Either way, if there was a ANI CONFIG FSM waiting on FlowRemoveDone event, it is going to timeout and do automatic clean up. But, in this case, by not returning we are ensuring proper cleanup of VLAN CONFIG FSM.",
+      "parentUuid": "5941dce2_7ad89d5c",
       "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
