@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d0289b70_2a41285f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2420,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-01T17:03:33Z",
+      "side": 1,
+      "message": "worth returning the error ?",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a81ae77f_b909d0b8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2431,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-01T17:03:33Z",
+      "side": 1,
+      "message": "should we return here ? given that we can\u0027t progress any further.",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "571e6072_b0ca70db",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2435,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-01T17:03:33Z",
+      "side": 1,
+      "message": "is it ok to continue processing ?",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76ec3a56_ae3bdf63",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 653,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-01T17:03:33Z",
+      "side": 1,
+      "message": "log the error here",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5941dce2_7ad89d5c",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1076,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-01T17:03:33Z",
+      "side": 1,
+      "message": "given we need the tpID should we return here with error ?",
+      "revId": "14ac55239097c02dba38ebb3d27e39636f325839",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
