@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c75e1e71_49df493e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1112,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-02T08:54:14Z",
+      "side": 1,
+      "message": "Some smaller optimisation would be possible: Either you could move the (basic) processing (if tpID \u003e 0 ...) up to line 1083 (as there it was already checked that all related flows were removed) or you could use more consistent \u0027if !IsFlowRemovePending \u0026\u0026 tpID \u003e 0 ...\u0027 without the mutex protection here above",
+      "revId": "6a074fcee6243d496b09f71a36cfc5a0837fd675",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
