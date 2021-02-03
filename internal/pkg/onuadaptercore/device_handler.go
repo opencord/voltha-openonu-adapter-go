@@ -2641,6 +2641,8 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 
 	// Start routine to process OMCI GET Responses
 	go dh.pOnuMetricsMgr.processOmciMessages(ctx)
+	// Initialize classical L2 PM Interval Counters
+	go dh.pOnuMetricsMgr.initializeClassicalL2PMIntervalCounters(ctx)
 	// Initialize the next metric collection time.
 	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
 	// reset like onu rebooted.
