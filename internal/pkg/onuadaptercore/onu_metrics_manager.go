@@ -84,9 +84,13 @@ type standaloneMetric struct {
 type onuMetricsManager struct {
 	pDeviceHandler *deviceHandler
 
-	commMetricsChan      chan Message
+	commMetricsChan chan Message
+
 	opticalMetricsChan   chan me.AttributeValueMap
 	uniStatusMetricsChan chan me.AttributeValueMap
+
+	// Channels used for classical l2 pm counters
+	syncTimeResponseChan chan bool
 
 	groupMetricMap      map[string]*groupMetric
 	standaloneMetricMap map[string]*standaloneMetric
@@ -112,6 +116,9 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 	metricsManager.commMetricsChan = make(chan Message)
 	metricsManager.opticalMetricsChan = make(chan me.AttributeValueMap)
 	metricsManager.uniStatusMetricsChan = make(chan me.AttributeValueMap)
+
+	metricsManager.syncTimeResponseChan = make(chan bool)
+
 	metricsManager.stopProcessingOmciResponses = make(chan bool)
 
 	metricsManager.groupMetricMap = make(map[string]*groupMetric)
@@ -708,6 +715,45 @@ loop3:
 	return metricInfoSlice
 }
 
+func (mm *onuMetricsManager) initializeClassicalL2PMIntervalCounters(ctx context.Context) error {
+	logger.Infow(ctx, "initializing classical l2 pm interval counters", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+	if err := mm.syncTime(ctx); err != nil {
+		// no point in proceeding further if we cannot sync time with ONU and set the 15 min boundary for PM collection
+		// Should we retry?
+		return err
+	}
+	mm.createClassicalL2PM(ctx)
+	return nil
+}
+
+// syncTime synchronizes time with the ONU to establish a 15 min boundary for PM collection and reporting.
+func (mm *onuMetricsManager) syncTime(ctx context.Context) error {
+	if err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendSyncTime(ctx, ConstDefaultOmciTimeout, true, mm.commMetricsChan); err != nil {
+		logger.Errorw(ctx, "cannot send sync time request", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return err
+	}
+
+	select {
+	case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+		logger.Errorf(ctx, "timed out waiting for sync time response from onu", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return errors.New("timed-out-waiting-for-sync-time-response")
+	case syncTimeRes := <-mm.syncTimeResponseChan:
+		if !syncTimeRes {
+			return errors.New("failed-to-sync-time")
+		}
+		logger.Infow(ctx, "sync time success", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return nil
+	}
+}
+
+func (mm *onuMetricsManager) createClassicalL2PM(ctx context.Context) {
+
+}
+
+func (mm *onuMetricsManager) deletePM(ctx context.Context) {
+
+}
+
 // publishMetrics publishes the metrics on kafka
 func (mm *onuMetricsManager) publishMetrics(ctx context.Context, metricInfo []*voltha.MetricInformation) {
 	var ke voltha.KpiEvent2
@@ -760,7 +806,8 @@ func (mm *onuMetricsManager) handleOmciMessage(ctx context.Context, msg OmciMess
 	case omci.GetResponseType:
 		//TODO: error handling
 		_ = mm.handleOmciGetResponseMessage(ctx, msg)
-
+	case omci.SynchronizeTimeResponseType:
+		_ = mm.handleOmciSynchronizeTimeResponseMessage(ctx, msg)
 	default:
 		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
 
@@ -801,6 +848,34 @@ func (mm *onuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 	}
 
 	return errors.New("unhandled-omci-get-response-message")
+}
+
+func (mm *onuMetricsManager) handleOmciSynchronizeTimeResponseMessage(ctx context.Context, msg OmciMessage) error {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSynchronizeTimeResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "omci Msg layer could not be detected for synchronize time response - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return fmt.Errorf("omci Msg layer could not be detected for synchronize time response - handling stopped: %s", mm.pDeviceHandler.deviceID)
+	}
+	msgObj, msgOk := msgLayer.(*omci.SynchronizeTimeResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "omci Msg layer could not be assigned for synchronize time response - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return fmt.Errorf("omci Msg layer could not be assigned for synchronize time response - handling stopped: %s", mm.pDeviceHandler.deviceID)
+	}
+	logger.Debugw(ctx, "OMCI synchronize time response Data", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "data-fields": msgObj})
+	if msgObj.Result == me.Success {
+		switch msgObj.EntityClass {
+		case me.OnuGClassID:
+			logger.Infow(ctx, "omci synchronize time success", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+			mm.syncTimeResponseChan <- true
+			return nil
+		default:
+			logger.Errorw(ctx, "unhandled omci message",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
+		}
+	}
+	mm.syncTimeResponseChan <- false
+	logger.Errorf(ctx, "unhandled-omci-synchronize-time-response-message--error-code-%v", msgObj.Result)
+	return fmt.Errorf("unhandled-omci-synchronize-time-response-message--error-code-%v", msgObj.Result)
 }
 
 // flushMetricCollectionChannels flushes all metric collection channels for any stale OMCI responses

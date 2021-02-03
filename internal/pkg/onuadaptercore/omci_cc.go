@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	//"time"
 
@@ -2183,6 +2184,51 @@ func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 	}
 	logger.Errorw(ctx, "Cannot generate MulticastSubConfigInfo Instance", log.Fields{"Err": omciErr.GetError(),
 		"device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendSyncTime(ctx context.Context, timeout int, highPrio bool, rxChan chan Message) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send synchronize time request:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.SynchronizeTimeRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,        // Optional, defaults to Baseline
+		// Length:           0x28,                      // Optional, defaults to 40 octets
+	}
+	utcTime := time.Now().UTC()
+	request := &omci.SynchronizeTimeRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuGClassID,
+			// Default Instance ID is 0
+		},
+		Year:   uint16(utcTime.Year()),
+		Month:  uint8(utcTime.Month()),
+		Day:    uint8(utcTime.Day()),
+		Hour:   uint8(utcTime.Hour()),
+		Minute: uint8(utcTime.Minute()),
+		Second: uint8(utcTime.Second()),
+	}
+
+	pkt, err := serializeOmciLayer(ctx, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize synchronize time request", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+	}
+	err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send synchronize time request", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send synchronize time request done")
 	return nil
 }
 
