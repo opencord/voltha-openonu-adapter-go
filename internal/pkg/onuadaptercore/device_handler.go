@@ -101,6 +101,7 @@ const (
 	cUniUnLockFsm
 	cAniConfigFsm
 	cUniVlanConfigFsm
+	cL2PmFsm
 )
 
 type idleCheckStruct struct {
@@ -115,6 +116,7 @@ var fsmIdleStateFuncMap = map[usedOmciConfigFsms]idleCheckStruct{
 	cUniUnLockFsm:     {(*deviceHandler).devUniUnlockFsmInIdleState, cUniFsmIdleState},
 	cAniConfigFsm:     {(*deviceHandler).devAniConfigFsmInIdleState, cAniFsmIdleState},
 	cUniVlanConfigFsm: {(*deviceHandler).devUniVlanConfigFsmInIdleState, cVlanFsmIdleState},
+	cL2PmFsm:          {(*deviceHandler).l2PmFsmInIdleState, cL2PmFsmIdleState},
 }
 
 const (
@@ -275,7 +277,7 @@ func (dh *deviceHandler) stop(ctx context.Context) {
 // ##########################################################################################
 // deviceHandler methods that implement the adapters interface requests ##### begin #########
 
-//adoptOrReconcileDevice adopts the OLT device
+//adoptOrReconcileDevice adopts the ONU device
 func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "Adopt_or_reconcile_device", log.Fields{"device-id": device.Id, "Address": device.GetHostAndPort()})
 
@@ -1703,6 +1705,14 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 			log.Fields{"device-id": dh.deviceID})
 	}
 	_ = dh.deviceReasonUpdate(ctx, drInitialMibDownloaded, !dh.reconciling)
+
+	// Initialize classical L2 PM Interval Counters
+	if err := dh.pOnuMetricsMgr.pAdaptFsm.pFsm.Event(l2PmEventInit); err != nil {
+		// There is no way we should be landing here, but if we do then
+		// there is nothing much we can do about this other than log error
+		logger.Errorw(ctx, "error starting l2 pm fsm", log.Fields{"device-id": dh.device.Id, "err": err})
+	}
+
 	dh.ReadyForSpecificOmciConfig = true
 	// *** should generate UniUnlockStateDone event *****
 	if dh.pUnlockStateFsm == nil {
@@ -2685,7 +2695,17 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 		case <-dh.stopCollector:
 			dh.setCollectorIsRunning(false)
 			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
+			// Stop the L2 PM FSM
+			go func() {
+				if err := dh.pOnuMetricsMgr.pAdaptFsm.pFsm.Event(l2PmEventStop); err != nil {
+					logger.Errorw(ctx, "error calling event", log.Fields{"device-id": dh.deviceID, "err": err})
+				}
+			}()
+
 			dh.pOnuMetricsMgr.stopProcessingOmciResponses <- true // Stop the OMCI GET response processing routine
+			if dh.pOnuMetricsMgr.ticksOn {
+				dh.pOnuMetricsMgr.stopTicks <- true // stop the tick generation routine
+			}
 			return
 		case <-time.After(time.Duration(FrequencyGranularity) * time.Second): // Check every FrequencyGranularity to see if it is time for collecting metrics
 			if !dh.pmConfigs.FreqOverride { // If FreqOverride is false, then nextGlobalMetricCollectionTime applies
@@ -2702,7 +2722,8 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 
 					for n, g := range dh.pOnuMetricsMgr.groupMetricMap {
 						// If the group is enabled AND (current time is equal to OR after nextCollectionInterval, collect the group metric)
-						if g.enabled && (time.Now().Equal(g.nextCollectionInterval) || time.Now().After(g.nextCollectionInterval)) {
+						// Since the L2 PM counters are collected in a separate FSM, we should avoid those counters in the check.
+						if g.enabled && !g.isL2PMCounter && (time.Now().Equal(g.nextCollectionInterval) || time.Now().After(g.nextCollectionInterval)) {
 							go dh.pOnuMetricsMgr.collectGroupMetric(ctx, n)
 						}
 					}
@@ -2718,7 +2739,8 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 					dh.pOnuMetricsMgr.onuMetricsManagerLock.Lock() // Lock as we are writing the next metric collection time
 					for _, g := range dh.pOnuMetricsMgr.groupMetricMap {
 						// If group enabled, and the nextCollectionInterval is old (before or equal to current time), update the next collection time stamp
-						if g.enabled && (g.nextCollectionInterval.Before(time.Now()) || g.nextCollectionInterval.Equal(time.Now())) {
+						// Since the L2 PM counters are collected and managed in a separate FSM, we should avoid those counters in the check.
+						if g.enabled && !g.isL2PMCounter && (g.nextCollectionInterval.Before(time.Now()) || g.nextCollectionInterval.Equal(time.Now())) {
 							g.nextCollectionInterval = time.Now().Add(time.Duration(g.frequency) * time.Second)
 						}
 					}
@@ -2796,6 +2818,14 @@ func (dh *deviceHandler) devUniVlanConfigFsmInIdleState(ctx context.Context, idl
 		return true
 	}
 	logger.Warnw(ctx, "UniVlanConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
+	return false
+}
+
+func (dh *deviceHandler) l2PmFsmInIdleState(ctx context.Context, idleState string) bool {
+	if dh.pOnuMetricsMgr != nil && dh.pOnuMetricsMgr.pAdaptFsm != nil && dh.pOnuMetricsMgr.pAdaptFsm.pFsm != nil {
+		return dh.isFsmInState(ctx, dh.pOnuMetricsMgr.pAdaptFsm.pFsm, idleState)
+	}
+	logger.Warnw(ctx, "L2 PM FSM not defined!", log.Fields{"device-id": dh.deviceID})
 	return false
 }
 
