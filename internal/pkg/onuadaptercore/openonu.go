@@ -377,6 +377,7 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 	logger.Infow(ctx, "delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		err := handler.deleteDevicePersistencyData(ctx)
+		handler.stopCollector <- true // stop the metric collector routine
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
 		return err
