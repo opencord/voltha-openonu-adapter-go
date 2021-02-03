@@ -247,7 +247,7 @@ func (dh *deviceHandler) stop(ctx context.Context) {
 // ##########################################################################################
 // deviceHandler methods that implement the adapters interface requests ##### begin #########
 
-//adoptOrReconcileDevice adopts the OLT device
+//adoptOrReconcileDevice adopts the ONU device
 func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "Adopt_or_reconcile_device", log.Fields{"device-id": device.Id, "Address": device.GetHostAndPort()})
 
@@ -2642,6 +2642,12 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 
 	// Start routine to process OMCI GET Responses
 	go dh.pOnuMetricsMgr.processOmciMessages(ctx)
+	// Initialize classical L2 PM Interval Counters
+	if err := dh.pOnuMetricsMgr.pL2PMFsm.Event(l2PmEventInit); err != nil {
+		// There is no way we should be landing here, but if we do then
+		// there is nothing much we can do about this other than log error
+		logger.Errorw(ctx, "error starting l2 pm fsm", log.Fields{"device-id": dh.device.Id})
+	}
 	// Initialize the next metric collection time.
 	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
 	// reset like onu rebooted.
