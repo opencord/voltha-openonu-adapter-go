@@ -199,9 +199,20 @@ func (oo *omciCC) stop(ctx context.Context) error {
 }
 
 // Rx handler for omci messages
-func (oo *omciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) error {
+func (oo *omciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet) error {
 	logger.Debugw(ctx, "rx-onu-autonomous-message", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"payload": hex.EncodeToString(omciMsg.Payload)})
+	switch omciMsg.MessageType {
+	case omci.AlarmNotificationType:
+		data := OmciMessage{
+			OmciMsg:    omciMsg,
+			OmciPacket: packet,
+		}
+		go oo.pBaseDeviceHandler.pAlarmMgr.handleOmciAlarmNotificationMessage(ctx, data)
+		return nil
+	default:
+		return errors.New("receiveOnuMessageType unimplemented")
+	}
 	/*
 			msgType = rxFrame.fields["message_type"] //assumed OmciOperationsValue
 			rxOnuFrames++
@@ -245,7 +256,6 @@ func (oo *omciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 				}
 		    }
 	*/
-	return errors.New("receiveOnuMessage unimplemented")
 }
 
 // Rx handler for onu messages
@@ -307,7 +317,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		// Not a response
 		logger.Debug(ctx, "RxMsg is no Omci Response Message")
 		if omciMsg.TransactionID == 0 {
-			return oo.receiveOnuMessage(ctx, omciMsg)
+			return oo.receiveOnuMessage(ctx, omciMsg, &packet)
 		}
 		logger.Errorw(ctx, "Unexpected TransCorrId != 0  not accepted for autonomous messages",
 			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload),
