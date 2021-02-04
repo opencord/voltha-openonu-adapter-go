@@ -1,0 +1,101 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e4752c44_5ee0fcbc",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-04T19:22:30Z",
+      "side": 1,
+      "message": "shouldn\u0027t you break out the infinite loop here?",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f2ae67c_546072e2",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-04T19:22:30Z",
+      "side": 1,
+      "message": "If there is a constant available for this already use it, else you might want to declare one in this file.",
+      "range": {
+        "startLine": 163,
+        "startChar": 28,
+        "endLine": 163,
+        "endChar": 31
+      },
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "db0b3e62_8f86fbbc",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-04T19:22:30Z",
+      "side": 1,
+      "message": "\"err !\u003d nil\" ? What is this check trying to do? Can you put in some comments if possible.",
+      "range": {
+        "startLine": 165,
+        "startChar": 2,
+        "endLine": 165,
+        "endChar": 28
+      },
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "639de922_6ea620d7",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-04T19:22:30Z",
+      "side": 1,
+      "message": "same here.",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f0ac7342_5ce959ec",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-04T19:22:30Z",
+      "side": 1,
+      "message": "It will be helpful to know what each of the format specifier field stands for in comments.",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
