@@ -458,7 +458,9 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 			log.Fields{"device-id": dh.deviceID, "service": baseKvStorePath})
 	}
 
+
 	// Alarm Synchronization Database
+
 	//self._alarm_db = None
 	//self._alarm_database_cls = support_classes['alarm-synchronizer']['database']
 	return &onuDeviceEntry
