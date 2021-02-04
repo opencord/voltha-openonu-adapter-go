@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f21a07ea_d49a634a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-04T15:29:08Z",
+      "side": 1,
+      "message": "usage would be even more apparent, if you would extend the Map by the concerned IdleState of the Fsm, which might be then passed as further argument to the idle check function. Perhaps by using a map of struct here \ntype idleCheckStruct struct {\n\tidleChechFunc  func(*deviceHandler, context.Context, string) bool\n\tidleState string\n}\nmap[usedOmciConfigFsms]idleCheckStruct ....",
+      "revId": "e36624c7546160c24ca415ff6f5df36e753f7b31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4626be8b_a3f0a9f4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2680,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-04T15:29:08Z",
+      "side": 1,
+      "message": "Looks to me as if the access to this var needs a mutex protection (this routine running periodically in background)",
+      "revId": "e36624c7546160c24ca415ff6f5df36e753f7b31",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
