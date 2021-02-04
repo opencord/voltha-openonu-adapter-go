@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dd857923_9c769971",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 524,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-04T09:02:50Z",
+      "side": 1,
+      "message": "Each log-entry should countain \"device-id\" to be able to assign it to a certain onu-processing.",
+      "range": {
+        "startLine": 524,
+        "startChar": 20,
+        "endLine": 524,
+        "endChar": 44
+      },
+      "revId": "fdf7763f692935d630dcd543185b18d5da76b20a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
