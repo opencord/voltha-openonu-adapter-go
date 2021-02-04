@@ -149,6 +149,7 @@ type deviceHandler struct {
 	pOnuOmciDevice  *OnuDeviceEntry
 	pOnuTP          *onuUniTechProf
 	pOnuMetricsMgr  *onuMetricsManager
+	pAlarmMgr       *onuAlarmManager
 	exitChannel     chan int
 	lockDevice      sync.RWMutex
 	pOnuIndication  *oop.OnuIndication
@@ -164,6 +165,7 @@ type deviceHandler struct {
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
 	stopCollector              chan bool
+	stopAlarmManager           chan bool
 	stopHeartbeatCheck         chan bool
 	uniEntityMap               map[uint32]*onuUniPort
 	lockVlanConfig             sync.Mutex
@@ -188,6 +190,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.lockDevice = sync.RWMutex{}
 	dh.deviceEntrySet = make(chan bool, 1)
 	dh.stopCollector = make(chan bool, 2)
+	dh.stopAlarmManager = make(chan bool, 2)
 	dh.stopHeartbeatCheck = make(chan bool, 2)
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
 	//TODO initialize the support classes.
@@ -1207,12 +1210,13 @@ func (dh *deviceHandler) getOnuDeviceEntry(ctx context.Context, aWait bool) *Onu
 
 //setOnuDeviceEntry sets the ONU device entry within the handler
 func (dh *deviceHandler) setOnuDeviceEntry(
-	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuMetricsMgr *onuMetricsManager) {
+	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuMetricsMgr *onuMetricsManager, apOnuAlarmMgr *onuAlarmManager) {
 	dh.lockDevice.Lock()
 	defer dh.lockDevice.Unlock()
 	dh.pOnuOmciDevice = apDeviceEntry
 	dh.pOnuTP = apOnuTp
 	dh.pOnuMetricsMgr = apOnuMetricsMgr
+	dh.pAlarmMgr = apOnuAlarmMgr
 }
 
 //addOnuDeviceEntry creates a new ONU device or returns the existing
@@ -1228,8 +1232,9 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		deviceEntry = newOnuDeviceEntry(ctx, dh)
 		onuTechProfProc := newOnuUniTechProf(ctx, dh)
 		onuMetricsMgr := newonuMetricsManager(ctx, dh)
+		onuAlarmManager := newAlarmManager(ctx, dh)
 		//error treatment possible //TODO!!!
-		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuMetricsMgr)
+		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuMetricsMgr, onuAlarmManager)
 		// fire deviceEntry ready event to spread to possibly waiting processing
 		dh.deviceEntrySet <- true
 		logger.Debugw(ctx, "onuDeviceEntry-added", log.Fields{"device-id": dh.deviceID})
@@ -1423,6 +1428,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 
 	// Start PM collector routine
 	go dh.startCollector(ctx)
+	go dh.startAlarmManager(ctx)
 
 	return nil
 }
@@ -1544,7 +1550,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context) error {
 	}
 	// Stop collector routine for PM Counters
 	dh.stopCollector <- true
-
+	dh.stopAlarmManager <- true
 	return nil
 }
 
@@ -2667,6 +2673,23 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 					// TODO: We currently do not have standalone metrics. When available, add code here to fetch the metric.
 				} */
 			}
+		}
+	}
+}
+
+// nolint: gocyclo
+func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
+	logger.Debugf(ctx, "startingAlarmManager")
+
+	// Start routine to process OMCI GET Responses
+	go dh.pAlarmMgr.processOMCIAlarmMsgs(ctx)
+
+	for {
+		select {
+		case <-dh.stopAlarmManager:
+			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
+			dh.pAlarmMgr.stopProcessingOmciMessages <- true // Stop the OMCI routines if any
+			return
 		}
 	}
 }
