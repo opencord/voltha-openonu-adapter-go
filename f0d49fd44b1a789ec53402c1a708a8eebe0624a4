@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7298820d_256672d8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2646,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-05T16:41:26Z",
+      "side": 1,
+      "message": "After rebasing the patch please include this new OMCI-config FSM into checks of deviceHandler::allButCallingFsmInIdleState().",
+      "range": {
+        "startLine": 2646,
+        "startChar": 1,
+        "endLine": 2646,
+        "endChar": 4
+      },
+      "revId": "f0d49fd44b1a789ec53402c1a708a8eebe0624a4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
