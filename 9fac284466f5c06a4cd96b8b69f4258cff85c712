@@ -2,6 +2,57 @@
   "comments": [
     {
       "key": {
+        "uuid": "8114c5a3_7b7ce086",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "why is this / 8 ?  can you explain please with a comment before this line ?",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a0ee0840_29767567",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "should these methods be implemented ?",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5bef53cb_91372fa1",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "a better name for the method could probably be startOMCIAlarmMessageProcessing",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e4752c44_5ee0fcbc",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
@@ -13,6 +64,40 @@
       "writtenOn": "2021-02-04T19:22:30Z",
       "side": 1,
       "message": "shouldn\u0027t you break out the infinite loop here?",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2348eb90_a4bd9f2b",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "locking on a per alarm message seems to be excessive, why there is a need to have such lock ?",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dbc7270b_4ca57288",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "why do we need to store suff in the kv store for the alarms ? what is the use case for that data to be read from there ?",
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -76,6 +161,40 @@
       "writtenOn": "2021-02-04T19:22:30Z",
       "side": 1,
       "message": "same here.",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f77bba1_9db8fa28",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "here it should be also CLEARD_EVENT event in the case of cleared. please build this string in the if at line 233",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "986ce18e_286ed91c",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T13:19:56Z",
+      "side": 1,
+      "message": "please include the message type here.",
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
