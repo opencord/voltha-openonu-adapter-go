@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "10fa92c5_b26d69af",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2021-02-05T17:04:10Z",
+      "side": 1,
+      "message": "Related to this, the /8 is that the alarms notification message returns the particular ME\u0027s alarms as a bitmap of 224 possible bits.  So 8 bits in a byte.\n\n(Sorry for the long comment, but I think adding it here addresses many others below and keeps my train of though in one place).\n-------------------------------\n\nAn alternative that may make the code much more readable is that each ME that can deliver alarm notifications also has a define AlarmMap which is: alarm bit number (uint8) -\u003e alarm name (string).  This map can be requested from the ManagedEntityDefinition via the \u0027GetAlarmMap()\u0027.\n\nYou can then iterate this map with a range and check if that alarm is active or cleared in the received alarm notification message via the  IsAlarmActive(alarmBitNumber uint8) or IsAlarmClear(alarmBitNumber uint8).  The AlarmMap bit numbers only exist for alarms that are defined by the standard and since the index to the map is the bit number (uint8) it can handle sparse mappings if any alarm bit numbers are skipped in the standard.\n\nSo in the alarm manager, if you have an \u0027active alarm store\u0027, whether or not backed up by kv-store, you only need to store the ME instances (class ID + instance ID index perhaps).\n\n\nIf an alarm notification message comes in get any existing instance from the alarm store and then:\n\nstep 1)  If there is an entry, run the ME\u0027s AlarmMap instances and see if any alarms active in the \u0027active alarm store\u0027 instance cleared (as reported by the Alarm Notification IsAlarmClear) and send the appropriate \u0027cleared\u0027 kafka event and remove it from the \u0027active alarm instance\u0027 instance.   If no \u0027active alarm instance\u0027 exists,just go to (step 2).\n\nstep 2) If there is no \u0027active alarm store instance\u0027 for this ME instance, create it (with no raised alarms of course).\n\nstep 3) Run through the ME\u0027s AlarmMap instances and see if any alarms as reported by the Alarm Notification IsAlarmActive() is not set in the \u0027active alarm store instance\u0027, issue the appropriate \u0027raised\u0027 kafka event and set that the alarm is raised in the \u0027alarm store instance\u0027 you have.\n\nstep 4) Since you are done with the processing, if not alarms are active in your \u0027alarm store instance\u0027 you can drop that instance from the \u0027active alarm store\u0027\n\n\nHow you do an alarm alarm store is up to you, it just needs to be indexed by ClassID+InstanceID and maintain with bits (uint8) are active.  Which could be as simple as a \u0027golang-set\u0027 of active alarms.  Later enhancements could replace the \u0027golang-set\u0027 of alarm bit numbers with a struct that maintains information such as \u0027created-at\u0027 timestamp or other information that may help with diagnostic troubleshooting.  But just a \u0027golang-set\u0027 and and INFO level message to the log is probably really fine for an initial release.",
+      "parentUuid": "8114c5a3_7b7ce086",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a0ee0840_29767567",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
