@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c94e3da9_5bd9a7c4",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-05T15:07:48Z",
+      "side": 1,
+      "message": "before you can use this in the Helm charts you need to release it, please put 1.2.1 in this file to do so.",
+      "revId": "77436ec368064950290271eb584216dc8716219a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
