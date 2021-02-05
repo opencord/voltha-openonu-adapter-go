@@ -61,7 +61,8 @@ const (
 	defaultTraceAgentAddress     = "127.0.0.1:6831"
 	defaultLogCorrelationEnabled = true
 
-	defaultMetricsEnabled = false
+	defaultMetricsEnabled   = false
+	defaultMibAuditInterval = 0
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -96,6 +97,7 @@ type AdapterFlags struct {
 	LogCorrelationEnabled       bool
 	OnuVendorIds                string
 	MetricsEnabled              bool
+	MibAuditInterval            time.Duration
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -130,6 +132,7 @@ func NewAdapterFlags() *AdapterFlags {
 		LogCorrelationEnabled:       defaultLogCorrelationEnabled,
 		OnuVendorIds:                defaultOnuVendorIds,
 		MetricsEnabled:              defaultMetricsEnabled,
+		MibAuditInterval:            defaultMibAuditInterval,
 	}
 	return &adapterFlags
 }
@@ -221,6 +224,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("Whether to enable metrics collection")
 	flag.BoolVar(&(so.MetricsEnabled), "metrics_enabled", defaultMetricsEnabled, help)
+
+	help = fmt.Sprintf("Mib Audit Interval in seconds - the value zero will disable Mib Audit")
+	flag.DurationVar(&(so.MibAuditInterval), "mib_audit_interval", defaultMibAuditInterval, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()

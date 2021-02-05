@@ -68,6 +68,7 @@ type OpenONUAC struct {
 	maxTimeoutInterAdapterComm time.Duration
 	pDownloadManager           *adapterDownloadManager
 	metricsEnabled             bool
+	mibAuditInterval           time.Duration
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -98,14 +99,14 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.maxTimeoutInterAdapterComm = cfg.MaxTimeoutInterAdapterComm
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.metricsEnabled = cfg.MetricsEnabled
+	openOnuAc.mibAuditInterval = cfg.MibAuditInterval
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {
 			//mibSyncFsm,        // Implements the MIB synchronization state machine
 			mibDbVolatileDictImpl, // Implements volatile ME MIB database
 			//true,                  // Advertise events on OpenOMCI event bus
-			//TODO: audit delay should come from command parameters configured via helm charts (covered by VOL-3786)
-			cMibAuditDelayImpl, // Time to wait between MIB audits.  0 to disable audits.
+			openOnuAc.mibAuditInterval, // Time to wait between MIB audits.  0 to disable audits.
 			// map[string]func() error{
 			// 	"mib-upload":    onuDeviceEntry.MibUploadTask,
 			// 	"mib-template":  onuDeviceEntry.MibTemplateTask,

@@ -156,7 +156,7 @@ const (
 type activityDescr struct {
 	databaseClass func(context.Context) error
 	//advertiseEvents bool
-	auditDelay uint16
+	auditInterval time.Duration
 	//tasks           map[string]func() error
 }
 
@@ -215,17 +215,17 @@ type uniPersConfig struct {
 }
 
 type onuPersistentData struct {
-	PersOnuID           uint32          `json:"onu_id"`
-	PersIntfID          uint32          `json:"intf_id"`
-	PersSnr             string          `json:"serial_number"`
-	PersAdminState      string          `json:"admin_state"`
-	PersOperState       string          `json:"oper_state"`
-	PersUniUnlockDone   bool            `json:"uni_unlock_done"`
-	PersUniDisableDone  bool            `json:"uni_disable_done"`
-	PersMibAuditDelay   uint16          `json:"mib_audit_delay"`
-	PersMibLastDbSync   uint32          `json:"mib_last_db_sync"`
-	PersMibDataSyncAdpt uint8           `json:"mib_data_sync_adpt"`
-	PersUniConfig       []uniPersConfig `json:"uni_config"`
+	PersOnuID            uint32          `json:"onu_id"`
+	PersIntfID           uint32          `json:"intf_id"`
+	PersSnr              string          `json:"serial_number"`
+	PersAdminState       string          `json:"admin_state"`
+	PersOperState        string          `json:"oper_state"`
+	PersUniUnlockDone    bool            `json:"uni_unlock_done"`
+	PersUniDisableDone   bool            `json:"uni_disable_done"`
+	PersMibAuditInterval time.Duration   `json:"mib_audit_interval"`
+	PersMibLastDbSync    uint32          `json:"mib_last_db_sync"`
+	PersMibDataSyncAdpt  uint8           `json:"mib_data_sync_adpt"`
+	PersUniConfig        []uniPersConfig `json:"uni_config"`
 }
 
 // OnuDeviceEntry - ONU device info and FSM events.
@@ -256,7 +256,7 @@ type OnuDeviceEntry struct {
 	supportedFsms OmciDeviceFsms
 	devState      OnuDeviceEvent
 	// Audit and MDS
-	mibAuditDelay uint16
+	mibAuditInterval time.Duration
 	// TODO: periodical mib resync will be implemented with story VOL-3792
 	//mibNextDbResync uint32
 
@@ -300,7 +300,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 				//mibSyncFsm,        // Implements the MIB synchronization state machine
 				onuDeviceEntry.mibDbVolatileDict, // Implements volatile ME MIB database
 				//true,                             // Advertise events on OpenOMCI event bus
-				0, // Time to wait between MIB audits.  0 to disable audits.
+				dh.pOpenOnuAc.mibAuditInterval, // Time to wait between MIB audits.  0 to disable audits.
 				// map[string]func() error{
 				// 	"mib-upload":    onuDeviceEntry.MibUploadTask,
 				// 	"mib-template":  onuDeviceEntry.MibTemplateTask,
@@ -316,15 +316,15 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	logger.Debug(ctx, "access2mibDbClass")
 	go onuDeviceEntry.mibDbClass(ctx)
 	if !dh.reconciling {
-		onuDeviceEntry.mibAuditDelay = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditDelay
-		onuDeviceEntry.sOnuPersistentData.PersMibAuditDelay = onuDeviceEntry.mibAuditDelay
+		onuDeviceEntry.mibAuditInterval = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditInterval
+		onuDeviceEntry.sOnuPersistentData.PersMibAuditInterval = onuDeviceEntry.mibAuditInterval
 	} else {
-		logger.Debugw(ctx, "reconciling - take audit delay from persistent data", log.Fields{"device-id": dh.deviceID})
-		// TODO: This is a preparation for VOL-3786 to preserve config history in case of
+		logger.Debugw(ctx, "reconciling - take audit interval from persistent data", log.Fields{"device-id": dh.deviceID})
+		// TODO: This is a preparation for VOL-VOL-3811 to preserve config history in case of
 		// vendor- or deviceID-specific configurations via voltctl-commands
-		onuDeviceEntry.mibAuditDelay = onuDeviceEntry.sOnuPersistentData.PersMibAuditDelay
+		onuDeviceEntry.mibAuditInterval = onuDeviceEntry.sOnuPersistentData.PersMibAuditInterval
 	}
-	logger.Debugw(ctx, "MibAudit is set to", log.Fields{"Delay": onuDeviceEntry.mibAuditDelay})
+	logger.Debugw(ctx, "MibAudit is set to", log.Fields{"Interval": onuDeviceEntry.mibAuditInterval})
 	// TODO: periodical mib resync will be implemented with story VOL-3792
 	//onuDeviceEntry.mibNextDbResync = 0
 
@@ -562,7 +562,7 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
 		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", oo.deviceID))
 	}
-	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditDelay, 0, 0, make([]uniPersConfig, 0)}
+	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	if err == nil {
 		if Value != nil {
@@ -608,8 +608,8 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingStep uint8) {
 
 	logger.Debugw(ctx, "delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
-	oo.sOnuPersistentData.PersUniConfig = nil                                                                                   //releasing all UniConfig entries to garbage collector
-	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditDelay, 0, 0, make([]uniPersConfig, 0)} //default entry
+	oo.sOnuPersistentData.PersUniConfig = nil                                                                                      //releasing all UniConfig entries to garbage collector
+	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)} //default entry
 
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
