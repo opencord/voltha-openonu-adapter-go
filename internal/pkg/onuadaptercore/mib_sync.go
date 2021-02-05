@@ -234,10 +234,10 @@ func (oo *OnuDeviceEntry) enterUploadDoneState(ctx context.Context, e *fsm.Event
 
 func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
 	oo.sOnuPersistentData.PersMibLastDbSync = uint32(time.Now().Unix())
-	if oo.mibAuditDelay > 0 {
-		logger.Debugw(ctx, "MibSync FSM", log.Fields{"trigger next Audit in State": e.FSM.Current(), "oo.mibAuditDelay": oo.mibAuditDelay, "device-id": oo.deviceID})
+	if oo.mibAuditInterval > 0 {
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"trigger next Audit in State": e.FSM.Current(), "oo.mibAuditInterval": oo.mibAuditInterval, "device-id": oo.deviceID})
 		go func() {
-			time.Sleep(time.Duration(oo.mibAuditDelay) * time.Second)
+			time.Sleep(oo.mibAuditInterval)
 			if err := oo.pMibUploadFsm.pFsm.Event(ulEvAuditMib); err != nil {
 				logger.Debugw(ctx, "MibSyncFsm: Can't go to state auditing", log.Fields{"device-id": oo.deviceID, "err": err})
 			}

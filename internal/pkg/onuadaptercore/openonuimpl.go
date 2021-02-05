@@ -86,10 +86,6 @@ OpenOmciAgentDefaults = {
 }
 */
 
-// mib audit is deactivated by default - story planned to make it configurable:
-// TODO: VOL-3786 - Support configuration of mib data sync audit via helm charts and voltctl commands
-const cMibAuditDelayImpl = 0
-
 //suppose global methods per adapter ...
 func mibDbVolatileDictImpl(ctx context.Context) error {
 	logger.Debug(ctx, "MibVolatileDict-called")
