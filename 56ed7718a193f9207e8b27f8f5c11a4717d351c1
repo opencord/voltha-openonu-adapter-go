@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dfc9dbad_4ad084e4",
+        "filename": "internal/pkg/config/config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-08T14:29:54Z",
+      "side": 1,
+      "message": "perhaps better ...- \u00270\u0027 to disable ...  (else might be misleading as help)",
+      "revId": "56ed7718a193f9207e8b27f8f5c11a4717d351c1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
