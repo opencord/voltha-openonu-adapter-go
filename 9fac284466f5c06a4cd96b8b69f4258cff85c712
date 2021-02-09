@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "8feea76c_77f2a9d2",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "10fa92c5_b26d69af",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a0ee0840_29767567",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
@@ -51,6 +69,24 @@
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cd66d81a_5278ca92",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "yes later, when we implement audit and sync.",
+      "parentUuid": "a0ee0840_29767567",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "07a6f896_8a10efc3",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5bef53cb_91372fa1",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e4752c44_5ee0fcbc",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
@@ -85,6 +139,24 @@
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fc87273c_a9124d0e",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack. Thanks. missed it.",
+      "parentUuid": "e4752c44_5ee0fcbc",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -105,6 +177,24 @@
     },
     {
       "key": {
+        "uuid": "935878bf_3dfcdc17",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Need to have it, firstly say if an alarm is raised and cleared immediately  we would want to process the raised one first. Secondly, each device has its own alarm manager so we can have the lock.",
+      "parentUuid": "2348eb90_a4bd9f2b",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dbc7270b_4ca57288",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
@@ -119,6 +209,24 @@
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "49b474f9_0e721b94",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "we can ignore backing up to kv store as we can relearn this information if adapter crashes, hence will put a todo for that.",
+      "parentUuid": "dbc7270b_4ca57288",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -145,6 +253,30 @@
     },
     {
       "key": {
+        "uuid": "ca40683b_16763c50",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7f2ae67c_546072e2",
+      "range": {
+        "startLine": 163,
+        "startChar": 28,
+        "endLine": 163,
+        "endChar": 31
+      },
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "db0b3e62_8f86fbbc",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
@@ -168,6 +300,30 @@
     },
     {
       "key": {
+        "uuid": "810b1b57_81feb33c",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "db0b3e62_8f86fbbc",
+      "range": {
+        "startLine": 165,
+        "startChar": 2,
+        "endLine": 165,
+        "endChar": 28
+      },
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "639de922_6ea620d7",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 2
@@ -182,6 +338,24 @@
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b42ca80_6264988c",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "639de922_6ea620d7",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -202,6 +376,24 @@
     },
     {
       "key": {
+        "uuid": "c988e4e3_43342467",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "We have raised/cleared suffix in event description. event name includes RAISE_EVENT as a suffix in general.",
+      "parentUuid": "1f77bba1_9db8fa28",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "986ce18e_286ed91c",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 2
@@ -219,6 +411,24 @@
     },
     {
       "key": {
+        "uuid": "17c72acb_e685c1b2",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "986ce18e_286ed91c",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f0ac7342_5ce959ec",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 2
@@ -233,6 +443,24 @@
       "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "70b03a77_a0f4630f",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-09T12:53:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f0ac7342_5ce959ec",
+      "revId": "9fac284466f5c06a4cd96b8b69f4258cff85c712",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
