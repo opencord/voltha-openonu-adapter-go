@@ -225,7 +225,7 @@ func (so *AdapterFlags) ParseCommandArguments() {
 	help = fmt.Sprintf("Whether to enable metrics collection")
 	flag.BoolVar(&(so.MetricsEnabled), "metrics_enabled", defaultMetricsEnabled, help)
 
-	help = fmt.Sprintf("Mib Audit Interval in seconds - the value zero will disable Mib Audit")
+	help = fmt.Sprintf("Mib Audit Interval in seconds - '0s' to disable Mib Audit")
 	flag.DurationVar(&(so.MibAuditInterval), "mib_audit_interval", defaultMibAuditInterval, help)
 
 	flag.Parse()

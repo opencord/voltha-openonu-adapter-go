@@ -26,8 +26,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-
-	//"time"
+	"time" //by now for testing
 
 	"github.com/google/gopacket"
 	// TODO!!! Some references could be resolved auto, but some need specific context ....
@@ -81,6 +80,7 @@ const (
 type callbackPairEntry struct {
 	cbRespChannel chan Message
 	cbFunction    func(context.Context, *omci.OMCI, *gp.Packet, chan Message) error
+	framePrint    bool //true for printing
 }
 
 //callbackPair to be used for ReceiveCallback init
@@ -90,10 +90,11 @@ type callbackPair struct {
 }
 
 type omciTransferStructure struct {
-	txFrame  []byte
-	timeout  int
-	retry    int
-	highPrio bool
+	txFrame        []byte
+	timeout        int
+	retry          int
+	highPrio       bool
+	withFramePrint bool
 }
 
 //omciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
@@ -248,6 +249,14 @@ func (oo *omciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI) err
 	return errors.New("receiveOnuMessage unimplemented")
 }
 
+func (oo *omciCC) printRxMessage(ctx context.Context, rxMsg []byte) {
+	//assuming omci message content is hex coded!
+	// with restricted output of 16bytes would be ...rxMsg[:16]
+	logger.Debugw(ctx, "omci-message-received:", log.Fields{
+		"RxOmciMessage": hex.EncodeToString(rxMsg),
+		"device-id":     oo.deviceID})
+}
+
 // Rx handler for onu messages
 //    e.g. would call ReceiveOnuMessage() in case of TID=0 or Action=test ...
 func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
@@ -283,28 +292,33 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	} else {
 		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort",
 			log.Fields{"Length": len(rxMsg), "device-id": oo.deviceID})
+		oo.printRxMessage(ctx, rxMsg)
 		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
 	}
 
 	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, gopacket.NoCopy)
 	if packet == nil {
 		logger.Errorw(ctx, "omci-message could not be decoded", log.Fields{"device-id": oo.deviceID})
+		oo.printRxMessage(ctx, rxMsg)
 		return fmt.Errorf("could not decode rxMsg as OMCI %s", oo.deviceID)
 	}
 	omciLayer := packet.Layer(omci.LayerTypeOMCI)
 	if omciLayer == nil {
 		logger.Errorw(ctx, "omci-message could not decode omci layer", log.Fields{"device-id": oo.deviceID})
+		oo.printRxMessage(ctx, rxMsg)
 		return fmt.Errorf("could not decode omci layer %s", oo.deviceID)
 	}
 	omciMsg, ok := omciLayer.(*omci.OMCI)
 	if !ok {
 		logger.Errorw(ctx, "omci-message could not assign omci layer", log.Fields{"device-id": oo.deviceID})
+		oo.printRxMessage(ctx, rxMsg)
 		return fmt.Errorf("could not assign omci layer %s", oo.deviceID)
 	}
 	logger.Debugw(ctx, "omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "DeviceIdent": omciMsg.DeviceIdentifier})
 	if byte(omciMsg.MessageType)&me.AK == 0 {
 		// Not a response
+		oo.printRxMessage(ctx, rxMsg)
 		logger.Debug(ctx, "RxMsg is no Omci Response Message")
 		if omciMsg.TransactionID == 0 {
 			return oo.receiveOnuMessage(ctx, omciMsg)
@@ -319,6 +333,9 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	oo.mutexRxSchedMap.Lock()
 	rxCallbackEntry, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
 	if ok && rxCallbackEntry.cbFunction != nil {
+		if rxCallbackEntry.framePrint {
+			oo.printRxMessage(ctx, rxMsg)
+		}
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
 		go rxCallbackEntry.cbFunction(ctx, omciMsg, &packet, rxCallbackEntry.cbRespChannel)
@@ -329,13 +346,13 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		// having posted the response the request is regarded as 'done'
 		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
 		oo.mutexRxSchedMap.Unlock()
-	} else {
-		oo.mutexRxSchedMap.Unlock()
-		logger.Errorw(ctx, "omci-message-response for not registered transCorrId", log.Fields{"device-id": oo.deviceID, "omciMsg": omciMsg, "transCorrId": omciMsg.TransactionID})
-		return fmt.Errorf("could not find registered response handler tor transCorrId %s", oo.deviceID)
+		return nil
 	}
+	oo.mutexRxSchedMap.Unlock()
+	logger.Errorw(ctx, "omci-message-response for not registered transCorrId", log.Fields{"device-id": oo.deviceID})
+	oo.printRxMessage(ctx, rxMsg)
+	return fmt.Errorf("could not find registered response handler tor transCorrId %s", oo.deviceID)
 
-	return nil
 	/* py code was:
 	           Receive and OMCI message from the proxy channel to the OLT.
 
@@ -454,6 +471,7 @@ func (oo *omciCC) send(ctx context.Context, txFrame []byte, timeout int, retry i
 	// it could be checked, if the callback keay is already registered - but simply overwrite may be acceptable ...
 	oo.mutexRxSchedMap.Lock()
 	oo.rxSchedulerMap[receiveCallbackPair.cbKey] = receiveCallbackPair.cbEntry
+	printFrame := receiveCallbackPair.cbEntry.framePrint //printFrame true means debug print of frame is requested
 	oo.mutexRxSchedMap.Unlock()
 
 	//just use a simple list for starting - might need some more effort, especially for multi source write access
@@ -462,6 +480,7 @@ func (oo *omciCC) send(ctx context.Context, txFrame []byte, timeout int, retry i
 		timeout,
 		retry,
 		highPrio,
+		printFrame,
 	}
 	oo.mutexTxQueue.Lock()
 	oo.txQueue.PushBack(omciTxRequest) // enqueue
@@ -546,12 +565,13 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 			return fmt.Errorf("failed to fetch device %s", oo.deviceID)
 		}
 
-		logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
-			"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame),
-			"device-id":     oo.deviceID,
-			"toDeviceType":  oo.pBaseDeviceHandler.ProxyAddressType,
-			"proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
-
+		if omciTxRequest.withFramePrint {
+			logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
+				"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame),
+				"device-id":     oo.deviceID,
+				"toDeviceType":  oo.pBaseDeviceHandler.ProxyAddressType,
+				"proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
+		}
 		omciMsg := &ic.InterAdapterOmciMessage{Message: omciTxRequest.txFrame}
 		if sendErr := oo.adapterProxy.SendInterAdapterMessage(log.WithSpanFromContext(context.Background(), ctx), omciMsg,
 			ic.InterAdapterMessageType_OMCI_REQUEST,
@@ -663,7 +683,7 @@ func (oo *omciCC) sendMibReset(ctx context.Context, timeout int, highPrio bool) 
 	}
 	omciRxCallbackPair := callbackPair{
 		cbKey:   tid,
-		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
+		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse, true},
 	}
 	return oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 }
@@ -684,7 +704,7 @@ func (oo *omciCC) sendReboot(ctx context.Context, timeout int, highPrio bool, re
 	}
 	omciRxCallbackPair := callbackPair{
 		cbKey:   tid,
-		cbEntry: callbackPairEntry{oo.pOnuDeviceEntry.omciRebootMessageReceivedChannel, oo.receiveOmciResponse},
+		cbEntry: callbackPairEntry{oo.pOnuDeviceEntry.omciRebootMessageReceivedChannel, oo.receiveOmciResponse, true},
 	}
 
 	err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
@@ -721,7 +741,7 @@ func (oo *omciCC) sendMibUpload(ctx context.Context, timeout int, highPrio bool)
 
 	omciRxCallbackPair := callbackPair{
 		cbKey:   tid,
-		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
+		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse, true},
 	}
 	return oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 }
@@ -744,8 +764,11 @@ func (oo *omciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio b
 	oo.uploadSequNo++
 
 	omciRxCallbackPair := callbackPair{
-		cbKey:   tid,
-		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse},
+		cbKey: tid,
+		//frame printing for MibUpload frames disabled now per default to avoid log file abort situations (size/speed?)
+		// if wanted, rx frame printing should be specifically done within the MibUpload FSM or controlled via extra parameter
+		// compare also software upgrade download section handling
+		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse, false},
 	}
 	return oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 }
@@ -778,7 +801,7 @@ func (oo *omciCC) sendCreateGalEthernetProfile(ctx context.Context, timeout int,
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -826,7 +849,7 @@ func (oo *omciCC) sendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -880,7 +903,7 @@ func (oo *omciCC) sendCreateMBServiceProfile(ctx context.Context,
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -932,7 +955,7 @@ func (oo *omciCC) sendCreateMBPConfigData(ctx context.Context,
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -989,7 +1012,7 @@ func (oo *omciCC) sendCreateEVTOConfigData(ctx context.Context,
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibDownloadFsm.commChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1034,7 +1057,7 @@ func (oo *omciCC) sendSetOnuGLS(ctx context.Context, timeout int,
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1079,7 +1102,7 @@ func (oo *omciCC) sendSetPptpEthUniLS(ctx context.Context, aInstNo uint16, timeo
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1126,7 +1149,7 @@ func (oo *omciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1172,7 +1195,7 @@ func (oo *omciCC) sendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1214,7 +1237,7 @@ func (oo *omciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		}
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1269,7 +1292,7 @@ func (oo *omciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1312,7 +1335,7 @@ func (oo *omciCC) sendCreateMBPConfigDataVar(ctx context.Context, timeout int, h
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1355,7 +1378,7 @@ func (oo *omciCC) sendCreateGemNCTPVar(ctx context.Context, timeout int, highPri
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1398,7 +1421,7 @@ func (oo *omciCC) sendCreateGemIWTPVar(ctx context.Context, timeout int, highPri
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1439,7 +1462,7 @@ func (oo *omciCC) sendSetTcontVar(ctx context.Context, timeout int, highPrio boo
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1480,7 +1503,7 @@ func (oo *omciCC) sendSetPrioQueueVar(ctx context.Context, timeout int, highPrio
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1521,7 +1544,7 @@ func (oo *omciCC) sendSetDot1PMapperVar(ctx context.Context, timeout int, highPr
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1567,7 +1590,7 @@ func (oo *omciCC) sendCreateVtfdVar(ctx context.Context, timeout int, highPrio b
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1613,7 +1636,7 @@ func (oo *omciCC) sendSetVtfdVar(ctx context.Context, timeout int, highPrio bool
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1654,7 +1677,7 @@ func (oo *omciCC) sendCreateEvtocdVar(ctx context.Context, timeout int, highPrio
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1695,7 +1718,7 @@ func (oo *omciCC) sendSetEvtocdVar(ctx context.Context, timeout int, highPrio bo
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1736,7 +1759,7 @@ func (oo *omciCC) sendDeleteEvtocd(ctx context.Context, timeout int, highPrio bo
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1782,7 +1805,7 @@ func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1828,7 +1851,7 @@ func (oo *omciCC) sendDeleteGemIWTP(ctx context.Context, timeout int, highPrio b
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1874,7 +1897,7 @@ func (oo *omciCC) sendDeleteGemNCTP(ctx context.Context, timeout int, highPrio b
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1920,7 +1943,7 @@ func (oo *omciCC) sendDeleteDot1PMapper(ctx context.Context, timeout int, highPr
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1966,7 +1989,7 @@ func (oo *omciCC) sendDeleteMBPConfigData(ctx context.Context, timeout int, high
 
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -1982,7 +2005,6 @@ func (oo *omciCC) sendDeleteMBPConfigData(ctx context.Context, timeout int, high
 	return nil
 }
 
-// nolint: unused
 func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -2006,7 +2028,7 @@ func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int
 		}
 
 		omciRxCallbackPair := callbackPair{cbKey: tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -2021,7 +2043,6 @@ func (oo *omciCC) sendCreateMulticastGemIWTPVar(ctx context.Context, timeout int
 	return nil
 }
 
-// nolint: unused
 func (oo *omciCC) sendSetMulticastGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -2045,7 +2066,7 @@ func (oo *omciCC) sendSetMulticastGemIWTPVar(ctx context.Context, timeout int, h
 		}
 
 		omciRxCallbackPair := callbackPair{cbKey: tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -2060,7 +2081,6 @@ func (oo *omciCC) sendSetMulticastGemIWTPVar(ctx context.Context, timeout int, h
 	return nil
 }
 
-// nolint: unused
 func (oo *omciCC) sendCreateMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -2086,7 +2106,7 @@ func (oo *omciCC) sendCreateMulticastOperationProfileVar(ctx context.Context, ti
 		}
 
 		omciRxCallbackPair := callbackPair{cbKey: tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -2102,7 +2122,6 @@ func (oo *omciCC) sendCreateMulticastOperationProfileVar(ctx context.Context, ti
 	return nil
 }
 
-// nolint: unused
 func (oo *omciCC) sendSetMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -2128,7 +2147,7 @@ func (oo *omciCC) sendSetMulticastOperationProfileVar(ctx context.Context, timeo
 		}
 
 		omciRxCallbackPair := callbackPair{cbKey: tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -2144,7 +2163,6 @@ func (oo *omciCC) sendSetMulticastOperationProfileVar(ctx context.Context, timeo
 	return nil
 }
 
-// nolint: unused
 func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
@@ -2170,7 +2188,7 @@ func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 		}
 
 		omciRxCallbackPair := callbackPair{cbKey: tid,
-			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
 		}
 		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 		if err != nil {
@@ -2183,6 +2201,364 @@ func (oo *omciCC) sendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 	}
 	logger.Errorw(ctx, "Cannot generate MulticastSubConfigInfo Instance", log.Fields{"Err": omciErr.GetError(),
 		"device-id": oo.deviceID})
+	return nil
+}
+
+func (oo *omciCC) sendStartSoftwareDownload(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aImageMeID uint16, aDownloadWindowSize uint8, aFileLen uint32) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send StartSwDlRequest:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
+
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.StartSoftwareDownloadRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	request := &omci.StartSoftwareDownloadRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		WindowSize:           aDownloadWindowSize,
+		ImageSize:            aFileLen,
+		NumberOfCircuitPacks: 1,           //parallel download to multiple circuit packs not supported
+		CircuitPacks:         []uint16{0}, //circuit pack indication don't care for NumberOfCircuitPacks=1, but needed by omci-lib
+	}
+
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize StartSwDlRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	outgoingPacket := buffer.Bytes()
+
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+	err = oo.send(ctx, outgoingPacket, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send StartSwDlRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send StartSwDlRequest done")
+
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+	time.Sleep(time.Millisecond * 200) //give some response time
+	respOmciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.StartSoftwareDownloadResponseType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	response := &omci.StartSoftwareDownloadResponse{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		Result:            0,
+		WindowSize:        aDownloadWindowSize,
+		NumberOfInstances: 0, //seems at the moment I can only generate 0 instances, using 1 here panics as MeResult can not be set below
+		//MeResults: cannot set here: downloadResults type not exported from omci-lib!
+	}
+	var respOptions gopacket.SerializeOptions
+	respOptions.FixLengths = true
+	respBuffer := gopacket.NewSerializeBuffer()
+	respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+	if respErr != nil {
+		logger.Errorw(ctx, "Cannot serialize StartSwDlResponse", log.Fields{"Err": respErr,
+			"device-id": oo.deviceID})
+		return respErr
+	}
+	respPacket := respBuffer.Bytes()
+	logger.Debugw(ctx, "simulate StartSwDlResponse", log.Fields{"device-id": oo.deviceID,
+		"SequNo":     strconv.FormatInt(int64(tid), 16),
+		"InstId":     strconv.FormatInt(int64(aImageMeID), 16),
+		"windowSize": aDownloadWindowSize})
+	go func(oo *omciCC) {
+		_ = oo.receiveMessage(ctx, respPacket)
+	}(oo)
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+	return nil
+}
+
+func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte, aPrint bool) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
+
+	//TODO!!!: don't know by now on how to generate the possibly needed AR (or enforce it to 0) with current omci-lib
+	//    by now just try to send it as defined by omci-lib
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.DownloadSectionRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	//TODO!!!: omci-lib wrongly defines just 29 byte data section (which should be 31 bytes)
+	//  as long as this is valid and testing is done with some dummy image we omit the last two bytes in each section!!!
+	var localSectionData [29]byte
+	copy(localSectionData[:], aSection)
+	request := &omci.DownloadSectionRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		SectionNumber: aDownloadSectionNo,
+		SectionData:   localSectionData,
+	}
+
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize DlSectionRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	outgoingPacket := buffer.Bytes()
+
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, aPrint},
+	}
+	err = oo.send(ctx, outgoingPacket, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send DlSectionRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send DlSectionRequest done")
+
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+	if aAckRequest > 0 {
+		time.Sleep(time.Millisecond * 200) //give some response time
+		respOmciLayer := &omci.OMCI{
+			TransactionID: tid,
+			MessageType:   omci.DownloadSectionResponseType,
+			// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+			// Length:           0x28,						// Optional, defaults to 40 octets
+		}
+		response := &omci.DownloadSectionResponse{
+			MeBasePacket: omci.MeBasePacket{
+				EntityClass:    me.SoftwareImageClassID,
+				EntityInstance: aImageMeID, //inactive image
+			},
+			Result:        0,
+			SectionNumber: aDownloadSectionNo,
+		}
+		var respOptions gopacket.SerializeOptions
+		respOptions.FixLengths = true
+		respBuffer := gopacket.NewSerializeBuffer()
+		respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+		if respErr != nil {
+			logger.Errorw(ctx, "Cannot serialize DlSectionResponse", log.Fields{"Err": respErr,
+				"device-id": oo.deviceID})
+			return err
+		}
+		respPacket := respBuffer.Bytes()
+		if aPrint {
+			logger.Debugw(ctx, "simulate DlSectionResponse", log.Fields{"device-id": oo.deviceID,
+				"SequNo": strconv.FormatInt(int64(tid), 16),
+				"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+				"packet": hex.EncodeToString(respPacket)})
+		} else {
+			logger.Debugw(ctx, "simulate DlSectionResponse", log.Fields{"device-id": oo.deviceID,
+				"SequNo": strconv.FormatInt(int64(tid), 16),
+				"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
+		}
+		go func(oo *omciCC) {
+			_ = oo.receiveMessage(ctx, respPacket)
+		}(oo)
+	}
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+	return nil
+}
+
+func (oo *omciCC) sendEndSoftwareDownload(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aImageMeID uint16, aFileLen uint32, aImageCrc uint32) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send EndSwDlRequest:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
+
+	//**** test simulation - as long as omci-lib serialize for this type is not corrected - just bypass sending *** start *****
+	/*
+		omciLayer := &omci.OMCI{
+			TransactionID: tid,
+			MessageType:   omci.EndSoftwareDownloadRequestType,
+			// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+			// Length:           0x28,						// Optional, defaults to 40 octets
+		}
+		request := &omci.EndSoftwareDownloadRequest{
+			MeBasePacket: omci.MeBasePacket{
+				EntityClass:    me.SoftwareImageClassID,
+				EntityInstance: aImageMeID, //inactive image
+			},
+			CRC32:             aImageCrc,
+			ImageSize:         aFileLen,
+			NumberOfInstances: 1,           //parallel download to multiple circuit packs not supported
+			ImageInstances:    []uint16{0}, //don't care for NumberOfInstances=1, but probably needed by omci-lib as in startSwDlRequest
+		}
+
+		var options gopacket.SerializeOptions
+		options.FixLengths = true
+		buffer := gopacket.NewSerializeBuffer()
+		err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize EndSwDlRequest", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return err
+		}
+		outgoingPacket := buffer.Bytes()
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, outgoingPacket, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send EndSwDlRequest", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return err
+		}
+	*/
+	//**** test simulation - as long as omci-lib serialize for this type is not corrected - just bypass sending *** end *****
+	logger.Debug(ctx, "send EndSwDlRequest done")
+
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+	//callback code necessary here only as long as sending the request is not possible
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+	oo.mutexRxSchedMap.Lock()
+	oo.rxSchedulerMap[omciRxCallbackPair.cbKey] = omciRxCallbackPair.cbEntry
+	oo.mutexRxSchedMap.Unlock()
+	//callback code necessary here only as long as sending the request is not possible
+
+	time.Sleep(time.Millisecond * 200) //give some response time
+	respOmciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.EndSoftwareDownloadResponseType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	response := &omci.EndSoftwareDownloadResponse{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		Result:            0, //simulate done, option would be busy
+		NumberOfInstances: 0, //seems at the moment I can only generate 0 instances, using 1 here panics as MeResult can not be set below
+		//MeResults: cannot set here: downloadResults type not exported from omci-lib!
+	}
+	var respOptions gopacket.SerializeOptions
+	respOptions.FixLengths = true
+	respBuffer := gopacket.NewSerializeBuffer()
+	respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+	if respErr != nil {
+		logger.Errorw(ctx, "Cannot serialize EndSwDlResponse", log.Fields{"Err": respErr,
+			"device-id": oo.deviceID})
+		return respErr
+	}
+	respPacket := respBuffer.Bytes()
+	logger.Debugw(ctx, "simulate EndSwDlResponse", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+		"result": 0})
+	go func(oo *omciCC) {
+		_ = oo.receiveMessage(ctx, respPacket)
+	}(oo)
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+	return nil
+}
+
+func (oo *omciCC) sendActivateSoftware(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aImageMeID uint16) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send ActivateSwRequest:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
+
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.ActivateSoftwareRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	request := &omci.ActivateSoftwareRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		ActivateFlags: 0, //unconditionally reset as the only relevant option here (regardless of VOIP)
+	}
+
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize ActivateSwRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	outgoingPacket := buffer.Bytes()
+
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+	err = oo.send(ctx, outgoingPacket, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send ActivateSwRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send ActivateSwRequest done")
+
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+
+	time.Sleep(time.Millisecond * 50) //give some response time
+
+	respOmciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.ActivateSoftwareResponseType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	response := &omci.ActivateSoftwareResponse{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		Result: 0, //simulate done, option would be busy
+	}
+	var respOptions gopacket.SerializeOptions
+	respOptions.FixLengths = true
+	respBuffer := gopacket.NewSerializeBuffer()
+	respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+	if respErr != nil {
+		logger.Errorw(ctx, "Cannot serialize ActivateSwResponse", log.Fields{"Err": respErr,
+			"device-id": oo.deviceID})
+		return respErr
+	}
+	respPacket := respBuffer.Bytes()
+	logger.Debugw(ctx, "simulate ActivateSwResponse", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+		"result": 0})
+	go func(oo *omciCC) {
+		_ = oo.receiveMessage(ctx, respPacket)
+	}(oo)
+	//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
 	return nil
 }
 

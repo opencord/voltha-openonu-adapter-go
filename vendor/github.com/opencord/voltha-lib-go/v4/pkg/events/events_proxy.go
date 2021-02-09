@@ -78,6 +78,8 @@ func (ep *EventProxy) getEventHeader(eventName string,
 	header.Category = category
 	if subCategory != nil {
 		header.SubCategory = *subCategory
+	} else {
+		header.SubCategory = voltha.EventSubCategory_NONE
 	}
 	header.Type = eventType
 	header.TypeVersion = eventif.EventTypeVersion

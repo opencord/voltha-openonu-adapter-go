@@ -19,7 +19,6 @@ package adaptercoreonu
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -101,6 +100,7 @@ const (
 	cUniUnLockFsm
 	cAniConfigFsm
 	cUniVlanConfigFsm
+	cOnuUpgradeFsm
 )
 
 type idleCheckStruct struct {
@@ -115,6 +115,7 @@ var fsmIdleStateFuncMap = map[usedOmciConfigFsms]idleCheckStruct{
 	cUniUnLockFsm:     {(*deviceHandler).devUniUnlockFsmInIdleState, cUniFsmIdleState},
 	cAniConfigFsm:     {(*deviceHandler).devAniConfigFsmInIdleState, cAniFsmIdleState},
 	cUniVlanConfigFsm: {(*deviceHandler).devUniVlanConfigFsmInIdleState, cVlanFsmIdleState},
+	cOnuUpgradeFsm:    {(*deviceHandler).devOnuUpgradeFsmInIdleState, cOnuUpgradeFsmIdleState},
 }
 
 const (
@@ -196,6 +197,8 @@ type deviceHandler struct {
 	uniEntityMap               map[uint32]*onuUniPort
 	lockVlanConfig             sync.Mutex
 	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
+	lockUpgradeFsm             sync.Mutex
+	pOnuUpradeFsm              *OnuUpgradeFsm
 	reconciling                bool
 	ReadyForSpecificOmciConfig bool
 }
@@ -222,6 +225,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	//TODO initialize the support classes.
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
 	dh.lockVlanConfig = sync.Mutex{}
+	dh.lockUpgradeFsm = sync.Mutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
 	dh.ReadyForSpecificOmciConfig = false
@@ -307,11 +311,12 @@ func (dh *deviceHandler) processInterAdapterOMCIReceiveMessage(ctx context.Conte
 		return err
 	}
 
+	/* msg print moved symmetrically to omci_cc, if wanted here as additional debug, than perhaps only based on additional debug setting!
 	//assuming omci message content is hex coded!
 	// with restricted output of 16(?) bytes would be ...omciMsg.Message[:16]
 	logger.Debugw(ctx, "inter-adapter-recv-omci", log.Fields{
 		"device-id": dh.deviceID, "RxOmciMessage": hex.EncodeToString(omciMsg.Message)})
-	//receive_message(omci_msg.message)
+	*/
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry != nil {
 		if pDevEntry.PDevOmciCC != nil {
@@ -955,11 +960,48 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, device *voltha.Device
 }
 
 //doOnuSwUpgrade initiates the SW download transfer to the ONU and on success activates the (inactive) image
-func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
-	logger.Warnw(ctx, "onuSwUpgrade not yet implemented in deviceHandler", log.Fields{
+func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.ImageDownload,
+	apDownloadManager *adapterDownloadManager) error {
+	logger.Debugw(ctx, "onuSwUpgrade requested", log.Fields{
 		"device-id": dh.deviceID, "image-name": (*apImageDsc).Name})
-	//return success to comfort the core processing during integration
-	return nil
+
+	var err error = nil
+	if dh.ReadyForSpecificOmciConfig {
+		dh.lockUpgradeFsm.Lock()
+		defer dh.lockUpgradeFsm.Unlock()
+		if dh.pOnuUpradeFsm == nil {
+			err = dh.createOnuUpgradeFsm(ctx, OmciOnuSwUpgradeDone)
+			if err == nil {
+				if err = dh.pOnuUpradeFsm.SetDownloadParams(ctx, apImageDsc, apDownloadManager); err != nil {
+					logger.Errorw(ctx, "onu upgrade fsm could not set parameters", log.Fields{
+						"device-id": dh.deviceID, "error": err})
+				}
+			} else {
+				logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
+					"device-id": dh.deviceID, "error": err})
+			}
+		} else { //OnuSw upgrade already running - restart (with possible abort of running)
+			logger.Debugw(ctx, "Onu SW upgrade already running - abort", log.Fields{"device-id": dh.deviceID})
+			pUpgradeStatemachine := dh.pOnuUpradeFsm.pAdaptFsm.pFsm
+			if pUpgradeStatemachine != nil {
+				if err = pUpgradeStatemachine.Event(upgradeEvAbort); err != nil {
+					logger.Errorw(ctx, "onu upgrade fsm could not abort a running processing", log.Fields{
+						"device-id": dh.deviceID, "error": err})
+				}
+				err = fmt.Errorf("aborted Onu SW upgrade but not automatically started, try again, device-id: %s", dh.deviceID)
+				//TODO!!!: wait for 'ready' to start and configure - see above SetDownloadParams()
+				// for now a second start of download should work again
+			} else { //should never occur
+				logger.Errorw(ctx, "onu upgrade fsm inconsistent setup", log.Fields{
+					"device-id": dh.deviceID})
+				err = fmt.Errorf("onu upgrade fsm inconsistent setup, baseFsm invalid for device-id: %s", dh.deviceID)
+			}
+		}
+	} else {
+		logger.Errorw(ctx, "Start Onu SW upgrade rejected: no active OMCI connection", log.Fields{"device-id": dh.deviceID})
+	}
+
+	return err
 	// TODO!!: also verify error response behavior
 	//return fmt.Errorf("onuSwUpgrade not yet implemented in deviceHandler: %s", dh.deviceID)
 }
@@ -1579,6 +1621,16 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// Stop collector routine
 		dh.stopCollector <- true
 	}
+
+	//reset a possibly running upgrade FSM
+	// specific here: If the FSM is in upgradeStWaitForCommit, it is left there for possibly later commit
+	// this possibly also refers later to (not yet existing) upgradeStWaitForActivate (with ctl API changes)
+	dh.lockUpgradeFsm.Lock()
+	if dh.pOnuUpradeFsm != nil {
+		_ = dh.pOnuUpradeFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+	}
+	dh.lockUpgradeFsm.Unlock()
+
 	return nil
 }
 
@@ -2069,6 +2121,58 @@ func (dh *deviceHandler) runUniLockFsm(ctx context.Context, aAdminState bool) {
 		logger.Errorw(ctx, "LockStateFSM StateMachine invalid - cannot be executed!!", log.Fields{"device-id": dh.deviceID})
 		// maybe try a FSM reset and then again ... - TODO!!!
 	}
+}
+
+// createOnuUpgradeFsm initializes and runs the Onu Software upgrade FSM
+func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, devEvent OnuDeviceEvent) error {
+	//in here lockUpgradeFsm is already locked
+	chUpgradeFsm := make(chan Message, 2048)
+	var sFsmName = "OnuSwUpgradeFSM"
+	logger.Debugw(ctx, "create OnuSwUpgradeFSM", log.Fields{"device-id": dh.deviceID})
+	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "no valid OnuDevice -abort", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf(fmt.Sprintf("no valid OnuDevice - abort for device-id: %s", dh.device.Id))
+	}
+	dh.pOnuUpradeFsm = NewOnuUpgradeFsm(ctx, dh, pDevEntry.PDevOmciCC, pDevEntry.pOnuDB, devEvent,
+		sFsmName, chUpgradeFsm)
+	if dh.pOnuUpradeFsm != nil {
+		pUpgradeStatemachine := dh.pOnuUpradeFsm.pAdaptFsm.pFsm
+		if pUpgradeStatemachine != nil {
+			if pUpgradeStatemachine.Is(upgradeStDisabled) {
+				if err := pUpgradeStatemachine.Event(upgradeEvStart); err != nil {
+					logger.Errorw(ctx, "OnuSwUpgradeFSM: can't start", log.Fields{"err": err})
+					// maybe try a FSM reset and then again ... - TODO!!!
+					return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be started for device-id: %s", dh.device.Id))
+				}
+				/***** LockStateFSM started */
+				logger.Debugw(ctx, "OnuSwUpgradeFSM started", log.Fields{
+					"state": pUpgradeStatemachine.Current(), "device-id": dh.deviceID})
+			} else {
+				logger.Errorw(ctx, "wrong state of OnuSwUpgradeFSM to start - want: disabled", log.Fields{
+					"have": pUpgradeStatemachine.Current(), "device-id": dh.deviceID})
+				// maybe try a FSM reset and then again ... - TODO!!!
+				return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be started for device-id: %s, wrong internal state", dh.device.Id))
+			}
+		} else {
+			logger.Errorw(ctx, "OnuSwUpgradeFSM internal FSM invalid - cannot be executed!!", log.Fields{"device-id": dh.deviceID})
+			// maybe try a FSM reset and then again ... - TODO!!!
+			return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM internal FSM could not be created for device-id: %s", dh.device.Id))
+		}
+	} else {
+		logger.Errorw(ctx, "OnuSwUpgradeFSM could not be created  - abort", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be created - abort for device-id: %s", dh.device.Id))
+	}
+	return nil
+}
+
+// removeOnuUpgradeFsm clears the Onu Software upgrade FSM
+func (dh *deviceHandler) removeOnuUpgradeFsm(ctx context.Context) {
+	logger.Debugw(ctx, "remove OnuSwUpgradeFSM StateMachine", log.Fields{
+		"device-id": dh.deviceID})
+	dh.lockUpgradeFsm.Lock()
+	defer dh.lockUpgradeFsm.Unlock()
+	dh.pOnuUpradeFsm = nil //resource clearing is left to garbage collector
 }
 
 //setBackend provides a DB backend for the specified path on the existing KV client
@@ -2745,16 +2849,10 @@ func (dh *deviceHandler) getUniPortStatus(ctx context.Context, uniInfo *extensio
 }
 
 func (dh *deviceHandler) isFsmInState(ctx context.Context, pFsm *fsm.FSM, wantedState string) bool {
-	var currentState string
 	if pFsm != nil {
-		currentState = pFsm.Current()
-		if currentState == wantedState {
-			return true
-		}
-	} else {
-		logger.Warnw(ctx, "FSM not defined!", log.Fields{"wantedState": wantedState, "device-id": dh.deviceID})
+		return pFsm.Current() == wantedState
 	}
-	return false
+	return true //FSM not active - so there is no activity on omci
 }
 
 func (dh *deviceHandler) mibUploadFsmInIdleState(ctx context.Context, idleState string) bool {
@@ -2782,8 +2880,7 @@ func (dh *deviceHandler) devAniConfigFsmInIdleState(ctx context.Context, idleSta
 		}
 		return true
 	}
-	logger.Warnw(ctx, "AniConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
-	return false
+	return true //FSM not active - so there is no activity on omci
 }
 
 func (dh *deviceHandler) devUniVlanConfigFsmInIdleState(ctx context.Context, idleState string) bool {
@@ -2795,8 +2892,15 @@ func (dh *deviceHandler) devUniVlanConfigFsmInIdleState(ctx context.Context, idl
 		}
 		return true
 	}
-	logger.Warnw(ctx, "UniVlanConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
-	return false
+	return true //FSM not active - so there is no activity on omci
+}
+
+func (dh *deviceHandler) devOnuUpgradeFsmInIdleState(ctx context.Context, idleState string) bool {
+	//By now just a pro forma implementation, TODO!!!: There can be multiple 'idle states' within this FSM
+	// (but normally it is not active at all, which is reflected in this implementation)
+	dh.lockUpgradeFsm.Lock()
+	defer dh.lockUpgradeFsm.Unlock()
+	return dh.isFsmInState(ctx, dh.pOnuUpradeFsm.pAdaptFsm.pFsm, idleState)
 }
 
 func (dh *deviceHandler) allButCallingFsmInIdleState(ctx context.Context, callingFsm usedOmciConfigFsms) bool {
