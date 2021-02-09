@@ -150,6 +150,8 @@ const (
 	OmciVlanFilterAddDone
 	// OmciVlanFilterRemDone - Omci Vlan config done according to flow-remove
 	OmciVlanFilterRemDone // needs to be the successor of OmciVlanFilterAddDone!
+	// OmciOnuSwUpgradeDone - SoftwareUpgrade to ONU finished
+	OmciOnuSwUpgradeDone
 	// Add other events here as needed (alarms separate???)
 )
 

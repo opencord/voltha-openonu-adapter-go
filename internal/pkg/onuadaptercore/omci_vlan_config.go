@@ -110,7 +110,8 @@ const (
 	vlanStCleanupDone     = "vlanStCleanupDone"
 	vlanStResetting       = "vlanStResetting"
 )
-const cVlanFsmIdleState = vlanStConfigDone
+const cVlanFsmIdleState = vlanStConfigDone       // state where no OMCI activity is done (for a longer time)
+const cVlanFsmConfiguredState = vlanStConfigDone // state that indicates that at least some valid user related VLAN configuration should exist
 
 type uniVlanRuleParams struct {
 	TpID         uint8  `json:"tp_id"`

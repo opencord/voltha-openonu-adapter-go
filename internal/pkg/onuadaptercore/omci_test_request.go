@@ -75,7 +75,7 @@ func (oo *omciTestRequest) performOmciTest(ctx context.Context, execChannel chan
 		onu2gBaseGet, _ := oo.createOnu2gBaseGet(ctx, tid)
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
-			cbEntry: callbackPairEntry{nil, oo.receiveOmciVerifyResponse},
+			cbEntry: callbackPairEntry{nil, oo.receiveOmciVerifyResponse, true},
 		}
 
 		logger.Debugw(ctx, "performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID})

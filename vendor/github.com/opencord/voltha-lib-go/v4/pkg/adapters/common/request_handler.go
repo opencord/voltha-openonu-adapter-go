@@ -559,24 +559,107 @@ func (rhp *RequestHandlerProxy) Process_inter_adapter_message(ctx context.Contex
 	return new(empty.Empty), nil
 }
 
-func (rhp *RequestHandlerProxy) Download_image(args []*ic.Argument) (*voltha.ImageDownload, error) {
-	return &voltha.ImageDownload{}, nil
+func (rhp *RequestHandlerProxy) Download_image(ctx context.Context, args []*ic.Argument) (*voltha.ImageDownload, error) {
+	device, image, err := unMarshalImageDowload(args, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	imageDownload, err := rhp.adapter.Download_image(ctx, device, image)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return imageDownload, nil
 }
 
-func (rhp *RequestHandlerProxy) Get_image_download_status(args []*ic.Argument) (*voltha.ImageDownload, error) {
-	return &voltha.ImageDownload{}, nil
+func (rhp *RequestHandlerProxy) Get_image_download_status(ctx context.Context, args []*ic.Argument) (*voltha.ImageDownload, error) {
+	device, image, err := unMarshalImageDowload(args, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	imageDownload, err := rhp.adapter.Get_image_download_status(ctx, device, image)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return imageDownload, nil
 }
 
-func (rhp *RequestHandlerProxy) Cancel_image_download(args []*ic.Argument) (*voltha.ImageDownload, error) {
-	return &voltha.ImageDownload{}, nil
+func (rhp *RequestHandlerProxy) Cancel_image_download(ctx context.Context, args []*ic.Argument) (*voltha.ImageDownload, error) {
+	device, image, err := unMarshalImageDowload(args, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	imageDownload, err := rhp.adapter.Cancel_image_download(ctx, device, image)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return imageDownload, nil
 }
 
-func (rhp *RequestHandlerProxy) Activate_image_update(args []*ic.Argument) (*voltha.ImageDownload, error) {
-	return &voltha.ImageDownload{}, nil
+func (rhp *RequestHandlerProxy) Activate_image_update(ctx context.Context, args []*ic.Argument) (*voltha.ImageDownload, error) {
+
+	device, image, err := unMarshalImageDowload(args, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	imageDownload, err := rhp.adapter.Activate_image_update(ctx, device, image)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return imageDownload, nil
 }
 
-func (rhp *RequestHandlerProxy) Revert_image_update(args []*ic.Argument) (*voltha.ImageDownload, error) {
-	return &voltha.ImageDownload{}, nil
+func (rhp *RequestHandlerProxy) Revert_image_update(ctx context.Context, args []*ic.Argument) (*voltha.ImageDownload, error) {
+	device, image, err := unMarshalImageDowload(args, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	imageDownload, err := rhp.adapter.Revert_image_update(ctx, device, image)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	}
+	return imageDownload, nil
+}
+
+func unMarshalImageDowload(args []*ic.Argument, ctx context.Context) (*voltha.Device, *voltha.ImageDownload, error) {
+	if len(args) < 4 {
+		logger.Warn(ctx, "invalid-number-of-args", log.Fields{"args": args})
+		err := errors.New("invalid-number-of-args")
+		return nil, nil, err
+	}
+	device := &voltha.Device{}
+	image := &voltha.ImageDownload{}
+	transactionID := &ic.StrType{}
+	fromTopic := &ic.StrType{}
+	for _, arg := range args {
+		switch arg.Key {
+		case "device":
+			if err := ptypes.UnmarshalAny(arg.Value, device); err != nil {
+				logger.Warnw(ctx, "cannot-unmarshal-device", log.Fields{"error": err})
+				return nil, nil, err
+			}
+		case "request":
+			if err := ptypes.UnmarshalAny(arg.Value, image); err != nil {
+				logger.Warnw(ctx, "cannot-unmarshal-image", log.Fields{"error": err})
+				return nil, nil, err
+			}
+		case kafka.TransactionKey:
+			if err := ptypes.UnmarshalAny(arg.Value, transactionID); err != nil {
+				logger.Warnw(ctx, "cannot-unmarshal-transaction-ID", log.Fields{"error": err})
+				return nil, nil, err
+			}
+		case kafka.FromTopic:
+			if err := ptypes.UnmarshalAny(arg.Value, fromTopic); err != nil {
+				logger.Warnw(ctx, "cannot-unmarshal-from-topic", log.Fields{"error": err})
+				return nil, nil, err
+			}
+		}
+	}
+	return device, image, nil
 }
 
 func (rhp *RequestHandlerProxy) Enable_port(ctx context.Context, args []*ic.Argument) error {
