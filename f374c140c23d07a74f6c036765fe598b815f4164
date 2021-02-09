@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "72f5f794_7f2cdbea",
+        "filename": "internal/pkg/config/config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-09T17:01:14Z",
+      "side": 1,
+      "message": "Yes, sorry, some merge conflict. Will be updated to (new) base statement next time",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
