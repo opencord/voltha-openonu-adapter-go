@@ -479,11 +479,11 @@ func (oo *OpenONUAC) Cancel_image_download(ctx context.Context, device *voltha.D
 //Activate_image_update requests downloading some Onu Software image to the INU via OMCI
 //  according to indications as given in apRequest and on success activate the image on the ONU
 func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, apRequest *voltha.ImageDownload) (*voltha.ImageDownload, error) {
-	if oo.pDownloadManager.imageExists(ctx, apRequest) {
+	if oo.pDownloadManager.imageLocallyDownloaded(ctx, apRequest) {
 		if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 			logger.Debugw(ctx, "image download on omci requested", log.Fields{
 				"image-description": apRequest, "device-id": device.Id})
-			err := handler.doOnuSwUpgrade(ctx, apRequest)
+			err := handler.doOnuSwUpgrade(ctx, apRequest, oo.pDownloadManager)
 			return apRequest, err
 		}
 		logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": device.Id})

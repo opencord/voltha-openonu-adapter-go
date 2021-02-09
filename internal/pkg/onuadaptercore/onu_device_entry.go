@@ -154,6 +154,8 @@ const (
 	OmciVlanFilterRemDone // needs to be the successor of OmciVlanFilterAddDoneNoKvStore!
 	// OmciVlanFilterRemDoneNoKvStore - Omci Vlan config done according to flow-remove without writing kvStore
 	OmciVlanFilterRemDoneNoKvStore // needs to be the successor of OmciVlanFilterRemDone!
+	// OmciOnuSwUpgradeDone - SoftwareUpgrade to ONU finished
+	OmciOnuSwUpgradeDone
 	// Add other events here as needed (alarms separate???)
 )
 
