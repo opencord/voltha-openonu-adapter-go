@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e8c0aaa8_77139e2b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-09T10:37:54Z",
+      "side": 1,
+      "message": "As all OMCI-configuring FSMs the new metrics-machine has to be considered for the check on idle state (currently used before MDS-query on MIB audit).",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 97,
+        "endChar": 6
+      },
+      "revId": "33f7d1d911f9f943a40a190b7dac360612efe8ef",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fa790294_5ab8c31f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 2817,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-09T10:37:54Z",
+      "side": 1,
+      "message": "New idle-func for \"dh.pOnuMetricsMgr.pL2PMFsm\" needed.",
+      "range": {
+        "startLine": 2817,
+        "startChar": 0,
+        "endLine": 2817,
+        "endChar": 1
+      },
+      "revId": "33f7d1d911f9f943a40a190b7dac360612efe8ef",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
