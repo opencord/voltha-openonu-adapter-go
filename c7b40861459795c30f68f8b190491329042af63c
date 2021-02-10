@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e9caff35_4343eded",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-10T21:01:01Z",
+      "side": 1,
+      "message": "can you ensure that the EventName and EventDescription are exactly same as in pyvoltha version. I am asking this because the string patterns matter for compatibility with ELK that is already integrated with pyvoltha.\nFor instance you are using the string here \"Temperature yellow\" while in pyvoltha it is \"onu temperature yellow\"",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 86,
+        "endChar": 136
+      },
+      "revId": "c7b40861459795c30f68f8b190491329042af63c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
