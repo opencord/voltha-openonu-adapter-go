@@ -22,6 +22,30 @@
       "revId": "c7b40861459795c30f68f8b190491329042af63c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3fa80a19_930de224",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-10T21:02:48Z",
+      "side": 1,
+      "message": "Also the EventCategory and EventSubCategory does not seem to be an exact match.",
+      "parentUuid": "e9caff35_4343eded",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 86,
+        "endChar": 136
+      },
+      "revId": "c7b40861459795c30f68f8b190491329042af63c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
