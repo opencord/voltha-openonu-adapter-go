@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f449287f_ddd79480",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 344,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-10T11:45:54Z",
+      "side": 1,
+      "message": "We defined a \u0027base class\u0027 for the used FSM\u0027s in order to give the common minimal paramter set to be used for the FSM and some possible identical base functions, which is at the moment only logFsmStateChange() (but might be extended if it should make sense) -\u003e AdapterFsm. You could consider to use it, but perhaps you decided already willingly against that?",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2a750713_e48876fb",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-10T11:45:54Z",
+      "side": 1,
+      "message": "So \u0027Stop\u0027 does not automatically release internal objects?",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "797ebf50_0d204003",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 521,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-10T11:45:54Z",
+      "side": 1,
+      "message": "Might need some mutex? - Also below.",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8afccad_745be8bb",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1171,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-10T11:45:54Z",
+      "side": 1,
+      "message": "I think this is problematic. 15 min sequence of requests should be kept as exact as possible. Otherwise there is a danger of not requesting the expected interval anymore (Seems like the request is not smply delayed here but omitted at all if in another state). DataRequest or ConfigAdd/Delete should have no (nearly no) influence on the Pm request sequence.",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
