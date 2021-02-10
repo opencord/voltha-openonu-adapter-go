@@ -16,6 +16,57 @@
       "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eac841dc_ddf52496",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T09:47:59Z",
+      "side": 1,
+      "message": "test file ?",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b1d553f8_0d855202",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2564,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T09:47:59Z",
+      "side": 1,
+      "message": "I think we are missing the commit image method",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b6754e41_9fc5d118",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 400,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T09:47:59Z",
+      "side": 1,
+      "message": "am I correct in assuming that without this the ONU will reset upon restart to the previous image ? can we implement this as well ?",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
