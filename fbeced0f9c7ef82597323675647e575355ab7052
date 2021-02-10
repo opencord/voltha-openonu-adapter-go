@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f0cca84f_c9f06181",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "alarmInfo",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1eeca98d_71789cc7",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "these are just in memory alarms, I would just call the map alarms.",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a3ba6b23_22a7d498",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "same, activeAlarms",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9edd289a_fb517653",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "please put the class id and the me instance here as well.",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0bb7591d_be2800fe",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 127,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "same",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "18ca8187_c0592db2",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "should we return here ?",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d4ec0a17_e123884d",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 154,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-10T10:20:17Z",
+      "side": 1,
+      "message": "should we return here ?",
+      "revId": "fbeced0f9c7ef82597323675647e575355ab7052",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
