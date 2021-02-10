@@ -19,6 +19,29 @@
     },
     {
       "key": {
+        "uuid": "74e8997e_a8adc833",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-10T10:37:43Z",
+      "side": 1,
+      "message": "Please adapt the comment.",
+      "range": {
+        "startLine": 74,
+        "startChar": 2,
+        "endLine": 74,
+        "endChar": 14
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "eac841dc_ddf52496",
         "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
         "patchSetId": 1
@@ -30,6 +53,98 @@
       "writtenOn": "2021-02-10T09:47:59Z",
       "side": 1,
       "message": "test file ?",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a9c10fe1_8f181b12",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-10T10:37:43Z",
+      "side": 1,
+      "message": "Please adapt the comment.",
+      "range": {
+        "startLine": 148,
+        "startChar": 2,
+        "endLine": 148,
+        "endChar": 25
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b68419d0_85b807b9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2855,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-10T10:37:43Z",
+      "side": 1,
+      "message": "Actually returning \"true\" is not correct here. The FSM is not in the \"wantedState\" but doesn\u0027t exist at all. Perhaps we have to change the name of the function to \"fsmExistsAndIsInState()\". Using this function in the audit use case, the current change would lead to the behavior, that audit is going to start even if the viewed FSM is not even started - which isn\u0027t wanted because audit should only be executed on a fully provisioned ONU.",
+      "range": {
+        "startLine": 2855,
+        "startChar": 1,
+        "endLine": 2855,
+        "endChar": 8
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "29aec0e6_42776634",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2883,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-10T10:37:43Z",
+      "side": 1,
+      "message": "See comment above.",
+      "range": {
+        "startLine": 2883,
+        "startChar": 1,
+        "endLine": 2883,
+        "endChar": 8
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "436c9500_dcc12b88",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2895,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-10T10:37:43Z",
+      "side": 1,
+      "message": "See comment above.",
+      "range": {
+        "startLine": 2895,
+        "startChar": 1,
+        "endLine": 2895,
+        "endChar": 8
+      },
       "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
