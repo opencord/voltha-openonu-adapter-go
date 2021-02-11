@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "2e9380c1_f7dae699",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 344,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-11T00:29:04Z",
+      "side": 1,
+      "message": "No particular reason. I can make this change.",
+      "parentUuid": "f449287f_ddd79480",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2a750713_e48876fb",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 15
@@ -30,6 +48,24 @@
       "writtenOn": "2021-02-10T11:45:54Z",
       "side": 1,
       "message": "So \u0027Stop\u0027 does not automatically release internal objects?",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7eb60cbe_ee99554e",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-11T00:29:04Z",
+      "side": 1,
+      "message": "This is actually done when collector is stopped (see device_handler.go), but I think it is good idea to move to here when FSM is stopped and it moves to Null state",
+      "parentUuid": "2a750713_e48876fb",
       "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "f551be9f_1fb812a6",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 521,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-11T00:29:04Z",
+      "side": 1,
+      "message": "This is in line 512 and 513",
+      "parentUuid": "797ebf50_0d204003",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d8afccad_745be8bb",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 15
@@ -64,6 +118,24 @@
       "writtenOn": "2021-02-10T11:45:54Z",
       "side": 1,
       "message": "I think this is problematic. 15 min sequence of requests should be kept as exact as possible. Otherwise there is a danger of not requesting the expected interval anymore (Seems like the request is not smply delayed here but omitted at all if in another state). DataRequest or ConfigAdd/Delete should have no (nearly no) influence on the Pm request sequence.",
+      "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f52d00fe_37507174",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1171,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-11T00:29:04Z",
+      "side": 1,
+      "message": "Ok. I adjusted the code a bit for this.",
+      "parentUuid": "d8afccad_745be8bb",
       "revId": "a483ada8b6e21445d2d6696821cd05c0331a8d51",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
