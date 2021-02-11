@@ -46,6 +46,30 @@
       "revId": "c7b40861459795c30f68f8b190491329042af63c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3b00a5c6_6dac99d2",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-11T06:42:14Z",
+      "side": 1,
+      "message": "Changed the event descriptions as same as py. however the category and sub category exactly matches and is taken from pyvoltha.",
+      "parentUuid": "3fa80a19_930de224",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 86,
+        "endChar": 136
+      },
+      "revId": "c7b40861459795c30f68f8b190491329042af63c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
