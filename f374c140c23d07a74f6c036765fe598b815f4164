@@ -42,6 +42,30 @@
     },
     {
       "key": {
+        "uuid": "5e4f717b_3a49f3ca",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "74e8997e_a8adc833",
+      "range": {
+        "startLine": 74,
+        "startChar": 2,
+        "endLine": 74,
+        "endChar": 14
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "eac841dc_ddf52496",
         "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
         "patchSetId": 1
@@ -53,6 +77,24 @@
       "writtenOn": "2021-02-10T09:47:59Z",
       "side": 1,
       "message": "test file ?",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5769905d_7f829140",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Yes, by now this function generates a test file that can\u0027t be used for a real ONU download (maybe BBSIM, still open). Even if this is part of this method and not any specific action here I would leave this comment here as long as internally it is operated only with a test file.",
+      "parentUuid": "eac841dc_ddf52496",
       "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -82,6 +124,30 @@
     },
     {
       "key": {
+        "uuid": "1adce1b2_c11e429c",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a9c10fe1_8f181b12",
+      "range": {
+        "startLine": 148,
+        "startChar": 2,
+        "endLine": 148,
+        "endChar": 25
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b68419d0_85b807b9",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -93,6 +159,30 @@
       "writtenOn": "2021-02-10T10:37:43Z",
       "side": 1,
       "message": "Actually returning \"true\" is not correct here. The FSM is not in the \"wantedState\" but doesn\u0027t exist at all. Perhaps we have to change the name of the function to \"fsmExistsAndIsInState()\". Using this function in the audit use case, the current change would lead to the behavior, that audit is going to start even if the viewed FSM is not even started - which isn\u0027t wanted because audit should only be executed on a fully provisioned ONU.",
+      "range": {
+        "startLine": 2855,
+        "startChar": 1,
+        "endLine": 2855,
+        "endChar": 8
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "990b4dfa_a4ccf605",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2855,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "We have discussed that mutually now. What you want from audit point of view are two different things and we should make that clear in the processing as well: \n1.) make sure no OMCI relates FSM does some configuration activity on OMCI (which is true also if it does not exist)\n2.) ensure, that something exists that might suggest that there is some user related service available\nI\u0027ll update the code accordingly in the next patch version.",
+      "parentUuid": "b68419d0_85b807b9",
       "range": {
         "startLine": 2855,
         "startChar": 1,
@@ -128,6 +218,30 @@
     },
     {
       "key": {
+        "uuid": "07159136_303b6078",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2883,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Also see above.",
+      "parentUuid": "29aec0e6_42776634",
+      "range": {
+        "startLine": 2883,
+        "startChar": 1,
+        "endLine": 2883,
+        "endChar": 8
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "436c9500_dcc12b88",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -139,6 +253,30 @@
       "writtenOn": "2021-02-10T10:37:43Z",
       "side": 1,
       "message": "See comment above.",
+      "range": {
+        "startLine": 2895,
+        "startChar": 1,
+        "endLine": 2895,
+        "endChar": 8
+      },
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "518347d2_748f7e2e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2895,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Also see above.",
+      "parentUuid": "436c9500_dcc12b88",
       "range": {
         "startLine": 2895,
         "startChar": 1,
@@ -168,6 +306,24 @@
     },
     {
       "key": {
+        "uuid": "ffe53d11_d3e8ce07",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2564,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Yes, will be implemented in a further patch version when commit will be integrated.",
+      "parentUuid": "b1d553f8_0d855202",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b6754e41_9fc5d118",
         "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
         "patchSetId": 1
@@ -179,6 +335,24 @@
       "writtenOn": "2021-02-10T09:47:59Z",
       "side": 1,
       "message": "am I correct in assuming that without this the ONU will reset upon restart to the previous image ? can we implement this as well ?",
+      "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ae8d27d_8ce094ce",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 400,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T13:45:25Z",
+      "side": 1,
+      "message": "Of course. Will be done as part of a later version of this patch or a new one. Have to make some considerations on when to consider the new SW as \u0027operational\u0027. So I decided to shift that for the moment.",
+      "parentUuid": "b6754e41_9fc5d118",
       "revId": "f374c140c23d07a74f6c036765fe598b815f4164",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
