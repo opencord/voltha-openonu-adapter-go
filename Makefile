@@ -102,11 +102,17 @@ endif
 
 build: docker-build
 
-docker-build: local-protos local-lib-go
+docker-build: local-protos local-lib-go ## Build openonu adapter docker image (set BUILD_PROFILED=true to also build the profiled image)
 	docker build $(DOCKER_BUILD_ARGS) -t ${ADAPTER_IMAGENAME} -f docker/Dockerfile.openonu .
+ifdef BUILD_PROFILED
+	docker build $(DOCKER_BUILD_ARGS) --build-arg EXTRA_GO_BUILD_TAGS="-tags profile" -t ${ADAPTER_IMAGENAME}-profile -f docker/Dockerfile.openonu .
+endif
 
 docker-push:
 	docker push ${ADAPTER_IMAGENAME}
+ifdef BUILD_PROFILED
+	docker push ${ADAPTER_IMAGENAME}-profile
+endif
 
 docker-kind-load:
 	@if [ "`kind get clusters | grep voltha-$(TYPE)`" = '' ]; then echo "no voltha-$(TYPE) cluster found" && exit 1; fi

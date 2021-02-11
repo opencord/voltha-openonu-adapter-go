@@ -25,6 +25,7 @@ import (
 )
 
 func realMain(ctx context.Context) {
+	logger.Infoln(ctx, "Start server at 0.0.0.0:6060")
 	go func() {
 		logger.Fatal(ctx, http.ListenAndServe("0.0.0.0:6060", nil))
 	}()
