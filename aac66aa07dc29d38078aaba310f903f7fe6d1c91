@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "01861d59_17bb1178",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 2700,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "Hmm, Are you sure the L2PmFsm is running here? Note there is slight discrepancy in starting and stopping the FSM: I understand L2PmFsm is started in processMibDownloadDoneEvent, while the collector is started on ONU-Up indication ...\nOn the other hand stopCollector is called from resetFsms() on OnuDw indication - and I\u0027m not sure if that processing is ensured to be called only once (in case it should be received multiple times somehow).\nSo perhaps make at least sure the pointer is not nil.",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ebb05116_897889a1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 2706,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "Do you think, this check is required? Compare also above pointer test comment. If the pointer is valid then I would suppose the channel can simply be used. Compare related comments in the metricsManager.",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22babbfe_23ad77de",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "see comments below",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6225dab8_16356f65",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "compare dh comment: stopTicks channel exists with MetricManager (nearly always)",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9f9abe36_659acf90",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1082,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "Maybe also flush stopTicks channel here",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ded468b7_5d7c8187",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1166,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "You perhaps can also avoid checking ticksOn here if the timer is started on transition from state SyncTime to Idle. Question is then, if ticksOn is required at all.",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "951a5e8e_f8481f55",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1168,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "Probably you need to take here as well:\nmm.onuMetricsManagerLock.Lock() and reverse",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "40a188ae_212ca726",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1265,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "Probably you need to take here as well:\nmm.onuMetricsManagerLock.Lock() and reverse \n(It\u0027s later done in the response  processing)",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b40d4e42_d6ba6e8b",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1351,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "Probably you need to take here as well:\nmm.onuMetricsManagerLock.Lock() and reverse \n(It\u0027s later done in the response  processing)",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "48fdda00_316da182",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1870,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-11T15:16:29Z",
+      "side": 1,
+      "message": "I\u0027m afraid this still won\u0027t really help for ensuring the stable interval. My impression of the underlying state machine is that if you send an event to it which is not defined for the actual state, then the event is simply ignored (may be some error return, I\u0027m not sure).\nSo I suppose you would have to admit the Tick event also in states l2PmStCreatePmMe and l2PmStDeletePmMe, not necessarily in l2PmStCollectData (this one should probably not collide with Tick).",
+      "revId": "aac66aa07dc29d38078aaba310f903f7fe6d1c91",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
