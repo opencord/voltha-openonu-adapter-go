@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "906978dc_c1c2c7a6",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-11T12:08:50Z",
+      "side": 1,
+      "message": "remove the -dev162 to release this please",
+      "revId": "384c85fb93f005cf0da33f58460ba700d3aae207",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
