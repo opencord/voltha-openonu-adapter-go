@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ea556a4a_84363c85",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 615,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-12T12:10:21Z",
+      "side": 1,
+      "message": "here we are acquiring both locks,, then releasing the onuKvStore and then the persUni one, is that ok ?",
+      "revId": "0ca8daf5f2d73c99260806e47d9a1d82c33b8aba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
