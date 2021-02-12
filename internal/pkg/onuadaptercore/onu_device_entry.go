@@ -238,6 +238,7 @@ type OnuDeviceEntry struct {
 	PDevOmciCC            *omciCC
 	pOnuDB                *onuDeviceDB
 	mibTemplateKVStore    *db.Backend
+	persUniConfigMutex    sync.RWMutex
 	sOnuPersistentData    onuPersistentData
 	mibTemplatePath       string
 	onuKVStoreMutex       sync.RWMutex
@@ -563,7 +564,9 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", oo.deviceID))
 	}
 	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
+	oo.onuKVStoreMutex.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
+	oo.onuKVStoreMutex.RUnlock()
 	if err == nil {
 		if Value != nil {
 			logger.Debugw(ctx, "ONU-data read",
@@ -608,11 +611,17 @@ func (oo *OnuDeviceEntry) deleteDataFromOnuKvStore(ctx context.Context, wg *sync
 func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingStep uint8) {
 
 	logger.Debugw(ctx, "delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
+
+	oo.persUniConfigMutex.Lock()
+	defer oo.persUniConfigMutex.Unlock()
+
 	oo.sOnuPersistentData.PersUniConfig = nil                                                                                      //releasing all UniConfig entries to garbage collector
 	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)} //default entry
 
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
+	oo.onuKVStoreMutex.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
+	oo.onuKVStoreMutex.Unlock()
 	if err != nil {
 		logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
 		oo.chOnuKvProcessingStep <- 0 //error indication
@@ -657,7 +666,9 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 		oo.chOnuKvProcessingStep <- 0 //error indication
 		return
 	}
+	oo.onuKVStoreMutex.Lock()
 	err = oo.onuKVStore.Put(ctx, oo.onuKVStorePath, Value)
+	oo.onuKVStoreMutex.Unlock()
 	if err != nil {
 		logger.Errorw(ctx, "unable to write ONU-data into KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
 		oo.chOnuKvProcessingStep <- 0 //error indication
@@ -671,6 +682,9 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 	   as also the complete sequence is ensured to 'run to completion' before some new request is accepted
 	   no specific concurrency protection to sOnuPersistentData is required here
 	*/
+	oo.persUniConfigMutex.Lock()
+	defer oo.persUniConfigMutex.Unlock()
+
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
 			logger.Debugw(ctx, "PersUniConfig-entry already exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
@@ -738,6 +752,9 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 
 func (oo *OnuDeviceEntry) updateOnuUniFlowConfig(aUniID uint8, aUniVlanFlowParams *[]uniVlanFlowParams) {
 
+	oo.persUniConfigMutex.Lock()
+	defer oo.persUniConfigMutex.Unlock()
+
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
 			oo.sOnuPersistentData.PersUniConfig[k].PersFlowParams = make([]uniVlanFlowParams, len(*aUniVlanFlowParams))
@@ -776,15 +793,6 @@ func (oo *OnuDeviceEntry) resetKvProcessingErrorIndication() {
 func (oo *OnuDeviceEntry) getKvProcessingErrorIndication() error {
 	return oo.onuKVStoreprocResult
 }
-
-func (oo *OnuDeviceEntry) lockOnuKVStoreMutex() {
-	oo.onuKVStoreMutex.Lock()
-}
-
-func (oo *OnuDeviceEntry) unlockOnuKVStoreMutex() {
-	oo.onuKVStoreMutex.Unlock()
-}
-
 func (oo *OnuDeviceEntry) incrementMibDataSync(ctx context.Context) {
 	if oo.sOnuPersistentData.PersMibDataSyncAdpt < 255 {
 		oo.sOnuPersistentData.PersMibDataSyncAdpt++

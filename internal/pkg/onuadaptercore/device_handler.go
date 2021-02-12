@@ -364,8 +364,6 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	// to possible concurrent access by flow processing
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
-	pDevEntry.lockOnuKVStoreMutex()
-	defer pDevEntry.unlockOnuKVStoreMutex()
 
 	if techProfMsg.UniId > 255 {
 		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
@@ -436,8 +434,6 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 	//compare TECH_PROFILE_DOWNLOAD_REQUEST
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
-	pDevEntry.lockOnuKVStoreMutex()
-	defer pDevEntry.unlockOnuKVStoreMutex()
 
 	if delGemPortMsg.UniId > 255 {
 		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
@@ -496,8 +492,6 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 	//compare TECH_PROFILE_DOWNLOAD_REQUEST
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
-	pDevEntry.lockOnuKVStoreMutex()
-	defer pDevEntry.unlockOnuKVStoreMutex()
 
 	if delTcontMsg.UniId > 255 {
 		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
@@ -795,6 +789,8 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	}
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
+	pDevEntry.persUniConfigMutex.RLock()
+	defer pDevEntry.persUniConfigMutex.RUnlock()
 
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
@@ -841,6 +837,9 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
+	pDevEntry.persUniConfigMutex.RLock()
+	defer pDevEntry.persUniConfigMutex.RUnlock()
+
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
@@ -903,8 +902,6 @@ func (dh *deviceHandler) deleteDevicePersistencyData(ctx context.Context) error 
 		logger.Debugw(ctx, "OnuDevice does not exist - nothing to delete", log.Fields{"device-id": dh.deviceID})
 		return nil
 	}
-	pDevEntry.lockOnuKVStoreMutex()
-	defer pDevEntry.unlockOnuKVStoreMutex()
 
 	// deadline context to ensure completion of background routines waited for
 	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
@@ -2505,9 +2502,6 @@ func (dh *deviceHandler) storePersUniFlowConfig(ctx context.Context, aUniID uint
 	}
 	pDevEntry.updateOnuUniFlowConfig(aUniID, aUniVlanFlowParams)
 
-	pDevEntry.lockOnuKVStoreMutex()
-	defer pDevEntry.unlockOnuKVStoreMutex()
-
 	// deadline context to ensure completion of background routines waited for
 	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
@@ -2553,9 +2547,6 @@ func (dh *deviceHandler) storePersistentData(ctx context.Context) error {
 		logger.Warnw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
-	pDevEntry.lockOnuKVStoreMutex()
-	defer pDevEntry.unlockOnuKVStoreMutex()
-
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
