@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e726cbd7_c91fd7ef",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "please insert else path with some warning indication, that some indication was received in  the stopped state (which I do not regard as impossible)",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81e1b1d2_ac699305",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "classID and meInstanceId retrieval look strange to me, as msg is pointer to  AlarmNotificationMsg. This is working this way?",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c476aa7_ba6bfe9e",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "What\u0027s the difference between alarmBitmap in line 107 and this one?\n(so the question is, are lines 116..123 really required?)",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3260c4d9_7675b365",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "I don\u0027t think that it is correct to use CircuitPack entity for a lookup to some EventPort in the uniEntityMap. CircuitPack ME ID\u0027s have a more global context. So you should re-verify what the target \u0027intfID\u0027 in the system event really should be here.",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6ea95c99_e7106ed5",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "insert else path with warning for not handled ClassId",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffeb1e66_67147b2d",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "Hmm, looks a bit complicated to me. But maybe you had a specific idea for this implementation?\nI\u0027d prefer to make use of some simple static map (within alarmManager) (to me there seem to be no run-time changes to the fields here). So I\u0027d prefer to focus on run-time here instead of memory - if that was one of your intentions.",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "56e14d76_ac7865d3",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-12T14:02:01Z",
+      "side": 1,
+      "message": "with above comment also this method could get a member of the alarmManager, then no extra file required here ..",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
