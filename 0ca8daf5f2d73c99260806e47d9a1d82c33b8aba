@@ -16,6 +16,24 @@
       "revId": "0ca8daf5f2d73c99260806e47d9a1d82c33b8aba",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6280ef2b_aad71c6c",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 615,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-12T14:25:07Z",
+      "side": 1,
+      "message": "IMHO it is. But having a look again, I discovered two positions, which have to be protected too, where persUniConfig is indirectly referenced via its supordinate structure. Update will follow ...",
+      "parentUuid": "ea556a4a_84363c85",
+      "revId": "0ca8daf5f2d73c99260806e47d9a1d82c33b8aba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
