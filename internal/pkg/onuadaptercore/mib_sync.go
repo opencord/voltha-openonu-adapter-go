@@ -247,7 +247,14 @@ func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
 
 func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start GetMds processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	oo.requestMdsValue(ctx)
+	// TODO: As long as story VOL-3834 "Avoid ONU service distruption on adapter restart" is not finished,
+	// we need a full configuration cycle of the ONU to reconcile all local FSM data.
+	// Therefore we simulate a failed MDS check here to trigger this config
+	//oo.requestMdsValue(ctx)
+	logger.Debugw(ctx, "MibSync FSM - MDS examination failed - new provisioning", log.Fields{"device-id": oo.deviceID})
+	go func() {
+		_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+	}()
 }
 
 func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.Event) {
