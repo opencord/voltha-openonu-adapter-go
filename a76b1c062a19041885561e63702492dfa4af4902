@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f9e83be4_4d5ad021",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-15T10:56:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e726cbd7_c91fd7ef",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "81e1b1d2_ac699305",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 9
@@ -53,6 +71,24 @@
     },
     {
       "key": {
+        "uuid": "2d337105_978dfe11",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-15T10:56:43Z",
+      "side": 1,
+      "message": "alarmBitMap is the one received in alarm notification message, and this one is the alarm map containing the list of alarms me supports. So instead of checking all 224 bits in the alarm bit map which one is raised or cleared, I am taking the alarm no from me alarm map and checking in alarm bit map whether its raised or cleared.",
+      "parentUuid": "0c476aa7_ba6bfe9e",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3260c4d9_7675b365",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 9
@@ -64,6 +100,24 @@
       "writtenOn": "2021-02-12T14:02:01Z",
       "side": 1,
       "message": "I don\u0027t think that it is correct to use CircuitPack entity for a lookup to some EventPort in the uniEntityMap. CircuitPack ME ID\u0027s have a more global context. So you should re-verify what the target \u0027intfID\u0027 in the system event really should be here.",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0df57ec8_b3a8181f",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-15T10:56:43Z",
+      "side": 1,
+      "message": "As checked in py code, only circuit pack and pptp me will map to uniPort, hence added lookup for uniport.",
+      "parentUuid": "3260c4d9_7675b365",
       "revId": "a76b1c062a19041885561e63702492dfa4af4902",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -87,6 +141,24 @@
     },
     {
       "key": {
+        "uuid": "bddc1437_af058eb8",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-15T10:56:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6ea95c99_e7106ed5",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ffeb1e66_67147b2d",
         "filename": "internal/pkg/onuadaptercore/onu_events.go",
         "patchSetId": 9
@@ -98,6 +170,24 @@
       "writtenOn": "2021-02-12T14:02:01Z",
       "side": 1,
       "message": "Hmm, looks a bit complicated to me. But maybe you had a specific idea for this implementation?\nI\u0027d prefer to make use of some simple static map (within alarmManager) (to me there seem to be no run-time changes to the fields here). So I\u0027d prefer to focus on run-time here instead of memory - if that was one of your intentions.",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75112690_9c51d8ee",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-15T10:56:43Z",
+      "side": 1,
+      "message": "no there wont be any changes to the map at run time.",
+      "parentUuid": "ffeb1e66_67147b2d",
       "revId": "a76b1c062a19041885561e63702492dfa4af4902",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -118,6 +208,24 @@
       "revId": "a76b1c062a19041885561e63702492dfa4af4902",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cb46acd7_e5067b10",
+        "filename": "internal/pkg/onuadaptercore/onu_events.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-02-15T10:56:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "56e14d76_ac7865d3",
+      "revId": "a76b1c062a19041885561e63702492dfa4af4902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
