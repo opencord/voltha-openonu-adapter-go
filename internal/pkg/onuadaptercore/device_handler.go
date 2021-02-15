@@ -1978,9 +1978,9 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 	eventContext["pon-id"] = strconv.FormatUint(uint64(dh.pOnuIndication.IntfId), 10)
 	eventContext["onu-id"] = strconv.FormatUint(uint64(dh.pOnuIndication.OnuId), 10)
 	eventContext["serial-number"] = dh.device.SerialNumber
-	eventContext["olt_serial_number"] = oltSerialNumber
-	eventContext["device_id"] = aDeviceID
-	eventContext["registration_id"] = aDeviceID //py: string(device_id)??
+	eventContext["olt-serial-number"] = oltSerialNumber
+	eventContext["device-id"] = aDeviceID
+	eventContext["registration-id"] = aDeviceID //py: string(device_id)??
 	logger.Debugw(ctx, "prepare ONU_ACTIVATED event",
 		log.Fields{"device-id": aDeviceID, "EventContext": eventContext})
 
