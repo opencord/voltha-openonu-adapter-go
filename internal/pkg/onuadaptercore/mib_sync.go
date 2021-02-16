@@ -269,10 +269,10 @@ func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.
 
 func (oo *OnuDeviceEntry) enterAuditingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibAudit processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	if oo.baseDeviceHandler.allButCallingFsmInIdleState(ctx, cUploadFsm) {
+	if oo.baseDeviceHandler.checkMdsStartCondition(ctx, cUploadFsm) {
 		oo.requestMdsValue(ctx)
 	} else {
-		logger.Debugw(ctx, "MibSync FSM", log.Fields{"Configuration is ongoing - skip auditing!": e.FSM.Current(), "device-id": oo.deviceID})
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"Configuration is ongoing or missing - skip auditing!": e.FSM.Current(), "device-id": oo.deviceID})
 		go func() {
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		}()
@@ -281,10 +281,10 @@ func (oo *OnuDeviceEntry) enterAuditingState(ctx context.Context, e *fsm.Event) 
 
 func (oo *OnuDeviceEntry) enterReAuditingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start retest MdsValue processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	if oo.baseDeviceHandler.allButCallingFsmInIdleState(ctx, cUploadFsm) {
+	if oo.baseDeviceHandler.checkMdsStartCondition(ctx, cUploadFsm) {
 		oo.requestMdsValue(ctx)
 	} else {
-		logger.Debugw(ctx, "MibSync FSM", log.Fields{"Configuration is ongoing - skip re-auditing!": e.FSM.Current(), "device-id": oo.deviceID})
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"Configuration is ongoing or missing - skip re-auditing!": e.FSM.Current(), "device-id": oo.deviceID})
 		go func() {
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		}()

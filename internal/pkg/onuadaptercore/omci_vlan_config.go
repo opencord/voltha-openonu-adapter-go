@@ -36,6 +36,7 @@ import (
 
 const (
 	// internal predefined values
+	cWaitForCookieDeletion = 3 //seconds
 	cDefaultDownstreamMode = 0
 	cDefaultTpid           = 0x8100
 	cVtfdTableSize         = 12             //as per G.988
@@ -110,7 +111,8 @@ const (
 	vlanStCleanupDone     = "vlanStCleanupDone"
 	vlanStResetting       = "vlanStResetting"
 )
-const cVlanFsmIdleState = vlanStConfigDone
+const cVlanFsmIdleState = vlanStConfigDone       // state where no OMCI activity is done (for a longer time)
+const cVlanFsmConfiguredState = vlanStConfigDone // state that indicates that at least some valid user related VLAN configuration should exist
 
 type uniVlanRuleParams struct {
 	TpID         uint8  `json:"tp_id"`
@@ -145,6 +147,7 @@ type UniVlanConfigFsm struct {
 	acceptIncrementalEvtoOption bool
 	clearPersistency            bool
 	mutexFlowParams             sync.RWMutex
+	chCookieDeleted             chan bool //channel to indicate that a specificly indicated cookie was deleted
 	actualUniVlanConfigRule     uniVlanRuleParams
 	uniVlanFlowParamsSlice      []uniVlanFlowParams
 	uniRemoveFlowsSlice         []uniRemoveVlanFlowParams
@@ -157,6 +160,8 @@ type UniVlanConfigFsm struct {
 	pLastTxMeInstance           *me.ManagedEntity
 	requestEventOffset          uint8
 	TpIDWaitingFor              uint8
+	//cookie value that indicates that a rule to add is delayed by waiting for deletion of some other existing rule with the same cookie
+	delayNewRuleCookie uint64
 }
 
 //NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -367,7 +372,6 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	flowCookieModify := false
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
-	defer oFsm.mutexFlowParams.Unlock()
 	for flow, storedUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
 		//TODO: Verify if using e.g. hashes for the structures here for comparison may generate
 		//  countable run time optimization (perhaps with including the hash in kvStore storage?)
@@ -398,7 +402,52 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 			break // found rule - no further rule search
 		}
 	}
+	oFsm.mutexFlowParams.Unlock()
 	if !flowEntryMatch { //it is a new rule
+		// VOL-XXX insertion flow sequence workaround ###########  start ##########
+		if oFsm.delayNewRuleCookie == 0 {
+			// if not already waiting, limitation for this workaround is to just have one overlapping cookie/rule
+			oFsm.mutexFlowParams.RLock()
+		flow_loop: //may better use a function here !!!
+			for _, storedUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
+				//TODO: Verify if using e.g. hashes for the structures here for comparison may generate
+				//  countable run time optimization (perhaps with including the hash in kvStore storage?)
+				for _, newCookie := range aCookieSlice { // for all cookies available in the arguments
+					for _, cookie := range storedUniFlowParams.CookieSlice {
+						if cookie == newCookie {
+							logger.Debugw(ctx, "UniVlanConfigFsm flow setting - new cookie still exists for some rule", log.Fields{
+								"device-id": oFsm.deviceID, "cookie": cookie, "exists with SetVlan": storedUniFlowParams.VlanRuleParams.SetVid})
+							oFsm.delayNewRuleCookie = newCookie
+							break flow_loop //found new cookie for some existing rule
+							//theoretically there can be other new cookies also matching existing ones, but in current state of interworking
+							//  that's just academic and note considered in this workaround
+						}
+					} // for all stored cookies of the actual inspected rule
+				} //for all new cookies
+			} //for all rules
+			if oFsm.delayNewRuleCookie != 0 {
+				oFsm.mutexFlowParams.RUnlock()
+				logger.Debugw(ctx, "Need to suspend adding this rule as long as the cookie is still connected to some other rule", log.Fields{
+					"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
+				select {
+				case <-oFsm.chCookieDeleted:
+					logger.Debugw(ctx, "resume adding this rule after having deleted cookie in some other rule", log.Fields{
+						"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
+				case <-time.After(time.Duration(cWaitForCookieDeletion) * time.Second):
+					logger.Errorw(ctx, "timeout waiting for deletion of cookie in some other rule, just try to continue", log.Fields{
+						"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
+				}
+				oFsm.mutexFlowParams.Lock()
+				oFsm.delayNewRuleCookie = 0
+				oFsm.mutexFlowParams.Unlock()
+			} else {
+				oFsm.mutexFlowParams.RUnlock()
+			}
+		}
+		// VOL-XXX insertion flow sequence workaround ###########  end ##########
+
+		oFsm.mutexFlowParams.Lock()
+		defer oFsm.mutexFlowParams.Unlock()
 		if oFsm.numUniFlows < cMaxAllowedFlows {
 			loFlowParams := uniVlanFlowParams{VlanRuleParams: loRuleParams}
 			loFlowParams.CookieSlice = make([]uint64, 0)
@@ -490,6 +539,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 // if found removes cookie from flow cookie list and if this is empty
 // initiates removal of the flow related configuration from the ONU (via OMCI)
 func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(ctx context.Context, aCookie uint64) error {
+	var deletedCookie uint64
 	flowCookieMatch := false
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
@@ -500,7 +550,7 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(ctx context.Context, aCookie u
 				logger.Debugw(ctx, "UniVlanConfigFsm flow removal - cookie found", log.Fields{
 					"device-id": oFsm.deviceID, "cookie": cookie})
 				flowCookieMatch = true
-
+				deletedCookie = aCookie
 				//remove the cookie from the cookie slice and verify it is getting empty
 				if len(storedUniFlowParams.CookieSlice) == 1 {
 					logger.Debugw(ctx, "UniVlanConfigFsm flow removal - full flow removal", log.Fields{
@@ -584,7 +634,6 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(ctx context.Context, aCookie u
 					logger.Debugw(ctx, "UniVlanConfigFsm flow removal - rule persists with still valid cookies", log.Fields{
 						"device-id": oFsm.deviceID, "cookies": oFsm.uniVlanFlowParamsSlice[flow].CookieSlice})
 				}
-
 				//permanently store the modified flow config for reconcile case
 				if oFsm.pDeviceHandler != nil {
 					if err := oFsm.pDeviceHandler.storePersUniFlowConfig(ctx, oFsm.pOnuUniPort.uniID, &oFsm.uniVlanFlowParamsSlice); err != nil {
@@ -592,7 +641,15 @@ func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(ctx context.Context, aCookie u
 						return err
 					}
 				}
-
+				if deletedCookie == oFsm.delayNewRuleCookie {
+					// flush the channel CookieDeleted to ensure it is not lingering from some previous (aborted) activity
+					select {
+					case <-oFsm.chCookieDeleted:
+						logger.Debug(ctx, "flushed CookieDeleted")
+					default:
+					}
+					oFsm.chCookieDeleted <- true // let the waiting AddFlow thread continue
+				}
 				break //found the cookie - no further search for this requested cookie
 			}
 		}
@@ -623,6 +680,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 	// this FSM is not intended for re-start, needs always new creation for a new run
 	// (self-destroying - compare enterDisabled())
 	oFsm.omciMIdsResponseReceived = make(chan bool)
+	oFsm.chCookieDeleted = make(chan bool)
 	// start go routine for processing of LockState messages
 	go oFsm.processOmciVlanMessages(ctx)
 	//let the state machine run forward from here directly

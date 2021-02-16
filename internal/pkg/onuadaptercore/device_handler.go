@@ -104,19 +104,19 @@ const (
 	cL2PmFsm
 )
 
-type idleCheckStruct struct {
-	idleCheckFunc func(*deviceHandler, context.Context, string) bool
-	idleState     string
+type omciIdleCheckStruct struct {
+	omciIdleCheckFunc func(*deviceHandler, context.Context, usedOmciConfigFsms, string) bool
+	omciIdleState     string
 }
 
-var fsmIdleStateFuncMap = map[usedOmciConfigFsms]idleCheckStruct{
-	cUploadFsm:        {(*deviceHandler).mibUploadFsmInIdleState, cMibUlFsmIdleState},
-	cDownloadFsm:      {(*deviceHandler).mibDownloadFsmInIdleState, cMibDlFsmIdleState},
-	cUniLockFsm:       {(*deviceHandler).devUniLockFsmInIdleState, cUniFsmIdleState},
-	cUniUnLockFsm:     {(*deviceHandler).devUniUnlockFsmInIdleState, cUniFsmIdleState},
-	cAniConfigFsm:     {(*deviceHandler).devAniConfigFsmInIdleState, cAniFsmIdleState},
-	cUniVlanConfigFsm: {(*deviceHandler).devUniVlanConfigFsmInIdleState, cVlanFsmIdleState},
-	cL2PmFsm:          {(*deviceHandler).l2PmFsmInIdleState, cL2PmFsmIdleState},
+var fsmOmciIdleStateFuncMap = map[usedOmciConfigFsms]omciIdleCheckStruct{
+	cUploadFsm:        {(*deviceHandler).isFsmInOmciIdleStateDefault, cMibUlFsmIdleState},
+	cDownloadFsm:      {(*deviceHandler).isFsmInOmciIdleStateDefault, cMibDlFsmIdleState},
+	cUniLockFsm:       {(*deviceHandler).isFsmInOmciIdleStateDefault, cUniFsmIdleState},
+	cUniUnLockFsm:     {(*deviceHandler).isFsmInOmciIdleStateDefault, cUniFsmIdleState},
+	cAniConfigFsm:     {(*deviceHandler).isAniConfigFsmInOmciIdleState, cAniFsmIdleState},
+	cUniVlanConfigFsm: {(*deviceHandler).isUniVlanConfigFsmInOmciIdleState, cVlanFsmIdleState},
+	cL2PmFsm:          {(*deviceHandler).isFsmInOmciIdleStateDefault, cL2PmFsmIdleState},
 }
 
 const (
@@ -196,7 +196,7 @@ type deviceHandler struct {
 	stopCollector              chan bool
 	stopHeartbeatCheck         chan bool
 	uniEntityMap               map[uint32]*onuUniPort
-	lockVlanConfig             sync.Mutex
+	lockVlanConfig             sync.RWMutex
 	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
 	reconciling                bool
 	ReadyForSpecificOmciConfig bool
@@ -223,7 +223,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
 	//TODO initialize the support classes.
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
-	dh.lockVlanConfig = sync.Mutex{}
+	dh.lockVlanConfig = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
 	dh.ReadyForSpecificOmciConfig = false
@@ -313,7 +313,6 @@ func (dh *deviceHandler) processInterAdapterOMCIReceiveMessage(ctx context.Conte
 	// with restricted output of 16(?) bytes would be ...omciMsg.Message[:16]
 	logger.Debugw(ctx, "inter-adapter-recv-omci", log.Fields{
 		"device-id": dh.deviceID, "RxOmciMessage": hex.EncodeToString(omciMsg.Message)})
-	//receive_message(omci_msg.message)
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry != nil {
 		if pDevEntry.PDevOmciCC != nil {
@@ -839,7 +838,6 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 	}
 	pDevEntry.persUniConfigMutex.RLock()
 	defer pDevEntry.persUniConfigMutex.RUnlock()
-
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
@@ -864,13 +862,16 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		for _, flowData := range uniData.PersFlowParams {
 			logger.Debugw(ctx, "add flow with cookie slice", log.Fields{"device-id": dh.deviceID, "cookies": flowData.CookieSlice})
 			//the slice can be passed 'by value' here, - which internally passes its reference copy
+			dh.lockVlanConfig.RLock()
 			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
 				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
 					flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
 					uint8(flowData.VlanRuleParams.SetPcp)); err != nil {
 					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
+				dh.lockVlanConfig.RUnlock()
 			} else {
+				dh.lockVlanConfig.RUnlock()
 				if err := dh.createVlanFilterFsm(ctx, uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
 					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
 					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterAddDone); err != nil {
@@ -959,8 +960,6 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 		"device-id": dh.deviceID, "image-name": (*apImageDsc).Name})
 	//return success to comfort the core processing during integration
 	return nil
-	// TODO!!: also verify error response behavior
-	//return fmt.Errorf("onuSwUpgrade not yet implemented in deviceHandler: %s", dh.deviceID)
 }
 
 //  deviceHandler methods that implement the adapters interface requests## end #########
@@ -1561,7 +1560,9 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		}
 		for _, uniPort := range dh.uniEntityMap {
 			// reset the possibly existing VlanConfigFsm
+			dh.lockVlanConfig.RLock()
 			if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniID]; exist {
+				dh.lockVlanConfig.RUnlock()
 				//VlanFilterFsm exists and was already started
 				pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 				if pVlanFilterStatemachine != nil {
@@ -1571,6 +1572,8 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 					//and reset the UniVlanConfig FSM
 					_ = pVlanFilterStatemachine.Event(vlanEvReset)
 				}
+			} else {
+				dh.lockVlanConfig.RUnlock()
 			}
 		}
 	}
@@ -1578,6 +1581,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// Stop collector routine
 		dh.stopCollector <- true
 	}
+
 	return nil
 }
 
@@ -2277,13 +2281,15 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	}
 
 	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
-	dh.lockVlanConfig.Lock()
-	defer dh.lockVlanConfig.Unlock()
+	dh.lockVlanConfig.RLock()
 	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
-		return dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
+		err := dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
 			loMatchVlan, loSetVlan, loSetPcp)
+		dh.lockVlanConfig.RUnlock()
+		return err
 	}
+	dh.lockVlanConfig.RUnlock()
 	return dh.createVlanFilterFsm(ctx, apUniPort, loTpID, loCookieSlice,
 		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone)
 }
@@ -2318,8 +2324,8 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	*/
 
 	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
-	dh.lockVlanConfig.Lock()
-	defer dh.lockVlanConfig.Unlock()
+	dh.lockVlanConfig.RLock()
+	defer dh.lockVlanConfig.RUnlock()
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(ctx, loCookie)
 	}
@@ -2348,7 +2354,9 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
 		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp)
 	if pVlanFilterFsm != nil {
+		dh.lockVlanConfig.Lock()
 		dh.UniVlanConfigFsmMap[apUniPort.uniID] = pVlanFilterFsm
+		dh.lockVlanConfig.Unlock()
 		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 		if pVlanFilterStatemachine != nil {
 			if pVlanFilterStatemachine.Is(vlanStDisabled) {
@@ -2403,7 +2411,10 @@ func (dh *deviceHandler) verifyUniVlanConfigRequest(ctx context.Context, apUniPo
 	//TODO!! verify and start pending flow configuration
 	//some pending config request my exist in case the UniVlanConfig FSM was already started - with internal data -
 	//but execution was set to 'on hold' as first the TechProfile config had to be applied
+
+	dh.lockVlanConfig.RLock()
 	if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
+		dh.lockVlanConfig.RUnlock()
 		//VlanFilterFsm exists and was already started (assumed to wait for TechProfile execution here)
 		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 		if pVlanFilterStatemachine != nil {
@@ -2443,7 +2454,9 @@ func (dh *deviceHandler) verifyUniVlanConfigRequest(ctx context.Context, apUniPo
 			logger.Debugw(ctx, "UniVlanConfigFsm StateMachine does not exist, no flow processing", log.Fields{
 				"device-id": dh.deviceID, "UniPort": apUniPort.portNo})
 		}
-	} // else: nothing to do
+	} else {
+		dh.lockVlanConfig.RUnlock()
+	}
 }
 
 //RemoveVlanFilterFsm deletes the stored pointer to the VlanConfigFsm
@@ -2452,7 +2465,9 @@ func (dh *deviceHandler) RemoveVlanFilterFsm(ctx context.Context, apUniPort *onu
 	logger.Debugw(ctx, "remove UniVlanConfigFsm StateMachine", log.Fields{
 		"device-id": dh.deviceID, "uniPort": apUniPort.portNo})
 	//save to do, even if entry dows not exist
+	dh.lockVlanConfig.Lock()
 	delete(dh.UniVlanConfigFsmMap, apUniPort.uniID)
+	dh.lockVlanConfig.Unlock()
 }
 
 //ProcessPendingTpDelete processes any pending TP delete (if available)
@@ -2760,76 +2775,93 @@ func (dh *deviceHandler) getUniPortStatus(ctx context.Context, uniInfo *extensio
 	return portStatus.getUniPortStatus(ctx, uniInfo.UniIndex)
 }
 
-func (dh *deviceHandler) isFsmInState(ctx context.Context, pFsm *fsm.FSM, wantedState string) bool {
-	var currentState string
-	if pFsm != nil {
-		currentState = pFsm.Current()
-		if currentState == wantedState {
-			return true
-		}
-	} else {
-		logger.Warnw(ctx, "FSM not defined!", log.Fields{"wantedState": wantedState, "device-id": dh.deviceID})
+func (dh *deviceHandler) isFsmInOmciIdleState(ctx context.Context, pFsm *fsm.FSM, wantedState string) bool {
+	if pFsm == nil {
+		return true //FSM not active - so there is no activity on omci
 	}
-	return false
+	return pFsm.Current() == wantedState
 }
 
-func (dh *deviceHandler) mibUploadFsmInIdleState(ctx context.Context, idleState string) bool {
-	return dh.isFsmInState(ctx, dh.pOnuOmciDevice.pMibUploadFsm.pFsm, idleState)
-}
-
-func (dh *deviceHandler) mibDownloadFsmInIdleState(ctx context.Context, idleState string) bool {
-	return dh.isFsmInState(ctx, dh.pOnuOmciDevice.pMibDownloadFsm.pFsm, idleState)
-}
-
-func (dh *deviceHandler) devUniLockFsmInIdleState(ctx context.Context, idleState string) bool {
-	return dh.isFsmInState(ctx, dh.pLockStateFsm.pAdaptFsm.pFsm, idleState)
-}
-
-func (dh *deviceHandler) devUniUnlockFsmInIdleState(ctx context.Context, idleState string) bool {
-	return dh.isFsmInState(ctx, dh.pUnlockStateFsm.pAdaptFsm.pFsm, idleState)
-}
-
-func (dh *deviceHandler) devAniConfigFsmInIdleState(ctx context.Context, idleState string) bool {
-	if dh.pOnuTP.pAniConfigFsm != nil {
-		for _, v := range dh.pOnuTP.pAniConfigFsm {
-			if !dh.isFsmInState(ctx, v.pAdaptFsm.pFsm, idleState) {
-				return false
+func (dh *deviceHandler) isFsmInOmciIdleStateDefault(ctx context.Context, omciFsm usedOmciConfigFsms, wantedState string) bool {
+	var pFsm *fsm.FSM
+	//note/TODO!!: might be that access to all these specific FSM; pointers need a semaphore protection as well, cmp lockUpgradeFsm
+	switch omciFsm {
+	case cUploadFsm:
+		{
+			pFsm = dh.pOnuOmciDevice.pMibUploadFsm.pFsm
+		}
+	case cDownloadFsm:
+		{
+			pFsm = dh.pOnuOmciDevice.pMibDownloadFsm.pFsm
+		}
+	case cUniLockFsm:
+		{
+			pFsm = dh.pLockStateFsm.pAdaptFsm.pFsm
+		}
+	case cUniUnLockFsm:
+		{
+			pFsm = dh.pUnlockStateFsm.pAdaptFsm.pFsm
+		}
+	case cL2PmFsm:
+		{
+			if dh.pOnuMetricsMgr != nil && dh.pOnuMetricsMgr.pAdaptFsm != nil {
+				pFsm = dh.pOnuMetricsMgr.pAdaptFsm.pFsm
+			} else {
+				return true //FSM not active - so there is no activity on omci
 			}
 		}
-		return true
-	}
-	logger.Warnw(ctx, "AniConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
-	return false
-}
-
-func (dh *deviceHandler) devUniVlanConfigFsmInIdleState(ctx context.Context, idleState string) bool {
-	if dh.UniVlanConfigFsmMap != nil {
-		for _, v := range dh.UniVlanConfigFsmMap {
-			if !dh.isFsmInState(ctx, v.pAdaptFsm.pFsm, idleState) {
-				return false
-			}
+	default:
+		{
+			logger.Errorw(ctx, "invalid stateMachine selected for idle check", log.Fields{
+				"device-id": dh.deviceID, "selectedFsm number": omciFsm})
+			return false //logical error in FSM check, do not not indicate 'idle' - we can't be sure
 		}
-		return true
 	}
-	logger.Warnw(ctx, "UniVlanConfig FSM not defined!", log.Fields{"device-id": dh.deviceID})
-	return false
+	return dh.isFsmInOmciIdleState(ctx, pFsm, wantedState)
 }
 
-func (dh *deviceHandler) l2PmFsmInIdleState(ctx context.Context, idleState string) bool {
-	if dh.pOnuMetricsMgr != nil && dh.pOnuMetricsMgr.pAdaptFsm != nil && dh.pOnuMetricsMgr.pAdaptFsm.pFsm != nil {
-		return dh.isFsmInState(ctx, dh.pOnuMetricsMgr.pAdaptFsm.pFsm, idleState)
-	}
-	logger.Warnw(ctx, "L2 PM FSM not defined!", log.Fields{"device-id": dh.deviceID})
-	return false
-}
-
-func (dh *deviceHandler) allButCallingFsmInIdleState(ctx context.Context, callingFsm usedOmciConfigFsms) bool {
-	for fsmName, fsmStruct := range fsmIdleStateFuncMap {
-		if fsmName != callingFsm && !fsmStruct.idleCheckFunc(dh, ctx, fsmStruct.idleState) {
+func (dh *deviceHandler) isAniConfigFsmInOmciIdleState(ctx context.Context, omciFsm usedOmciConfigFsms, idleState string) bool {
+	for _, v := range dh.pOnuTP.pAniConfigFsm {
+		if !dh.isFsmInOmciIdleState(ctx, v.pAdaptFsm.pFsm, idleState) {
 			return false
 		}
 	}
 	return true
+}
+
+func (dh *deviceHandler) isUniVlanConfigFsmInOmciIdleState(ctx context.Context, omciFsm usedOmciConfigFsms, idleState string) bool {
+	dh.lockVlanConfig.RLock()
+	defer dh.lockVlanConfig.RUnlock()
+	for _, v := range dh.UniVlanConfigFsmMap {
+		if !dh.isFsmInOmciIdleState(ctx, v.pAdaptFsm.pFsm, idleState) {
+			return false
+		}
+	}
+	return true //FSM not active - so there is no activity on omci
+}
+
+func (dh *deviceHandler) checkUserServiceExists(ctx context.Context) bool {
+	dh.lockVlanConfig.RLock()
+	defer dh.lockVlanConfig.RUnlock()
+	for _, v := range dh.UniVlanConfigFsmMap {
+		if v.pAdaptFsm.pFsm != nil {
+			if v.pAdaptFsm.pFsm.Is(cVlanFsmConfiguredState) {
+				return true //there is at least one VLAN FSM with some active configuration
+			}
+		}
+	}
+	return false //there is no VLAN FSM with some active configuration
+}
+
+func (dh *deviceHandler) checkMdsStartCondition(ctx context.Context, callingFsm usedOmciConfigFsms) bool {
+	for fsmName, fsmStruct := range fsmOmciIdleStateFuncMap {
+		if fsmName != callingFsm && !fsmStruct.omciIdleCheckFunc(dh, ctx, fsmName, fsmStruct.omciIdleState) {
+			return false
+		}
+	}
+	// a further check is done to identify, if at least some data traffic related configuration exists
+	// so that a user of this ONU could be 'online' (otherwise it makes no sense to check the MDS [with the intention to keep the user service up])
+	return dh.checkUserServiceExists(ctx)
 }
 
 func (dh *deviceHandler) prepareReconcilingWithActiveAdapter(ctx context.Context) {
