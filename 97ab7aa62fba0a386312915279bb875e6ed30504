@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "1a092e46_9f4cd9c9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 874,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-16T12:16:44Z",
+      "side": 1,
+      "message": "should this lock be moved to line 879 ? after the operation.",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "139b3fae_f414440f",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -19,6 +36,74 @@
         "endLine": 2856,
         "endChar": 47
       },
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "386b5e04_dd28c281",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-16T12:16:44Z",
+      "side": 1,
+      "message": "why 3 seconds ? is this just a guess ?",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c158c38_c985dd48",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-16T12:16:44Z",
+      "side": 1,
+      "message": "I\u0027m not getting this comment",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a6e11f1_bf940d26",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 411,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-16T12:16:44Z",
+      "side": 1,
+      "message": "yes please do use a function",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "90daf2a8_d616c765",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-16T12:16:44Z",
+      "side": 1,
+      "message": "please take into consideration that the cookie can be identical for the two EAPOL flows for the same subscriber, even if the first has default VLAN and the second is subscriber specific.",
       "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
