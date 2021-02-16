@@ -146,10 +146,14 @@ const (
 	OmciAniConfigDone
 	// OmciAniResourceRemoved - AniSide TechProfile related resource (Gem/TCont) removed
 	OmciAniResourceRemoved // needs to be the successor of OmciAniConfigDone!
-	// OmciVlanFilterAddDone - Omci Vlan config done according to flow-add
+	// OmciVlanFilterAddDone - Omci Vlan config done according to flow-add with request to write kvStore
 	OmciVlanFilterAddDone
-	// OmciVlanFilterRemDone - Omci Vlan config done according to flow-remove
-	OmciVlanFilterRemDone // needs to be the successor of OmciVlanFilterAddDone!
+	// OmciVlanFilterAddDoneNoKvStore - Omci Vlan config done according to flow-add without writing kvStore
+	OmciVlanFilterAddDoneNoKvStore // needs to be the successor of OmciVlanFilterAddDone!
+	// OmciVlanFilterRemDone - Omci Vlan config done according to flow-remove with request to write kvStore
+	OmciVlanFilterRemDone // needs to be the successor of OmciVlanFilterAddDoneNoKvStore!
+	// OmciVlanFilterRemDoneNoKvStore - Omci Vlan config done according to flow-remove without writing kvStore
+	OmciVlanFilterRemDoneNoKvStore // needs to be the successor of OmciVlanFilterRemDone!
 	// Add other events here as needed (alarms separate???)
 )
 
