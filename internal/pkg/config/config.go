@@ -54,6 +54,7 @@ const (
 	defaultCurrentReplica             = 1
 	defaultTotalReplicas              = 1
 	defaultMaxTimeoutInterAdapterComm = 30 * time.Second
+	defaultMaxTimeoutReconciling      = 10 * time.Second
 	defaultOnuVendorIds               = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG"
 
 	// For Tracing
@@ -92,6 +93,7 @@ type AdapterFlags struct {
 	CurrentReplica              int
 	TotalReplicas               int
 	MaxTimeoutInterAdapterComm  time.Duration
+	MaxTimeoutReconciling       time.Duration
 	TraceEnabled                bool
 	TraceAgentAddress           string
 	LogCorrelationEnabled       bool
@@ -127,6 +129,7 @@ func NewAdapterFlags() *AdapterFlags {
 		CurrentReplica:              defaultCurrentReplica,
 		TotalReplicas:               defaultTotalReplicas,
 		MaxTimeoutInterAdapterComm:  defaultMaxTimeoutInterAdapterComm,
+		MaxTimeoutReconciling:       defaultMaxTimeoutReconciling,
 		TraceEnabled:                defaultTraceEnabled,
 		TraceAgentAddress:           defaultTraceAgentAddress,
 		LogCorrelationEnabled:       defaultLogCorrelationEnabled,
@@ -209,6 +212,10 @@ func (so *AdapterFlags) ParseCommandArguments() {
 	help = fmt.Sprintf("Maximum Number of seconds for the default interadapter communication timeout")
 	flag.DurationVar(&(so.MaxTimeoutInterAdapterComm), "max_timeout_interadapter_comm",
 		defaultMaxTimeoutInterAdapterComm, help)
+
+	help = fmt.Sprintf("Maximum Number of seconds for the default ONU reconciling timeout")
+	flag.DurationVar(&(so.MaxTimeoutReconciling), "max_timeout_reconciling",
+		defaultMaxTimeoutReconciling, help)
 
 	help = fmt.Sprintf("Whether to send logs to tracing agent?")
 	flag.BoolVar(&(so.TraceEnabled), "trace_enabled", defaultTraceEnabled, help)
