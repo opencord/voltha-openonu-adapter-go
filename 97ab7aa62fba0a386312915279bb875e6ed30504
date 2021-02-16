@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "139b3fae_f414440f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2856,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-16T11:30:52Z",
+      "side": 1,
+      "message": "Function should be renamed to checkAuditStartCondition() because MDS check will be done in state ulStExaminingMds too under different conditions (temporary commented out ;-).",
+      "range": {
+        "startLine": 2856,
+        "startChar": 25,
+        "endLine": 2856,
+        "endChar": 47
+      },
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
