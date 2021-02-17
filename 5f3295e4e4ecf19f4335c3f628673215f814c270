@@ -16,6 +16,24 @@
       "revId": "5f3295e4e4ecf19f4335c3f628673215f814c270",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1794ec3b_880b4142",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-17T12:01:17Z",
+      "side": 1,
+      "message": "Sure, do you want to spend a new helm-charts/command-parameter for that?",
+      "parentUuid": "0fdb7a30_af7bd43b",
+      "revId": "5f3295e4e4ecf19f4335c3f628673215f814c270",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
