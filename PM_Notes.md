@@ -48,7 +48,7 @@ var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 
 ## Basic KPI Format (**KpiEvent2**)
 
-The KPI information is published on the kafka bus under the _voltha.kpi_ topic. For
+The KPI information is published on the kafka bus under the _voltha.events_ topic. For
 VOLTHA PM information, the kafka key is empty and the value is a JSON message composed
 of the following key-value pairs.
 
@@ -87,7 +87,7 @@ this reason, values are always represented as strings to allow the ProtoBuf mess
 as simple as possible.
 
 Here is an JSON _example_ of a current KPI published on the kafka bus under the
-_voltha.kpi_ topic.
+_voltha.events_ topic.
 
 ```json
    "kpiEvent2":{
@@ -140,7 +140,7 @@ voltctl device pmconfig groupmetric list <onu-device-id> <group-name>
 ### Set default sampling rate
 
 ```
- voltctl device pmconfig frequency set <sampling-rate> <onu-device-id>
+ voltctl device pmconfig frequency set <onu-device-id> <sampling-rate>
 ```
 Note1: Sampling rate unit is in seconds
 
@@ -163,9 +163,11 @@ voltctl device pmconfig group enable <onu-device-id> <group-name>
 ### Set group frequency
 
 ```
-voltctl device pmconfig group set <frequency> <onu-device-id> <group-name>
+voltctl device pmconfig group set <onu-device-id> <group-name> <frequency>
 ```
 Note1 : The `frequency` has to be greater than 0 and a multiple of _FrequencyGranularity_ which is currently set to 5.
+
+Note2 : The `frequency` of L2 PM counters is fixed at 15m and cannot be changed.
 
 ### Listen for KPI events on kafka
 
@@ -177,8 +179,6 @@ Note: For more `event listen` options, check `voltctl event listen --help` comma
 ## Remaining work
 The following Metrics could be supported in the future.
 
-- Ethernet_Bridge_Port_History
-- Ethernet_UNI_History
 - FEC_History
 - GEM_Port_History
 - xgPON_TC_History
