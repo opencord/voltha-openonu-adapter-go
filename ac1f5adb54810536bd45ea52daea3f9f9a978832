@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e4aa1673_fac38e43",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 1462,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-17T13:23:53Z",
+      "side": 1,
+      "message": "I would propose to implement a similar protection as done for the PM-collector (see above).",
+      "range": {
+        "startLine": 1462,
+        "startChar": 7,
+        "endLine": 1462,
+        "endChar": 24
+      },
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0663d879_550df699",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 1588,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-17T13:23:53Z",
+      "side": 1,
+      "message": "I would propose to implement a similar protection as done for the PM-collector (see above).",
+      "range": {
+        "startLine": 1588,
+        "startChar": 24,
+        "endLine": 1588,
+        "endChar": 28
+      },
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d6944356_1788351c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 2856,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-17T13:23:53Z",
+      "side": 1,
+      "message": "As alarm manager was stopped in dh::resetFsms() it has to be restarted here (refer to PM-collector).",
+      "range": {
+        "startLine": 2856,
+        "startChar": 0,
+        "endLine": 2856,
+        "endChar": 1
+      },
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
