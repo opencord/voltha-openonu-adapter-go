@@ -74,7 +74,7 @@ func (oo *OnuDeviceEntry) enterStartingState(ctx context.Context, e *fsm.Event) 
 func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibTemplate processing in State": e.FSM.Current(), "device-id": oo.deviceID})
 
-	if !oo.isNewOnu() {
+	if !oo.isNewOnu() && !oo.baseDeviceHandler.isReconciling() {
 		oo.baseDeviceHandler.prepareReconcilingWithActiveAdapter(ctx)
 		oo.devState = DeviceStatusInit
 	}

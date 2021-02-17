@@ -316,7 +316,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	onuDeviceEntry.mibDbClass = onuDeviceEntry.supportedFsms["mib-synchronizer"].databaseClass
 	logger.Debug(ctx, "access2mibDbClass")
 	go onuDeviceEntry.mibDbClass(ctx)
-	if !dh.reconciling {
+	if !dh.isReconciling() {
 		onuDeviceEntry.mibAuditInterval = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditInterval
 		onuDeviceEntry.sOnuPersistentData.PersMibAuditInterval = onuDeviceEntry.mibAuditInterval
 	} else {
