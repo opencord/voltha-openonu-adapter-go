@@ -2,6 +2,40 @@
   "comments": [
     {
       "key": {
+        "uuid": "6ffb5b19_a8ed7728",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2021-02-17T15:00:56Z",
+      "side": 1,
+      "message": "Before processing an alarm message, is there a way to see if an instance of that managed entity exists for the ONU (class ID + instance ID) before further processing?\n\nIf none exists, then a warning log message may be appropriate since the ME should exist.  Note that an alarm can be raised on an existing ME in the ONU while the initial MIB upload is in process.  Very small chance but it could occur.  If it does, it could be a trigger to signal an  initial alarm synchronization once that feature is supported.",
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9f2c2b58_275c9059",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2021-02-17T15:00:56Z",
+      "side": 1,
+      "message": "I was not able to find any initial support for detecting deletion of a Managed Entity from the active MIB that may have an alarm raised (and entries in the alarm table). Deletion could occur due to Delete, MIB Reset, or Reboot request.",
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e4aa1673_fac38e43",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 13
