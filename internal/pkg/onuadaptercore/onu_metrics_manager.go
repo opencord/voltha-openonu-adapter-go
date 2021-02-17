@@ -146,7 +146,10 @@ const (
 	SyncTimeRetryInterval  = 15      // Unit seconds
 	L2PmCreateAttempts     = 3
 	L2PmCollectAttempts    = 3
-	MaxL2PMGetPayLoadSize  = 29
+	// Per Table 11.2.9-1 – OMCI baseline message limitations in G.988 spec, the max GET Response
+	// payload size is 25. We define 24 (one less) to allow for dynamic insertion of IntervalEndTime
+	// attribute (1 byte) in L2 PM GET Requests.
+	MaxL2PMGetPayLoadSize = 24
 )
 
 // EthernetUniHistoryName specific constants
