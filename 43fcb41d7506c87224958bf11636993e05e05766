@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "01d30999_d6ec4a22",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1496,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-17T23:01:37Z",
+      "side": 1,
+      "message": "This works and I have tested on HW (with different makes of ONU) as well as BBSim.\nIt does not matter what attributes are collected during each iteration because the PM is published only when all attributes are collected for the ME.\nAlso, if developer is interested, the logs contain info on which attribute is collected during each iteration.",
+      "parentUuid": "43e3ad37_48af00e3",
+      "revId": "43fcb41d7506c87224958bf11636993e05e05766",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "73563a4f_447632a1",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2021-02-17T10:03:01Z",
       "side": 1,
       "message": "Is probably always true? Here is a slight inaccuracy: You don\u0027t request the interval end time in the second get. If both requests should be adverse in time for the ONU data retrieval both responses could give you data for different intervals which would make the interpretaion of the complete set of counters kind of impossible. I would propose to always request the interval time and to check, if the interval ticks are consistent.",
+      "revId": "43fcb41d7506c87224958bf11636993e05e05766",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7a9ef445_1da80b8e",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1512,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-17T23:01:37Z",
+      "side": 1,
+      "message": "If you check populateEthernetBridgeHistoryMetrics it requests \"intervalEndTime\" in subsequent requests.",
+      "parentUuid": "73563a4f_447632a1",
       "revId": "43fcb41d7506c87224958bf11636993e05e05766",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
