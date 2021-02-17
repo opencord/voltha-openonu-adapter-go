@@ -2,6 +2,40 @@
   "comments": [
     {
       "key": {
+        "uuid": "8355cf9d_b8ea858e",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T16:00:12Z",
+      "side": 1,
+      "message": "This looks already better for me. My original intention anyway was to have the onuEventList as member of the onuAlarmManager so that it does not need to be constructed with every get*() access from new. But maybe GoLang is a bit smarter and keeps somewhere a copy of that local list, so that construction is not always be done again - don\u0027t know, but I would doubt that.",
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5c67cda5_e552a6ef",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T16:00:12Z",
+      "side": 1,
+      "message": "Comment on reply on patch version 12: So you expect that meAlarmMap does not include all possible 224 alarm bits? Anyway we are interested only in some few - for which the events are defined - it would bve possible to just check with some \u0027mask\u0027 on them. \nOn the other hand: is there soe debug indication for some message alarm that can\u0027t be found in meAlarmMap?",
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6ffb5b19_a8ed7728",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 13
@@ -30,6 +64,23 @@
       "writtenOn": "2021-02-17T15:00:56Z",
       "side": 1,
       "message": "I was not able to find any initial support for detecting deletion of a Managed Entity from the active MIB that may have an alarm raised (and entries in the alarm table). Deletion could occur due to Delete, MIB Reset, or Reboot request.",
+      "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "98d8ea7f_267b70b2",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T16:00:12Z",
+      "side": 1,
+      "message": "comment on reply on patch version 9: It still looks strange to me, even htough the py code may operate this way. Would be interseting to see the behavior of the system for some circuitpack related alarm...",
       "revId": "ac1f5adb54810536bd45ea52daea3f9f9a978832",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
