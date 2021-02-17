@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "43e3ad37_48af00e3",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1496,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T10:03:01Z",
+      "side": 1,
+      "message": "This block (perhaps similar on other possitions) seems quite complicated to me. It might be very sophisticated, but I don\u0027t know if it really needs to be that variable. Well - if it works, then ok.\nThe existing attribute definition with its size is not going to change that easily in the standard. So you could take the size of the requested attributes as kind of given. Hence you could use two subsequent get requests with a fixed definition of attributes - which would make it clear, what is requested at what time.",
+      "revId": "43fcb41d7506c87224958bf11636993e05e05766",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "73563a4f_447632a1",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1512,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T10:03:01Z",
+      "side": 1,
+      "message": "Is probably always true? Here is a slight inaccuracy: You don\u0027t request the interval end time in the second get. If both requests should be adverse in time for the ONU data retrieval both responses could give you data for different intervals which would make the interpretaion of the complete set of counters kind of impossible. I would propose to always request the interval time and to check, if the interval ticks are consistent.",
+      "revId": "43fcb41d7506c87224958bf11636993e05e05766",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
