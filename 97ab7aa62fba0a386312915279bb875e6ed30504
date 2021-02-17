@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "056758d7_7f9fb80e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 874,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T08:34:01Z",
+      "side": 1,
+      "message": "Not neeeded. lockVlanConfig protects access to uniVlanConfigFsmMap.\nCode here under operates on flowData from PersistentData which is protected by upper mutex persUniConfigMutex in line 839/840.",
+      "parentUuid": "1a092e46_9f4cd9c9",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "139b3fae_f414440f",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -42,6 +60,30 @@
     },
     {
       "key": {
+        "uuid": "3680c417_aad35f7c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2856,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T08:34:01Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "139b3fae_f414440f",
+      "range": {
+        "startLine": 2856,
+        "startChar": 25,
+        "endLine": 2856,
+        "endChar": 47
+      },
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "386b5e04_dd28c281",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -53,6 +95,24 @@
       "writtenOn": "2021-02-16T12:16:44Z",
       "side": 1,
       "message": "why 3 seconds ? is this just a guess ?",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "276ec5fc_512a20d4",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T08:34:01Z",
+      "side": 1,
+      "message": "Just some security timeout. Maybe already 1s is sufficient (workaround shall resolve issue with quasi-parallel flow configuration). Secure time depends on controller performance and scale activity. Think with 3s we should be on the safe side.",
+      "parentUuid": "386b5e04_dd28c281",
       "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -76,6 +136,24 @@
     },
     {
       "key": {
+        "uuid": "e945e0e4_1b728f15",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T08:34:01Z",
+      "side": 1,
+      "message": "moified in the next patch version",
+      "parentUuid": "7c158c38_c985dd48",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4a6e11f1_bf940d26",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -93,6 +171,24 @@
     },
     {
       "key": {
+        "uuid": "fa3a30eb_d5773275",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 411,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T08:34:01Z",
+      "side": 1,
+      "message": "Anyway structure modified (a bit different) in the next patch version.",
+      "parentUuid": "4a6e11f1_bf940d26",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "90daf2a8_d616c765",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -104,6 +200,24 @@
       "writtenOn": "2021-02-16T12:16:44Z",
       "side": 1,
       "message": "please take into consideration that the cookie can be identical for the two EAPOL flows for the same subscriber, even if the first has default VLAN and the second is subscriber specific.",
+      "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "45fa2041_ae771740",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-17T08:34:01Z",
+      "side": 1,
+      "message": "Don\u0027t understand the comment. Maybe some misinterpretation as it is not so easy to see here, that the FSM is working per uni instance?",
+      "parentUuid": "90daf2a8_d616c765",
       "revId": "97ab7aa62fba0a386312915279bb875e6ed30504",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
