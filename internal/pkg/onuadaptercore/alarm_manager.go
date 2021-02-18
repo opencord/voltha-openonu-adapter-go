@@ -54,6 +54,7 @@ type onuAlarmManager struct {
 	onuAlarmManagerLock        sync.RWMutex
 	processMessage             bool
 	activeAlarms               alarms
+	onuEventsList              map[onuDevice]onuDeviceEvent
 }
 
 type onuDevice struct {
@@ -76,12 +77,7 @@ func newAlarmManager(ctx context.Context, dh *deviceHandler) *onuAlarmManager {
 	alarmManager.stopProcessingOmciMessages = make(chan bool)
 	alarmManager.processMessage = false
 	alarmManager.activeAlarms = make(map[alarmInfo]struct{})
-	return &alarmManager
-}
-
-// getDeviceEventData returns the event data for a device
-func (am *onuAlarmManager) getDeviceEventData(ctx context.Context, classID me.ClassID, alarmNo uint8) (onuDeviceEvent, error) {
-	onuEventsList := map[onuDevice]onuDeviceEvent{
+	alarmManager.onuEventsList = map[onuDevice]onuDeviceEvent{
 		{classID: circuitPackClassID, alarmno: 0}: {EventName: "ONU_EQUIPMENT",
 			EventCategory: voltha.EventCategory_EQUIPMENT, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu equipment"},
 		{classID: circuitPackClassID, alarmno: 2}: {EventName: "ONU_SELF_TEST_FAIL",
@@ -119,20 +115,28 @@ func (am *onuAlarmManager) getDeviceEventData(ctx context.Context, classID me.Cl
 		{classID: aniGClassID, alarmno: 6}: {EventName: "ONU_LASER_BIAS_CURRENT",
 			EventCategory: voltha.EventCategory_EQUIPMENT, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu laser bias current"},
 	}
-	if onuEventDetails, ok := onuEventsList[onuDevice{classID: classID, alarmno: alarmNo}]; ok {
+	return &alarmManager
+}
+
+// getDeviceEventData returns the event data for a device
+func (am *onuAlarmManager) getDeviceEventData(ctx context.Context, classID me.ClassID, alarmNo uint8) (onuDeviceEvent, error) {
+	if onuEventDetails, ok := am.onuEventsList[onuDevice{classID: classID, alarmno: alarmNo}]; ok {
 		return onuEventDetails, nil
 	}
 	return onuDeviceEvent{}, errors.New("onu Event Detail not found")
-
 }
 
 func (am *onuAlarmManager) startOMCIAlarmMessageProcessing(ctx context.Context) {
 	am.onuAlarmManagerLock.Lock()
 	am.processMessage = true
+	if am.activeAlarms == nil {
+		am.activeAlarms = make(map[alarmInfo]struct{})
+	}
 	am.onuAlarmManagerLock.Unlock()
 	if stop := <-am.stopProcessingOmciMessages; stop {
 		am.onuAlarmManagerLock.Lock()
 		am.processMessage = false
+		am.activeAlarms = nil
 		am.onuAlarmManagerLock.Unlock()
 	}
 }
@@ -176,6 +180,10 @@ func (am *onuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 	alarmBitmap := msg.AlarmBitmap
 	logger.Debugw(ctx, "processing-alarm-data", log.Fields{"class-id": classID, "instance-id": meInstance,
 		"alarmBitMap": alarmBitmap, "sequence-no": sequenceNo})
+	if _, present := am.pDeviceHandler.pOnuOmciDevice.pOnuDB.meDb[classID][meInstance]; !present {
+		logger.Errorw(ctx, "me-class-instance-not-present", log.Fields{"class-id": classID, "instance-id": meInstance})
+		return fmt.Errorf("me-class-%d-instance-%d-not-present", classID, meInstance)
+	}
 	/*
 		if sequenceNo > 0 {
 			// TODO Need Auditing if sequence no does not matches, after incrementing the last sequence no by 1

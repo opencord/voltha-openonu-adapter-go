@@ -198,6 +198,8 @@ type deviceHandler struct {
 	collectorIsRunning         bool
 	mutexCollectorFlag         sync.RWMutex
 	stopCollector              chan bool
+	alarmManagerIsRunning      bool
+	mutextAlarmManagerFlag     sync.RWMutex
 	stopAlarmManager           chan bool
 	stopHeartbeatCheck         chan bool
 	uniEntityMap               map[uint32]*onuUniPort
@@ -226,6 +228,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.deviceEntrySet = make(chan bool, 1)
 	dh.collectorIsRunning = false
 	dh.stopCollector = make(chan bool, 2)
+	dh.alarmManagerIsRunning = false
 	dh.stopAlarmManager = make(chan bool, 2)
 	dh.stopHeartbeatCheck = make(chan bool, 2)
 	//dh.metrics = pmmetrics.NewPmMetrics(cloned.Id, pmmetrics.Frequency(150), pmmetrics.FrequencyOverride(false), pmmetrics.Grouped(false), pmmetrics.Metrics(pmNames))
@@ -1465,7 +1468,9 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		// Start PM collector routine
 		go dh.startCollector(ctx)
 	}
-	go dh.startAlarmManager(ctx)
+	if !dh.getAlarmManagerIsRunning() {
+		go dh.startAlarmManager(ctx)
+	}
 
 	return nil
 }
@@ -1591,7 +1596,10 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// Stop collector routine
 		dh.stopCollector <- true
 	}
-	dh.stopAlarmManager <- true
+	if dh.getAlarmManagerIsRunning() {
+		dh.stopAlarmManager <- true
+	}
+
 	return nil
 }
 
@@ -2857,6 +2865,9 @@ func (dh *deviceHandler) prepareReconcilingWithActiveAdapter(ctx context.Context
 		// Start PM collector routine
 		go dh.startCollector(ctx)
 	}
+	if !dh.getAlarmManagerIsRunning() {
+		go dh.startAlarmManager(ctx)
+	}
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
 	dh.startReconciling(ctx)
 }
@@ -2874,14 +2885,30 @@ func (dh *deviceHandler) getCollectorIsRunning() bool {
 	return flagValue
 }
 
+func (dh *deviceHandler) setAlarmManagerIsRunning(flagValue bool) {
+	dh.mutextAlarmManagerFlag.Lock()
+	dh.alarmManagerIsRunning = flagValue
+	dh.mutextAlarmManagerFlag.Unlock()
+}
+
+func (dh *deviceHandler) getAlarmManagerIsRunning() bool {
+	dh.mutextAlarmManagerFlag.RLock()
+	flagValue := dh.alarmManagerIsRunning
+	dh.mutextAlarmManagerFlag.RUnlock()
+	return flagValue
+}
+
 func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 	logger.Debugf(ctx, "startingAlarmManager")
 
 	// Start routine to process OMCI GET Responses
 	go dh.pAlarmMgr.startOMCIAlarmMessageProcessing(ctx)
+	dh.setAlarmManagerIsRunning(true)
 	if stop := <-dh.stopAlarmManager; stop {
 		logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
 		dh.pAlarmMgr.stopProcessingOmciMessages <- true // Stop the OMCI routines if any
+		dh.setAlarmManagerIsRunning(false)
+
 	}
 }
 func (dh *deviceHandler) startReconciling(ctx context.Context) {
