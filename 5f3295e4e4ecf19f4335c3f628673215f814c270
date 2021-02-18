@@ -34,6 +34,24 @@
       "revId": "5f3295e4e4ecf19f4335c3f628673215f814c270",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a0451fd_f4378885",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-18T12:07:21Z",
+      "side": 1,
+      "message": "open a jira for this, can be done in a later patch.",
+      "parentUuid": "1794ec3b_880b4142",
+      "revId": "5f3295e4e4ecf19f4335c3f628673215f814c270",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
