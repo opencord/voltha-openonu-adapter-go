@@ -104,7 +104,7 @@ type onuUniTechProf struct {
 	mapPonAniConfig          map[uniTP]*tcontGemList           //per UNI: use pointer values to ease assignments to the map
 	pAniConfigFsm            map[uniTP]*uniPonAniConfigFsm
 	procResult               map[uniTP]error //error indication of processing
-	mutexTPState             sync.Mutex
+	mutexTPState             sync.RWMutex
 	tpProfileExists          map[uniTP]bool
 	mapRemoveGemEntry        map[uniTP]*gemPortParamStruct //per UNI: pointer to GemEntry to be removed
 }
@@ -875,4 +875,18 @@ func (onuTP *onuUniTechProf) getMulticastGemPorts(ctx context.Context, aUniID ui
 		}
 	} //else: the state is just ignored (does not exist)
 	return gemPortIds
+}
+
+func (onuTP *onuUniTechProf) GetAllBidirectionalGemPortIDsForOnu() []uint16 {
+	var gemPortInstIDs []uint16
+	onuTP.mutexTPState.RLock()
+	defer onuTP.mutexTPState.RUnlock()
+	for _, tcontGemList := range onuTP.mapPonAniConfig {
+		for gemPortID, gemPortData := range tcontGemList.mapGemPortParams {
+			if gemPortData != nil && !gemPortData.isMulticast { // only if not multicast gem port
+				gemPortInstIDs = append(gemPortInstIDs, gemPortID)
+			}
+		}
+	}
+	return gemPortInstIDs
 }

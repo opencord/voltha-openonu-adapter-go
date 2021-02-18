@@ -682,6 +682,10 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	meInstance := oFsm.pOmciCC.sendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
 	oFsm.pLastTxMeInstance = meInstance
+	// Mark the gem port to be removed for Performance History monitoring
+	if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
+		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(loGemPortID)
+	}
 }
 
 func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.Event) {
@@ -1010,6 +1014,10 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 				log.Fields{"device-id": oFsm.deviceID, "GemIndex": gemIndex})
 			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
 			return
+		}
+		// Mark the gem port to be removed for Performance History monitoring
+		if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
+			oFsm.pDeviceHandler.pOnuMetricsMgr.AddGemPortForPerfMonitoring(gemPortAttribs.gemPortID)
 		}
 	} //for all GemPorts of this T-Cont
 
