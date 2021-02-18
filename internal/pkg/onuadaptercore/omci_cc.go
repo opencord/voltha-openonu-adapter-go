@@ -2347,6 +2347,59 @@ func (oo *omciCC) sendCreateOrDeleteEthernetUniHistoryME(ctx context.Context, ti
 		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
 	return nil
 }
+
+func (oo *omciCC) sendCreateOrDeleteFecHistoryME(ctx context.Context, timeout int, highPrio bool,
+	create bool, rxChan chan Message, entityID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send ethernet-fec-history-me-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(entityID), 16), "create": create})
+	meParam := me.ParamData{EntityID: entityID}
+	var meInstance *me.ManagedEntity
+	var omciErr me.OmciErrors
+	meInstance, omciErr = me.NewFecPerformanceMonitoringHistoryData(meParam)
+
+	if omciErr.GetError() == nil {
+		var omciLayer *omci.OMCI
+		var msgLayer gopacket.SerializableLayer
+		var err error
+		if create {
+			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+				omci.AddDefaults(true))
+		} else {
+			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
+				omci.AddDefaults(true))
+		}
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode fec history data ME",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize fec history data ME",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send fec history data ME",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+			return nil
+		}
+		logger.Debugw(ctx, "send fec history data ME done",
+			log.Fields{"device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate fec history data ME Instance",
+		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+	return nil
+}
+
 func isResponseWithMibDataSync(msgType omci.MessageType) bool {
 	for _, v := range responsesWithMibDataSync {
 		if v == msgType {

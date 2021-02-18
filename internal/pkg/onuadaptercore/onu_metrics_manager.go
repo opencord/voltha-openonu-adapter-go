@@ -140,6 +140,33 @@ var EthernetUniHistory = map[string]voltha.PmConfig_PmType{
 	"internal_mac_rx_error_counter":     voltha.PmConfig_COUNTER,
 }
 
+// FecHistory is supported FEC Performance Monitoring History Data related metrics
+var FecHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+
+	"corrected_bytes":          voltha.PmConfig_COUNTER,
+	"corrected_code_words":     voltha.PmConfig_COUNTER,
+	"uncorrectable_code_words": voltha.PmConfig_COUNTER,
+	"total_code_words":         voltha.PmConfig_COUNTER,
+	"fec_seconds":              voltha.PmConfig_COUNTER,
+}
+
+// GemPortHistory is supported GEM Port Network Ctp Performance Monitoring History Data
+// related metrics
+var GemPortHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+
+	"transmitted_gem_frames":    voltha.PmConfig_COUNTER,
+	"received_gem_frames":       voltha.PmConfig_COUNTER,
+	"received_payload_bytes":    voltha.PmConfig_COUNTER,
+	"transmitted_payload_bytes": voltha.PmConfig_COUNTER,
+	"encryption_key_errors":     voltha.PmConfig_COUNTER,
+}
+
 // Constants specific for L2 PM collection
 const (
 	L2PmCollectionInterval = 15 * 60 // Unit in seconds. Do not change this as this fixed by OMCI specification for L2 PM counters
@@ -165,6 +192,23 @@ const (
 	EthernetUniHistoryEnabled   = true // This setting can be changed from voltha NBI PmConfig configuration
 	EthernetUniHistoryFrequency = L2PmCollectionInterval
 )
+
+// FecHistory specific constants
+const (
+	FecHistoryName      = "FEC_History"
+	FecHistoryEnabled   = true // This setting can be changed from voltha NBI PmConfig configuration
+	FecHistoryFrequency = L2PmCollectionInterval
+)
+
+// GemPortHistory specific constants
+const (
+	GemPortHistoryName      = "GEM_Port_History"
+	GemPortHistoryEnabled   = true // This setting can be changed from voltha NBI PmConfig configuration
+	GemPortHistoryFrequency = L2PmCollectionInterval
+)
+
+// Defines the type for generic metric population function
+type groupMetricPopulateFunc func(context.Context, me.ClassID, uint16, me.AttributeValueMap, me.AttributeValueMap, map[string]float32, *int) error
 
 // *** Classical L2 PM Counters end   ***
 
@@ -217,6 +261,7 @@ type onuMetricsManager struct {
 // Metric collection is not a critical operation that needs support for resiliency. On adapter restart, some context
 // could be lost (except for Device.PmConfigs which is backed up the rw-core on KV store). An example of information
 // that is lost on adapter restart is nextCollectionInterval time.
+// nolint: gocyclo
 func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsManager {
 
 	var metricsManager onuMetricsManager
@@ -302,6 +347,32 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		}
 		dh.pmConfigs.Groups = append(dh.pmConfigs.Groups, &ethUniHistoryGroupMetric)
 
+		// Populate FEC history group metrics
+		var fecHistorySlice []*voltha.PmConfig
+		for k, v := range FecHistory {
+			fecHistorySlice = append(fecHistorySlice, &voltha.PmConfig{Name: k, Type: v})
+		}
+		fecHistoryGroupMetric := voltha.PmGroupConfig{
+			GroupName: FecHistoryName,
+			Enabled:   FecHistoryEnabled && dh.pOpenOnuAc.metricsEnabled,
+			GroupFreq: FecHistoryFrequency,
+			Metrics:   fecHistorySlice,
+		}
+		dh.pmConfigs.Groups = append(dh.pmConfigs.Groups, &fecHistoryGroupMetric)
+
+		// Populate ethernet bridge history group metrics
+		var gemPortHistorySlice []*voltha.PmConfig
+		for k, v := range GemPortHistory {
+			gemPortHistorySlice = append(gemPortHistorySlice, &voltha.PmConfig{Name: k, Type: v})
+		}
+		gemPortHistoryGroupMetric := voltha.PmGroupConfig{
+			GroupName: GemPortHistoryName,
+			Enabled:   GemPortHistoryEnabled && dh.pOpenOnuAc.metricsEnabled,
+			GroupFreq: GemPortHistoryFrequency,
+			Metrics:   gemPortHistorySlice,
+		}
+		dh.pmConfigs.Groups = append(dh.pmConfigs.Groups, &gemPortHistoryGroupMetric)
+
 		// classical l2 pm counter end
 
 		// Add standalone metric (if present) after this (will be added to dh.pmConfigs.Metrics)
@@ -324,6 +395,12 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 			metricsManager.groupMetricMap[g.GroupName].isL2PMCounter = true
 		case EthernetUniHistoryName:
 			metricsManager.groupMetricMap[g.GroupName].metricMap = EthernetUniHistory
+			metricsManager.groupMetricMap[g.GroupName].isL2PMCounter = true
+		case FecHistoryName:
+			metricsManager.groupMetricMap[g.GroupName].metricMap = FecHistory
+			metricsManager.groupMetricMap[g.GroupName].isL2PMCounter = true
+		case GemPortHistoryName:
+			metricsManager.groupMetricMap[g.GroupName].metricMap = GemPortHistory
 			metricsManager.groupMetricMap[g.GroupName].isL2PMCounter = true
 		default:
 			logger.Errorw(ctx, "unhandled-group-name", log.Fields{"groupName": g.GroupName})
@@ -1007,7 +1084,9 @@ func (mm *onuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 			return nil
 		case me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID,
 			me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID,
-			me.EthernetPerformanceMonitoringHistoryDataClassID:
+			me.EthernetPerformanceMonitoringHistoryDataClassID,
+			me.FecPerformanceMonitoringHistoryDataClassID,
+			me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
 			mm.l2PmChan <- meAttributes
 		default:
 			logger.Errorw(ctx, "unhandled omci get response message",
@@ -1204,10 +1283,10 @@ func (mm *onuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 	mm.onuMetricsManagerLock.RUnlock()
 
 	for _, n := range copyOfActiveL2Pms {
+		var metricInfoSlice []*voltha.MetricInformation
 		switch n {
 		case EthernetBridgeHistoryName:
 			logger.Debugw(ctx, "state collect data - collecting data for EthernetFramePerformanceMonitoringHistoryData ME", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			var metricInfoSlice []*voltha.MetricInformation
 			for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
 				// Attach the EthernetFramePerformanceMonitoringHistoryData ME to MacBridgePortConfigData on the UNI port
 				entityID := macBridgePortAniEID + uniPort.entityID
@@ -1218,24 +1297,8 @@ func (mm *onuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 					metricInfoSlice = append(metricInfoSlice, metricInfo)
 				}
 			}
-			// Publish metrics if it is valid
-			if metricInfoSlice != nil {
-				mm.publishMetrics(ctx, metricInfoSlice)
-			} else {
-				// If collectAttempts exceeds L2PmCollectAttempts then remove it from activeL2Pms
-				// slice so that we do not collect data from that PM ME anymore
-				mm.onuMetricsManagerLock.Lock()
-				mm.groupMetricMap[n].collectAttempts++
-				if mm.groupMetricMap[n].collectAttempts > L2PmCollectAttempts {
-					mm.removeIfFound(mm.activeL2Pms, n)
-				}
-				logger.Warnw(ctx, "state collect data - no metrics collected",
-					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": n, "collectAttempts": mm.groupMetricMap[n].collectAttempts})
-				mm.onuMetricsManagerLock.Unlock()
-			}
 		case EthernetUniHistoryName:
 			logger.Debugw(ctx, "state collect data - collecting data for EthernetPerformanceMonitoringHistoryData ME", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			var metricInfoSlice []*voltha.MetricInformation
 			for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
 				if uniPort.portType == uniPPTP { // This metric is only applicable for PPTP Uni Type
 					// Attach the EthernetFramePerformanceMonitoringHistoryData ME to MacBridgePortConfigData on the UNI port
@@ -1245,24 +1308,20 @@ func (mm *onuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 					}
 				}
 			}
-			// Publish metrics if it is valid
-			if metricInfoSlice != nil {
-				mm.publishMetrics(ctx, metricInfoSlice)
-			} else {
-				// If collectAttempts exceeds L2PmCollectAttempts then remove it from activeL2Pms
-				// slice so that we do not collect data from that PM ME anymore
-				mm.onuMetricsManagerLock.Lock()
-				mm.groupMetricMap[n].collectAttempts++
-				if mm.groupMetricMap[n].collectAttempts > L2PmCollectAttempts {
-					mm.removeIfFound(mm.activeL2Pms, n)
+		case FecHistoryName:
+			// get the ANI-G instance IDs as FecHistory is tied to ANI-G instance id
+			anigInstKeys := mm.pDeviceHandler.pOnuOmciDevice.pOnuDB.getSortedInstKeys(ctx, me.AniGClassID)
+			for _, anigInstID := range anigInstKeys {
+				if metricInfo := mm.collectFecHistoryData(ctx, anigInstID); metricInfo != nil { // upstream
+					metricInfoSlice = append(metricInfoSlice, metricInfo)
 				}
-				logger.Warnw(ctx, "state collect data - no metrics collected",
-					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": n, "collectAttempts": mm.groupMetricMap[n].collectAttempts})
-				mm.onuMetricsManagerLock.Unlock()
 			}
+		case GemPortHistoryName:
+			// TODO
 		default:
 			logger.Errorw(ctx, "unsupported l2 pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "name": n})
 		}
+		mm.handleMetricsPublish(ctx, n, metricInfoSlice)
 	}
 	// Does not matter we send success or failure here.
 	// Those PMs that we failed to collect data will be attempted to collect again in the next PM collection cycle (assuming
@@ -1296,17 +1355,8 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					entityID := macBridgePortAniEID + uniPort.entityID
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
 						ctx, ConstDefaultOmciTimeout, true, direction, true, mm.pAdaptFsm.commChan, entityID)
-					select {
-					case resp = <-mm.l2PmCreateOrDeleteResponseChan:
-						logger.Debugw(ctx, "received create EthernetFramePerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "uni": uniPort.uniID})
-						if !resp {
-							// We will attempt to create the MEs again in the next L2 PM Collection cycle
-							break inner1
-						}
-					case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
-						logger.Errorw(ctx, "timeout waiting for create EthernetFramePerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "uni": uniPort.uniID})
+					if resp := mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetFramePerformanceMonitoringHistoryData"); !resp {
+						break inner1
 					}
 				}
 			}
@@ -1319,20 +1369,26 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					entityID := uniPort.entityID
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
 						ctx, ConstDefaultOmciTimeout, true, true, mm.pAdaptFsm.commChan, entityID)
-					select {
-					case resp = <-mm.l2PmCreateOrDeleteResponseChan:
-						logger.Debugw(ctx, "received create EthernetPerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "uni": uniPort.uniID})
-						if !resp {
-							// We will attempt to create the MEs again in the next L2 PM Collection cycle
-							break inner2
-						}
-					case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
-						logger.Errorw(ctx, "timeout waiting for create EthernetPerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "uni": uniPort.uniID})
+					if resp := mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetPerformanceMonitoringHistoryData"); !resp {
+						break inner2
 					}
 				}
 			}
+		case FecHistoryName:
+
+		inner3:
+			for _, anigInstID := range mm.pDeviceHandler.pOnuOmciDevice.pOnuDB.getSortedInstKeys(ctx, me.AniGClassID) {
+				// Attach the EthernetPerformanceMonitoringHistoryData ME to MacBridgePortConfigData on the UNI port
+				mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
+					ctx, ConstDefaultOmciTimeout, true, true, mm.pAdaptFsm.commChan, anigInstID)
+				if resp := mm.waitForResponseOrTimeout(ctx, true, anigInstID, "FecPerformanceMonitoringHistoryData"); !resp {
+					break inner3
+				}
+			}
+		case GemPortHistoryName:
+
+		// TODO
+
 		default:
 			logger.Errorw(ctx, "unsupported l2 pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "name": n})
 		}
@@ -1388,17 +1444,8 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 					entityID := macBridgePortAniEID + uniPort.entityID
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
 						ctx, ConstDefaultOmciTimeout, true, direction, false, mm.pAdaptFsm.commChan, entityID)
-					select {
-					case resp = <-mm.l2PmCreateOrDeleteResponseChan:
-						logger.Debugw(ctx, "received delete EthernetFramePerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "uni": uniPort.uniID})
-						if !resp {
-							// We will attempt to delete the MEs again in the next L2 PM Collection cycle
-							break inner1
-						}
-					case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
-						logger.Errorw(ctx, "timeout waiting for delete EthernetFramePerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "uni": uniPort.uniID})
+					if resp := mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetFramePerformanceMonitoringHistoryData"); !resp {
+						break inner1
 					}
 				}
 			}
@@ -1411,20 +1458,25 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 					entityID := uniPort.entityID
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
 						ctx, ConstDefaultOmciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
-					select {
-					case resp = <-mm.l2PmCreateOrDeleteResponseChan:
-						logger.Debugw(ctx, "received delete EthernetPerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "uni": uniPort.uniID})
-						if !resp {
-							// We will attempt to delete the MEs again in the next L2 PM Collection cycle
-							break inner2
-						}
-					case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
-						logger.Errorw(ctx, "timeout waiting for delete EthernetPerformanceMonitoringHistoryData l2 pm me response",
-							log.Fields{"device-id": mm.pDeviceHandler.deviceID, "uni": uniPort.uniID})
+					if resp := mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetPerformanceMonitoringHistoryData"); !resp {
+						break inner2
 					}
 				}
 			}
+		case FecHistoryName:
+
+		inner3:
+			for _, anigInstID := range mm.pDeviceHandler.pOnuOmciDevice.pOnuDB.getSortedInstKeys(ctx, me.AniGClassID) {
+				// Attach the EthernetPerformanceMonitoringHistoryData ME to MacBridgePortConfigData on the UNI port
+				mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
+					ctx, ConstDefaultOmciTimeout, true, false, mm.pAdaptFsm.commChan, anigInstID)
+				if resp := mm.waitForResponseOrTimeout(ctx, false, anigInstID, "FecPerformanceMonitoringHistoryData"); !resp {
+					break inner3
+				}
+			}
+		case GemPortHistoryName:
+
+		// TODO
 		default:
 			logger.Errorw(ctx, "unsupported l2 pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "name": n})
 		}
@@ -1488,33 +1540,10 @@ func (mm *onuMetricsManager) collectEthernetFramePerformanceMonitoringHistoryDat
 		classID = me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID
 	}
 
-	requestedAttributes := make(me.AttributeValueMap)
-	size := 0
 	intervalEndTime := -1
 	ethPMHistData := make(map[string]float32)
-
-	for _, v := range mEnt.GetAttributeDefinitions() {
-		if (v.Size + size) <= MaxL2PMGetPayLoadSize {
-			requestedAttributes[v.Name] = v.DefValue
-			size = v.Size + size
-		} else { // We exceeded the allow omci get size
-			// Let's collect the attributes via get now and collect remaining in the next iteration
-			if err := mm.populateEthernetBridgeHistoryMetrics(ctx, upstream, classID, entityID, meAttributes, requestedAttributes, ethPMHistData, &intervalEndTime); err != nil {
-				logger.Errorw(ctx, "error during metric collection",
-					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "upstream": upstream, "err": err})
-				return nil
-			}
-			size = 0                                         // reset size
-			requestedAttributes = make(me.AttributeValueMap) // reset map
-		}
-	}
-	// Collect the omci get attributes for the last bunch of attributes.
-	if len(requestedAttributes) > 0 {
-		if err := mm.populateEthernetBridgeHistoryMetrics(ctx, upstream, classID, entityID, meAttributes, requestedAttributes, ethPMHistData, &intervalEndTime); err != nil {
-			logger.Errorw(ctx, "error during metric collection",
-				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "upstream": upstream, "err": err})
-			return nil
-		}
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, ethPMHistData, &intervalEndTime); err != nil {
+		return nil
 	}
 
 	// Populate some relevant context for the EthernetFramePerformanceMonitoringHistoryData PM
@@ -1528,23 +1557,8 @@ func (mm *onuMetricsManager) collectEthernetFramePerformanceMonitoringHistoryDat
 		ethPMHistData["upstream"] = float32(0)
 	}
 
-	metricsContext := make(map[string]string)
-	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.device.ProxyAddress.OnuId)
-	metricsContext["intfID"] = fmt.Sprintf("%d", mm.pDeviceHandler.device.ProxyAddress.ChannelId)
-	metricsContext["devicetype"] = mm.pDeviceHandler.DeviceType
+	metricInfo := mm.populateOnuMetricInfo(EthernetBridgeHistoryName, ethPMHistData)
 
-	raisedTs := time.Now().Unix()
-	mmd := voltha.MetricMetaData{
-		Title:           EthernetBridgeHistoryName,
-		Ts:              float64(raisedTs),
-		Context:         metricsContext,
-		DeviceId:        mm.pDeviceHandler.deviceID,
-		LogicalDeviceId: mm.pDeviceHandler.logicalDeviceID,
-		SerialNo:        mm.pDeviceHandler.device.SerialNumber,
-	}
-
-	// create slice of metrics given that there could be more than one VEIP instance
-	metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: ethPMHistData}
 	logger.Debugw(ctx, "collecting data for EthernetFramePerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "upstream": upstream, "metricInfo": metricInfo})
 	return &metricInfo
@@ -1563,64 +1577,60 @@ func (mm *onuMetricsManager) collectEthernetUniHistoryData(ctx context.Context, 
 	}
 	classID = me.EthernetPerformanceMonitoringHistoryDataClassID
 
-	requestedAttributes := make(me.AttributeValueMap)
-	size := 0
 	intervalEndTime := -1
 	ethUniHistData := make(map[string]float32)
-
-	for _, v := range mEnt.GetAttributeDefinitions() {
-		if (v.Size + size) <= MaxL2PMGetPayLoadSize {
-			requestedAttributes[v.Name] = v.DefValue
-			size = v.Size + size
-		} else { // We exceeded the allow omci get size
-			// Let's collect the attributes via get now and collect remaining in the next iteration
-			if err := mm.populateEthernetUniHistoryMetrics(ctx, classID, entityID, meAttributes, requestedAttributes, ethUniHistData, &intervalEndTime); err != nil {
-				logger.Errorw(ctx, "error during metric collection",
-					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
-				return nil
-			}
-			size = 0                                         // reset size
-			requestedAttributes = make(me.AttributeValueMap) // reset map
-		}
-	}
-	// Collect the omci get attributes for the last bunch of attributes.
-	if len(requestedAttributes) > 0 {
-		if err := mm.populateEthernetUniHistoryMetrics(ctx, classID, entityID, meAttributes, requestedAttributes, ethUniHistData, &intervalEndTime); err != nil {
-			logger.Errorw(ctx, "error during metric collection",
-				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
-			return nil
-		}
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, ethUniHistData, &intervalEndTime); err != nil {
+		return nil
 	}
 
 	// Populate some relevant context for the EthernetPerformanceMonitoringHistoryData PM
 	ethUniHistData["class_id"] = float32(classID)
 	ethUniHistData["interval_end_time"] = float32(intervalEndTime)
 
-	metricsContext := make(map[string]string)
-	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.device.ProxyAddress.OnuId)
-	metricsContext["intfID"] = fmt.Sprintf("%d", mm.pDeviceHandler.device.ProxyAddress.ChannelId)
-	metricsContext["devicetype"] = mm.pDeviceHandler.DeviceType
+	metricInfo := mm.populateOnuMetricInfo(EthernetUniHistoryName, ethUniHistData)
 
-	raisedTs := time.Now().Unix()
-	mmd := voltha.MetricMetaData{
-		Title:           EthernetUniHistoryName,
-		Ts:              float64(raisedTs),
-		Context:         metricsContext,
-		DeviceId:        mm.pDeviceHandler.deviceID,
-		LogicalDeviceId: mm.pDeviceHandler.logicalDeviceID,
-		SerialNo:        mm.pDeviceHandler.device.SerialNumber,
-	}
-
-	// create slice of metrics given that there could be more than one PPTP instance
-	metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: ethUniHistData}
 	logger.Debugw(ctx, "collecting data for EthernetPerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "metricInfo": metricInfo})
 	return &metricInfo
 }
 
+func (mm *onuMetricsManager) collectFecHistoryData(ctx context.Context, entityID uint16) *voltha.MetricInformation {
+	var mEnt *me.ManagedEntity
+	var omciErr me.OmciErrors
+	var classID me.ClassID
+	var meAttributes me.AttributeValueMap
+	logger.Debugw(ctx, "collecting data for FecPerformanceMonitoringHistoryData", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
+	meParam := me.ParamData{EntityID: entityID}
+	if mEnt, omciErr = me.NewFecPerformanceMonitoringHistoryData(meParam); omciErr == nil || mEnt == nil || omciErr.GetError() != nil {
+		logger.Errorw(ctx, "error creating me", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
+		return nil
+	}
+	classID = me.FecPerformanceMonitoringHistoryDataClassID
+
+	intervalEndTime := -1
+	fecHistData := make(map[string]float32)
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, fecHistData, &intervalEndTime); err != nil {
+		return nil
+	}
+
+	// Populate some relevant context for the EthernetPerformanceMonitoringHistoryData PM
+	fecHistData["class_id"] = float32(classID)
+	fecHistData["interval_end_time"] = float32(intervalEndTime)
+
+	metricInfo := mm.populateOnuMetricInfo(FecHistoryName, fecHistData)
+
+	logger.Debugw(ctx, "collecting data for FecPerformanceMonitoringHistoryData successful",
+		log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "metricInfo": metricInfo})
+	return &metricInfo
+}
+
 // nolint: gocyclo
-func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Context, upstream bool, classID me.ClassID, entityID uint16,
+func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, ethPMHistData map[string]float32, intervalEndTime *int) error {
+	upstream := false
+	if classID == me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID {
+		upstream = true
+	}
 	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
@@ -1637,22 +1647,8 @@ func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 			return fmt.Errorf("timeout-during-l2-pm-collection-for-ethernet-bridge-history-%v", mm.pDeviceHandler.deviceID)
 		}
 		// verify that interval end time has not changed during metric collection. If it changed, we abort the procedure
-		if *intervalEndTime == -1 { // first time
-			// Update the interval end time
-			if val, ok := meAttributes["IntervalEndTime"]; ok && val != nil {
-				*intervalEndTime = int(meAttributes["IntervalEndTime"].(uint8))
-			}
-		} else {
-			var currIntervalEndTime int
-			if val, ok := meAttributes["IntervalEndTime"]; ok && val != nil {
-				currIntervalEndTime = int(meAttributes["IntervalEndTime"].(uint8))
-			}
-			if currIntervalEndTime != *intervalEndTime { // interval end time changed during metric collection
-				logger.Errorw(ctx, "interval end time changed during metrics collection for ethernet pm history data",
-					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID,
-						"currIntervalEndTime": *intervalEndTime, "newIntervalEndTime": currIntervalEndTime})
-				return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-ethernet-bridge-history-%v", mm.pDeviceHandler.deviceID)
-			}
+		if valid := mm.updateAndValidateIntervalEndTime(ctx, entityID, meAttributes, intervalEndTime); !valid {
+			return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-ethernet-bridge-history-%v", mm.pDeviceHandler.deviceID)
 		}
 	}
 	for k := range EthernetBridgeHistory {
@@ -1743,22 +1739,8 @@ func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 			return fmt.Errorf("timeout-during-l2-pm-collection-for-ethernet-uni-history-%v", mm.pDeviceHandler.deviceID)
 		}
 		// verify that interval end time has not changed during metric collection. If it changed, we abort the procedure
-		if *intervalEndTime == -1 { // first time
-			// Update the interval end time
-			if val, ok := meAttributes["IntervalEndTime"]; ok && val != nil {
-				*intervalEndTime = int(meAttributes["IntervalEndTime"].(uint8))
-			}
-		} else {
-			var currIntervalEndTime int
-			if val, ok := meAttributes["IntervalEndTime"]; ok && val != nil {
-				currIntervalEndTime = int(meAttributes["IntervalEndTime"].(uint8))
-			}
-			if currIntervalEndTime != *intervalEndTime { // interval end time changed during metric collection
-				logger.Errorw(ctx, "interval end time changed during metrics collection for ethernet uni history data",
-					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID,
-						"currIntervalEndTime": *intervalEndTime, "newIntervalEndTime": currIntervalEndTime})
-				return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-ethernet-uni-history-%v", mm.pDeviceHandler.deviceID)
-			}
+		if valid := mm.updateAndValidateIntervalEndTime(ctx, entityID, meAttributes, intervalEndTime); !valid {
+			return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-ethernet-uni-history-%v", mm.pDeviceHandler.deviceID)
 		}
 	}
 	for k := range EthernetUniHistory {
@@ -1830,6 +1812,118 @@ func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	return nil
 }
 
+// nolint: gocyclo
+func (mm *onuMetricsManager) populateFecHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
+	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, fecHistData map[string]float32, intervalEndTime *int) error {
+	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
+	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
+		requestedAttributes["IntervalEndTime"] = 0
+	}
+	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		select {
+		case meAttributes = <-mm.l2PmChan:
+			logger.Debugw(ctx, "received fec history data metrics",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
+		case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+			logger.Errorw(ctx, "timeout waiting for omci-get response for fec history data",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
+			// The metrics will be empty in this case
+			return fmt.Errorf("timeout-during-l2-pm-collection-for-fec-history-%v", mm.pDeviceHandler.deviceID)
+		}
+		// verify that interval end time has not changed during metric collection. If it changed, we abort the procedure
+		if valid := mm.updateAndValidateIntervalEndTime(ctx, entityID, meAttributes, intervalEndTime); !valid {
+			return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-fec-history-%v", mm.pDeviceHandler.deviceID)
+		}
+	}
+	for k := range FecHistory {
+		// populate fecHistData only if metric key not already present (or populated), since it is possible that we populate
+		// the attributes in multiple iterations for a given L2 PM ME as there is a limit on the max OMCI GET payload size.
+		if _, ok := fecHistData[k]; !ok {
+			switch k {
+			case "corrected_bytes":
+				if val, ok := meAttributes["CorrectedBytes"]; ok && val != nil {
+					fecHistData[k] = float32(val.(uint32))
+				}
+			case "corrected_code_words":
+				if val, ok := meAttributes["CorrectedCodeWords"]; ok && val != nil {
+					fecHistData[k] = float32(val.(uint32))
+				}
+			case "uncorrectable_code_words":
+				if val, ok := meAttributes["UncorrectableCodeWords"]; ok && val != nil {
+					fecHistData[k] = float32(val.(uint32))
+				}
+			case "total_code_words":
+				if val, ok := meAttributes["TotalCodeWords"]; ok && val != nil {
+					fecHistData[k] = float32(val.(uint32))
+				}
+			case "fec_seconds":
+				if val, ok := meAttributes["FecSeconds"]; ok && val != nil {
+					fecHistData[k] = float32(val.(uint16))
+				}
+			default:
+				// do nothing
+			}
+		}
+	}
+	return nil
+}
+
+// nolint: gocyclo
+func (mm *onuMetricsManager) populateGemPortMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
+	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, gemPortHistData map[string]float32, intervalEndTime *int) error {
+	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
+	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
+		requestedAttributes["IntervalEndTime"] = 0
+	}
+	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		select {
+		case meAttributes = <-mm.l2PmChan:
+			logger.Debugw(ctx, "received gem port history data metrics",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
+		case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+			logger.Errorw(ctx, "timeout waiting for omci-get response for gem port history data",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
+			// The metrics will be empty in this case
+			return fmt.Errorf("timeout-during-l2-pm-collection-for-gemport-history-%v", mm.pDeviceHandler.deviceID)
+		}
+		// verify that interval end time has not changed during metric collection. If it changed, we abort the procedure
+		if valid := mm.updateAndValidateIntervalEndTime(ctx, entityID, meAttributes, intervalEndTime); !valid {
+			return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-gemport-history-%v", mm.pDeviceHandler.deviceID)
+		}
+	}
+	for k := range GemPortHistory {
+		// populate gemPortHistData only if metric key not already present (or populated), since it is possible that we populate
+		// the attributes in multiple iterations for a given L2 PM ME as there is a limit on the max OMCI GET payload size.
+		if _, ok := gemPortHistData[k]; !ok {
+			switch k {
+			case "transmitted_gem_frames":
+				if val, ok := meAttributes["TransmittedGemFrames"]; ok && val != nil {
+					gemPortHistData[k] = float32(val.(uint32))
+				}
+			case "received_gem_frames":
+				if val, ok := meAttributes["ReceivedGemFrames"]; ok && val != nil {
+					gemPortHistData[k] = float32(val.(uint32))
+				}
+			case "received_payload_bytes":
+				if val, ok := meAttributes["ReceivedPayloadBytes"]; ok && val != nil {
+					gemPortHistData[k] = float32(val.(uint64))
+				}
+			case "transmitted_payload_bytes":
+				if val, ok := meAttributes["TransmittedPayloadBytes"]; ok && val != nil {
+					gemPortHistData[k] = float32(val.(uint64))
+				}
+			case "encryption_key_errors":
+				if val, ok := meAttributes["EncryptionKeyErrors"]; ok && val != nil {
+					gemPortHistData[k] = float32(val.(uint32))
+				}
+			default:
+				// do nothing
+			}
+		}
+	}
+	return nil
+}
+
 func (mm *onuMetricsManager) handleOmciCreateResponseMessage(ctx context.Context, msg OmciMessage) error {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
 	if msgLayer == nil {
@@ -1845,7 +1939,9 @@ func (mm *onuMetricsManager) handleOmciCreateResponseMessage(ctx context.Context
 	switch msgObj.EntityClass {
 	case me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID,
 		me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID,
-		me.EthernetPerformanceMonitoringHistoryDataClassID:
+		me.EthernetPerformanceMonitoringHistoryDataClassID,
+		me.FecPerformanceMonitoringHistoryDataClassID,
+		me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
 		// If the result is me.InstanceExists it means the entity was already created. It is ok handled that as success
 		if msgObj.Result == me.Success || msgObj.Result == me.InstanceExists {
 			mm.l2PmCreateOrDeleteResponseChan <- true
@@ -1876,7 +1972,9 @@ func (mm *onuMetricsManager) handleOmciDeleteResponseMessage(ctx context.Context
 	switch msgObj.EntityClass {
 	case me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID,
 		me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID,
-		me.EthernetPerformanceMonitoringHistoryDataClassID:
+		me.EthernetPerformanceMonitoringHistoryDataClassID,
+		me.FecPerformanceMonitoringHistoryDataClassID,
+		me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
 		// If the result is me.UnknownInstance it means the entity was already deleted. It is ok handled that as success
 		if msgObj.Result == me.Success || msgObj.Result == me.UnknownInstance {
 			mm.l2PmCreateOrDeleteResponseChan <- true
@@ -1908,6 +2006,128 @@ func (mm *onuMetricsManager) generateTicks(ctx context.Context) {
 	}
 }
 
+func (mm *onuMetricsManager) handleMetricsPublish(ctx context.Context, metricName string, metricInfoSlice []*voltha.MetricInformation) {
+	// Publish metrics if it is valid
+	if metricInfoSlice != nil {
+		mm.publishMetrics(ctx, metricInfoSlice)
+	} else {
+		// If collectAttempts exceeds L2PmCollectAttempts then remove it from activeL2Pms
+		// slice so that we do not collect data from that PM ME anymore
+		mm.onuMetricsManagerLock.Lock()
+		mm.groupMetricMap[metricName].collectAttempts++
+		if mm.groupMetricMap[metricName].collectAttempts > L2PmCollectAttempts {
+			mm.removeIfFound(mm.activeL2Pms, metricName)
+		}
+		logger.Warnw(ctx, "state collect data - no metrics collected",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": metricName, "collectAttempts": mm.groupMetricMap[metricName].collectAttempts})
+		mm.onuMetricsManagerLock.Unlock()
+	}
+}
+
+func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, mEnt *me.ManagedEntity, classID me.ClassID, entityID uint16,
+	meAttributes me.AttributeValueMap, data map[string]float32, intervalEndTime *int) error {
+	var grpFunc groupMetricPopulateFunc
+	switch classID {
+	case me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID, me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID:
+		grpFunc = mm.populateEthernetBridgeHistoryMetrics
+	case me.EthernetPerformanceMonitoringHistoryDataClassID:
+		grpFunc = mm.populateEthernetUniHistoryMetrics
+	case me.FecPerformanceMonitoringHistoryDataClassID:
+		grpFunc = mm.populateFecHistoryMetrics
+	case me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
+		grpFunc = mm.populateGemPortMetrics
+	default:
+		return fmt.Errorf("unknown-classid-%v", classID)
+	}
+
+	size := 0
+	requestedAttributes := make(me.AttributeValueMap)
+	for _, v := range mEnt.GetAttributeDefinitions() {
+		if (v.Size + size) <= MaxL2PMGetPayLoadSize {
+			requestedAttributes[v.Name] = v.DefValue
+			size = v.Size + size
+		} else { // We exceeded the allow omci get size
+			// Let's collect the attributes via get now and collect remaining in the next iteration
+			if err := grpFunc(ctx, classID, entityID, meAttributes, requestedAttributes, data, intervalEndTime); err != nil {
+				logger.Errorw(ctx, "error during metric collection",
+					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
+				return err
+			}
+			size = 0                                         // reset size
+			requestedAttributes = make(me.AttributeValueMap) // reset map
+		}
+	}
+	// Collect the omci get attributes for the last bunch of attributes.
+	if len(requestedAttributes) > 0 {
+		if err := grpFunc(ctx, classID, entityID, meAttributes, requestedAttributes, data, intervalEndTime); err != nil {
+			logger.Errorw(ctx, "error during metric collection",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
+			return err
+		}
+	}
+	return nil
+}
+
+func (mm *onuMetricsManager) populateOnuMetricInfo(title string, data map[string]float32) voltha.MetricInformation {
+	metricsContext := make(map[string]string)
+	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.device.ProxyAddress.OnuId)
+	metricsContext["intfID"] = fmt.Sprintf("%d", mm.pDeviceHandler.device.ProxyAddress.ChannelId)
+	metricsContext["devicetype"] = mm.pDeviceHandler.DeviceType
+
+	raisedTs := time.Now().Unix()
+	mmd := voltha.MetricMetaData{
+		Title:           title,
+		Ts:              float64(raisedTs),
+		Context:         metricsContext,
+		DeviceId:        mm.pDeviceHandler.deviceID,
+		LogicalDeviceId: mm.pDeviceHandler.logicalDeviceID,
+		SerialNo:        mm.pDeviceHandler.device.SerialNumber,
+	}
+
+	// create slice of metrics given that there could be more than one VEIP instance
+	metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: data}
+	return metricInfo
+}
+
+func (mm *onuMetricsManager) updateAndValidateIntervalEndTime(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap, intervalEndTime *int) bool {
+	valid := false
+	if *intervalEndTime == -1 { // first time
+		// Update the interval end time
+		if val, ok := meAttributes["IntervalEndTime"]; ok && val != nil {
+			*intervalEndTime = int(meAttributes["IntervalEndTime"].(uint8))
+			valid = true
+		}
+	} else {
+		var currIntervalEndTime int
+		if val, ok := meAttributes["IntervalEndTime"]; ok && val != nil {
+			currIntervalEndTime = int(meAttributes["IntervalEndTime"].(uint8))
+		}
+		if currIntervalEndTime != *intervalEndTime { // interval end time changed during metric collection
+			logger.Errorw(ctx, "interval end time changed during metrics collection for ethernet pm history data",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID,
+					"currIntervalEndTime": *intervalEndTime, "newIntervalEndTime": currIntervalEndTime})
+		} else {
+			valid = true
+		}
+	}
+	return valid
+}
+
+func (mm *onuMetricsManager) waitForResponseOrTimeout(ctx context.Context, create bool, instID uint16, meClassName string) bool {
+	success := false
+	select {
+	case resp := <-mm.l2PmCreateOrDeleteResponseChan:
+		logger.Debugw(ctx, "received create l2 pm me response",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "create": create, "meClassName": meClassName, "instID": instID})
+		if resp {
+			success = true
+		}
+	case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+		logger.Errorw(ctx, "timeout waiting for create l2 pm me response",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": false, "create": create, "meClassName": meClassName, "instID": instID})
+	}
+	return success
+}
 func (mm *onuMetricsManager) appendIfMissing(slice []string, n string) []string {
 	for _, ele := range slice {
 		if ele == n {
