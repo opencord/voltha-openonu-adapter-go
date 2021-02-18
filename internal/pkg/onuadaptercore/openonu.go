@@ -66,6 +66,7 @@ type OpenONUAC struct {
 	//GrpcTimeoutInterval         time.Duration
 	pSupportedFsms             *OmciDeviceFsms
 	maxTimeoutInterAdapterComm time.Duration
+	maxTimeoutReconciling      time.Duration
 	pDownloadManager           *adapterDownloadManager
 	metricsEnabled             bool
 	mibAuditInterval           time.Duration
@@ -97,6 +98,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.HeartbeatFailReportInterval = cfg.HeartbeatFailReportInterval
 	openOnuAc.AcceptIncrementalEvto = cfg.AccIncrEvto
 	openOnuAc.maxTimeoutInterAdapterComm = cfg.MaxTimeoutInterAdapterComm
+	openOnuAc.maxTimeoutReconciling = cfg.MaxTimeoutReconciling
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.metricsEnabled = cfg.MetricsEnabled
 	openOnuAc.mibAuditInterval = cfg.MibAuditInterval

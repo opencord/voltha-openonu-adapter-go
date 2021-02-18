@@ -91,9 +91,6 @@ const (
 const (
 	cOnuActivatedEvent = "ONU_ACTIVATED"
 )
-const (
-	cReconcilingTimeout = 10 //seconds
-)
 
 type usedOmciConfigFsms int
 
@@ -2911,15 +2908,16 @@ func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 
 	}
 }
+
 func (dh *deviceHandler) startReconciling(ctx context.Context) {
-	logger.Debugw(ctx, "start reconciling", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw(ctx, "start reconciling", log.Fields{"timeout": dh.pOpenOnuAc.maxTimeoutReconciling, "device-id": dh.deviceID})
 	if !dh.isReconciling() {
 		go func() {
 			select {
 			case <-dh.chReconcilingFinished:
 				logger.Debugw(ctx, "reconciling has been finished in time",
 					log.Fields{"device-id": dh.deviceID})
-			case <-time.After(time.Duration(cReconcilingTimeout) * time.Second):
+			case <-time.After(dh.pOpenOnuAc.maxTimeoutReconciling):
 				logger.Errorw(ctx, "timeout waiting for reconciling to be finished!",
 					log.Fields{"device-id": dh.deviceID})
 			}
