@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "44dc0da8_0e234447",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 1880,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-19T16:49:01Z",
+      "side": 1,
+      "message": "Don\u0027t you mean OmciVlanFilter*NoKvStore here?",
+      "range": {
+        "startLine": 1880,
+        "startChar": 22,
+        "endLine": 1880,
+        "endChar": 36
+      },
+      "revId": "f1fc38693f15eac33f84fe700f831effbdee324d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
