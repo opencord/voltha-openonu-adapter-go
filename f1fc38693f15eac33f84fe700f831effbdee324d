@@ -22,6 +22,30 @@
       "revId": "f1fc38693f15eac33f84fe700f831effbdee324d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e4c4abf9_5d5fc83e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 1880,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-19T16:57:35Z",
+      "side": 1,
+      "message": "Focus was on \u0027VLAN Done\u0027 here, \u0027NoKvStoreWrite\u0027 is mentioned behind that. Might be slightly irritating, so proposal would be \"OmciVlanFilter*DoneNoKvStore - ...\" - occasionally.",
+      "parentUuid": "44dc0da8_0e234447",
+      "range": {
+        "startLine": 1880,
+        "startChar": 22,
+        "endLine": 1880,
+        "endChar": 36
+      },
+      "revId": "f1fc38693f15eac33f84fe700f831effbdee324d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
