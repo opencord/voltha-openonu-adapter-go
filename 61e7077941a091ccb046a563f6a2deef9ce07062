@@ -94,6 +94,30 @@
       "revId": "61e7077941a091ccb046a563f6a2deef9ce07062",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c529a111_b7e8ed03",
+        "filename": "VERSION",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-19T15:28:40Z",
+      "side": 1,
+      "message": "so, if there is an already release version let\u0027s take 1.2.4, the next patches need to be either 1.2.5 to release another version, or 1.2.5-dev to signify that the 1.2.5 is still under development and will be released at a future time. a -dev can never be applied to an already existing release version.",
+      "parentUuid": "0b4a9502_52c9414e",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "61e7077941a091ccb046a563f6a2deef9ce07062",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
