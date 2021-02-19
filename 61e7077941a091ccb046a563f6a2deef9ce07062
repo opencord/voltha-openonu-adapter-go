@@ -46,6 +46,30 @@
       "revId": "61e7077941a091ccb046a563f6a2deef9ce07062",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e93602a_529eefb6",
+        "filename": "VERSION",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-19T15:20:17Z",
+      "side": 1,
+      "message": "https://github.com/opencord/voltha-openonu-adapter-go/releases/tag/v1.2.4\n\nis already released",
+      "parentUuid": "f638f7f2_64a3aae1",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "61e7077941a091ccb046a563f6a2deef9ce07062",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
