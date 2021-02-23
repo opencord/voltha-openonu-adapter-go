@@ -638,7 +638,11 @@ func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 
 func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.Event) {
 
-	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending() {
+	oFsm.pUniTechProf.mutexTPState.Lock()
+	//FlowRemovePending shall only be evaluated in case we are not already waiting for some TechProfile deletion
+	if !oFsm.pUniTechProf.mapUniTpIndication[oFsm.uniTpKey].techProfileToDelete &&
+		oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending() {
+		oFsm.pUniTechProf.mutexTPState.Unlock()
 		logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
 			log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
 		// if flow remove is pending then wait for flow remove to finish first before proceeding with gem port delete
@@ -657,7 +661,6 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	}
 
 	// get the related GemPort entity Id from pUniTechProf, OMCI Gem* entityID is set to be equal to GemPortId!
-	oFsm.pUniTechProf.mutexTPState.Lock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
 	oFsm.pUniTechProf.mutexTPState.Unlock()
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start removing one GemIwTP", log.Fields{
