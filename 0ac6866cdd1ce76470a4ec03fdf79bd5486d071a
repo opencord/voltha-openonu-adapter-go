@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a44663ea_b8b86d23",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 642,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-23T19:56:59Z",
+      "side": 1,
+      "message": "This might solve the issue, but we might also consider the generic solution I was mentioning on slack to have buffered channels for flow add/remove, TP add/remove.",
+      "revId": "0ac6866cdd1ce76470a4ec03fdf79bd5486d071a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
