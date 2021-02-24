@@ -10,7 +10,7 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/looplab/fsm v0.1.0
 	github.com/opencord/omci-lib-go v0.15.2
-	github.com/opencord/voltha-lib-go/v4 v4.0.10
+	github.com/opencord/voltha-lib-go/v4 v4.1.0
 	github.com/opencord/voltha-protos/v4 v4.0.12
 	github.com/stretchr/testify v1.6.1
 	google.golang.org/grpc v1.25.1 // indirect
