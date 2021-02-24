@@ -44,6 +44,7 @@ import (
 
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
 	ac "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/onuadaptercore"
+	"github.com/go-redis/redis/v8"
 )
 
 type adapter struct {
@@ -181,6 +182,10 @@ func newKVClient(ctx context.Context, storeType, address string, timeout time.Du
 	switch storeType {
 	case "etcd":
 		return kvstore.NewEtcdClient(ctx, address, timeout, log.FatalLevel)
+	case "redis":
+		return kvstore.NewRedisClient(address, timeout, false)
+	case "redis-sentinel":
+		return kvstore.NewRedisClient(address, timeout, true)
 	}
 	return nil, errors.New("unsupported-kv-store")
 }
@@ -520,7 +525,7 @@ func main() {
 		printBanner()
 	}
 
-	logger.Infow(ctx, "config", log.Fields{"config": *cf})
+	logger.Infow(ctx, "config", log.Fields{"config": *cf, "redis": redis.Nil})
 
 	ad := newAdapter(cf)
 
