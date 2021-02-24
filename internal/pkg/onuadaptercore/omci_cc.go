@@ -2569,9 +2569,7 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
-	//TODO!!!: omci-lib wrongly defines just 29 byte data section (which should be 31 bytes)
-	//  as long as this is valid and testing is done with some dummy image we omit the last two bytes in each section!!!
-	var localSectionData [29]byte
+	var localSectionData [31]byte
 	copy(localSectionData[:], aSection)
 	request := &omci.DownloadSectionRequest{
 		MeBasePacket: omci.MeBasePacket{
