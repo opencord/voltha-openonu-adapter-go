@@ -179,8 +179,6 @@ func (a *adapter) stop(ctx context.Context) {
 func newKVClient(ctx context.Context, storeType, address string, timeout time.Duration) (kvstore.Client, error) {
 	logger.Infow(ctx, "kv-store-type", log.Fields{"store": storeType})
 	switch storeType {
-	case "consul":
-		return kvstore.NewConsulClient(ctx, address, timeout)
 	case "etcd":
 		return kvstore.NewEtcdClient(ctx, address, timeout, log.FatalLevel)
 	}
