@@ -159,7 +159,6 @@ func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 	omciCC.hpTid = 0x8000
 	omciCC.uploadSequNo = 0
 	omciCC.uploadNoOfCmds = 0
-
 	omciCC.txQueue = list.New()
 	omciCC.rxSchedulerMap = make(map[uint16]callbackPairEntry)
 
@@ -778,6 +777,58 @@ func (oo *omciCC) sendMibUploadNext(ctx context.Context, timeout int, highPrio b
 		// if wanted, rx frame printing should be specifically done within the MibUpload FSM or controlled via extra parameter
 		// compare also software upgrade download section handling
 		cbEntry: callbackPairEntry{(*oo.pOnuDeviceEntry).pMibUploadFsm.commChan, oo.receiveOmciResponse, false},
+	}
+	return oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+}
+
+func (oo *omciCC) sendGetAllAlarm(ctx context.Context, alarmRetreivalMode uint8, timeout int, highPrio bool) error {
+	logger.Debugw(ctx, "send GetAllAlarms-msg to:", log.Fields{"device-id": oo.deviceID})
+	request := &omci.GetAllAlarmsRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuDataClassID,
+		},
+		AlarmRetrievalMode: byte(alarmRetreivalMode),
+	}
+	tid := oo.getNextTid(highPrio)
+	pkt, err := serialize(ctx, omci.GetAllAlarmsRequestType, request, tid)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize GetAllAlarmsRequest", log.Fields{
+			"Err": err, "device-id": oo.deviceID})
+		return err
+	}
+	oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadSeqNo = 0
+	oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadNoOfCmds = 0
+
+	omciRxCallbackPair := callbackPair{
+		cbKey: tid,
+		cbEntry: callbackPairEntry{(*oo.pBaseDeviceHandler.pAlarmMgr).eventChannel,
+			oo.receiveOmciResponse, true},
+	}
+	return oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+}
+
+func (oo *omciCC) sendGetAllAlarmNext(ctx context.Context, timeout int, highPrio bool) error {
+	alarmUploadSeqNo := oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadSeqNo
+	logger.Debugw(ctx, "send sendGetAllAlarmNext-msg to:", log.Fields{"device-id": oo.deviceID,
+		"alarmUploadSeqNo": alarmUploadSeqNo})
+	request := &omci.GetAllAlarmsNextRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass: me.OnuDataClassID,
+		},
+		CommandSequenceNumber: alarmUploadSeqNo,
+	}
+	tid := oo.getNextTid(highPrio)
+	pkt, err := serialize(ctx, omci.GetAllAlarmsNextRequestType, request, tid)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize GetAllAlarmsNextRequest", log.Fields{
+			"Err": err, "device-id": oo.deviceID})
+		return err
+	}
+	oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadSeqNo++
+
+	omciRxCallbackPair := callbackPair{
+		cbKey:   tid,
+		cbEntry: callbackPairEntry{(*oo.pBaseDeviceHandler.pAlarmMgr).eventChannel, oo.receiveOmciResponse, true},
 	}
 	return oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
 }
