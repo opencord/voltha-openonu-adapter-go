@@ -21,22 +21,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
-	"time"
-
+	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
+	"reflect"
+	"sync"
+	"time"
 )
 
 const (
-	circuitPackClassID                             = me.CircuitPackClassID
-	physicalPathTerminationPointEthernetUniClassID = me.PhysicalPathTerminationPointEthernetUniClassID
-	onuGClassID                                    = me.OnuGClassID
-	aniGClassID                                    = me.AniGClassID
+	circuitPackClassID                                 = me.CircuitPackClassID
+	physicalPathTerminationPointEthernetUniClassID     = me.PhysicalPathTerminationPointEthernetUniClassID
+	onuGClassID                                        = me.OnuGClassID
+	aniGClassID                                        = me.AniGClassID
+	auditInterval                                      = 300
+	defaultTimeoutDelay                                = 10
+	alarmBitMapSizeBytes                               = 28
+	maxRetries                                     int = 3
+	delayRetries                                   int = 10
 )
+
+const (
+	// events of alarm sync FSM
+	asEvStart   = "asEvStart"
+	asEvStop    = "asEvStop"
+	asEvAudit   = "asEvAudit"
+	asEvSync    = "asEvSync"
+	asEvSuccess = "asEvSuccess"
+	asEvFailure = "asEvFailure"
+	asEvResync  = "asEvResync"
+)
+const (
+	// states of alarm sync FSM
+	asStStarting        = "asStStarting"
+	asStDisabled        = "asStDisabled"
+	asStInSync          = "asStInSync"
+	asStAuditing        = "asStAuditing"
+	asStResynchronizing = "asStResynchronizing"
+	asStIdle            = "asStIdle"
+)
+
+//const cAsFsmIdleState = asStIdle not using idle state currently
 
 type alarmInfo struct {
 	classID    me.ClassID
@@ -46,6 +74,12 @@ type alarmInfo struct {
 
 type alarms map[alarmInfo]struct{}
 
+type meInfo struct {
+	classID    me.ClassID
+	instanceID uint16
+}
+
+type alarmBitMapDB map[meInfo][alarmBitMapSizeBytes]byte
 type onuAlarmManager struct {
 	pDeviceHandler             *deviceHandler
 	eventProxy                 eventif.EventProxy
@@ -54,7 +88,13 @@ type onuAlarmManager struct {
 	onuAlarmManagerLock        sync.RWMutex
 	processMessage             bool
 	activeAlarms               alarms
+	alarmBitMapDB              alarmBitMapDB
 	onuEventsList              map[onuDevice]onuDeviceEvent
+	lastAlarmSequence          uint8
+	alarmSyncFsm               *AdapterFsm
+	oltDbCopy                  alarmBitMapDB
+	onuDBCopy                  alarmBitMapDB
+	bufferedNotifications      []*omci.AlarmNotificationMsg
 }
 
 type onuDevice struct {
@@ -77,6 +117,7 @@ func newAlarmManager(ctx context.Context, dh *deviceHandler) *onuAlarmManager {
 	alarmManager.stopProcessingOmciMessages = make(chan bool)
 	alarmManager.processMessage = false
 	alarmManager.activeAlarms = make(map[alarmInfo]struct{})
+	alarmManager.alarmBitMapDB = make(map[meInfo][alarmBitMapSizeBytes]byte)
 	alarmManager.onuEventsList = map[onuDevice]onuDeviceEvent{
 		{classID: circuitPackClassID, alarmno: 0}: {EventName: "ONU_EQUIPMENT",
 			EventCategory: voltha.EventCategory_EQUIPMENT, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu equipment"},
@@ -115,7 +156,347 @@ func newAlarmManager(ctx context.Context, dh *deviceHandler) *onuAlarmManager {
 		{classID: aniGClassID, alarmno: 6}: {EventName: "ONU_LASER_BIAS_CURRENT",
 			EventCategory: voltha.EventCategory_EQUIPMENT, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu laser bias current"},
 	}
+	alarmManager.alarmSyncFsm.pFsm = fsm.NewFSM(
+		asStDisabled,
+		fsm.Events{
+			{Name: asEvStart, Src: []string{asStDisabled}, Dst: asStStarting},
+			{Name: asEvAudit, Src: []string{asStStarting, asStAuditing, asStInSync}, Dst: asStAuditing},
+			{Name: asEvSync, Src: []string{asStStarting}, Dst: asStInSync},
+			{Name: asEvSuccess, Src: []string{asStAuditing, asStResynchronizing}, Dst: asStInSync},
+			{Name: asEvFailure, Src: []string{asStAuditing, asStResynchronizing}, Dst: asStAuditing},
+			{Name: asEvResync, Src: []string{asStAuditing}, Dst: asStResynchronizing},
+			{Name: asEvStop, Src: []string{asStDisabled, asStStarting, asStAuditing, asStInSync, asStIdle, asStResynchronizing}, Dst: asStDisabled},
+		},
+		fsm.Callbacks{
+			"enter_state":                  func(e *fsm.Event) { alarmManager.alarmSyncFsm.logFsmStateChange(ctx, e) },
+			"enter_" + asStDisabled:        func(e *fsm.Event) { alarmManager.asFsmDisabled(ctx, e) },
+			"enter_" + asStStarting:        func(e *fsm.Event) { alarmManager.asFsmStarting(ctx, e) },
+			"enter_" + asStAuditing:        func(e *fsm.Event) { alarmManager.asFsmAuditing(ctx, e) },
+			"enter_" + asStInSync:          func(e *fsm.Event) { alarmManager.asFsmInSync(ctx, e) },
+			"enter_" + asStResynchronizing: func(e *fsm.Event) { alarmManager.asFsmResynchronizing(ctx, e) },
+		},
+	)
 	return &alarmManager
+}
+
+func (am *onuAlarmManager) asFsmDisabled(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.pDeviceHandler.deviceID})
+}
+
+func (am *onuAlarmManager) asFsmStarting(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"start-processing-msgs-in-state": e.FSM.Current(), "device-id": am.pDeviceHandler.deviceID})
+	go am.processAlarmSyncMessages(ctx)
+	// Start the first audit, if audit interval configured, else reach the sync state
+	if auditInterval > 0 {
+		//Transition into auditing state, using a very shorter timeout delay here, hence it is the first audit
+		time.Sleep(defaultTimeoutDelay)
+		// Need to have this check here because there is a small window that if a notification comes before the audit event
+		// actually starts then sync would have already started.
+		if am.alarmSyncFsm.pFsm.Is(asStStarting) {
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvAudit); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		}
+	} else {
+		// Transition into sync state directly.
+		go func() {
+			if err := am.alarmSyncFsm.pFsm.Event(asEvSync); err != nil {
+				logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-sync", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+			}
+		}()
+	}
+}
+
+func (am *onuAlarmManager) asFsmAuditing(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.pDeviceHandler.deviceID})
+	// Always reset the buffered notifications and db copies before starting the audit
+	am.onuAlarmManagerLock.Lock()
+	am.bufferedNotifications = make([]*omci.AlarmNotificationMsg, 0)
+	am.oltDbCopy = make(map[meInfo][alarmBitMapSizeBytes]byte)
+	am.onuDBCopy = make(map[meInfo][alarmBitMapSizeBytes]byte)
+	am.onuAlarmManagerLock.Unlock()
+	var count int
+	for count = 1; count <= maxRetries; count++ {
+		if err := am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetAllAlarm(log.WithSpanFromContext(context.TODO(), ctx), 0,
+			ConstDefaultOmciTimeout, true); err != nil {
+			time.Sleep(time.Duration(delayRetries))
+		} else {
+			break
+		}
+	}
+	if count > maxRetries {
+		// Transition to failure
+		go func() {
+			if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+				logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+			}
+		}()
+	}
+}
+
+func (am *onuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.pDeviceHandler.deviceID})
+	if auditInterval > 0 {
+		//Transition into auditing state, using a very shorter timeout delay here, hence it is the first audit
+		time.Sleep(auditInterval)
+		go func() {
+			if err := am.alarmSyncFsm.pFsm.Event(asEvAudit); err != nil {
+				logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+			}
+		}()
+	}
+}
+
+func (am *onuAlarmManager) processAlarmSyncMessages(ctx context.Context) {
+	logger.Debugw(ctx, "alarm-sync-message", log.Fields{"start-routine-to-process-omci-messages-for-device-id": am.pDeviceHandler.deviceID})
+loop:
+	for {
+		message, ok := <-am.eventChannel
+		if !ok {
+			logger.Info(ctx, "alarm-sync-message", log.Fields{"message-couldn't-be-read-from-channel-for-device-id": am.pDeviceHandler.deviceID})
+			break loop
+		}
+		logger.Debugw(ctx, "alarm-sync-message", log.Fields{"received-message-on-onu-alarm-sync-channel-for-device-id": am.pDeviceHandler.deviceID})
+
+		switch message.Type {
+		case OMCI:
+			msg, _ := message.Data.(OmciMessage)
+			am.handleOmciMessage(ctx, msg)
+		default:
+			logger.Warn(ctx, "alarm-sync-message", log.Fields{"unknown-message-type-received-for-device-id": am.pDeviceHandler.deviceID, "message.Type": message.Type})
+		}
+	}
+	logger.Info(ctx, "alarm-sync-message", log.Fields{"stopped-handling-of-alarm-sync-channel-for-device-id": am.pDeviceHandler.deviceID})
+	_ = am.alarmSyncFsm.pFsm.Event(asEvStop)
+}
+
+func (am *onuAlarmManager) handleOmciMessage(ctx context.Context, msg OmciMessage) {
+	logger.Debugw(ctx, "alarm-sync-message", log.Fields{"omci-message-received-for-device-id": am.pDeviceHandler.deviceID,
+		"msg-type": msg.OmciMsg.MessageType, "msg": msg})
+	switch msg.OmciMsg.MessageType {
+	case omci.GetAllAlarmsResponseType:
+		am.handleOmciGetAllAlarmsResponseMessage(ctx, msg)
+	case omci.GetAllAlarmsNextResponseType:
+		am.handleOmciGetAllAlarmNextResponseMessage(ctx, msg)
+	default:
+		logger.Warnw(ctx, "unknown-message-type", log.Fields{"msg-type": msg.OmciMsg.MessageType})
+
+	}
+}
+
+func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Context, msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetAllAlarmsResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "Omci Msg layer could not be detected", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.GetAllAlarmsResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "Omci Msg layer could not be assigned", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return
+	}
+	logger.Debugw(ctx, "GetAllAlarmResponse Data for:", log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
+	if am.alarmSyncFsm.pFsm.Is(asStDisabled) {
+		logger.Debugw(ctx, "alarm-sync-fsm-is-disabled-ignoring-response-message", log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
+		return
+	}
+	am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.alarmUploadNoOfCmds = msgObj.NumberOfCommands
+	if am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.alarmUploadSeqNo < am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.alarmUploadNoOfCmds {
+		// Reset Onu Alarm Sequence
+		am.onuAlarmManagerLock.Lock()
+		am.resetAlarmSequence()
+		// Get a copy of the alarm bit map db.
+		am.oltDbCopy = am.alarmBitMapDB
+		am.onuAlarmManagerLock.Unlock()
+		var count int
+		for count = 1; count <= maxRetries; count++ {
+			if err := am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetAllAlarmNext(
+				log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true); err != nil {
+				time.Sleep(time.Duration(delayRetries))
+			} else {
+				break
+			}
+		}
+		if count > maxRetries {
+			// Transition to failure
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		}
+	} else {
+		logger.Errorw(ctx, "Invalid number of commands received for:", log.Fields{"device-id": am.pDeviceHandler.deviceID,
+			"uploadNoOfCmds": am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.alarmUploadNoOfCmds})
+		go func() {
+			if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+				logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+			}
+		}()
+	}
+}
+
+func (am *onuAlarmManager) isAlarmDBDiffPresent(ctx context.Context) bool {
+	return !reflect.DeepEqual(am.onuDBCopy, am.oltDbCopy)
+}
+
+func (am *onuAlarmManager) asFsmResynchronizing(ctx context.Context, e *fsm.Event) {
+	// See if there is any onu only diff, meaning the class and entity is only in onu DB
+	for alarm := range am.onuDBCopy {
+		if _, exists := am.oltDbCopy[meInfo{
+			classID:    alarm.classID,
+			instanceID: alarm.instanceID,
+		}]; !exists {
+			// We need to raise all such alarms as OLT wont have received notification for these alarms
+			omciAlarmMessage := &omci.AlarmNotificationMsg{
+				MeBasePacket: omci.MeBasePacket{
+					EntityClass:    alarm.classID,
+					EntityInstance: alarm.instanceID,
+				},
+				AlarmBitmap: am.oltDbCopy[alarm],
+			}
+			if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
+				logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+				// Transition to failure.
+				go func() {
+					if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+						logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+					}
+				}()
+				return
+			}
+		}
+	}
+	// See if there is any olt only diff, meaning the class and entity is only in olt DB
+	for alarm := range am.oltDbCopy {
+		if _, exists := am.onuDBCopy[meInfo{
+			classID:    alarm.classID,
+			instanceID: alarm.instanceID,
+		}]; !exists {
+			// We need to clear all such alarms as OLT might have stale data and the alarms are already cleared.
+			omciAlarmMessage := &omci.AlarmNotificationMsg{
+				MeBasePacket: omci.MeBasePacket{
+					EntityClass:    alarm.classID,
+					EntityInstance: alarm.instanceID,
+				},
+				AlarmBitmap: am.oltDbCopy[alarm],
+			}
+			if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
+				logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+				// Transition to failure
+				go func() {
+					if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+						logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+					}
+				}()
+				return
+			}
+		}
+	}
+	// See if there is any attribute difference
+	for alarm := range am.onuDBCopy {
+		if _, exists := am.oltDbCopy[alarm]; exists {
+			if am.onuDBCopy[alarm] != am.oltDbCopy[alarm] {
+				omciAlarmMessage := &omci.AlarmNotificationMsg{
+					MeBasePacket: omci.MeBasePacket{
+						EntityClass:    alarm.classID,
+						EntityInstance: alarm.instanceID,
+					},
+					AlarmBitmap: am.onuDBCopy[alarm],
+				}
+				// We will assume that onudb is correct always in this case and process the changed bitmap.
+				if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
+					logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+					// Transition to failure
+					go func() {
+						if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+							logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+						}
+					}()
+					return
+				}
+			}
+		}
+	}
+	// Send the buffered notifications if no failure.
+	for _, notif := range am.bufferedNotifications {
+		if err := am.processAlarmData(ctx, notif); err != nil {
+			logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		}
+	}
+	go func() {
+		if err := am.alarmSyncFsm.pFsm.Event(asEvSuccess); err != nil {
+			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-sync", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+		}
+	}()
+}
+func (am *onuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.Context, msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetAllAlarmsNextResponse)
+
+	if msgLayer == nil {
+		logger.Errorw(ctx, "Omci Msg layer could not be detected", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.GetAllAlarmsNextResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "Omci Msg layer could not be assigned", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return
+	}
+	logger.Debugw(ctx, "GetAllAlarmsNextResponse Data for:",
+		log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
+	meClassID := msgObj.AlarmEntityClass
+	meEntityID := msgObj.AlarmEntityInstance
+	meAlarmBitMap := msgObj.AlarmBitMap
+
+	am.onuAlarmManagerLock.Lock()
+	am.onuDBCopy[meInfo{
+		classID:    meClassID,
+		instanceID: meEntityID,
+	}] = meAlarmBitMap
+	am.onuAlarmManagerLock.Unlock()
+	if am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.alarmUploadSeqNo < am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.alarmUploadNoOfCmds {
+		var count int
+		for count = 1; count <= maxRetries; count++ {
+			if err := am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetAllAlarmNext(
+				log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true); err != nil {
+				time.Sleep(time.Duration(delayRetries))
+			} else {
+				break
+			}
+
+		}
+		if count > maxRetries {
+			// Transition to failure
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		}
+	} else {
+		if am.isAlarmDBDiffPresent(ctx) {
+			// transition to resync state
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvResync); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-resynchronizing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		} else {
+			// Transition to sync state
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvSuccess); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-sync", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		}
+	}
 }
 
 // getDeviceEventData returns the event data for a device
@@ -132,15 +513,44 @@ func (am *onuAlarmManager) startOMCIAlarmMessageProcessing(ctx context.Context) 
 	if am.activeAlarms == nil {
 		am.activeAlarms = make(map[alarmInfo]struct{})
 	}
+	am.alarmBitMapDB = make(map[meInfo][alarmBitMapSizeBytes]byte)
 	am.onuAlarmManagerLock.Unlock()
+	if am.alarmSyncFsm.pFsm.Is(asStDisabled) {
+		if err := am.alarmSyncFsm.pFsm.Event(ulEvStart); err != nil {
+			logger.Errorw(ctx, "alarm-sync-fsm-can't-go-to-state-starting", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+			return
+		}
+	} else {
+		logger.Errorw(ctx, "wrong-state-of-alarm-sync-fsm-want-disabled", log.Fields{"have": string(am.alarmSyncFsm.pFsm.Current()),
+			"device-id": am.pDeviceHandler.deviceID})
+		return
+	}
+	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": string(am.alarmSyncFsm.pFsm.Current())})
+
 	if stop := <-am.stopProcessingOmciMessages; stop {
 		am.onuAlarmManagerLock.Lock()
 		am.processMessage = false
 		am.activeAlarms = nil
+		am.alarmBitMapDB = nil
 		am.onuAlarmManagerLock.Unlock()
+		_ = am.alarmSyncFsm.pFsm.Event(asEvStop)
 	}
 }
 
+func (am *onuAlarmManager) incrementAlarmSequence() {
+	//alarm sequence number wraps from 255 to 1.
+	if am.lastAlarmSequence == 255 {
+		am.lastAlarmSequence = 1
+	} else {
+		am.lastAlarmSequence++
+	}
+}
+
+func (am *onuAlarmManager) resetAlarmSequence() {
+	if am.lastAlarmSequence > 0 {
+		am.lastAlarmSequence = 0
+	}
+}
 func (am *onuAlarmManager) handleOmciAlarmNotificationMessage(ctx context.Context, msg OmciMessage) {
 	logger.Debugw(ctx, "OMCI Alarm Notification Msg", log.Fields{"device-id": am.pDeviceHandler.deviceID,
 		"msgType": msg.OmciMsg.MessageType})
@@ -184,12 +594,22 @@ func (am *onuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 		logger.Errorw(ctx, "me-class-instance-not-present", log.Fields{"class-id": classID, "instance-id": meInstance})
 		return fmt.Errorf("me-class-%d-instance-%d-not-present", classID, meInstance)
 	}
-	/*
-		if sequenceNo > 0 {
-			// TODO Need Auditing if sequence no does not matches, after incrementing the last sequence no by 1
-		}
-	*/
 
+	if sequenceNo > 0 {
+		if am.alarmSyncFsm.pFsm.Is(asStAuditing) || am.alarmSyncFsm.pFsm.Is(asStResynchronizing) {
+			am.bufferedNotifications = append(am.bufferedNotifications, msg)
+			return nil
+		}
+		am.incrementAlarmSequence()
+		if sequenceNo != am.lastAlarmSequence && auditInterval > 0 {
+			// signal early audit, if no match(if we are reaching here it means that audit is not going on currently)
+			go func() {
+				if err := am.alarmSyncFsm.pFsm.Event(asEvAudit); err != nil {
+					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
+				}
+			}()
+		}
+	}
 	entity, omciErr := me.LoadManagedEntityDefinition(classID,
 		me.ParamData{EntityID: meInstance})
 	if omciErr.StatusCode() != me.Success {
@@ -202,6 +622,10 @@ func (am *onuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 		logger.Error(ctx, "unable-to-get-managed-entity-alarm-map", log.Fields{"class-id": classID, "instance-id": meInstance})
 		return fmt.Errorf("unable-to-get-managed-entity-alarm-map-%d-instance-%d", classID, meInstance)
 	}
+	am.alarmBitMapDB[meInfo{
+		classID:    classID,
+		instanceID: meInstance,
+	}] = alarmBitmap
 	// Loop over the supported alarm list for this me
 	for alarmNo := range meAlarmMap {
 		// Check if alarmNo was previously active in the alarms, if yes clear it and remove it from active alarms
@@ -245,6 +669,7 @@ func (am *onuAlarmManager) raiseAlarm(ctx context.Context, classID me.ClassID, i
 		instanceID: instanceID,
 		alarmNo:    alarm,
 	}] = struct{}{}
+
 	go am.sendAlarm(ctx, classID, instanceID, alarm, true)
 }
 
