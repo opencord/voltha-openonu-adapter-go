@@ -453,17 +453,17 @@ func (oo *OpenONUAC) Unsuppress_event(ctx context.Context, filter *voltha.EventF
 }
 
 //Download_image requests downloading some image according to indications as given in apRequest
-func (oo *OpenONUAC) Download_image(ctx context.Context, device *voltha.Device, apRequest *voltha.ImageDownload) (*voltha.ImageDownload, error) {
-	if !oo.pDownloadManager.imageExists(ctx, apRequest) {
-		logger.Debugw(ctx, "start image download", log.Fields{"image-description": apRequest})
+func (oo *OpenONUAC) Download_image(ctx context.Context, device *voltha.Device, request *voltha.ImageDownload) (*voltha.ImageDownload, error) {
+	if !oo.pDownloadManager.imageExists(ctx, request) {
+		logger.Debugw(ctx, "start image download", log.Fields{"image-description": request})
 		// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
 		// the download itself is later done in background
-		err := oo.pDownloadManager.startDownload(ctx, apRequest)
-		return apRequest, err
+		err := oo.pDownloadManager.startDownload(ctx, request)
+		return request, err
 	}
 	// image already exists
-	logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": apRequest})
-	return apRequest, nil
+	logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": request})
+	return request, nil
 }
 
 //Get_image_download_status unimplemented
@@ -478,19 +478,19 @@ func (oo *OpenONUAC) Cancel_image_download(ctx context.Context, device *voltha.D
 
 //Activate_image_update requests downloading some Onu Software image to the INU via OMCI
 //  according to indications as given in apRequest and on success activate the image on the ONU
-func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, apRequest *voltha.ImageDownload) (*voltha.ImageDownload, error) {
-	if oo.pDownloadManager.imageLocallyDownloaded(ctx, apRequest) {
+func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, request *voltha.ImageDownload) (*voltha.ImageDownload, error) {
+	if oo.pDownloadManager.imageLocallyDownloaded(ctx, request) {
 		if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 			logger.Debugw(ctx, "image download on omci requested", log.Fields{
-				"image-description": apRequest, "device-id": device.Id})
-			err := handler.doOnuSwUpgrade(ctx, apRequest, oo.pDownloadManager)
-			return apRequest, err
+				"image-description": request, "device-id": device.Id})
+			err := handler.doOnuSwUpgrade(ctx, request, oo.pDownloadManager)
+			return request, err
 		}
 		logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": device.Id})
-		return apRequest, fmt.Errorf(fmt.Sprintf("handler-not-found - device-id: %s", device.Id))
+		return request, fmt.Errorf(fmt.Sprintf("handler-not-found - device-id: %s", device.Id))
 	}
-	logger.Debugw(ctx, "image not yet downloaded on activate request", log.Fields{"image-description": apRequest})
-	return apRequest, fmt.Errorf(fmt.Sprintf("image-not-yet-downloaded - device-id: %s", device.Id))
+	logger.Debugw(ctx, "image not yet downloaded on activate request", log.Fields{"image-description": request})
+	return request, fmt.Errorf(fmt.Sprintf("image-not-yet-downloaded - device-id: %s", device.Id))
 }
 
 //Revert_image_update unimplemented
