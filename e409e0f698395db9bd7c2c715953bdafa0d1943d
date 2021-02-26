@@ -22,6 +22,30 @@
       "revId": "e409e0f698395db9bd7c2c715953bdafa0d1943d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ecb66879_7acb9360",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 644,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-02-26T14:17:16Z",
+      "side": 1,
+      "message": "Ack - on next occasion.",
+      "parentUuid": "c33003a7_073d0966",
+      "range": {
+        "startLine": 644,
+        "startChar": 20,
+        "endLine": 644,
+        "endChar": 23
+      },
+      "revId": "e409e0f698395db9bd7c2c715953bdafa0d1943d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
