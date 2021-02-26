@@ -1,0 +1,30 @@
+diff --git a/internal/pkg/onuadaptercore/onu_uni_tp.go b/internal/pkg/onuadaptercore/onu_uni_tp.go
+index 6cbedd4..3ae7fef 100644
+--- a/internal/pkg/onuadaptercore/onu_uni_tp.go
++++ b/internal/pkg/onuadaptercore/onu_uni_tp.go
+@@ -75,7 +75,7 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceID string, aDeviceHandler *De
+ 	onuTP.techProfileKVStore = aDeviceHandler.SetBackend(cBasePathTechProfileKVStore)
+ 	if onuTP.techProfileKVStore == nil {
+ 		logger.Errorw("Can't access techProfileKVStore - no backend connection to service",
+-                              log.Fields{"deviceID": aDeviceID, "service": cBasePathTechProfileKVStore})
++			log.Fields{"deviceID": aDeviceID, "service": cBasePathTechProfileKVStore})
+ 	}
+ 	return &onuTP
+ }
+@@ -143,13 +143,13 @@ func (onuTP *OnuUniTechProf) configureUniTp(aUniID uint32, aPathString string, w
+ 	if onuTP.techProfileKVStore == nil {
+ 		logger.Debug("techProfileKVStore not set - abort")
+ 		return
+-        }
++	}
+ 
+-  	Value, err := onuTP.techProfileKVStore.Get(context.TODO(), aPathString)
++	Value, err := onuTP.techProfileKVStore.Get(context.TODO(), aPathString)
+ 	if err == nil {
+ 		if Value != nil {
+ 			logger.Debugw("tech-profile read",
+-                                      log.Fields{"Key": Value.Key, "Value": Value.Value})
++				log.Fields{"Key": Value.Key, "Value": Value.Value})
+ 			tpTmpBytes, _ := kvstore.ToByte(Value.Value)
+ 
+ 			var tpInst tp.TechProfile
