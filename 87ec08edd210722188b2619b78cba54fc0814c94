@@ -22,6 +22,30 @@
       "revId": "87ec08edd210722188b2619b78cba54fc0814c94",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bb46af3e_5f324d72",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-02-26T08:18:49Z",
+      "side": 1,
+      "message": "yes, indeed this would be a good addition. @Girish, woudl you mind submitting a patch for this and a change in the helm charts aswell ?",
+      "parentUuid": "d33eb69e_09a54fb8",
+      "range": {
+        "startLine": 48,
+        "startChar": 6,
+        "endLine": 48,
+        "endChar": 30
+      },
+      "revId": "87ec08edd210722188b2619b78cba54fc0814c94",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
