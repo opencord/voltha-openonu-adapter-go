@@ -2752,21 +2752,21 @@ func (dh *deviceHandler) updatePmConfig(ctx context.Context, pmConfigs *voltha.P
 func (dh *deviceHandler) handleGlobalPmConfigUpdates(ctx context.Context, pmConfigs *voltha.PmConfigs) []error {
 	var err error
 	var errorsList []error
-	logger.Infow(ctx, "handling-global-pm-config-params", log.Fields{"device-id": dh.device.Id})
+	logger.Infow(ctx, "handling-global-pm-config-params - start", log.Fields{"device-id": dh.device.Id})
 
 	if pmConfigs.DefaultFreq != dh.pmConfigs.DefaultFreq {
 		if err = dh.pOnuMetricsMgr.updateDefaultFrequency(ctx, pmConfigs); err != nil {
 			errorsList = append(errorsList, err)
 		}
 	}
-
+	logger.Infow(ctx, "handling-global-pm-config-params - done", log.Fields{"device-id": dh.device.Id})
 	return errorsList
 }
 
 func (dh *deviceHandler) handleGroupPmConfigUpdates(ctx context.Context, pmConfigs *voltha.PmConfigs) []error {
 	var err error
 	var errorsList []error
-	logger.Debugw(ctx, "handling-group-pm-config-params", log.Fields{"device-id": dh.device.Id})
+	logger.Debugw(ctx, "handling-group-pm-config-params - start", log.Fields{"device-id": dh.device.Id})
 	// Check if group metric related config is updated
 	for _, v := range pmConfigs.Groups {
 		dh.pOnuMetricsMgr.onuMetricsManagerLock.RLock()
@@ -2784,13 +2784,14 @@ func (dh *deviceHandler) handleGroupPmConfigUpdates(ctx context.Context, pmConfi
 			}
 		}
 	}
+	logger.Debugw(ctx, "handling-group-pm-config-params - done", log.Fields{"device-id": dh.device.Id})
 	return errorsList
 }
 
 func (dh *deviceHandler) handleStandalonePmConfigUpdates(ctx context.Context, pmConfigs *voltha.PmConfigs) []error {
 	var err error
 	var errorsList []error
-	logger.Debugw(ctx, "handling-individual-pm-config-params", log.Fields{"device-id": dh.device.Id})
+	logger.Debugw(ctx, "handling-individual-pm-config-params - start", log.Fields{"device-id": dh.device.Id})
 	// Check if standalone metric related config is updated
 	for _, v := range pmConfigs.Metrics {
 		dh.pOnuMetricsMgr.onuMetricsManagerLock.RLock()
@@ -2808,6 +2809,7 @@ func (dh *deviceHandler) handleStandalonePmConfigUpdates(ctx context.Context, pm
 			}
 		}
 	}
+	logger.Debugw(ctx, "handling-individual-pm-config-params - done", log.Fields{"device-id": dh.device.Id})
 	return errorsList
 }
 
