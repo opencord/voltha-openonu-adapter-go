@@ -87,18 +87,19 @@ const (
 
 const (
 	// events of config UNI port VLAN FSM
-	vlanEvStart           = "vlanEvStart"
-	vlanEvWaitTechProf    = "vlanEvWaitTechProf"
-	vlanEvContinueConfig  = "vlanEvContinueConfig"
-	vlanEvStartConfig     = "vlanEvStartConfig"
-	vlanEvRxConfigVtfd    = "vlanEvRxConfigVtfd"
-	vlanEvRxConfigEvtocd  = "vlanEvRxConfigEvtocd"
-	vlanEvWaitTPIncr      = "vlanEvWaitTPIncr"
-	vlanEvIncrFlowConfig  = "vlanEvIncrFlowConfig"
-	vlanEvRenew           = "vlanEvRenew"
-	vlanEvRemFlowConfig   = "vlanEvRemFlowConfig"
-	vlanEvRemFlowDone     = "vlanEvRemFlowDone"
-	vlanEvFlowDataRemoved = "vlanEvFlowDataRemoved"
+	vlanEvStart                   = "vlanEvStart"
+	vlanEvWaitTechProf            = "vlanEvWaitTechProf"
+	vlanEvCancelOutstandingConfig = "vlanEvCancelOutstandingConfig"
+	vlanEvContinueConfig          = "vlanEvContinueConfig"
+	vlanEvStartConfig             = "vlanEvStartConfig"
+	vlanEvRxConfigVtfd            = "vlanEvRxConfigVtfd"
+	vlanEvRxConfigEvtocd          = "vlanEvRxConfigEvtocd"
+	vlanEvWaitTPIncr              = "vlanEvWaitTPIncr"
+	vlanEvIncrFlowConfig          = "vlanEvIncrFlowConfig"
+	vlanEvRenew                   = "vlanEvRenew"
+	vlanEvRemFlowConfig           = "vlanEvRemFlowConfig"
+	vlanEvRemFlowDone             = "vlanEvRemFlowDone"
+	vlanEvFlowDataRemoved         = "vlanEvFlowDataRemoved"
 	//vlanEvTimeoutSimple  = "vlanEvTimeoutSimple"
 	//vlanEvTimeoutMids    = "vlanEvTimeoutMids"
 	vlanEvReset   = "vlanEvReset"
@@ -204,6 +205,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler *deviceHandler, ap
 		fsm.Events{
 			{Name: vlanEvStart, Src: []string{vlanStDisabled}, Dst: vlanStStarting},
 			{Name: vlanEvWaitTechProf, Src: []string{vlanStStarting}, Dst: vlanStWaitingTechProf},
+			{Name: vlanEvCancelOutstandingConfig, Src: []string{vlanStWaitingTechProf}, Dst: vlanStConfigDone},
 			{Name: vlanEvContinueConfig, Src: []string{vlanStWaitingTechProf}, Dst: vlanStConfigVtfd},
 			{Name: vlanEvStartConfig, Src: []string{vlanStStarting}, Dst: vlanStConfigVtfd},
 			{Name: vlanEvRxConfigVtfd, Src: []string{vlanStConfigVtfd}, Dst: vlanStConfigEvtocd},
@@ -632,15 +634,27 @@ remove_loop:
 				kvStoreWrite := false //default setting is to not write to kvStore immediately - will be done on FSM execution finally
 				//remove the cookie from the cookie slice and verify it is getting empty
 				if len(storedUniFlowParams.CookieSlice) == 1 {
+					pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
+					var cancelPendingConfig bool = false
+					var loRemoveParams uniRemoveVlanFlowParams = uniRemoveVlanFlowParams{}
 					logger.Debugw(ctx, "UniVlanConfigFsm flow removal - full flow removal", log.Fields{
 						"device-id": oFsm.deviceID})
-
-					//create a new element for the removeVlanFlow slice
-					loRemoveParams := uniRemoveVlanFlowParams{
-						vlanRuleParams: storedUniFlowParams.VlanRuleParams,
-						cookie:         aCookie,
+					//rwCore flow recovery may be the reson for this delete, in which case the flowToBeDeleted may be the same
+					//  as the one still waiting in the FSM as toAdd but waiting for TechProfileConfig
+					//  so we have to to check that here in in this case have to abort the outstanding AddRequest and regard the current DelRequest as done
+					//  if the Fsm is in some other transient (config) state, we will reach the DelRequest later and correctly process it then
+					if pConfigVlanStateBaseFsm.Is(vlanStWaitingTechProf) {
+						logger.Debugw(ctx, "UniVlanConfigFsm was waiting for TechProf config with this rule, aborting the outstanding config",
+							log.Fields{"device-id": oFsm.deviceID})
+						cancelPendingConfig = true
+					} else {
+						//create a new element for the removeVlanFlow slice
+						loRemoveParams = uniRemoveVlanFlowParams{
+							vlanRuleParams: storedUniFlowParams.VlanRuleParams,
+							cookie:         aCookie,
+						}
+						oFsm.uniRemoveFlowsSlice = append(oFsm.uniRemoveFlowsSlice, loRemoveParams)
 					}
-					oFsm.uniRemoveFlowsSlice = append(oFsm.uniRemoveFlowsSlice, loRemoveParams)
 
 					//and remove the actual element from the addVlanFlow slice
 					// oFsm.uniVlanFlowParamsSlice[flow].CookieSlice = nil //automatically done by garbage collector
@@ -649,8 +663,10 @@ remove_loop:
 						oFsm.configuredUniFlow = 0        //no more flows configured
 						oFsm.uniVlanFlowParamsSlice = nil //reset the slice
 						//at this point it is evident that no flow anymore refers to a still possibly active Techprofile
-						//request that this profile gets deleted before a new flow add is allowed
-						oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, loRemoveParams.vlanRuleParams.TpID, true)
+						//request that this profile gets deleted before a new flow add is allowed (except for some aborted add)
+						if !cancelPendingConfig {
+							oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, loRemoveParams.vlanRuleParams.TpID, true)
+						}
 						logger.Debugw(ctx, "UniVlanConfigFsm flow removal - no more flows", log.Fields{
 							"device-id": oFsm.deviceID})
 					} else {
@@ -667,24 +683,32 @@ remove_loop:
 						//here we have to check, if there are still other flows referencing to the actual ProfileId
 						//  before we can request that this profile gets deleted before a new flow add is allowed
 						//  (needed to extract to function due to lint complexity)
-						oFsm.updateTechProfileToDelete(ctx, usedTpID)
+						if !cancelPendingConfig {
+							oFsm.updateTechProfileToDelete(ctx, usedTpID)
+						}
 						logger.Debugw(ctx, "UniVlanConfigFsm flow removal - specific flow removed from data", log.Fields{
 							"device-id": oFsm.deviceID})
 					}
 					//trigger the FSM to remove the relevant rule
-					pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
-					if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
-						logger.Debugw(ctx, "UniVlanConfigFsm rule removal request", log.Fields{
-							"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
-							"tp-id":    loRemoveParams.vlanRuleParams.TpID,
-							"set-Vlan": loRemoveParams.vlanRuleParams.SetVid})
-						//have to re-trigger the FSM to proceed with outstanding incremental flow configuration
-						// Can't call FSM Event directly, decoupling it
+					if cancelPendingConfig {
+						oFsm.requestEventOffset = uint8(cDeviceEventOffsetRemoveWithKvStore) //offset for last flow-remove activity (with kvStore request)
 						go func(a_pBaseFsm *fsm.FSM) {
-							_ = a_pBaseFsm.Event(vlanEvRemFlowConfig)
+							_ = a_pBaseFsm.Event(vlanEvCancelOutstandingConfig)
 						}(pConfigVlanStateBaseFsm)
-					} // if not in the appropriate state a new entry will be automatically considered later
-					//   when the configDone state is reached
+					} else {
+						if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
+							logger.Debugw(ctx, "UniVlanConfigFsm rule removal request", log.Fields{
+								"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
+								"tp-id":    loRemoveParams.vlanRuleParams.TpID,
+								"set-Vlan": loRemoveParams.vlanRuleParams.SetVid})
+							//have to re-trigger the FSM to proceed with outstanding incremental flow configuration
+							// Can't call FSM Event directly, decoupling it
+							go func(a_pBaseFsm *fsm.FSM) {
+								_ = a_pBaseFsm.Event(vlanEvRemFlowConfig)
+							}(pConfigVlanStateBaseFsm)
+						} // if not in the appropriate state a new entry will be automatically considered later
+						//   when the configDone state is reached
+					}
 				} else {
 					//cut off the requested cookie by slicing out this element
 					oFsm.uniVlanFlowParamsSlice[flow].CookieSlice = append(
@@ -788,7 +812,6 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 		//access to uniVlanFlowParamsSlice is done on first element only here per definition
 		//store the actual rule that shall be worked upon in the following transient states
 		oFsm.actualUniVlanConfigRule = oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams
-		oFsm.mutexFlowParams.Unlock()
 		tpID := oFsm.actualUniVlanConfigRule.TpID
 		oFsm.TpIDWaitingFor = tpID
 		loTechProfDone := oFsm.pUniTechProf.getTechProfileDone(ctx, oFsm.pOnuUniPort.uniID, uint8(tpID))
@@ -797,6 +820,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 			"set-Vlan": oFsm.actualUniVlanConfigRule.SetVid, "tp-id": tpID, "ProfDone": loTechProfDone})
 		//cmp also usage in EVTOCDE create in omci_cc
 		oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
+		oFsm.mutexFlowParams.Unlock()
 		// Can't call FSM Event directly, decoupling it
 		go func(aPAFsm *AdapterFsm, aTechProfDone bool) {
 			if aPAFsm != nil && aPAFsm.pFsm != nil {
