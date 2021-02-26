@@ -172,6 +172,7 @@ const (
 	L2PmCollectionInterval = 15 * 60 // Unit in seconds. Do not change this as this fixed by OMCI specification for L2 PM counters
 	SyncTimeRetryInterval  = 15      // Unit seconds
 	L2PmCreateAttempts     = 3
+	L2PmDeleteAttempts     = 3
 	L2PmCollectAttempts    = 3
 	// Per Table 11.2.9-1 – OMCI baseline message limitations in G.988 spec, the max GET Response
 	// payload size is 25. We define 24 (one less) to allow for dynamic insertion of IntervalEndTime
@@ -221,6 +222,7 @@ type groupMetric struct {
 	isL2PMCounter          bool      // true for only L2 PM counters
 	collectAttempts        uint32    // number of attempts to collect L2 PM data
 	createRetryAttempts    uint32    // number of attempts to try creating the L2 PM ME
+	deleteRetryAttempts    uint32    // number of attempts to try deleting the L2 PM ME
 }
 
 type standaloneMetric struct {
@@ -372,6 +374,7 @@ func (mm *onuMetricsManager) updateGroupFreq(ctx context.Context, aGroupName str
 			v.nextCollectionInterval = time.Now().Add(time.Duration(newGroupFreq) * time.Second)
 			updated = true
 			logger.Infow(ctx, "group frequency updated", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "newGroupFreq": newGroupFreq, "groupName": aGroupName})
+			break
 		}
 	}
 	if !updated {
@@ -415,6 +418,7 @@ func (mm *onuMetricsManager) updateMetricFreq(ctx context.Context, aMetricName s
 			v.nextCollectionInterval = time.Now().Add(time.Duration(newMetricFreq) * time.Second)
 			updated = true
 			logger.Infow(ctx, "metric frequency updated", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "newMetricFreq": newMetricFreq, "aMetricName": aMetricName})
+			break
 		}
 	}
 	if !updated {
@@ -456,7 +460,7 @@ func (mm *onuMetricsManager) updateGroupSupport(ctx context.Context, aGroupName 
 					// unlike other L2 PM counters. We need to fetch the active gemport instance IDs in the system to
 					// take further action
 					if v.groupName == GemPortHistoryName {
-						mm.updateGemPortNTPInstanceToAddForPerfMonitoring()
+						mm.updateGemPortNTPInstanceToAddForPerfMonitoring(ctx)
 					}
 				} else if mm.pDeviceHandler.pmConfigs.FreqOverride { // otherwise just update the next collection interval
 					v.nextCollectionInterval = time.Now().Add(time.Duration(v.frequency) * time.Second)
@@ -472,7 +476,7 @@ func (mm *onuMetricsManager) updateGroupSupport(ctx context.Context, aGroupName 
 					// unlike other L2 PM counters. We need to fetch the active gemport instance IDs in the system to
 					// take further action
 					if v.groupName == GemPortHistoryName {
-						mm.updateGemPortNTPInstanceToDeleteForPerfMonitoring()
+						mm.updateGemPortNTPInstanceToDeleteForPerfMonitoring(ctx)
 					}
 				}
 			}
@@ -522,6 +526,7 @@ func (mm *onuMetricsManager) updateMetricSupport(ctx context.Context, aMetricNam
 			}
 			updated = true
 			logger.Infow(ctx, "standalone metric support updated", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": aMetricName, "enabled": metric.Enabled})
+			break
 		}
 	}
 	if !updated {
@@ -631,7 +636,7 @@ loop:
 			case meAttributes = <-mm.opticalMetricsChan:
 				logger.Debugw(ctx, "received optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 			case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
-				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics will be empty in this case
 				break loop
 			}
@@ -1286,6 +1291,7 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 			if mm.groupMetricMap[n].createRetryAttempts > L2PmCreateAttempts {
 				logger.Debugw(ctx, "exceeded-max-add-retry-attempts--disabling-group", log.Fields{"groupName": n})
 				mm.groupMetricMap[n].enabled = false
+				mm.groupMetricMap[n].createRetryAttempts = 0 // reset counter
 				mm.l2PmToAdd = mm.removeIfFoundString(mm.l2PmToAdd, n)
 
 			}
@@ -1388,8 +1394,19 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 			mm.onuMetricsManagerLock.Unlock()
 		} else {
 			logger.Warnw(ctx, "state delete pm - failed to delete pm",
-				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": n})
-			// Nothing we can do about this.
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": n,
+					"deleteRetryAttempts": mm.groupMetricMap[n].deleteRetryAttempts,
+					"active-l2-pms":       mm.activeL2Pms, "pms-to-delete": mm.l2PmToDelete})
+			// If deleteRetryAttempts exceeds L2PmDeleteAttempts then just give up
+			mm.onuMetricsManagerLock.Lock()
+			mm.groupMetricMap[n].deleteRetryAttempts++
+			if mm.groupMetricMap[n].deleteRetryAttempts > L2PmDeleteAttempts {
+				logger.Debugw(ctx, "exceeded-max-delete-retry-attempts--disabling-group", log.Fields{"groupName": n})
+				mm.activeL2Pms = mm.removeIfFoundString(mm.activeL2Pms, n)
+				mm.l2PmToDelete = mm.removeIfFoundString(mm.l2PmToDelete, n)
+				mm.groupMetricMap[n].deleteRetryAttempts = 0 // reset counter
+			}
+			mm.onuMetricsManagerLock.Unlock()
 		}
 	}
 	logger.Debugw(ctx, "state delete pm - done", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "active-l2-pms": mm.activeL2Pms, "pms-to-delete": mm.l2PmToDelete})
@@ -2052,11 +2069,11 @@ func (mm *onuMetricsManager) waitForResponseOrTimeout(ctx context.Context, creat
 	logger.Debugw(ctx, "waitForResponseOrTimeout", log.Fields{"create": create, "instID": instID, "meClassName": meClassName})
 	select {
 	case resp := <-mm.l2PmCreateOrDeleteResponseChan:
-		logger.Debugw(ctx, "received create l2 pm me response",
+		logger.Debugw(ctx, "received l2 pm me response",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "create": create, "meClassName": meClassName, "instID": instID})
 		return resp
 	case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
-		logger.Errorw(ctx, "timeout waiting for create l2 pm me response",
+		logger.Errorw(ctx, "timeout waiting for l2 pm me response",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": false, "create": create, "meClassName": meClassName, "instID": instID})
 	}
 	return false
@@ -2222,31 +2239,33 @@ func (mm *onuMetricsManager) RemoveGemPortForPerfMonitoring(gemPortNTPInstID uin
 	// gemPortNCTPPerfHistInstToAdd slice
 }
 
-func (mm *onuMetricsManager) updateGemPortNTPInstanceToAddForPerfMonitoring() {
+func (mm *onuMetricsManager) updateGemPortNTPInstanceToAddForPerfMonitoring(ctx context.Context) {
 	if mm.pDeviceHandler.pOnuTP != nil {
 		gemPortInstIDs := mm.pDeviceHandler.pOnuTP.GetAllBidirectionalGemPortIDsForOnu()
-		mm.onuMetricsManagerLock.Lock()
-		defer mm.onuMetricsManagerLock.Unlock()
+		// NOTE: It is expected that caller of this function has acquired the required mutex for synchronization purposes
 		for _, v := range gemPortInstIDs {
 			// mark the instance for addition
 			mm.gemPortNCTPPerfHistInstToAdd = mm.appendIfMissingUnt16(mm.gemPortNCTPPerfHistInstToAdd, v)
 			// If the instance presence toggles too soon, we need to remove it from gemPortNCTPPerfHistInstToDelete slice
 			mm.gemPortNCTPPerfHistInstToDelete = mm.removeIfFoundUint16(mm.gemPortNCTPPerfHistInstToDelete, v)
 		}
+		logger.Debugw(ctx, "updateGemPortNTPInstanceToAddForPerfMonitoring",
+			log.Fields{"deviceID": mm.pDeviceHandler.deviceID, "gemToAdd": mm.gemPortNCTPPerfHistInstToAdd, "gemToDel": mm.gemPortNCTPPerfHistInstToDelete})
 	}
 }
 
-func (mm *onuMetricsManager) updateGemPortNTPInstanceToDeleteForPerfMonitoring() {
+func (mm *onuMetricsManager) updateGemPortNTPInstanceToDeleteForPerfMonitoring(ctx context.Context) {
 	if mm.pDeviceHandler.pOnuTP != nil {
 		gemPortInstIDs := mm.pDeviceHandler.pOnuTP.GetAllBidirectionalGemPortIDsForOnu()
-		mm.onuMetricsManagerLock.Lock()
-		defer mm.onuMetricsManagerLock.Unlock()
+		// NOTE: It is expected that caller of this function has acquired the required mutex for synchronization purposes
 		for _, v := range gemPortInstIDs {
 			mm.gemPortNCTPPerfHistInstToDelete = mm.appendIfMissingUnt16(mm.gemPortNCTPPerfHistInstToDelete, v)
 			// If the instance presence toggles too soon, we need to remove it from gemPortNCTPPerfHistInstToAdd slice
 			mm.gemPortNCTPPerfHistInstToAdd = mm.removeIfFoundUint16(mm.gemPortNCTPPerfHistInstToAdd, v)
 		}
 	}
+	logger.Debugw(ctx, "updateGemPortNTPInstanceToDeleteForPerfMonitoring",
+		log.Fields{"deviceID": mm.pDeviceHandler.deviceID, "gemToAdd": mm.gemPortNCTPPerfHistInstToAdd, "gemToDel": mm.gemPortNCTPPerfHistInstToDelete})
 }
 
 func (mm *onuMetricsManager) appendIfMissingString(slice []string, n string) []string {
