@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c33003a7_073d0966",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 644,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-26T13:55:42Z",
+      "side": 1,
+      "message": "Please check the comment.",
+      "range": {
+        "startLine": 644,
+        "startChar": 20,
+        "endLine": 644,
+        "endChar": 23
+      },
+      "revId": "e409e0f698395db9bd7c2c715953bdafa0d1943d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
