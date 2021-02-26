@@ -46,6 +46,30 @@
       "revId": "87ec08edd210722188b2619b78cba54fc0814c94",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6fbcd8bd_2b3bb6a9",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-02-26T21:16:04Z",
+      "side": 1,
+      "message": "I created VOL-3881 to work on this change given the change/impact is at multiple places. I prefer this patch merged for now while I work on a new patch.",
+      "parentUuid": "bb46af3e_5f324d72",
+      "range": {
+        "startLine": 48,
+        "startChar": 6,
+        "endLine": 48,
+        "endChar": 30
+      },
+      "revId": "87ec08edd210722188b2619b78cba54fc0814c94",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
