@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d33eb69e_09a54fb8",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-02-26T07:28:28Z",
+      "side": 1,
+      "message": "@All: Shouldn\u0027t we make this to be configurable?\nWhen I tested with voltha-stack located at my notebook in GER and OLT/ONUs located in the US, I needed the higher timeout.",
+      "range": {
+        "startLine": 48,
+        "startChar": 6,
+        "endLine": 48,
+        "endChar": 30
+      },
+      "revId": "87ec08edd210722188b2619b78cba54fc0814c94",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
