@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c7f042f0_a36c9492",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1238,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-01T08:55:18Z",
+      "side": 1,
+      "message": "misleading (partly copied) comment compare line 1224",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "576b1a19_19fe6e02",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1251,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-01T08:55:18Z",
+      "side": 1,
+      "message": "wrong comment",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fc480c46_dd091fdd",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1295,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-01T08:55:18Z",
+      "side": 1,
+      "message": "So the intention here is: If the creation of one instance within th group fails, then the complete group is removed (not added) from (to) the PM supervision? Might be acceptable for error treatment, but would not be directly my expectation.",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4634053b_bb2874f5",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1348,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-01T08:55:18Z",
+      "side": 1,
+      "message": "misleading (partly copied) comment compare line 1334",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "373100b1_c3d04ac4",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1361,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-01T08:55:18Z",
+      "side": 1,
+      "message": "wrong comment",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e6ab332_80f840a1",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1406,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-01T08:55:18Z",
+      "side": 1,
+      "message": "Also here a bit simplified error treatment: If deletion on one instance of the PmData fails, the complete group is removed from the DeleteRequest - leaving possible other instances activ on the ONU?",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
