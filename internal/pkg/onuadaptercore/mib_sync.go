@@ -103,7 +103,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"IsActive": 0, "Version": ""}
+	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -112,7 +112,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 
 func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"IsActive": 0, "Version": ""}
+	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, ConstDefaultOmciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -130,10 +130,11 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 
 func (oo *OnuDeviceEntry) enterGettingMibTemplate(ctx context.Context, e *fsm.Event) {
 
-	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
-		if oo.swImages[i].isActive > 0 {
-			oo.activeSwVersion = oo.swImages[i].version
-		}
+	if oo.onuSwImageIndications.activeEntityEntry.valid {
+		oo.activeSwVersion = oo.onuSwImageIndications.activeEntityEntry.version
+	} else {
+		logger.Errorw(ctx, "get-mib-template: no active SW version found, working with empty SW version, which might be untrustworthy",
+			log.Fields{"device-id": oo.deviceID})
 	}
 
 	meStoredFromTemplate := false
@@ -477,22 +478,15 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetFirstSwVersion)
 				return nil
 			case "SoftwareImage":
-				if entityID <= secondSwImageMeID {
-					oo.swImages[entityID].version = trimStringFromInterface(meAttributes["Version"])
-					oo.swImages[entityID].isActive = meAttributes["IsActive"].(uint8)
-					logger.Debugw(ctx, "MibSync FSM - GetResponse Data for SoftwareImage - Version/IsActive",
-						log.Fields{"device-id": oo.deviceID, "entityID": entityID,
-							"version": oo.swImages[entityID].version, "isActive": oo.swImages[entityID].isActive})
-				} else {
-					err = fmt.Errorf("mibSync FSM - Failed to GetResponse Data for SoftwareImage: %s", oo.deviceID)
+				if entityID > secondSwImageMeID {
+					logger.Errorw(ctx, "mibSync FSM - Failed to GetResponse Data for SoftwareImage with expected EntityId",
+						log.Fields{"device-id": oo.deviceID, "entity-ID": entityID})
+					return fmt.Errorf("mibSync FSM - SwResponse Data with unexpected EntityId: %s %x",
+						oo.deviceID, entityID)
 				}
-				if firstSwImageMeID == entityID {
-					_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
-					return nil
-				} else if secondSwImageMeID == entityID {
-					_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMacAddress)
-					return nil
-				}
+				// need to use function for go lint complexity
+				oo.handleSwImageIndications(ctx, entityID, meAttributes)
+				return nil
 			case "IpHostConfigData":
 				macBytes, _ := me.InterfaceToOctets(meAttributes["MacAddress"])
 				if omciMacAddressLen == len(macBytes) {
@@ -521,6 +515,67 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 	logger.Info(ctx, "MibSync Msg", log.Fields{"Stopped handling of MibSyncChan for device-id": oo.deviceID})
 	_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 	return err
+}
+
+func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) {
+	imageIsCommitted := meAttributes["IsCommitted"].(uint8)
+	imageIsActive := meAttributes["IsActive"].(uint8)
+	imageVersion := trimStringFromInterface(meAttributes["Version"])
+	logger.Infow(ctx, "MibSync FSM - GetResponse Data for SoftwareImage",
+		log.Fields{"device-id": oo.deviceID, "entityID": entityID,
+			"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted, "SNR": oo.serialNumber})
+	if firstSwImageMeID == entityID {
+		//always accept the state of the first image (2nd image info should not yet be available)
+		if imageIsActive == swIsActive {
+			oo.onuSwImageIndications.activeEntityEntry.entityID = entityID
+			oo.onuSwImageIndications.activeEntityEntry.valid = true
+			oo.onuSwImageIndications.activeEntityEntry.version = imageVersion
+			oo.onuSwImageIndications.activeEntityEntry.isCommitted = imageIsCommitted
+		} else {
+			oo.onuSwImageIndications.inactiveEntityEntry.entityID = entityID
+			oo.onuSwImageIndications.inactiveEntityEntry.valid = true
+			oo.onuSwImageIndications.inactiveEntityEntry.version = imageVersion
+			oo.onuSwImageIndications.inactiveEntityEntry.isCommitted = imageIsCommitted
+		}
+		_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
+		return
+	} else if secondSwImageMeID == entityID {
+		//2nd image info might conflict with first image info, in which case we priorize first image info!
+		if imageIsActive == swIsActive { //2nd image reported to be active
+			if oo.onuSwImageIndications.activeEntityEntry.valid {
+				//conflict exists - state of first image is left active
+				logger.Warnw(ctx, "mibSync FSM - both ONU images are reported as active - assuming 2nd to be inactive",
+					log.Fields{"device-id": oo.deviceID})
+				oo.onuSwImageIndications.inactiveEntityEntry.entityID = entityID
+				oo.onuSwImageIndications.inactiveEntityEntry.valid = true ////to indicate that at least something has been reported
+				oo.onuSwImageIndications.inactiveEntityEntry.version = imageVersion
+				oo.onuSwImageIndications.inactiveEntityEntry.isCommitted = imageIsCommitted
+			} else { //first image inactive, this one active
+				oo.onuSwImageIndications.activeEntityEntry.entityID = entityID
+				oo.onuSwImageIndications.activeEntityEntry.valid = true
+				oo.onuSwImageIndications.activeEntityEntry.version = imageVersion
+				oo.onuSwImageIndications.activeEntityEntry.isCommitted = imageIsCommitted
+			}
+		} else { //2nd image reported to be inactive
+			if oo.onuSwImageIndications.inactiveEntityEntry.valid {
+				//conflict exists - both images inactive - regard it as ONU failure and assume first image to be active
+				logger.Warnw(ctx, "mibSync FSM - both ONU images are reported as inactive, defining first to be active",
+					log.Fields{"device-id": oo.deviceID})
+				oo.onuSwImageIndications.activeEntityEntry.entityID = firstSwImageMeID
+				oo.onuSwImageIndications.activeEntityEntry.valid = true //to indicate that at least something has been reported
+				//copy active commit/version from the previously stored inactive position
+				oo.onuSwImageIndications.activeEntityEntry.version = oo.onuSwImageIndications.inactiveEntityEntry.version
+				oo.onuSwImageIndications.activeEntityEntry.isCommitted = oo.onuSwImageIndications.inactiveEntityEntry.isCommitted
+			}
+			//in any case we indicate (and possibly overwrite) the second image indications as inactive
+			oo.onuSwImageIndications.inactiveEntityEntry.entityID = entityID
+			oo.onuSwImageIndications.inactiveEntityEntry.valid = true
+			oo.onuSwImageIndications.inactiveEntityEntry.version = imageVersion
+			oo.onuSwImageIndications.inactiveEntityEntry.isCommitted = imageIsCommitted
+		}
+		_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMacAddress)
+		return
+	}
 }
 
 func (oo *OnuDeviceEntry) handleOmciMessage(ctx context.Context, msg OmciMessage) {
@@ -717,4 +772,32 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 	} else {
 		logger.Warnw(ctx, "wrong state for MDS evaluation!", log.Fields{"state": oo.pMibUploadFsm.pFsm.Current(), "device-id": oo.deviceID})
 	}
+}
+
+//GetActiveImageMeID returns the Omci MeId of the active ONU image together with error code for validity
+func (oo *OnuDeviceEntry) GetActiveImageMeID(ctx context.Context) (uint16, error) {
+	if oo.onuSwImageIndications.activeEntityEntry.valid {
+		return oo.onuSwImageIndications.activeEntityEntry.entityID, nil
+	}
+	return 0xFFFF, fmt.Errorf("no valid active image found: %s", oo.deviceID)
+}
+
+//GetInactiveImageMeID returns the Omci MeId of the inactive ONU image together with error code for validity
+func (oo *OnuDeviceEntry) GetInactiveImageMeID(ctx context.Context) (uint16, error) {
+	if oo.onuSwImageIndications.inactiveEntityEntry.valid {
+		return oo.onuSwImageIndications.inactiveEntityEntry.entityID, nil
+	}
+	return 0xFFFF, fmt.Errorf("no valid inactive image found: %s", oo.deviceID)
+}
+
+//IsImageToBeCommitted returns true if the active image is still uncommitted
+func (oo *OnuDeviceEntry) IsImageToBeCommitted(ctx context.Context, aImageID uint16) bool {
+	if oo.onuSwImageIndications.activeEntityEntry.valid {
+		if oo.onuSwImageIndications.activeEntityEntry.entityID == aImageID {
+			if oo.onuSwImageIndications.activeEntityEntry.isCommitted == swIsUncommitted {
+				return true
+			}
+		}
+	}
+	return false //all other case are treated as 'nothing to commit
 }
