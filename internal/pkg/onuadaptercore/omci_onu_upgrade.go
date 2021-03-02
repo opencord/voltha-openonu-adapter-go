@@ -54,6 +54,7 @@ const (
 	upgradeEvRequestActivate    = "upgradeEvRequestActivate"
 	upgradeEvWaitForCommit      = "upgradeEvWaitForCommit"
 	upgradeEvCommitSw           = "upgradeEvCommitSw"
+	upgradeEvCheckCommitted     = "upgradeEvCheckCommitted"
 
 	//upgradeEvTimeoutSimple  = "upgradeEvTimeoutSimple"
 	//upgradeEvTimeoutMids    = "upgradeEvTimeoutMids"
@@ -73,6 +74,7 @@ const (
 	upgradeStRequestingActivate = "upgradeStRequestingActivate"
 	upgradeStWaitForCommit      = "upgradeStWaitForCommit"
 	upgradeStCommitSw           = "upgradeStCommitSw"
+	upgradeStCheckCommitted     = "upgradeStCheckCommitted"
 	upgradeStResetting          = "upgradeStResetting"
 )
 
@@ -84,6 +86,7 @@ type OnuUpgradeFsm struct {
 	pDeviceHandler   *deviceHandler
 	pDownloadManager *adapterDownloadManager
 	deviceID         string
+	pOnuOmciDevice   *OnuDeviceEntry
 	pOmciCC          *omciCC
 	pOnuDB           *onuDeviceDB
 	requestEvent     OnuDeviceEvent
@@ -93,7 +96,8 @@ type OnuUpgradeFsm struct {
 	imageBuffer                       []byte
 	origImageLength                   uint32        //as also limited by OMCI
 	imageLength                       uint32        //including last bytes padding
-	omciDownloadWindowSizeLimit       uint8         //windowSize-1
+	omciDownloadWindowSizeLimit       uint8         //windowSize-1 in sections
+	omciDownloadWindowSizeLast        uint8         //number of sections in last window
 	noOfSections                      uint32        //uint32 range for sections should be sufficient for very long images
 	nextDownloadSectionsAbsolute      uint32        //number of next section to download in overall image
 	nextDownloadSectionsWindow        uint8         //number of next section to download within current window
@@ -102,17 +106,19 @@ type OnuUpgradeFsm struct {
 	inactiveImageMeID                 uint16        //ME-ID of the inactive image
 	omciSectionInterleaveMilliseconds time.Duration //DownloadSectionInterleave delay in milliseconds
 	delayEndSwDl                      bool          //flag to provide a delay between last section and EndSwDl
+	pLastTxMeInstance                 *me.ManagedEntity
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
 //  of ONU UNI ports via OMCI
 func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
-	apDevOmciCC *omciCC, apOnuDB *onuDeviceDB,
+	apDevEntry *OnuDeviceEntry, apOnuDB *onuDeviceDB,
 	aRequestEvent OnuDeviceEvent, aName string, aCommChannel chan Message) *OnuUpgradeFsm {
 	instFsm := &OnuUpgradeFsm{
 		pDeviceHandler:                    apDeviceHandler,
 		deviceID:                          apDeviceHandler.deviceID,
-		pOmciCC:                           apDevOmciCC,
+		pOnuOmciDevice:                    apDevEntry,
+		pOmciCC:                           apDevEntry.PDevOmciCC,
 		pOnuDB:                            apOnuDB,
 		requestEvent:                      aRequestEvent,
 		omciDownloadWindowSizeLimit:       cOmciDownloadWindowSizeLimit,
@@ -138,6 +144,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			{Name: upgradeEvWaitForCommit, Src: []string{upgradeStRequestingActivate}, Dst: upgradeStWaitForCommit},
 			{Name: upgradeEvCommitSw, Src: []string{upgradeStStarting, upgradeStWaitForCommit},
 				Dst: upgradeStCommitSw},
+			{Name: upgradeEvCheckCommitted, Src: []string{upgradeStCommitSw}, Dst: upgradeStCheckCommitted},
 
 			/*
 				{Name: upgradeEvTimeoutSimple, Src: []string{
@@ -148,11 +155,11 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			// exceptional treatments
 			{Name: upgradeEvReset, Src: []string{upgradeStStarting, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStRequestingActivate,
-				upgradeStCommitSw}, //upgradeStWaitForCommit is not reset (later perhaps also not upgradeStWaitActivate)
+				upgradeStCommitSw, upgradeStCheckCommitted}, //upgradeStWaitForCommit is not reset (later perhaps also not upgradeStWaitActivate)
 				Dst: upgradeStResetting},
 			{Name: upgradeEvAbort, Src: []string{upgradeStStarting, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStRequestingActivate,
-				upgradeStWaitForCommit, upgradeStCommitSw},
+				upgradeStWaitForCommit, upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
 			{Name: upgradeEvRestart, Src: []string{upgradeStResetting}, Dst: upgradeStDisabled},
 		},
@@ -165,6 +172,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			"enter_" + upgradeStFinalizeDL:         func(e *fsm.Event) { instFsm.enterFinalizeDL(ctx, e) },
 			"enter_" + upgradeStRequestingActivate: func(e *fsm.Event) { instFsm.enterActivateSw(ctx, e) },
 			"enter_" + upgradeStCommitSw:           func(e *fsm.Event) { instFsm.enterCommitSw(ctx, e) },
+			"enter_" + upgradeStCheckCommitted:     func(e *fsm.Event) { instFsm.enterCheckCommitted(ctx, e) },
 			"enter_" + upgradeStResetting:          func(e *fsm.Event) { instFsm.enterResetting(ctx, e) },
 			"enter_" + upgradeStDisabled:           func(e *fsm.Event) { instFsm.enterDisabled(ctx, e) },
 		},
@@ -180,12 +188,13 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 }
 
 //SetDownloadParams configures the needed parameters for a specific download to the ONU
-func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, apImageDsc *voltha.ImageDownload,
-	apDownloadManager *adapterDownloadManager) error {
+func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImageID uint16,
+	apImageDsc *voltha.ImageDownload, apDownloadManager *adapterDownloadManager) error {
 	pBaseFsm := oFsm.pAdaptFsm.pFsm
 	if pBaseFsm != nil && pBaseFsm.Is(upgradeStStarting) {
 		logger.Debugw(ctx, "OnuUpgradeFsm Parameter setting", log.Fields{
 			"device-id": oFsm.deviceID, "image-description": apImageDsc})
+		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
 		oFsm.pImageDsc = apImageDsc
 		oFsm.pDownloadManager = apDownloadManager
 
@@ -219,7 +228,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pAFsm *AdapterFsm) {
-			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 		}(pBaseFsm)
 		return
 	}
@@ -232,7 +241,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pAFsm *AdapterFsm) {
-			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 		}(pBaseFsm)
 		return
 	}
@@ -246,7 +255,6 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 	oFsm.origImageLength = uint32(fileLen)
 	oFsm.imageLength = uint32(len(oFsm.imageBuffer))
-	oFsm.inactiveImageMeID = uint16(1) //just to start with, must be detected from upload data or even determined per new request?
 
 	logger.Infow(ctx, "OnuUpgradeFsm starts with StartSwDl values", log.Fields{
 		"MeId": oFsm.inactiveImageMeID, "windowSizeLimit": oFsm.omciDownloadWindowSizeLimit,
@@ -261,7 +269,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pAFsm *AdapterFsm) {
-			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 		}(pBaseFsm)
 		return
 	}
@@ -296,7 +304,7 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 			pBaseFsm := oFsm.pAdaptFsm
 			// Can't call FSM Event directly, decoupling it
 			go func(a_pAFsm *AdapterFsm) {
-				_ = a_pAFsm.pFsm.Event(vlanEvReset)
+				_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 			}(pBaseFsm)
 			return
 		}
@@ -309,23 +317,23 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 		if oFsm.nextDownloadSectionsAbsolute+1 >= oFsm.noOfSections {
 			windowAckRequest = 1
 			framePrint = true //debug print of last frame
-			logger.Debugw(ctx, "DlSection expect Response for last window (section)", log.Fields{
+			oFsm.omciDownloadWindowSizeLast = oFsm.nextDownloadSectionsWindow
+			logger.Infow(ctx, "DlSection expect Response for last window (section)", log.Fields{
 				"device-id": oFsm.deviceID, "DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute})
 		}
 		err := oFsm.pOmciCC.sendDownloadSection(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
 			oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, framePrint)
 		if err != nil {
 			logger.Errorw(ctx, "DlSection abort: can't send section", log.Fields{
-				"device-id": oFsm.deviceID, "error": err})
+				"device-id": oFsm.deviceID, "section absolute": oFsm.nextDownloadSectionsAbsolute, "error": err})
 			//TODO!!!: define some more sophisticated error treatment with some repetition, for now just reset the FSM
 			pBaseFsm := oFsm.pAdaptFsm
 			// Can't call FSM Event directly, decoupling it
 			go func(a_pAFsm *AdapterFsm) {
-				_ = a_pAFsm.pFsm.Event(vlanEvReset)
+				_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 			}(pBaseFsm)
 			return
 		}
-
 		oFsm.nextDownloadSectionsAbsolute++ //always increase the absolute section counter after having sent one
 		if windowAckRequest == 1 {
 			pBaseFsm := oFsm.pAdaptFsm
@@ -369,7 +377,7 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pAFsm *AdapterFsm) {
-			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 		}(pBaseFsm)
 		return
 	}
@@ -388,16 +396,64 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pAFsm *AdapterFsm) {
-			_ = a_pAFsm.pFsm.Event(vlanEvReset)
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 		}(pBaseFsm)
 		return
 	}
 }
 
 func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
-	logger.Infow(ctx, "OnuUpgradeFsm commit SW - not yet implemented", log.Fields{
+	if activeImageID, err := oFsm.pOnuOmciDevice.GetActiveImageMeID(ctx); err == nil {
+		//TODO!!: as long as testing with BBSIM and BBSIM not support upgrade tests following check needs to be deactivated
+		imageFit := true //TODO!!: test workaround as long as BBSIM does not fully support upgrade
+		if imageFit || activeImageID == oFsm.inactiveImageMeID {
+			logger.Infow(ctx, "OnuUpgradeFsm commit SW", log.Fields{
+				"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID}) //more efficient activeImageID with above check
+			err := oFsm.pOmciCC.sendCommitSoftware(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
+				oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID) //more efficient activeImageID with above check
+			if err != nil {
+				logger.Errorw(ctx, "CommitSw abort: can't send commit sw frame", log.Fields{
+					"device-id": oFsm.deviceID, "error": err})
+				//TODO!!!: define some more sophisticated error treatment with some repetition, for now just reset the FSM
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				pBaseFsm := oFsm.pAdaptFsm
+				// Can't call FSM Event directly, decoupling it
+				go func(a_pAFsm *AdapterFsm) {
+					_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
+				}(pBaseFsm)
+				return
+			}
+			return
+		}
+		logger.Errorw(ctx, "OnuUpgradeFsm active ImageId <> IdToCommit", log.Fields{
+			"device-id": oFsm.deviceID, "active ID": activeImageID, "to commit ID": oFsm.inactiveImageMeID})
+		//TODO!!!: possibly send event information for aborted upgrade (not activated)??
+		pBaseFsm := oFsm.pAdaptFsm
+		// Can't call FSM Event directly, decoupling it
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
+		}(pBaseFsm)
+		return
+	}
+	logger.Errorw(ctx, "OnuUpgradeFsm can't commit, no valid active image", log.Fields{
+		"device-id": oFsm.deviceID})
+	//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+	pBaseFsm := oFsm.pAdaptFsm
+	// Can't call FSM Event directly, decoupling it
+	go func(a_pAFsm *AdapterFsm) {
+		_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
+	}(pBaseFsm)
+}
+
+func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event) {
+	logger.Infow(ctx, "OnuUpgradeFsm checking committed SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
-	//here should be the sending of the software commit message and staying here while waiting for the response
+	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
+	meInstance := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+		me.SoftwareImageClassID, oFsm.inactiveImageMeID, requestedAttributes, ConstDefaultOmciTimeout, false, oFsm.pAdaptFsm.commChan)
+	//accept also nil as (error) return value for writing to LastTx
+	//  - this avoids misinterpretation of new received OMCI messages
+	oFsm.pLastTxMeInstance = meInstance
 }
 
 func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
@@ -443,7 +499,7 @@ loop:
 		if !ok {
 			logger.Info(ctx, "OnuUpgradeFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.deviceID})
 			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 			break loop
 		}
 		logger.Debugw(ctx, "OnuUpgradeFsm Rx Msg", log.Fields{"device-id": oFsm.deviceID})
@@ -479,12 +535,16 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			if msgLayer == nil {
 				logger.Errorw(ctx, "Omci Msg layer could not be detected for StartSwDlResponse",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.StartSoftwareDownloadResponse)
 			if !msgOk {
 				logger.Errorw(ctx, "Omci Msg layer could not be assigned for StartSwDlResponse",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			logger.Debugw(ctx, "OnuUpgradeFsm StartSwDlResponse data", log.Fields{
@@ -493,6 +553,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse result error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
@@ -520,21 +582,26 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: possibly repeat the start request (once)?
+			//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 			return
 		} //StartSoftwareDownloadResponseType
 	case omci.DownloadSectionResponseType:
 		{
-			/* TODO!!!: Have to remove the check here as current used omci-lib does not allow msg layering here
 			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeDownloadSectionResponse)
 			if msgLayer == nil {
 				logger.Errorw(ctx, "Omci Msg layer could not be detected for DlSectionResponse",
 					log.Fields{"device-id": oFsm.deviceID, "omci-message": msg.OmciMsg})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.DownloadSectionResponse)
 			if !msgOk {
 				logger.Errorw(ctx, "Omci Msg layer could not be assigned for DlSectionResponse",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			logger.Debugw(ctx, "OnuUpgradeFsm DlSectionResponse Data", log.Fields{
@@ -542,35 +609,46 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			if msgObj.Result != me.Success {
 				logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse result error - later: repeat window once?", //TODO!!!
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				sectionNumber := msgObj.SectionNumber
-			*/
-			sectionNumber := oFsm.omciDownloadWindowSizeLimit //as long as access from omci-lib is not given above!!!
-			logger.Debugw(ctx, "DlSectionResponse received", log.Fields{
-				"window section-number": sectionNumber, "device-id": oFsm.deviceID})
-			if sectionNumber != oFsm.omciDownloadWindowSizeLimit {
-				logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
-					log.Fields{"device-id": oFsm.deviceID, "window-section-limit": oFsm.omciDownloadWindowSizeLimit})
-				return
-			}
+				logger.Infow(ctx, "DlSectionResponse received", log.Fields{
+					"window section-number": sectionNumber, "window": oFsm.nextDownloadWindow, "device-id": oFsm.deviceID})
 
-			oFsm.nextDownloadWindow++
-			if oFsm.nextDownloadWindow >= oFsm.noOfWindows {
-				oFsm.delayEndSwDl = true //ensure a delay for the EndSwDl message
-				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvEndSwDownload)
+				oFsm.nextDownloadWindow++
+				if oFsm.nextDownloadWindow >= oFsm.noOfWindows {
+					if sectionNumber != oFsm.omciDownloadWindowSizeLast {
+						logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
+							log.Fields{"device-id": oFsm.deviceID, "actual section": sectionNumber,
+								"expected section": oFsm.omciDownloadWindowSizeLast})
+						//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+						_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+						return
+					}
+					oFsm.delayEndSwDl = true //ensure a delay for the EndSwDl message
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvEndSwDownload)
+					return
+				}
+				if sectionNumber != oFsm.omciDownloadWindowSizeLimit {
+					logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
+						log.Fields{"device-id": oFsm.deviceID, "window-section-limit": oFsm.omciDownloadWindowSizeLimit})
+					//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+					return
+				}
+				oFsm.nextDownloadSectionsWindow = 0
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvContinueNextWindow)
 				return
 			}
-			oFsm.nextDownloadSectionsWindow = 0
-			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvContinueNextWindow)
-			return
-			/* }
 			logger.Errorw(ctx, "OnuUpgradeFsm Omci StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
-			// TODO!!!: possibly repeat the start request (once)?
+			// TODO!!!: possibly repeat the download (section) (once)?
+			//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 			return
-			*/
 		} //DownloadSectionResponseType
 	case omci.EndSoftwareDownloadResponseType:
 		{
@@ -578,12 +656,16 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			if msgLayer == nil {
 				logger.Errorw(ctx, "Omci Msg layer could not be detected for EndSwDlResponse",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.EndSoftwareDownloadResponse)
 			if !msgOk {
 				logger.Errorw(ctx, "Omci Msg layer could not be assigned for EndSwDlResponse",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			logger.Debugw(ctx, "OnuUpgradeFsm EndSwDlResponse data", log.Fields{
@@ -593,6 +675,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				logger.Errorw(ctx, "OnuUpgradeFsm EndSwDlResponse result error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
@@ -603,6 +687,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: possibly repeat the end request (once)? or verify ONU upgrade state?
+			//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 			return
 		} //EndSoftwareDownloadResponseType
 	case omci.ActivateSoftwareResponseType:
@@ -611,12 +697,16 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			if msgLayer == nil {
 				logger.Errorw(ctx, "Omci Msg layer could not be detected for ActivateSw",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			msgObj, msgOk := msgLayer.(*omci.ActivateSoftwareResponse)
 			if !msgOk {
 				logger.Errorw(ctx, "Omci Msg layer could not be assigned for ActivateSw",
 					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			logger.Debugw(ctx, "OnuUpgradeFsm ActivateSwResponse data", log.Fields{
@@ -625,18 +715,125 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				logger.Errorw(ctx, "OnuUpgradeFsm ActivateSwResponse result error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 				// TODO!!!: error treatment?, perhaps in the end reset the FSM
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				logger.Debugw(ctx, "Expected ActivateSwResponse received", log.Fields{"device-id": oFsm.deviceID})
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForCommit)
+				//TODO:  as long as BBSIM does not fully support upgrade: simulate restart by calling the BBSIM (ONU) reboot
+				//  but this currently does not work at all, as omci-lib based BBSIM seems not to support automatic down/up events on reboot request
+				//go oFsm.pDeviceHandler.rebootDevice(ctx, false, oFsm.pDeviceHandler.device)
+				//so this way we call the commit verification here directly for test
+				go oFsm.pDeviceHandler.checkOnOnuImageCommit(ctx)
 				return
 			}
 			logger.Errorw(ctx, "OnuUpgradeFsm ActivateSwResponse wrong ME instance: abort",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
-			// TODO!!!: error treatment?, perhaps in the end reset the FSM
+			// TODO!!!: error treatment?
+			//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 			return
 		} //ActivateSoftwareResponseType
+	case omci.CommitSoftwareResponseType:
+		{
+			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCommitSoftwareResponse)
+			if msgLayer == nil {
+				logger.Errorw(ctx, "Omci Msg layer could not be detected for CommitResponse",
+					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+				return
+			}
+			msgObj, msgOk := msgLayer.(*omci.CommitSoftwareResponse)
+			if !msgOk {
+				logger.Errorw(ctx, "Omci Msg layer could not be assigned for CommitResponse",
+					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+				return
+			}
+			// TODO!!: not yet implemented by omci-lib:
+			/*if msgObj.Result != me.Success {
+				logger.Errorw(ctx, "OnuUpgradeFsm SwImage CommitResponse result error - later: drive FSM to abort state ?",
+					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
+				// TODO!!!: error treatment?, perhaps in the end reset the FSM
+				return
+			}*/
+			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
+				logger.Debugw(ctx, "OnuUpgradeFsm Expected SwImage CommitResponse received", log.Fields{"device-id": oFsm.deviceID})
+				//verifying committed image
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvCheckCommitted)
+				return
+			}
+			logger.Errorw(ctx, "OnuUpgradeFsm SwImage CommitResponse  wrong ME instance: abort",
+				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
+			// TODO!!!: error treatment?
+			//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+			return
+		} //CommitSoftwareResponseType
+	case omci.GetResponseType:
+		{
+			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetResponse)
+			if msgLayer == nil {
+				logger.Errorw(ctx, "Omci Msg layer could not be detected for SwImage GetResponse",
+					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+				return
+			}
+			msgObj, msgOk := msgLayer.(*omci.GetResponse)
+			if !msgOk {
+				logger.Errorw(ctx, "Omci Msg layer could not be assigned for SwImage GetResponse",
+					log.Fields{"device-id": oFsm.deviceID})
+				//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+				return
+			}
+			logger.Debugw(ctx, "OnuUpgradeFsm SwImage GetResponse data", log.Fields{
+				"device-id": oFsm.deviceID, "data-fields": msgObj})
+			if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
+				msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
+				if msgObj.Result != me.Success {
+					logger.Errorw(ctx, "OnuUpgradeFsm SwImage GetResponse result error - later: drive FSM to abort state ?",
+						log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
+					// TODO!!!: error treatment?, perhaps in the end reset the FSM
+					//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+					return
+				}
+			} else {
+				logger.Warnw(ctx, "OnuUpgradeFsm SwImage unexpected Entity GetResponse data - ignore",
+					log.Fields{"device-id": oFsm.deviceID})
+				return
+			}
+
+			meAttributes := msgObj.Attributes
+			imageIsCommitted := meAttributes["IsCommitted"].(uint8)
+			imageIsActive := meAttributes["IsActive"].(uint8)
+			imageVersion := trimStringFromInterface(meAttributes["Version"])
+			logger.Infow(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
+				log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
+					"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})
+
+			imageVersion = oFsm.pImageDsc.Name //TODO!!: test workaround as long as testing with BBSIM (BBSIM can't know the name of the image)
+
+			if msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive &&
+				imageIsCommitted == swIsCommitted && imageVersion == oFsm.pImageDsc.Name {
+				logger.Infow(ctx, "requested SW image committed, releasing OnuUpgrade", log.Fields{"device-id": oFsm.deviceID})
+				//releasing the upgrade FSM
+				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+				return
+			}
+			logger.Errorw(ctx, "OnuUpgradeFsm SwImage GetResponse indications not matching requested upgrade",
+				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
+			// TODO!!!: error treatment?
+			//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+			_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+			return
+		} //GetResponseType
 	default:
 		{
 			logger.Errorw(ctx, "Rx OMCI unhandled MsgType",

@@ -199,6 +199,14 @@ const (
 	firstSwImageMeID  = 0
 	secondSwImageMeID = 1
 )
+const ( //definitions as per G.988 softwareImage::IsCommitted
+	swIsUncommitted = 0
+	swIsCommitted   = 1
+)
+const ( //definitions as per G.988 softwareImage::IsActive
+	//swIsInactive = 0  niot yet used
+	swIsActive = 1
+)
 const onuDataMeID = 0
 const onugMeID = 0
 const onu2gMeID = 0
@@ -209,9 +217,15 @@ const omciMacAddressLen = 6
 const cEmptyMacAddrString = "000000000000"
 const cEmptySerialNumberString = "0000000000000000"
 
-type swImages struct {
-	version  string
-	isActive uint8
+type sEntrySwImageIndication struct {
+	valid       bool
+	entityID    uint16
+	version     string
+	isCommitted uint8
+}
+type sSwImageIndications struct {
+	activeEntityEntry   sEntrySwImageIndication
+	inactiveEntityEntry sEntrySwImageIndication
 }
 
 type uniPersConfig struct {
@@ -255,7 +269,7 @@ type OnuDeviceEntry struct {
 	vendorID              string
 	serialNumber          string
 	equipmentID           string
-	swImages              [secondSwImageMeID + 1]swImages
+	onuSwImageIndications sSwImageIndications
 	activeSwVersion       string
 	macAddress            string
 	//lockDeviceEntries           sync.RWMutex
@@ -448,7 +462,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	)
 	if onuDeviceEntry.pMibDownloadFsm == nil || onuDeviceEntry.pMibDownloadFsm.pFsm == nil {
 		logger.Errorw(ctx, "MibDownloadFsm could not be instantiated", log.Fields{"device-id": dh.deviceID})
-		// TODO some specifc error treatment - or waiting for crash ?
+		// TODO some specific error treatment - or waiting for crash ?
 	}
 
 	onuDeviceEntry.mibTemplateKVStore = onuDeviceEntry.baseDeviceHandler.setBackend(ctx, cBasePathMibTemplateKvStore)

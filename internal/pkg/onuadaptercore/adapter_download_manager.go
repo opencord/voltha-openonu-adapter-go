@@ -20,6 +20,7 @@ package adaptercoreonu
 import (
 	"bufio"
 	"context"
+	"errors"
 	"os"
 	"sync"
 
@@ -95,23 +96,27 @@ func (dm *adapterDownloadManager) imageLocallyDownloaded(ctx context.Context, ap
 
 //startDownload returns true if the download of the requested image could be started
 func (dm *adapterDownloadManager) startDownload(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
-	logger.Warnw(ctx, "image download requested - but not yet processed", log.Fields{"image-name": apImageDsc.Name})
-	newImageDscPos := len(dm.downloadImageDscSlice)
-	dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, apImageDsc)
-	dm.downloadImageDscSlice[newImageDscPos].DownloadState = voltha.ImageDownload_DOWNLOAD_STARTED
-	//just some basic test file simulation
-	go dm.writeFileToLFS(ctx, apImageDsc.Name, apImageDsc.LocalDir)
-	//return success to comfort the core processing during integration
-	return nil
-	// TODO!!: also verify error response behavior
-	//return fmt.Errorf("onuSwUpgrade not yet implemented")
+	if apImageDsc.LocalDir != "" {
+		logger.Infow(ctx, "image download-to-adapter requested", log.Fields{"image-name": apImageDsc.Name})
+		newImageDscPos := len(dm.downloadImageDscSlice)
+		dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, apImageDsc)
+		dm.downloadImageDscSlice[newImageDscPos].DownloadState = voltha.ImageDownload_DOWNLOAD_STARTED
+		//just some basic test file simulation
+		go dm.writeFileToLFS(ctx, apImageDsc.Name, apImageDsc.LocalDir)
+		//return success to comfort the core processing during integration
+		return nil
+	}
+	// we can use the missing local path temporary also to test some failure behavior (system reation on failure)
+	// with updated control API's or at some adequate time we could also set some defined fixed localPath internally
+	logger.Errorw(ctx, "could not start download: no valid local directory to write to", log.Fields{"image-name": (*apImageDsc).Name})
+	return errors.New("could not start download: no valid local directory to write to")
 }
 
 //writeFileToLFS writes the downloaded file to the local file system
 func (dm *adapterDownloadManager) writeFileToLFS(ctx context.Context, aFileName string, aLocalPath string) {
 	// by now just a simulation to write a file with predefined 'variable' content
 	totalFileLength := 0
-	logger.Debugw(ctx, "Writing fixed size simulation file locally", log.Fields{
+	logger.Debugw(ctx, "writing fixed size simulation file locally", log.Fields{
 		"image-name": aFileName, "image-path": aLocalPath})
 	file, err := os.Create(aLocalPath + "/" + aFileName)
 	if err == nil {
@@ -120,19 +125,19 @@ func (dm *adapterDownloadManager) writeFileToLFS(ctx context.Context, aFileName 
 			if written, wrErr := file.Write(dm.getIncrementalSliceContent(ctx)); wrErr == nil {
 				totalFileLength += written
 			} else {
-				logger.Errorw(ctx, "Could not write to file", log.Fields{"create-error": wrErr})
+				logger.Errorw(ctx, "could not write to file", log.Fields{"create-error": wrErr})
 				break //stop writing
 			}
 		}
 	} else {
-		logger.Errorw(ctx, "Could not create file", log.Fields{"create-error": err})
+		logger.Errorw(ctx, "could not create file", log.Fields{"create-error": err})
 	}
 
 	fileStats, statsErr := file.Stat()
 	if err != nil {
 		logger.Errorw(ctx, "created file can't be accessed", log.Fields{"stat-error": statsErr})
 	}
-	logger.Debugw(ctx, "Written file size is", log.Fields{"length": fileStats.Size()})
+	logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPath + "/" + aFileName, "length": fileStats.Size()})
 	//nolint:gosec,errcheck
 	file.Close()
 
