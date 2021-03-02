@@ -332,8 +332,8 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID() uint8 {
 //RequestClearPersistency sets the internal flag to not clear persistency data (false=NoClear)
 func (oFsm *UniVlanConfigFsm) RequestClearPersistency(aClear bool) {
 	//mutex protection is required for possible concurrent access to FSM members
-	oFsm.mutexFlowParams.RLock()
-	defer oFsm.mutexFlowParams.RUnlock()
+	oFsm.mutexFlowParams.Lock()
+	defer oFsm.mutexFlowParams.Unlock()
 	oFsm.clearPersistency = aClear
 }
 
@@ -436,7 +436,6 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	kvStoreWrite := false //default setting is to not write to kvStore immediately - will be done on FSM execution finally
 	if requestAppendRule {
 		oFsm.mutexFlowParams.Lock()
-		defer oFsm.mutexFlowParams.Unlock()
 		if oFsm.numUniFlows < cMaxAllowedFlows {
 			loFlowParams := uniVlanFlowParams{VlanRuleParams: loRuleParams}
 			loFlowParams.CookieSlice = make([]uint64, 0)
@@ -489,17 +488,21 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				}
 			} // if not in the appropriate state a new entry will be automatically considered later
 			//   when the configDone state is reached
+			oFsm.mutexFlowParams.Unlock()
 		} else {
 			logger.Errorw(ctx, "UniVlanConfigFsm flow limit exceeded", log.Fields{
 				"device-id": oFsm.deviceID, "flow-number": oFsm.numUniFlows})
+			oFsm.mutexFlowParams.Unlock()
 			return fmt.Errorf(" UniVlanConfigFsm flow limit exceeded %s", oFsm.deviceID)
 		}
 	} else {
 		// no activity within the FSM for OMCI processing, the deviceReason may be updated immediately
 		kvStoreWrite = true // ensure actual data write to kvStore immediately (no FSM activity)
+		oFsm.mutexFlowParams.RLock()
 		if oFsm.numUniFlows == oFsm.configuredUniFlow {
 			//all requested rules really have been configured
 			// state transition notification is checked in deviceHandler
+			oFsm.mutexFlowParams.RUnlock()
 			if oFsm.pDeviceHandler != nil {
 				//also the related TechProfile was already configured
 				logger.Debugw(ctx, "UniVlanConfigFsm rule already set - send immediate add-success event for reason update", log.Fields{
@@ -513,16 +516,20 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 			logger.Debugw(ctx, "UniVlanConfigFsm rule already set but configuration ongoing, suppress early add-success event for reason update",
 				log.Fields{"device-id": oFsm.deviceID,
 					"NumberofRules": oFsm.numUniFlows, "Configured rules": oFsm.configuredUniFlow})
+			oFsm.mutexFlowParams.RUnlock()
 		}
 	}
 
 	if flowCookieModify { // some change was done to the flow entries
 		//permanently store flow config for reconcile case
+		oFsm.mutexFlowParams.RLock()
 		if err := oFsm.pDeviceHandler.storePersUniFlowConfig(ctx, oFsm.pOnuUniPort.uniID,
 			&oFsm.uniVlanFlowParamsSlice, kvStoreWrite); err != nil {
+			oFsm.mutexFlowParams.RUnlock()
 			logger.Errorw(ctx, err.Error(), log.Fields{"device-id": oFsm.deviceID})
 			return err
 		}
+		oFsm.mutexFlowParams.RUnlock()
 	}
 	return nil
 }
@@ -639,9 +646,9 @@ remove_loop:
 					var loRemoveParams uniRemoveVlanFlowParams = uniRemoveVlanFlowParams{}
 					logger.Debugw(ctx, "UniVlanConfigFsm flow removal - full flow removal", log.Fields{
 						"device-id": oFsm.deviceID})
-					//rwCore flow recovery may be the reson for this delete, in which case the flowToBeDeleted may be the same
+					//rwCore flow recovery may be the reason for this delete, in which case the flowToBeDeleted may be the same
 					//  as the one still waiting in the FSM as toAdd but waiting for TechProfileConfig
-					//  so we have to to check that here in in this case have to abort the outstanding AddRequest and regard the current DelRequest as done
+					//  so we have to check if we have to abort the outstanding AddRequest and regard the current DelRequest as done
 					//  if the Fsm is in some other transient (config) state, we will reach the DelRequest later and correctly process it then
 					if pConfigVlanStateBaseFsm.Is(vlanStWaitingTechProf) {
 						logger.Debugw(ctx, "UniVlanConfigFsm was waiting for TechProf config with this rule, aborting the outstanding config",
@@ -990,10 +997,10 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 }
 
 func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Event) {
+	oFsm.mutexFlowParams.Lock()
 	logger.Debugw(ctx, "UniVlanConfigFsm - start config further incremental flow", log.Fields{
 		"in state": e.FSM.Current(), "recent flow-number": oFsm.configuredUniFlow,
 		"device-id": oFsm.deviceID})
-	oFsm.mutexFlowParams.Lock()
 	oFsm.TpIDWaitingFor = 0 //reset indication to avoid misinterpretation
 
 	if oFsm.actualUniVlanConfigRule.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
@@ -1013,7 +1020,6 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 			// 'SetVid' below is assumed to be masked already by the caller to 12 bit
 			oFsm.vlanFilterList[0] = uint16(oFsm.actualUniVlanConfigRule.SetVid)
 
-			oFsm.mutexFlowParams.Unlock()
 			vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
 			vtfdFilterList[0] = oFsm.vlanFilterList[0]
 			oFsm.numVlanFilterEntries = 1
@@ -1051,7 +1057,6 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 			// VTFD has to be created afresh with a new entity ID that has the same entity ID as the MBPCD ME for every
 			// new vlan associated with a different TP.
 			vtfdFilterList[0] = uint16(oFsm.actualUniVlanConfigRule.SetVid)
-			oFsm.mutexFlowParams.Unlock()
 
 			oFsm.numVlanFilterEntries++
 			meParams := me.ParamData{
@@ -1071,6 +1076,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 			//  (relevant to all used sendXX() methods in this (and other) FSM's)
 			oFsm.pLastTxMeInstance = meInstance
 		}
+		oFsm.mutexFlowParams.Unlock()
 		//verify response
 		err := oFsm.waitforOmciResponse(ctx)
 		if err != nil {
@@ -1084,18 +1090,25 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 			return
 		}
 	}
+	oFsm.mutexFlowParams.Lock()
 	oFsm.requestEventOffset = uint8(cDeviceEventOffsetAddWithKvStore) //0 offset for last flow-add activity
+	oFsm.mutexFlowParams.Unlock()
 	go func() {
+		oFsm.mutexFlowParams.RLock()
 		tpID := oFsm.actualUniVlanConfigRule.TpID
-		errEvto := oFsm.performConfigEvtocdEntries(ctx, oFsm.configuredUniFlow)
+		configuredUniFlow := oFsm.configuredUniFlow
+		oFsm.mutexFlowParams.RUnlock()
+		errEvto := oFsm.performConfigEvtocdEntries(ctx, configuredUniFlow)
 		//This is correct passing scenario
 		if errEvto == nil {
 			//TODO Possibly insert new state for multicast --> possibly another jira/later time.
 			for _, gemPort := range oFsm.pUniTechProf.getMulticastGemPorts(ctx, oFsm.pOnuUniPort.uniID, uint8(tpID)) {
+				oFsm.mutexFlowParams.RLock()
 				vlanID := oFsm.actualUniVlanConfigRule.SetVid
 				logger.Infow(ctx, "Setting multicast MEs for additional flows", log.Fields{"deviceID": oFsm.deviceID,
 					"techProfile": tpID, "gemPort": gemPort,
 					"vlanID": vlanID, "configuredUniFlow": oFsm.configuredUniFlow})
+				oFsm.mutexFlowParams.RUnlock()
 				errCreateAllMulticastME := oFsm.performSettingMulticastME(ctx, tpID, gemPort, vlanID)
 				if errCreateAllMulticastME != nil {
 					logger.Errorw(ctx, "Multicast ME create failed, aborting AniConfig FSM!",
@@ -1206,6 +1219,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 				}
 			}
 
+			oFsm.mutexFlowParams.Lock()
 			if loVlanEntryClear == 1 {
 				oFsm.vlanFilterList[0] = 0 //first entry is the only that can contain the previous only-one element
 				oFsm.numVlanFilterEntries = 0
@@ -1217,6 +1231,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 				}
 				oFsm.numVlanFilterEntries--
 			}
+			oFsm.mutexFlowParams.Unlock()
 		}
 	}
 
