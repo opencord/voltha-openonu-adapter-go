@@ -2,6 +2,52 @@
   "comments": [
     {
       "key": {
+        "uuid": "4d34bc9e_ec2888d9",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 6
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2021-03-03T17:41:58Z",
+      "side": 1,
+      "message": "This should be before the LABEL Section.  Also, it\u0027s preferable for this to be embedded in the Dockerfile, not a separate script.",
+      "range": {
+        "startLine": 84,
+        "startChar": 0,
+        "endLine": 86,
+        "endChar": 60
+      },
+      "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bd9823f2_9229de48",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 6
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2021-03-03T17:41:58Z",
+      "side": 1,
+      "message": "Where is this user account created?",
+      "range": {
+        "startLine": 88,
+        "startChar": 0,
+        "endLine": 88,
+        "endChar": 16
+      },
+      "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8e5f2937_8402770c",
         "filename": "docker/harden.sh",
         "patchSetId": 6
@@ -13,6 +59,24 @@
       "writtenOn": "2021-03-03T09:21:27Z",
       "side": 1,
       "message": "2021 the Open Networking Foundation",
+      "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3f6f2abe_9b0e9160",
+        "filename": "docker/harden.sh",
+        "patchSetId": 6
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2021-03-03T17:41:58Z",
+      "side": 1,
+      "message": "Or the specific people who wrote this.  Where did this harden.sh come from?",
+      "parentUuid": "8e5f2937_8402770c",
       "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
