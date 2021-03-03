@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d22a205f_dcb025ef",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-03T08:49:15Z",
+      "side": 1,
+      "message": "should we return here ?",
+      "revId": "ccdde0890bb2eb9cd25b68e1d3f37b03b7e83c59",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
