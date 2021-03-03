@@ -44,6 +44,98 @@ var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 }
 ```
 
+### _UniStatusGroupMetrics_
+```
+var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
+	"uni_port_no":     voltha.PmConfig_CONTEXT,
+	"entity_id":       voltha.PmConfig_CONTEXT,
+	"ethernet_type":   voltha.PmConfig_GAUGE,
+	"oper_status":     voltha.PmConfig_GAUGE,
+	"uni_admin_state": voltha.PmConfig_GAUGE,
+}
+```
+
+### _EthernetBridgeHistory_
+```
+var EthernetBridgeHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+	"parent_class_id":   voltha.PmConfig_CONTEXT,
+	"parent_entity_id":  voltha.PmConfig_CONTEXT,
+	"upstream":          voltha.PmConfig_CONTEXT,
+
+	"drop_events":         voltha.PmConfig_COUNTER,
+	"octets":              voltha.PmConfig_COUNTER,
+	"packets":             voltha.PmConfig_COUNTER,
+	"broadcast_packets":   voltha.PmConfig_COUNTER,
+	"multicast_packets":   voltha.PmConfig_COUNTER,
+	"crc_errored_packets": voltha.PmConfig_COUNTER,
+	"undersize_packets":   voltha.PmConfig_COUNTER,
+	"oversize_packets":    voltha.PmConfig_COUNTER,
+	"64_octets":           voltha.PmConfig_COUNTER,
+	"65_to_127_octets":    voltha.PmConfig_COUNTER,
+	"128_to_255_octets":   voltha.PmConfig_COUNTER,
+	"256_to_511_octets":   voltha.PmConfig_COUNTER,
+	"512_to_1023_octets":  voltha.PmConfig_COUNTER,
+	"1024_to_1518_octets": voltha.PmConfig_COUNTER,
+}
+```
+
+### _EthernetUniHistory_
+```
+var EthernetUniHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+
+	"fcs_errors":                        voltha.PmConfig_COUNTER,
+	"excessive_collision_counter":       voltha.PmConfig_COUNTER,
+	"late_collision_counter":            voltha.PmConfig_COUNTER,
+	"frames_too_long":                   voltha.PmConfig_COUNTER,
+	"buffer_overflows_on_rx":            voltha.PmConfig_COUNTER,
+	"buffer_overflows_on_tx":            voltha.PmConfig_COUNTER,
+	"single_collision_frame_counter":    voltha.PmConfig_COUNTER,
+	"multiple_collisions_frame_counter": voltha.PmConfig_COUNTER,
+	"sqe_counter":                       voltha.PmConfig_COUNTER,
+	"deferred_tx_counter":               voltha.PmConfig_COUNTER,
+	"internal_mac_tx_error_counter":     voltha.PmConfig_COUNTER,
+	"carrier_sense_error_counter":       voltha.PmConfig_COUNTER,
+	"alignment_error_counter":           voltha.PmConfig_COUNTER,
+	"internal_mac_rx_error_counter":     voltha.PmConfig_COUNTER,
+}
+```
+
+### _FecHistory_
+```
+var FecHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+
+	"corrected_bytes":          voltha.PmConfig_COUNTER,
+	"corrected_code_words":     voltha.PmConfig_COUNTER,
+	"uncorrectable_code_words": voltha.PmConfig_COUNTER,
+	"total_code_words":         voltha.PmConfig_COUNTER,
+	"fec_seconds":              voltha.PmConfig_COUNTER,
+}
+```
+
+### _GemPortHistory_
+```
+var GemPortHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+
+	"transmitted_gem_frames":    voltha.PmConfig_COUNTER,
+	"received_gem_frames":       voltha.PmConfig_COUNTER,
+	"received_payload_bytes":    voltha.PmConfig_COUNTER,
+	"transmitted_payload_bytes": voltha.PmConfig_COUNTER,
+	"encryption_key_errors":     voltha.PmConfig_COUNTER,
+}
+```
+
 `Note` : The values collected for the metrics are as is from the OMCI messages, meaning the adapter does not do any sort of conversion. Refer OMCI spec (G.988 v 11/2017 edition) to get more details of the units of the collected metrics.
 
 ## Basic KPI Format (**KpiEvent2**)
@@ -179,8 +271,6 @@ Note: For more `event listen` options, check `voltctl event listen --help` comma
 ## Remaining work
 The following Metrics could be supported in the future.
 
-- FEC_History
-- GEM_Port_History
 - xgPON_TC_History
 - xgPON_Downstream_History
 - xgPON_Upstream_History
