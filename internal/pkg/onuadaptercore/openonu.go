@@ -378,11 +378,23 @@ func (oo *OpenONUAC) Self_test_device(ctx context.Context, device *voltha.Device
 func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) error {
 	logger.Infow(ctx, "delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
-		err := handler.deleteDevicePersistencyData(ctx)
+		var errorsList []error
+		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
+			errorsList = append(errorsList, err)
+		}
 		handler.stopCollector <- true // stop the metric collector routine
+		if handler.pOnuMetricsMgr != nil {
+			if err := handler.pOnuMetricsMgr.clearAllPmData(ctx); err != nil {
+				errorsList = append(errorsList, err)
+			}
+		}
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
-		return err
+		if len(errorsList) > 0 {
+			logger.Errorw(ctx, "one-or-more-error-during-device-delete", log.Fields{"device-id": device.Id})
+			return fmt.Errorf("one-or-more-error-during-device-delete, errors:%v", errorsList)
+		}
+		return nil
 	}
 	logger.Warnw(ctx, "no handler found for device-deletion", log.Fields{"device-id": device.Id})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
