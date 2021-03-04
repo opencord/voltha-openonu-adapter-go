@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/cevaris/ordered_map"
@@ -112,6 +113,8 @@ type uniPonAniConfigFsm struct {
 	techProfileID            uint8
 	uniTpKey                 uniTP
 	requestEvent             OnuDeviceEvent
+	mutexIsAwaitingResponse  sync.RWMutex
+	isAwaitingResponse       bool
 	omciMIdsResponseReceived chan bool //separate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                *AdapterFsm
 	chSuccess                chan<- uint8
@@ -233,6 +236,27 @@ func (oFsm *uniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, a
 	oFsm.chSuccess = aChSuccess
 	oFsm.procStep = aProcStep
 	oFsm.chanSet = true
+}
+
+//CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
+func (oFsm *uniPonAniConfigFsm) CancelProcessing() {
+	//mutex protection is required for possible concurrent access to FSM members
+	oFsm.mutexIsAwaitingResponse.RLock()
+	defer oFsm.mutexIsAwaitingResponse.RUnlock()
+	if oFsm.isAwaitingResponse {
+		//use channel to indicate that the response waiting shall be aborted
+		oFsm.omciMIdsResponseReceived <- false
+	}
+	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
+	pAdaptFsm := oFsm.pAdaptFsm
+	if pAdaptFsm != nil {
+		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+		go func(aPAFsm *AdapterFsm) {
+			if aPAFsm.pFsm != nil {
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			}
+		}(pAdaptFsm)
+	}
 }
 
 func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, aPAFsm *AdapterFsm) {
@@ -1193,20 +1217,32 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 }
 
 func (oFsm *uniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
+	oFsm.mutexIsAwaitingResponse.Lock()
+	oFsm.isAwaitingResponse = true
+	oFsm.mutexIsAwaitingResponse.Unlock()
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
 	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw(ctx, "UniPonAniConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.deviceID})
+		oFsm.mutexIsAwaitingResponse.Lock()
+		oFsm.isAwaitingResponse = false
+		oFsm.mutexIsAwaitingResponse.Unlock()
 		return fmt.Errorf("uniPonAniConfigFsm multi entity timeout %s", oFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
 			logger.Debug(ctx, "uniPonAniConfigFsm multi entity response received")
+			oFsm.mutexIsAwaitingResponse.Lock()
+			oFsm.isAwaitingResponse = false
+			oFsm.mutexIsAwaitingResponse.Unlock()
 			return nil
 		}
-		// should not happen so far
-		logger.Warnw(ctx, "uniPonAniConfigFsm multi entity response error", log.Fields{"for device-id": oFsm.deviceID})
-		return fmt.Errorf("uniPonAniConfigFsm multi entity responseError %s", oFsm.deviceID)
+		// waiting was aborted (probably on external request)
+		logger.Debugw(ctx, "uniPonAniConfigFsm wait for multi entity response aborted", log.Fields{"for device-id": oFsm.deviceID})
+		oFsm.mutexIsAwaitingResponse.Lock()
+		oFsm.isAwaitingResponse = false
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		return fmt.Errorf(cErrWaitAborted)
 	}
 }

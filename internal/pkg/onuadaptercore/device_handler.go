@@ -203,6 +203,8 @@ type deviceHandler struct {
 	uniEntityMap               map[uint32]*onuUniPort
 	mutexKvStoreContext        sync.Mutex
 	lockVlanConfig             sync.RWMutex
+	lockSuspendFlow            sync.RWMutex
+	suspendFlowAdd             map[uint8]bool
 	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
 	lockUpgradeFsm             sync.RWMutex
 	pOnuUpradeFsm              *OnuUpgradeFsm
@@ -237,6 +239,8 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
 	dh.lockVlanConfig = sync.RWMutex{}
 	dh.lockUpgradeFsm = sync.RWMutex{}
+	dh.lockSuspendFlow = sync.RWMutex{}
+	dh.suspendFlowAdd = make(map[uint8]bool)
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = false
 	dh.chReconcilingFinished = make(chan bool)
@@ -1629,23 +1633,20 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// FSM  stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
 		if dh.pOnuTP.pAniConfigFsm != nil {
 			for uniTP := range dh.pOnuTP.pAniConfigFsm {
-				_ = dh.pOnuTP.pAniConfigFsm[uniTP].pAdaptFsm.pFsm.Event(aniEvReset)
+				dh.pOnuTP.pAniConfigFsm[uniTP].CancelProcessing()
 			}
 		}
 		for _, uniPort := range dh.uniEntityMap {
 			// reset the possibly existing VlanConfigFsm
 			dh.lockVlanConfig.RLock()
 			if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniID]; exist {
-				dh.lockVlanConfig.RUnlock()
 				//VlanFilterFsm exists and was already started
-				pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
-				if pVlanFilterStatemachine != nil {
-					//reset of all Fsm is always accompanied by global persistency data removal
-					//  no need to remove specific data
-					pVlanFilterFsm.RequestClearPersistency(false)
-					//and reset the UniVlanConfig FSM
-					_ = pVlanFilterStatemachine.Event(vlanEvReset)
-				}
+				dh.lockVlanConfig.RUnlock()
+				//reset of all Fsm is always accompanied by global persistency data removal
+				//  no need to remove specific data
+				pVlanFilterFsm.RequestClearPersistency(false)
+				//ensure the FSM processing is stopped in case waiting for some response
+				pVlanFilterFsm.CancelProcessing()
 			} else {
 				dh.lockVlanConfig.RUnlock()
 			}
@@ -1668,6 +1669,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	}
 	dh.lockUpgradeFsm.RUnlock()
 
+	logger.Infow(ctx, "resetFsms done", log.Fields{"device-id": dh.deviceID})
 	return nil
 }
 
@@ -2465,7 +2467,18 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		logger.Debugw(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.deviceID})
 	}
 
-	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
+	//mutex protection as the update_flow rpc maybe running concurrently for different flows, even on same flow but add/rem flow
+	// SetUniFlowParams may not run exclusively here as it may be required to process a parallel
+	// RemoveUniFlowParams in removeFlowItemFromUniPort() when waiting for the removal of a rule with the same cookie
+	dh.lockSuspendFlow.RLock()
+	//compare removeFlowItemFromUniPort: it may be required to suspend all incoming AddFlow requests to have a clean Flow removal first
+	if dh.suspendFlowAdd[apUniPort.uniID] {
+		time.Sleep(time.Millisecond * 200)
+		//could also make use of terminating channel from RemoveUniFlowParams (more real-time) , but let's try to keep it simple
+		// so might be we have a maximum of 400 ms delay
+	}
+	dh.lockSuspendFlow.RUnlock()
+
 	dh.lockVlanConfig.RLock()
 	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
@@ -2508,9 +2521,35 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	} //for all OfbFields
 	*/
 
-	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
+	//many flows may be mapped to one ONU related rule. On subscriber unprovisioning the assumption is that all these flows are deleted
+	// to delete also the ONU related rule. In certain scenarios it may be, that in parallel new flows are configured (for a new rule)
+	// that even may have the same cookie as 'under removal'. The problem then is, that the new rule configuration has to wait for the related
+	// techProfile to be first removed (if same) and then to be configured again. But if the previous rule
+	// was related to the same TechProfile (and still exists) then there is no way to decide upon waiting or not.
+	// There is a valid workaround within VlanConfig FSM to wait for rule removal if the same cookie is still valid (if a new add comes prior any remove),
+	// but this does not help if the rule still exist only with other cookies and the new flow is already configured
+	// the simplest way to avoid that adverse sequence is to start a timer on the first remove request and suspend flow add procedures in that time
+	// hoping that this 'conditional add-flow delay' ensures the removal of all 'overlapping' flows
+	locStartSuspendTimer := false
+
+	dh.lockSuspendFlow.Lock()
+	if !dh.suspendFlowAdd[apUniPort.uniID] {
+		dh.suspendFlowAdd[apUniPort.uniID] = true
+		locStartSuspendTimer = true
+	}
+	dh.lockSuspendFlow.Unlock()
+	if locStartSuspendTimer {
+		go func(aUniID uint8) {
+			time.Sleep(time.Millisecond * 200)
+			dh.CancelSuspendFlowAdd(aUniID)
+		}(apUniPort.uniID)
+	}
+
+	//mutex protection as the update_flow rpc maybe running concurrently for different flows, even on same flow but add/rem flow
+	//compare comments in addFlowItemToUniPort() for SetUniFlowParams()
 	dh.lockVlanConfig.RLock()
 	defer dh.lockVlanConfig.RUnlock()
+	logger.Debugw(ctx, "flow-rem got lock", log.Fields{"device-id": dh.deviceID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(ctx, loCookie)
 	}
@@ -2519,8 +2558,14 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	//but as we regard the flow as not existing = removed we respond just ok
 	// and treat the reason accordingly (which in the normal removal procedure is initiated by the FSM)
 	go dh.deviceProcStatusUpdate(ctx, OmciVlanFilterRemDone)
-
 	return nil
+}
+
+//CancelSuspendFlowAdd may stop the flag to suspend flow add activities in case all rules are completely removed
+func (dh *deviceHandler) CancelSuspendFlowAdd(aUniID uint8) {
+	dh.lockSuspendFlow.Lock()
+	dh.suspendFlowAdd[aUniID] = false
+	dh.lockSuspendFlow.Unlock()
 }
 
 // createVlanFilterFsm initializes and runs the VlanFilter FSM to transfer OMCI related VLAN config
@@ -2540,8 +2585,8 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp)
 	if pVlanFilterFsm != nil {
 		dh.lockVlanConfig.Lock()
+		defer dh.lockVlanConfig.Unlock()
 		dh.UniVlanConfigFsmMap[apUniPort.uniID] = pVlanFilterFsm
-		dh.lockVlanConfig.Unlock()
 		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 		if pVlanFilterStatemachine != nil {
 			if pVlanFilterStatemachine.Is(vlanStDisabled) {
