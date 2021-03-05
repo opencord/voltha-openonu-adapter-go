@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "06b411c5_c18aaeb2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2476,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-05T10:28:33Z",
+      "side": 1,
+      "message": "why are we sleeping here ? can we use a callback mechanism or a watch on an empty list ? a sleep is never a good idea.",
+      "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
