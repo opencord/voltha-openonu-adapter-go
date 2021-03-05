@@ -52,6 +52,24 @@
       "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e5cbc73_50fd014d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2476,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-05T12:23:06Z",
+      "side": 1,
+      "message": "I would not know what. It just gives a more or less undefined time to check, if there are some lingering parallel delete requests still coming in, that need to be handled first.",
+      "parentUuid": "9c7d0a7d_0cd47f82",
+      "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
