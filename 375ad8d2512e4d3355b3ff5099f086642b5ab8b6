@@ -16,6 +16,24 @@
       "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11a44456_7e5ebe36",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2476,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-05T11:48:06Z",
+      "side": 1,
+      "message": "Why is sleep not a good idea? It is the simplest solution, of course there are others. time.Sleep in go as far as I know should just block here, allowing concurrent threads to continue (and that is the intention of this code). So in my point of view it is just what I want here. Another solution would be to start a timer here (with the advantage of possibly cancelling that from outside) but the behavior would more or less be the same.",
+      "parentUuid": "06b411c5_c18aaeb2",
+      "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
