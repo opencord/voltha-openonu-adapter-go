@@ -34,6 +34,24 @@
       "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c7d0a7d_0cd47f82",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2476,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-05T11:56:22Z",
+      "side": 1,
+      "message": "sleep is an arbitrary decision for a determined amount of time and for synchronisation is never a good idea, for example, what if it take more time than the 200 Ms that you place in there ? \nis there truly nothing we can check here to ensure proper processing ?",
+      "parentUuid": "11a44456_7e5ebe36",
+      "revId": "375ad8d2512e4d3355b3ff5099f086642b5ab8b6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
