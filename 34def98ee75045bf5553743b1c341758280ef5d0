@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "1a525b01_274973a0",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-05T15:17:42Z",
+      "side": 1,
+      "message": "As long as just a debug log is wanted the \u0027base class\u0027 method can be used (logFsmStateChange) which would automatically be invoked if nothing is defined as \u0027specific\u0027 implementation (from \u0027enter-state\u0027.",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e32299c9_4cf8315d",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -30,6 +47,23 @@
       "writtenOn": "2021-03-05T10:12:44Z",
       "side": 1,
       "message": "why are we sleeping here ? can we get instead a callback ?",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "12f860f8_527f0031",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-05T15:17:42Z",
+      "side": 1,
+      "message": "I would rather prefer to make the alarmUploadSeqNo and alarmUploadNoOfCmds to members of the alarm manager itself and to transfer alarmUploadSeqNo (for CommandSequenceNumber in AlarmGetNext) as separate argument or via me.ParamData (compare other eamples in this file with sendXXXVar() ). These parameters are more specific to alarm processing than relevant for \u0027general omci frame transfer\u0027.\nRefers to most changes in this file.",
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
