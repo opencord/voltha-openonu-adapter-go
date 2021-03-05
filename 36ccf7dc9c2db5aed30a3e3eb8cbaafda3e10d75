@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "96145855_18293038",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1238,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-05T01:23:37Z",
+      "side": 1,
+      "message": "Ack - will fix in next patch",
+      "parentUuid": "c7f042f0_a36c9492",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "576b1a19_19fe6e02",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
@@ -33,6 +51,24 @@
       "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f9dcee65_7d75be50",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1251,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-05T01:23:37Z",
+      "side": 1,
+      "message": "Ack - will fix in next patch",
+      "parentUuid": "576b1a19_19fe6e02",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "af33e1ad_4be07070",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1295,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-05T01:23:37Z",
+      "side": 1,
+      "message": "Ack - will fix in next patch",
+      "parentUuid": "fc480c46_dd091fdd",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4634053b_bb2874f5",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
@@ -67,6 +121,24 @@
       "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d5ecc0ab_3a45c3ff",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1348,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-05T01:23:37Z",
+      "side": 1,
+      "message": "Ack - will fix in next patch",
+      "parentUuid": "4634053b_bb2874f5",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "0d500117_bd3454eb",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1361,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-05T01:23:37Z",
+      "side": 1,
+      "message": "Ack - will fix in next patch",
+      "parentUuid": "373100b1_c3d04ac4",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0e6ab332_80f840a1",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
@@ -101,6 +191,24 @@
       "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f922b68_3853cd71",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1406,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-05T01:23:37Z",
+      "side": 1,
+      "message": "Ack - will fix in next patch",
+      "parentUuid": "0e6ab332_80f840a1",
+      "revId": "36ccf7dc9c2db5aed30a3e3eb8cbaafda3e10d75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
