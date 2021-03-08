@@ -2666,7 +2666,6 @@ func (dh *deviceHandler) ProcessPendingTpDelete(ctx context.Context, apUniPort *
 	if pAniConfigFsm, ok := dh.pOnuTP.pAniConfigFsm[k]; pAniConfigFsm != nil && ok {
 		pAniConfigStatemachine := pAniConfigFsm.pAdaptFsm.pFsm
 		if pAniConfigStatemachine != nil {
-			//If the gem port delete was waiting on flow remove, indicate event that flow remove is done
 			if pAniConfigStatemachine.Is(aniStWaitingFlowRem) {
 				logger.Debugw(ctx, "ani fsm in aniStWaitingFlowRem state - handling aniEvFlowRemDone event",
 					log.Fields{"device-id": dh.deviceID, "tpID": aTpID})

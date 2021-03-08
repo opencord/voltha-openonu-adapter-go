@@ -640,8 +640,7 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 
 	oFsm.pUniTechProf.mutexTPState.Lock()
 	//FlowRemovePending shall only be evaluated in case we are not already waiting for some TechProfile deletion
-	if !oFsm.pUniTechProf.mapUniTpIndication[oFsm.uniTpKey].techProfileToDelete &&
-		oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending() {
+	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending() {
 		oFsm.pUniTechProf.mutexTPState.Unlock()
 		logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
 			log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
