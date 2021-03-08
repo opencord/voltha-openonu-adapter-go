@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "519697c6_0ddccaaf",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2021-03-08T15:07:32Z",
+      "side": 1,
+      "message": "Perhaps meAlarmKey since it is the key/index into the alarm map as an alternative.  I\u0027m happy with just meInfo.",
+      "parentUuid": "d31a540a_4d4ccca0",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a525b01_274973a0",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -136,6 +154,24 @@
       "side": 1,
       "message": "We need to sleep since we need to wait before starting the audit. I added sleep because we just do not want to do anything but wait. Can change to timer if thats okay",
       "parentUuid": "e32299c9_4cf8315d",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "821cc1d5_13fd1f5d",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2021-03-08T15:07:32Z",
+      "side": 1,
+      "message": "Is it possible to schedule an event to be sent to the FSM?   Then you could, after initialization, wait in the Idle state for that event to fire which would move the FSM to the start of the audit download.\n\nI\u0027ve used other FSM golang implementations but not looplab, so not sure how easy this would be.",
+      "parentUuid": "ba078041_cb32bbc5",
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -311,6 +347,29 @@
         "startChar": 65,
         "endLine": 306,
         "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3a9f7c5_b1945579",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 311,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2021-03-08T15:07:32Z",
+      "side": 1,
+      "message": "This is getting a reference to the active alarm map and not a copy.  Is that intended?  If you make a modification to OltDbCopy, you will also change the alarmBitMapDB",
+      "range": {
+        "startLine": 311,
+        "startChar": 25,
+        "endLine": 311,
+        "endChar": 33
       },
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
