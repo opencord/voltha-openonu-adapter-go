@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "d31a540a_4d4ccca0",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "I do not agree as this does not contain any alarm info.",
+      "parentUuid": "092a06cf_2176e861",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a525b01_274973a0",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -33,6 +51,24 @@
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b2200b4_e76fbe14",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1a525b01_274973a0",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "21bb1d48_065a0bc3",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Currently its not configurable, its fixed. Created https://jira.opencord.org/browse/VOL-3894 for the same",
+      "parentUuid": "0dce0b6a_7eebaede",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e32299c9_4cf8315d",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "ba078041_cb32bbc5",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "We need to sleep since we need to wait before starting the audit. I added sleep because we just do not want to do anything but wait. Can change to timer if thats okay",
+      "parentUuid": "e32299c9_4cf8315d",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "103be14a_1253f315",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -81,6 +153,24 @@
       "writtenOn": "2021-03-08T05:11:38Z",
       "side": 1,
       "message": "I am not sure about the behavior of the FSM in this case. \nI think the intention here is to trigger a asEvAudit event every auditInterval. But the FSM handler function blocks here with time.Sleep. So, can it handle other events in this state? Meaning if other events land in this state does this processing abort? It seems a little confusing.\nAnother approach would be to have tick generation routine that generates an asEvAudit event every auditInterval - if your intention is to have an audit every auditInterval no matter what..",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "45f21412_caca85f0",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "We need to trigger audit after an audit delay. But there is more role of the FSM to reach this state. For example if sync was a failure, we would not be reaching here and FSM will directly transition to auditing again. So we cannot directly use ticker to start audit every audit interval, we need to make sure the previous audit is completed before we start again. As far as the sleep is concerned, its just added to wait before we transition to auditing state again, i can change it to a timer if thats okay?",
+      "parentUuid": "103be14a_1253f315",
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -110,6 +200,30 @@
     },
     {
       "key": {
+        "uuid": "eea1e685_c76cd380",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9bccf3e5_5269456c",
+      "range": {
+        "startLine": 256,
+        "startChar": 22,
+        "endLine": 256,
+        "endChar": 34
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "eda069a7_c336bcea",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -133,6 +247,30 @@
     },
     {
       "key": {
+        "uuid": "ea684ce3_b15cb8f1",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 258,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "eda069a7_c336bcea",
+      "range": {
+        "startLine": 258,
+        "startChar": 0,
+        "endLine": 258,
+        "endChar": 136
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "05668532_a993f4b0",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -144,6 +282,30 @@
       "writtenOn": "2021-03-08T05:11:38Z",
       "side": 1,
       "message": "in wrap-around case this condition is not valid. Also is it right to compare \"alarmUploadSeqNo\" with \"alarmUploadNoOfCmds\" ? What is \"alarmUploadSeqNo\" is 1 (after wrap around) and \"alarmUploadNoOfCmds\" is 150?",
+      "range": {
+        "startLine": 306,
+        "startChar": 65,
+        "endLine": 306,
+        "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d73d3aa6_837c1229",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "I am sorry, I did not get the wrap around case? However this is valid as we reset both when ever we send getallalarms request, and assign uploadnoofcommands as the no of commands received in the response. After that whenever getallnext is send, only sequence no is incremented by 1. So in next sync cycle, the moment we send getallalarms, both the fields will reset to 0.",
+      "parentUuid": "05668532_a993f4b0",
       "range": {
         "startLine": 306,
         "startChar": 65,
@@ -179,6 +341,30 @@
     },
     {
       "key": {
+        "uuid": "c4404556_e56ee58f",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8b9a1e8c_062d550c",
+      "range": {
+        "startLine": 331,
+        "startChar": 0,
+        "endLine": 332,
+        "endChar": 86
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d0d6ab4f_82671564",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -193,6 +379,24 @@
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed3e3cb6_16b2c7c6",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d0d6ab4f_82671564",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -219,6 +423,30 @@
     },
     {
       "key": {
+        "uuid": "a9ba56e9_3e6078dd",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 358,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Sorry it has to be onuDb here.",
+      "parentUuid": "382c7aa6_588219b6",
+      "range": {
+        "startLine": 358,
+        "startChar": 17,
+        "endLine": 358,
+        "endChar": 36
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8d2e65c7_12cbfb7f",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -230,6 +458,30 @@
       "writtenOn": "2021-03-08T05:11:38Z",
       "side": 1,
       "message": "Why oltDbCopy and not onuDbCopy? Isn\u0027t ONU the single source of truth?",
+      "range": {
+        "startLine": 384,
+        "startChar": 17,
+        "endLine": 384,
+        "endChar": 36
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f3183be8_094c7d20",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Onu is the single source of truth, thats why we are checking here if there is some entry in olt db but not in onu db, it means that those are stale entries and need to be cleared.",
+      "parentUuid": "8d2e65c7_12cbfb7f",
       "range": {
         "startLine": 384,
         "startChar": 17,
@@ -265,6 +517,30 @@
     },
     {
       "key": {
+        "uuid": "60475030_c57b0faf",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 464,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Same here, did not get the comment.",
+      "parentUuid": "f3114698_0f732568",
+      "range": {
+        "startLine": 464,
+        "startChar": 65,
+        "endLine": 464,
+        "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c972ade9_0c2e60a3",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -288,6 +564,30 @@
     },
     {
       "key": {
+        "uuid": "f550ec81_509a7cae",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 550,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c972ade9_0c2e60a3",
+      "range": {
+        "startLine": 550,
+        "startChar": 0,
+        "endLine": 550,
+        "endChar": 30
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "12f860f8_527f0031",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 3
@@ -302,6 +602,24 @@
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f36ec7d_15e5b7a2",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-08T11:41:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "12f860f8_527f0031",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
