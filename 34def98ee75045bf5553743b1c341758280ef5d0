@@ -36,6 +36,23 @@
     },
     {
       "key": {
+        "uuid": "0dce0b6a_7eebaede",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "Is this configurable? Should it be configurable if not?",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e32299c9_4cf8315d",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -47,6 +64,224 @@
       "writtenOn": "2021-03-05T10:12:44Z",
       "side": 1,
       "message": "why are we sleeping here ? can we get instead a callback ?",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "103be14a_1253f315",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "I am not sure about the behavior of the FSM in this case. \nI think the intention here is to trigger a asEvAudit event every auditInterval. But the FSM handler function blocks here with time.Sleep. So, can it handle other events in this state? Meaning if other events land in this state does this processing abort? It seems a little confusing.\nAnother approach would be to have tick generation routine that generates an asEvAudit event every auditInterval - if your intention is to have an audit every auditInterval no matter what..",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9bccf3e5_5269456c",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "You might need provisions to flush this channel, to flush out on the fly messages in case the FSM is stopped and started again while some messages are in flight.\nCheck the onu_metrics_manager.go for example. I think the function is \"flushMetricCollectionChannels\"",
+      "range": {
+        "startLine": 256,
+        "startChar": 22,
+        "endLine": 256,
+        "endChar": 34
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eda069a7_c336bcea",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 258,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "The usual log format is \n\nlog.\u003clevel\u003e(ctx, \"\u003ccontext of the message\u003e\", log.Fields{\u003ckey1\u003e:\u003cvalue1\u003e, ... , \u003ckey-n\u003e:\u003cvalue-n\u003e})\n\nIt seems like you are putting the context in the \u003ckey\u003e and the actual context of the message does not say much.\n\nYou can change the log like this\n\nlogger.Info(ctx, \"message-couldn\u0027t-be-read-from-channel\", log.Fields{\"device-id\": am.pDeviceHandler.deviceID})\n\nThis has happened at multiple places in this place. Can you fix this please.\n\nThe \"key\" field in the log.Fields{} is very important and needs to be consistent as this is very useful in log post processing.",
+      "range": {
+        "startLine": 258,
+        "startChar": 0,
+        "endLine": 258,
+        "endChar": 136
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05668532_a993f4b0",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "in wrap-around case this condition is not valid. Also is it right to compare \"alarmUploadSeqNo\" with \"alarmUploadNoOfCmds\" ? What is \"alarmUploadSeqNo\" is 1 (after wrap around) and \"alarmUploadNoOfCmds\" is 150?",
+      "range": {
+        "startLine": 306,
+        "startChar": 65,
+        "endLine": 306,
+        "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8b9a1e8c_062d550c",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "also useful to log the current alarmUploadSeqNo",
+      "range": {
+        "startLine": 331,
+        "startChar": 0,
+        "endLine": 332,
+        "endChar": 86
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0d6ab4f_82671564",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "Prefer if all FSM handler functions are grouped in one section",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "382c7aa6_588219b6",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 358,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "Why oltDbCopy and not onuDbCopy? Isn\u0027t ONU the single source of truth?",
+      "range": {
+        "startLine": 358,
+        "startChar": 17,
+        "endLine": 358,
+        "endChar": 36
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d2e65c7_12cbfb7f",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "Why oltDbCopy and not onuDbCopy? Isn\u0027t ONU the single source of truth?",
+      "range": {
+        "startLine": 384,
+        "startChar": 17,
+        "endLine": 384,
+        "endChar": 36
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f3114698_0f732568",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 464,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "I have my concerns about this check expressed in earlier comment.",
+      "range": {
+        "startLine": 464,
+        "startChar": 65,
+        "endLine": 464,
+        "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c972ade9_0c2e60a3",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 550,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-08T05:11:38Z",
+      "side": 1,
+      "message": "this check is not necessary, you would like to reset it anyway",
+      "range": {
+        "startLine": 550,
+        "startChar": 0,
+        "endLine": 550,
+        "endChar": 30
+      },
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
