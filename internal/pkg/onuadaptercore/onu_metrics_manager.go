@@ -658,11 +658,11 @@ loop:
 		opticalMetrics := make(map[string]float32)
 		// Get the ANI-G instance optical power attributes
 		requestedAttributes := me.AttributeValueMap{"OpticalSignalLevel": 0, "TransmitOpticalLevel": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 			select {
 			case meAttributes = <-mm.opticalMetricsChan:
 				logger.Debugw(ctx, "received optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics will be empty in this case
 				break loop
@@ -734,12 +734,12 @@ loop1:
 		var meAttributes me.AttributeValueMap
 		// Get the UNI-G instance optical power attributes
 		requestedAttributes := me.AttributeValueMap{"AdministrativeState": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
 				logger.Debugw(ctx, "received uni-g metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics could be empty in this case
 				break loop1
@@ -782,12 +782,12 @@ loop2:
 		pptpMetrics := make(map[string]float32)
 
 		requestedAttributes := me.AttributeValueMap{"SensedType": 0, "OperationalState": 0, "AdministrativeState": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, pptpInstID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, pptpInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
 				logger.Debugw(ctx, "received pptp metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics could be empty in this case
 				break loop2
@@ -839,12 +839,12 @@ loop3:
 		veipMetrics := make(map[string]float32)
 
 		requestedAttributes := me.AttributeValueMap{"OperationalState": 0, "AdministrativeState": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
 				logger.Debugw(ctx, "received veip metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics could be empty in this case
 				break loop3
@@ -1274,7 +1274,7 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					// retry L2PmCreateAttempts times to create the instance of PM
 					for cnt = 0; cnt < L2PmCreateAttempts; cnt++ {
 						mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
-							ctx, ConstDefaultOmciTimeout, true, direction, true, mm.pAdaptFsm.commChan, entityID)
+							ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, direction, true, mm.pAdaptFsm.commChan, entityID)
 						if resp = mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetFramePerformanceMonitoringHistoryData"); resp {
 							atLeastOneSuccess = true
 							_ = mm.updatePmData(ctx, n, entityID, cPmAdded) // TODO: ignore error for now
@@ -1296,7 +1296,7 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					// retry L2PmCreateAttempts times to create the instance of PM
 					for cnt = 0; cnt < L2PmCreateAttempts; cnt++ {
 						mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
-							ctx, ConstDefaultOmciTimeout, true, true, mm.pAdaptFsm.commChan, entityID)
+							ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, true, mm.pAdaptFsm.commChan, entityID)
 						if resp = mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetPerformanceMonitoringHistoryData"); resp {
 							atLeastOneSuccess = true
 							_ = mm.updatePmData(ctx, n, entityID, cPmAdded) // TODO: ignore error for now
@@ -1312,7 +1312,7 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 			for _, anigInstID := range mm.pDeviceHandler.pOnuOmciDevice.pOnuDB.getSortedInstKeys(ctx, me.AniGClassID) {
 				// Attach the FecPerformanceMonitoringHistoryData ME to the ANI-G ME instance
 				mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
-					ctx, ConstDefaultOmciTimeout, true, true, mm.pAdaptFsm.commChan, anigInstID)
+					ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, true, mm.pAdaptFsm.commChan, anigInstID)
 				_ = mm.updatePmData(ctx, n, anigInstID, cPmAdd) // TODO: ignore error for now
 			inner3:
 				// retry L2PmCreateAttempts times to create the instance of PM
@@ -1346,7 +1346,7 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 
 			for _, v := range copyOfGemPortInstIDsToAdd {
 				mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteGemPortHistoryME(
-					ctx, ConstDefaultOmciTimeout, true, true, mm.pAdaptFsm.commChan, v)
+					ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, true, mm.pAdaptFsm.commChan, v)
 				_ = mm.updatePmData(ctx, n, v, cPmAdd) // TODO: ignore error for now
 			inner4:
 				// retry L2PmCreateAttempts times to create the instance of PM
@@ -1438,7 +1438,7 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 					// retry L2PmDeleteAttempts times to delete the instance of PM
 					for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
 						mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
-							ctx, ConstDefaultOmciTimeout, true, direction, false, mm.pAdaptFsm.commChan, entityID)
+							ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, direction, false, mm.pAdaptFsm.commChan, entityID)
 						_ = mm.updatePmData(ctx, n, entityID, cPmRemove) // TODO: ignore error for now
 						if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetFramePerformanceMonitoringHistoryData"); !resp {
 							atLeastOneDeleteFailure = true
@@ -1458,7 +1458,7 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 				// retry L2PmDeleteAttempts times to delete the instance of PM
 				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
-						ctx, ConstDefaultOmciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
+						ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
 					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetPerformanceMonitoringHistoryData"); !resp {
 						atLeastOneDeleteFailure = true
 					} else {
@@ -1476,7 +1476,7 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 				// retry L2PmDeleteAttempts times to delete the instance of PM
 				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
-						ctx, ConstDefaultOmciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
+						ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
 					if resp := mm.waitForResponseOrTimeout(ctx, false, entityID, "FecPerformanceMonitoringHistoryData"); !resp {
 						atLeastOneDeleteFailure = true
 					} else {
@@ -1494,7 +1494,7 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 				// retry L2PmDeleteAttempts times to delete the instance of PM
 				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
 					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteGemPortHistoryME(
-						ctx, ConstDefaultOmciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
+						ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
 					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "GemPortNetworkCtpPerformanceMonitoringHistoryData"); !resp {
 						atLeastOneDeleteFailure = true
 					} else {
@@ -1542,13 +1542,13 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 
 // syncTime synchronizes time with the ONU to establish a 15 min boundary for PM collection and reporting.
 func (mm *onuMetricsManager) syncTime(ctx context.Context) error {
-	if err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendSyncTime(ctx, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); err != nil {
+	if err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendSyncTime(ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); err != nil {
 		logger.Errorw(ctx, "cannot send sync time request", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 		return err
 	}
 
 	select {
-	case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+	case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 		logger.Errorf(ctx, "timed out waiting for sync time response from onu", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 		return fmt.Errorf("timed-out-waiting-for-sync-time-response-%v", mm.pDeviceHandler.deviceID)
 	case syncTimeRes := <-mm.syncTimeResponseChan:
@@ -1706,12 +1706,12 @@ func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received ethernet pm history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "upstream": upstream, "entityID": entityID})
-		case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for ethernet pm history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "upstream": upstream, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -1802,12 +1802,12 @@ func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received ethernet uni history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
-		case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for ethernet uni history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -1898,12 +1898,12 @@ func (mm *onuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received fec history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
-		case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for fec history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -1958,12 +1958,12 @@ func (mm *onuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, ConstDefaultOmciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received gem port history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
-		case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for gem port history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -2207,7 +2207,7 @@ func (mm *onuMetricsManager) waitForResponseOrTimeout(ctx context.Context, creat
 		logger.Debugw(ctx, "received l2 pm me response",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "create": create, "meClassName": meClassName, "instID": instID})
 		return resp
-	case <-time.After(time.Duration(ConstDefaultOmciTimeout) * time.Second):
+	case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
 		logger.Errorw(ctx, "timeout waiting for l2 pm me response",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": false, "create": create, "meClassName": meClassName, "instID": instID})
 	}

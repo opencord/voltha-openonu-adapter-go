@@ -70,6 +70,7 @@ type OpenONUAC struct {
 	pDownloadManager           *adapterDownloadManager
 	metricsEnabled             bool
 	mibAuditInterval           time.Duration
+	omciTimeout                int // in seconds
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -102,6 +103,8 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.metricsEnabled = cfg.MetricsEnabled
 	openOnuAc.mibAuditInterval = cfg.MibAuditInterval
+	// since consumers of OMCI timeout value everywhere in code is in "int seconds", do this useful conversion
+	openOnuAc.omciTimeout = int(cfg.OmciTimeout.Seconds())
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {
