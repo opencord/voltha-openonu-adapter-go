@@ -64,6 +64,8 @@ const (
 
 	defaultMetricsEnabled   = false
 	defaultMibAuditInterval = 0
+
+	defaultOmciTimeout = 3 * time.Second
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -100,6 +102,7 @@ type AdapterFlags struct {
 	OnuVendorIds                string
 	MetricsEnabled              bool
 	MibAuditInterval            time.Duration
+	OmciTimeout                 time.Duration
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -136,6 +139,7 @@ func NewAdapterFlags() *AdapterFlags {
 		OnuVendorIds:                defaultOnuVendorIds,
 		MetricsEnabled:              defaultMetricsEnabled,
 		MibAuditInterval:            defaultMibAuditInterval,
+		OmciTimeout:                 defaultOmciTimeout,
 	}
 	return &adapterFlags
 }
@@ -234,6 +238,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("Mib Audit Interval in seconds - the value zero will disable Mib Audit")
 	flag.DurationVar(&(so.MibAuditInterval), "mib_audit_interval", defaultMibAuditInterval, help)
+
+	help = fmt.Sprintf("OMCI timeout duration - this timeout value is used on the OMCI channel for waiting on response from ONU")
+	flag.DurationVar(&(so.OmciTimeout), "omci_timeout", defaultOmciTimeout, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()

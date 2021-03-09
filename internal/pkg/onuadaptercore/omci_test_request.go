@@ -80,7 +80,8 @@ func (oo *omciTestRequest) performOmciTest(ctx context.Context, execChannel chan
 
 		logger.Debugw(ctx, "performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID})
 		// send with default timeout and normal prio
-		go oo.pDevOmciCC.send(ctx, onu2gBaseGet, ConstDefaultOmciTimeout, 0, false, omciRxCallbackPair)
+		// Note: No reference to fetch the OMCI timeout value from configuration, so hardcode it to 10s
+		go oo.pDevOmciCC.send(ctx, onu2gBaseGet, 10, 0, false, omciRxCallbackPair)
 
 	} else {
 		logger.Errorw(ctx, "performOmciTest: Device does not exist", log.Fields{"for device-id": oo.deviceID})

@@ -440,7 +440,7 @@ func (oFsm *uniPonAniConfigFsm) enterCreatingDot1PMapper(ctx context.Context, e 
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 	oFsm.requestEventOffset = 0 //0 offset for last config request activity
-	meInstance := oFsm.pOmciCC.sendCreateDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendCreateDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.mapperSP0ID, oFsm.pAdaptFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -462,7 +462,7 @@ func (oFsm *uniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 			"TpPointer":       oFsm.mapperSP0ID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -480,7 +480,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 			"AllocId": oFsm.alloc0ID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -604,7 +604,7 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 			}(pConfigAniStateAFsm)
 		}
 	} else {
-		meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -667,7 +667,7 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	oFsm.requestEventOffset = 1 //offset 1 to indicate last activity = remove
 
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
-	meInstance := oFsm.pOmciCC.sendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
 	oFsm.pLastTxMeInstance = meInstance
 }
@@ -680,7 +680,7 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
 		"GemNCTP-entity-id": loGemPortID})
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
-	meInstance := oFsm.pOmciCC.sendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
 	oFsm.pLastTxMeInstance = meInstance
 	// Mark the gem port to be removed for Performance History monitoring
@@ -701,7 +701,7 @@ func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 			"AllocId": unusedTcontAllocID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	oFsm.pLastTxMeInstance = meInstance
 }
@@ -710,7 +710,7 @@ func (oFsm *uniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
-	meInstance := oFsm.pOmciCC.sendDeleteDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendDeleteDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, oFsm.mapperSP0ID)
 	oFsm.pLastTxMeInstance = meInstance
 }
@@ -719,7 +719,7 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
-	meInstance := oFsm.pOmciCC.sendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, oFsm.macBPCD0ID)
 	oFsm.pLastTxMeInstance = meInstance
 }
@@ -1002,7 +1002,7 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 				"PriorityQueuePointerForDownStream":   gemPortAttribs.downQueueID,
 			},
 		}
-		meInstance := oFsm.pOmciCC.sendCreateGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendCreateGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -1047,7 +1047,7 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout,
+			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
 			//verify response
@@ -1074,7 +1074,7 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"Ipv4MulticastAddressTable": ipv4MulticastTable,
 				},
 			}
-			meIPV4MCTableInstance := oFsm.pOmciCC.sendSetMulticastGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout,
+			meIPV4MCTableInstance := oFsm.pOmciCC.sendSetMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meIPV4MCTableParams)
 			oFsm.pLastTxMeInstance = meIPV4MCTableInstance
 
@@ -1089,7 +1089,7 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), ConstDefaultOmciTimeout, true,
+			meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
@@ -1163,7 +1163,7 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 			meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
 			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
 		}
-		meInstance := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages

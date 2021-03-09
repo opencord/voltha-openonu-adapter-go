@@ -260,7 +260,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		"MeId": oFsm.inactiveImageMeID, "windowSizeLimit": oFsm.omciDownloadWindowSizeLimit,
 		"ImageSize": oFsm.imageLength, "original file size": fileLen})
 	//"NumberOfCircuitPacks": oFsm.numberCircuitPacks, "CircuitPacks MeId": 0}) //parallel circuit packs download not supported
-	err = oFsm.pOmciCC.sendStartSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
+	err = oFsm.pOmciCC.sendStartSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.omciDownloadWindowSizeLimit, oFsm.origImageLength)
 	if err != nil {
 		logger.Errorw(ctx, "StartSwDl abort: can't send section", log.Fields{
@@ -321,7 +321,7 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 			logger.Infow(ctx, "DlSection expect Response for last window (section)", log.Fields{
 				"device-id": oFsm.deviceID, "DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute})
 		}
-		err := oFsm.pOmciCC.sendDownloadSection(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
+		err := oFsm.pOmciCC.sendDownloadSection(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 			oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, framePrint)
 		if err != nil {
 			logger.Errorw(ctx, "DlSection abort: can't send section", log.Fields{
@@ -368,7 +368,7 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 		time.Sleep(cOmciEndSwDlDelaySeconds * time.Second)
 	}
 
-	err := oFsm.pOmciCC.sendEndSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
+	err := oFsm.pOmciCC.sendEndSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.origImageLength, imageCRC)
 	if err != nil {
 		logger.Errorw(ctx, "EndSwDl abort: can't send section", log.Fields{
@@ -387,7 +387,7 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm activate SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 
-	err := oFsm.pOmciCC.sendActivateSoftware(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
+	err := oFsm.pOmciCC.sendActivateSoftware(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID)
 	if err != nil {
 		logger.Errorw(ctx, "ActivateSw abort: can't send activate frame", log.Fields{
@@ -409,7 +409,7 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 		if imageFit || activeImageID == oFsm.inactiveImageMeID {
 			logger.Infow(ctx, "OnuUpgradeFsm commit SW", log.Fields{
 				"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID}) //more efficient activeImageID with above check
-			err := oFsm.pOmciCC.sendCommitSoftware(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, false,
+			err := oFsm.pOmciCC.sendCommitSoftware(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 				oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID) //more efficient activeImageID with above check
 			if err != nil {
 				logger.Errorw(ctx, "CommitSw abort: can't send commit sw frame", log.Fields{
@@ -450,7 +450,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
 	meInstance := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
-		me.SoftwareImageClassID, oFsm.inactiveImageMeID, requestedAttributes, ConstDefaultOmciTimeout, false, oFsm.pAdaptFsm.commChan)
+		me.SoftwareImageClassID, oFsm.inactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false, oFsm.pAdaptFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance

@@ -45,7 +45,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDLStartingState(ctx context.Context, 
 
 func (onuDeviceEntry *OnuDeviceEntry) enterCreatingGalState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM", log.Fields{"Tx create::GAL Ethernet Profile in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
-	meInstance := onuDeviceEntry.PDevOmciCC.sendCreateGalEthernetProfile(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendCreateGalEthernetProfile(log.WithSpanFromContext(context.TODO(), ctx), onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -53,7 +53,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterCreatingGalState(ctx context.Context,
 
 func (onuDeviceEntry *OnuDeviceEntry) enterSettingOnu2gState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM", log.Fields{"Tx Set::ONU2-G in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
-	meInstance := onuDeviceEntry.PDevOmciCC.sendSetOnu2g(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true)
+	meInstance := onuDeviceEntry.PDevOmciCC.sendSetOnu2g(log.WithSpanFromContext(context.TODO(), ctx), onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
@@ -244,7 +244,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 
 		//create MBSP
 		meInstance := onuDeviceEntry.PDevOmciCC.sendCreateMBServiceProfile(
-			log.WithSpanFromContext(context.TODO(), ctx), uniPort, ConstDefaultOmciTimeout, true)
+			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
 		//verify response
 		err := onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
@@ -257,7 +257,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 
 		//create MBPCD
 		meInstance = onuDeviceEntry.PDevOmciCC.sendCreateMBPConfigData(
-			log.WithSpanFromContext(context.TODO(), ctx), uniPort, ConstDefaultOmciTimeout, true)
+			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
@@ -270,7 +270,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 
 		//create EVTOCD
 		meInstance = onuDeviceEntry.PDevOmciCC.sendCreateEVTOConfigData(
-			log.WithSpanFromContext(context.TODO(), ctx), uniPort, ConstDefaultOmciTimeout, true)
+			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
