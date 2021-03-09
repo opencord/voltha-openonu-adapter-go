@@ -213,6 +213,24 @@
     },
     {
       "key": {
+        "uuid": "07f62ad1_11670f77",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-09T01:47:38Z",
+      "side": 1,
+      "message": "Ok. Got your point.\nBut there is any interesting case when the FSM has to stop after receiving the asEvStop event. But this asFsmInSync function will not stop generating the asEvAudit event in case the timer has already fired. There is no interrupt handler to stop from generating the asEvAudit event - is my understanding correct?",
+      "parentUuid": "45f21412_caca85f0",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9bccf3e5_5269456c",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -351,6 +369,30 @@
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e40722d_7b4ba1d8",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-09T01:47:38Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d73d3aa6_837c1229",
+      "range": {
+        "startLine": 306,
+        "startChar": 65,
+        "endLine": 306,
+        "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -553,6 +595,30 @@
     },
     {
       "key": {
+        "uuid": "7f0871ae_a04fda70",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-09T01:47:38Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f3183be8_094c7d20",
+      "range": {
+        "startLine": 384,
+        "startChar": 17,
+        "endLine": 384,
+        "endChar": 36
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f3114698_0f732568",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -597,6 +663,30 @@
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84c44fb2_7f265e19",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 464,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-09T01:47:38Z",
+      "side": 1,
+      "message": "I think the check seems fine. No need to change anything.",
+      "parentUuid": "60475030_c57b0faf",
+      "range": {
+        "startLine": 464,
+        "startChar": 65,
+        "endLine": 464,
+        "endChar": 66
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {

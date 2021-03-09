@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9aa0ebbe_e9fba3f2",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-09T01:47:38Z",
+      "side": 1,
+      "message": "you may remove this altogether.",
+      "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
