@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d5b16910_178e1567",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 642,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-09T10:28:16Z",
+      "side": 1,
+      "message": "This way we had a deadlock situation (ATT scenario - subscriber flow delete): RwCore was sending the flow activities - nearly in parallel: \n1) remove all previous flows and \n2) add the EAPOL flow. \nAt that time the OLT Adapter had some problem (I sent according indications in slack a while ago) and rwCore tried to recover from this situation by starting a new configuration sequence: 3) remove the EAP flow again and at  that time OLT adapter accepted the TechProfile configuration an started to \n4) remove the GemPorts and T-Cont.\n5) (not relevant here anymore: RwCore reassigned the EAPOL flow and started TechProf config via OLT adapter again)\n\nWith the schemes we implemented \nin 1) the previously used Tech Profile is marked as to be deleted\nin 2) flow configuration is set to wait for the techProfile to be removed first and to be configured again\nin 3) the VlanConfigFsm is still waiting to add the flow (with waiting on TechProfile del/add), the new removeFlow is queued in the FSM (but not executed)\nin 4) TechProfile removal is not started as it is waiting for the Flow to be deleted first (never done in this situation anymore)\n\nAccordingly I wanted to make sure that in 4) the techProfile removal is correctly processed (if it is \u0027awaited\u0027) so that the next TechProfile configuration (in 5) is accepted again and allows the still queued flow configuration from 2 (including also 5 - the same flow).\n\nNow with that fix (https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/22994) there was still a problem with the pending but now executed flow add from 2) and the also queue flow remove from 3 that was executed afterwards - and ignored flow add from 5 (as it was still existing from 2). \nSo I had to introduce a further patch - https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/23108 to ensure, that the outstanding - not started - flow add and the started flow remove on the same flow (rule) are \u0027pro forma\u0027 accepted and considered as done - with internal data removal. This way now also the new flow add in 5 is correctly accepted.\n\nSo looking back it now seems as if the later implementation already makes the implementation discussed here obsolete: flow activities in 2 and 3 are \u0027pro forma\u0027 done, so that the techprofile removal in 4 can start.\nOn the other hand I don\u0027t see that the extended check on !techProfileToDelete should do any harm, it should make the code a bit more robust? Did you find a specific situation (in TT scenario?) where this was failing some test. If so - yes: I think we can live without that extension here - needs further observation in the ATT tests.",
+      "revId": "16a939423105a90c503d49be65d74502f1cb862f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
