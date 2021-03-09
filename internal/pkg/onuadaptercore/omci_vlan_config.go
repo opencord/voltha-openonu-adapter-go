@@ -911,7 +911,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 		}
 		logger.Debugw(ctx, "UniVlanConfigFsm sendcreate VTFD", log.Fields{
 			"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
-		meInstance := oFsm.pOmciCC.sendCreateVtfdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendCreateVtfdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -1072,7 +1072,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 					"NumberOfEntries":  oFsm.numVlanFilterEntries,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendCreateVtfdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+			meInstance := oFsm.pOmciCC.sendCreateVtfdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
@@ -1108,7 +1108,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 					"NumberOfEntries":  oFsm.numVlanFilterEntries,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendCreateVtfdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+			meInstance := oFsm.pOmciCC.sendCreateVtfdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
@@ -1195,7 +1195,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 					"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 			loVlanEntryClear = 1           //full VlanFilter clear request
 			if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
-				meInstance := oFsm.pOmciCC.sendDeleteVtfd(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+				meInstance := oFsm.pOmciCC.sendDeleteVtfd(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 					oFsm.pAdaptFsm.commChan, vtfdID)
 				oFsm.pLastTxMeInstance = meInstance
 			} else {
@@ -1233,7 +1233,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 
 				if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
 					// FIXME: VOL-3685: Issues with resetting a table entry in EVTOCD ME
-					meInstance := oFsm.pOmciCC.sendDeleteVtfd(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+					meInstance := oFsm.pOmciCC.sendDeleteVtfd(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 						oFsm.pAdaptFsm.commChan, vtfdID)
 					oFsm.pLastTxMeInstance = meInstance
 				} else {
@@ -1595,7 +1595,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 				"AssociatedMePointer": oFsm.pOnuUniPort.entityID,
 			},
 		}
-		meInstance := oFsm.pOmciCC.sendCreateEvtocdVar(context.TODO(), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendCreateEvtocdVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -1619,7 +1619,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 				"DownstreamMode": uint8(cDefaultDownstreamMode),
 			},
 		}
-		meInstance = oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+		meInstance = oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -1671,7 +1671,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 				"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 			},
 		}
-		meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -1727,7 +1727,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 					"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+			meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
@@ -1779,7 +1779,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 						"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 					},
 				}
-				meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+				meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 					oFsm.pAdaptFsm.commChan, meParams)
 				//accept also nil as (error) return value for writing to LastTx
 				//  - this avoids misinterpretation of new received OMCI messages
@@ -1832,7 +1832,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 						"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 					},
 				}
-				meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+				meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 					oFsm.pAdaptFsm.commChan, meParams)
 				//accept also nil as (error) return value for writing to LastTx
 				//  - this avoids misinterpretation of new received OMCI messages
@@ -1895,7 +1895,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 				"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 			},
 		}
-		meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+		meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
@@ -1938,7 +1938,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 					"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+			meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
@@ -1970,7 +1970,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 				meParams := me.ParamData{
 					EntityID: oFsm.evtocdID,
 				}
-				meInstance := oFsm.pOmciCC.sendDeleteEvtocd(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+				meInstance := oFsm.pOmciCC.sendDeleteEvtocd(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 					oFsm.pAdaptFsm.commChan, meParams)
 				//accept also nil as (error) return value for writing to LastTx
 				//  - this avoids misinterpretation of new received OMCI messages
@@ -2028,7 +2028,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 							"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 						},
 					}
-					meInstance := oFsm.pOmciCC.sendSetEvtocdVar(context.TODO(), ConstDefaultOmciTimeout, true,
+					meInstance := oFsm.pOmciCC.sendSetEvtocdVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 						oFsm.pAdaptFsm.commChan, meParams)
 					//accept also nil as (error) return value for writing to LastTx
 					//  - this avoids misinterpretation of new received OMCI messages
@@ -2070,7 +2070,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 							"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 						},
 					}
-					meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+					meInstance := oFsm.pOmciCC.sendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 						oFsm.pAdaptFsm.commChan, meParams)
 					//accept also nil as (error) return value for writing to LastTx
 					//  - this avoids misinterpretation of new received OMCI messages
@@ -2149,7 +2149,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 			"TpPointer":       multicastGemPortID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(context.TODO(), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -2186,7 +2186,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 			"NumberOfEntries":  oFsm.numVlanFilterEntries,
 		},
 	}
-	meInstance = oFsm.pOmciCC.sendCreateVtfdVar(context.TODO(), ConstDefaultOmciTimeout, true,
+	meInstance = oFsm.pOmciCC.sendCreateVtfdVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	oFsm.pLastTxMeInstance = meInstance
 	err = oFsm.waitforOmciResponse(ctx)
@@ -2216,7 +2216,7 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx c
 			"MulticastOperationsProfilePointer": macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo),
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendCreateMulticastSubConfigInfoVar(context.TODO(), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendCreateMulticastSubConfigInfoVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -2249,7 +2249,7 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 			"UnauthorizedJoinBehaviour": 0,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendCreateMulticastOperationProfileVar(context.TODO(), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendCreateMulticastOperationProfileVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -2297,7 +2297,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 			"DynamicAccessControlListTable": dynamicAccessCL,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendSetMulticastOperationProfileVar(context.TODO(), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendSetMulticastOperationProfileVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages

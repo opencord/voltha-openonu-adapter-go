@@ -519,7 +519,7 @@ func (oo *OnuDeviceEntry) stop(ctx context.Context, abResetOmciCC bool) error {
 func (oo *OnuDeviceEntry) reboot(ctx context.Context) error {
 	logger.Debugw(ctx, "OnuDeviceEntry-rebooting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC != nil {
-		if err := oo.PDevOmciCC.sendReboot(ctx, ConstDefaultOmciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
+		if err := oo.PDevOmciCC.sendReboot(ctx, oo.pOpenOnuAc.omciTimeout, true, oo.omciRebootMessageReceivedChannel); err != nil {
 			logger.Errorw(ctx, "onu didn't reboot", log.Fields{"for device-id": oo.deviceID})
 			return err
 		}

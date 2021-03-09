@@ -202,7 +202,7 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	logger.Debugw(ctx, "LockStateFSM Tx Set::ONU-G:admin", log.Fields{
 		"omciAdmin": omciAdminState, "in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 	requestedAttributes := me.AttributeValueMap{"AdministrativeState": omciAdminState}
-	meInstance := oFsm.pOmciCC.sendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), ConstDefaultOmciTimeout, true,
+	meInstance := oFsm.pOmciCC.sendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		requestedAttributes, oFsm.pAdaptFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
@@ -359,13 +359,13 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 			if uniPort.portType == uniPPTP {
 				logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
-				meInstance = oFsm.pOmciCC.sendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, ConstDefaultOmciTimeout,
+				meInstance = oFsm.pOmciCC.sendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 					true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 				oFsm.pLastTxMeInstance = meInstance
 			} else if uniPort.portType == uniVEIP {
 				logger.Debugw(ctx, "Setting VEIP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
-				meInstance = oFsm.pOmciCC.sendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, ConstDefaultOmciTimeout,
+				meInstance = oFsm.pOmciCC.sendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 					true, requestedAttributes, oFsm.pAdaptFsm.commChan)
 				oFsm.pLastTxMeInstance = meInstance
 			} else {

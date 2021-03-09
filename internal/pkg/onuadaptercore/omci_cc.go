@@ -44,9 +44,6 @@ import (
 
 // ### OMCI related definitions - retrieved from Python adapter code/trace ####
 
-//ConstDefaultOmciTimeout - Default OMCI Timeout
-const ConstDefaultOmciTimeout = 3 //seconds
-
 const galEthernetEID = uint16(1)
 const maxGemPayloadSize = uint16(48)
 const connectivityModeValue = uint8(5)
