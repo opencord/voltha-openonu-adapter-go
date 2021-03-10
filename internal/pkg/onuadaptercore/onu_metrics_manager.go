@@ -65,9 +65,9 @@ const (
 
 // OpticalPowerGroupMetrics are supported optical pm names
 var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
-	"ani_g_instance_id": voltha.PmConfig_CONTEXT,
-	"transmit_power":    voltha.PmConfig_GAUGE,
-	"receive_power":     voltha.PmConfig_GAUGE,
+	"ani_g_instance_id":  voltha.PmConfig_CONTEXT,
+	"transmit_power_dBm": voltha.PmConfig_GAUGE,
+	"receive_power_dBm":  voltha.PmConfig_GAUGE,
 }
 
 // OpticalPowerGroupMetrics specific constants
@@ -674,13 +674,13 @@ loop:
 					if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
 						opticalMetrics[k] = float32(val.(uint16))
 					}
-				case "transmit_power":
+				case "transmit_power_dBm":
 					if val, ok := meAttributes["TransmitOpticalLevel"]; ok && val != nil {
-						opticalMetrics[k] = float32(val.(uint16))
+						opticalMetrics[k] = float32(mm.twosComplementToSignedInt16(val.(uint16))) / 500 // convert to dBm
 					}
-				case "receive_power":
+				case "receive_power_dBm":
 					if val, ok := meAttributes["OpticalSignalLevel"]; ok && val != nil {
-						opticalMetrics[k] = float32(val.(uint16))
+						opticalMetrics[k] = float32(mm.twosComplementToSignedInt16(val.(uint16))) / 500 // convert to dBm
 					}
 				default:
 					// do nothing
@@ -2615,3 +2615,34 @@ func (mm *onuMetricsManager) removeIfFoundUint16(slice []uint16, n uint16) []uin
 	}
 	return slice
 }
+
+func (mm *onuMetricsManager) twosComplementToSignedInt16(val uint16) int16 {
+	var uint16MsbMask uint16 = 0x8000
+	if val&uint16MsbMask == uint16MsbMask {
+		return int16(^val+1) * -1
+	}
+
+	return int16(val)
+}
+
+/* // These are need in the future
+
+func (mm *onuMetricsManager) twosComplementToSignedInt32(val uint32) int32 {
+	var uint32MsbMask uint32 = 0x80000000
+	if val & uint32MsbMask == uint32MsbMask {
+		return int32(^val + 1) * -1
+	}
+
+	return int32(val)
+}
+
+func (mm *onuMetricsManager) twosComplementToSignedInt64(val uint64) int64 {
+	var uint64MsbMask uint64 = 0x8000000000000000
+	if val & uint64MsbMask == uint64MsbMask {
+		return int64(^val + 1) * -1
+	}
+
+	return int64(val)
+}
+
+*/
