@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "07a0f6c2_2edc06e5",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-10T14:35:16Z",
+      "side": 1,
+      "message": "except the log message the actions taken are exactly the same, would you mind extracting ? (minor)",
+      "revId": "ede1fac5df2737facb8d06a754fe9b4c945e627b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
