@@ -50,6 +50,24 @@
       "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0079c1aa_11593170",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 337,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-10T14:38:17Z",
+      "side": 1,
+      "message": "The sleep is done on the enterXXX function of the FSM, in my point of view decoupled from normal processing anyway. But the bigger impact of these sleep calls in the enterXXX functions (also on other positions) was already mentioned by Girish: Some stop/reset event probably won\u0027t have any influence or only after the timeout.\nSo the better approach is the way Girish has chosen in his metrics FSM: to make that delay processing together with some according state transition by some event sending to a background function. That would let the enterXXX function run to completion and other events are accepted again, a stop/reset will force an according state transition. A possibly later generated event for audit will not be considered anymore in that states.\nSo e.g. onu_metrics_manager.go line 1086ff.",
+      "parentUuid": "de55d100_2ae8840a",
+      "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
