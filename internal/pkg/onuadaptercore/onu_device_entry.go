@@ -79,6 +79,7 @@ const (
 	ulStInSync                 = "ulStInSync"
 	ulStExaminingMds           = "ulStExaminingMds"
 	ulStResynchronizing        = "ulStResynchronizing"
+	ulStExaminingMdsSuccess    = "ulStExaminingMdsSuccess"
 	ulStAuditing               = "ulStAuditing"
 	ulStReAuditing             = "ulStReAuditing"
 	ulStOutOfSync              = "ulStOutOfSync"
@@ -237,7 +238,11 @@ type uniPersConfig struct {
 type onuPersistentData struct {
 	PersOnuID            uint32          `json:"onu_id"`
 	PersIntfID           uint32          `json:"intf_id"`
-	PersSnr              string          `json:"serial_number"`
+	PersSerialNumber     string          `json:"serial_number"`
+	PersMacAddress       string          `json:"mac_address"`
+	PersVendorID         string          `json:"vendor_id"`
+	PersEquipmentID      string          `json:"equipment_id"`
+	PersActiveSwVersion  string          `json:"active_sw_version"`
 	PersAdminState       string          `json:"admin_state"`
 	PersOperState        string          `json:"oper_state"`
 	PersUniUnlockDone    bool            `json:"uni_unlock_done"`
@@ -266,12 +271,7 @@ type OnuDeviceEntry struct {
 	onuKVStorePath        string
 	onuKVStoreprocResult  error //error indication of processing
 	chOnuKvProcessingStep chan uint8
-	vendorID              string
-	serialNumber          string
-	equipmentID           string
 	onuSwImageIndications sSwImageIndications
-	activeSwVersion       string
-	macAddress            string
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func(context.Context) error
 	supportedFsms OmciDeviceFsms
@@ -373,11 +373,15 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 			{Name: ulEvSuccess, Src: []string{ulStUploading}, Dst: ulStUploadDone},
 
 			{Name: ulEvSuccess, Src: []string{ulStUploadDone}, Dst: ulStInSync},
-			{Name: ulEvSuccess, Src: []string{ulStExaminingMds}, Dst: ulStInSync},
+			//{Name: ulEvSuccess, Src: []string{ulStExaminingMds}, Dst: ulStInSync},
+			{Name: ulEvSuccess, Src: []string{ulStExaminingMds}, Dst: ulStExaminingMdsSuccess},
 			// TODO: As long as mib-resynchronizing is not implemented, failed MDS-examination triggers
 			// mib-reset and new provisioning at this point
 			//{Name: ulEvMismatch, Src: []string{ulStExaminingMds}, Dst: ulStResynchronizing},
 			{Name: ulEvMismatch, Src: []string{ulStExaminingMds}, Dst: ulStResettingMib},
+
+			{Name: ulEvSuccess, Src: []string{ulStExaminingMdsSuccess}, Dst: ulStInSync},
+			{Name: ulEvMismatch, Src: []string{ulStExaminingMdsSuccess}, Dst: ulStResettingMib},
 
 			{Name: ulEvAuditMib, Src: []string{ulStInSync}, Dst: ulStAuditing},
 
@@ -412,11 +416,12 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 			"enter_" + ulStGettingFirstSwVersion:  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(ctx, e) },
 			"enter_" + ulStGettingSecondSwVersion: func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(ctx, e) },
 			"enter_" + ulStGettingMacAddress:      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(ctx, e) },
-			"enter_" + ulStGettingMibTemplate:     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplate(ctx, e) },
+			"enter_" + ulStGettingMibTemplate:     func(e *fsm.Event) { onuDeviceEntry.enterGettingMibTemplateState(ctx, e) },
 			"enter_" + ulStUploading:              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(ctx, e) },
 			"enter_" + ulStUploadDone:             func(e *fsm.Event) { onuDeviceEntry.enterUploadDoneState(ctx, e) },
 			"enter_" + ulStExaminingMds:           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(ctx, e) },
 			"enter_" + ulStResynchronizing:        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(ctx, e) },
+			"enter_" + ulStExaminingMdsSuccess:    func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsSuccessState(ctx, e) },
 			"enter_" + ulStAuditing:               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(ctx, e) },
 			"enter_" + ulStReAuditing:             func(e *fsm.Event) { onuDeviceEntry.enterReAuditingState(ctx, e) },
 			"enter_" + ulStOutOfSync:              func(e *fsm.Event) { onuDeviceEntry.enterOutOfSyncState(ctx, e) },
@@ -586,7 +591,8 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 	}
 	oo.persUniConfigMutex.Lock()
 	defer oo.persUniConfigMutex.Unlock()
-	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
+	oo.sOnuPersistentData =
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
 	oo.onuKVStoreMutex.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.onuKVStoreMutex.RUnlock()
@@ -638,9 +644,9 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 	oo.persUniConfigMutex.Lock()
 	defer oo.persUniConfigMutex.Unlock()
 
-	oo.sOnuPersistentData.PersUniConfig = nil                                                                                      //releasing all UniConfig entries to garbage collector
-	oo.sOnuPersistentData = onuPersistentData{0, 0, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)} //default entry
-
+	oo.sOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
+	oo.sOnuPersistentData =
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.onuKVStoreMutex.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
@@ -676,7 +682,6 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	//assign values which are not already present when newOnuDeviceEntry() is called
 	oo.sOnuPersistentData.PersOnuID = oo.baseDeviceHandler.pOnuIndication.OnuId
 	oo.sOnuPersistentData.PersIntfID = oo.baseDeviceHandler.pOnuIndication.IntfId
-	oo.sOnuPersistentData.PersSnr = oo.baseDeviceHandler.pOnuOmciDevice.serialNumber
 	//TODO: verify usage of these values during restart UC
 	oo.sOnuPersistentData.PersAdminState = oo.baseDeviceHandler.pOnuIndication.AdminState
 	oo.sOnuPersistentData.PersOperState = oo.baseDeviceHandler.pOnuIndication.OperState
@@ -827,4 +832,8 @@ func (oo *OnuDeviceEntry) incrementMibDataSync(ctx context.Context) {
 		oo.sOnuPersistentData.PersMibDataSyncAdpt = 1
 	}
 	logger.Debugf(ctx, "mibDataSync updated - mds: %d - device-id: %s", oo.sOnuPersistentData.PersMibDataSyncAdpt, oo.deviceID)
+}
+
+func (oo *OnuDeviceEntry) buildMibTemplatePath() string {
+	return fmt.Sprintf(cSuffixMibTemplateKvStore, oo.sOnuPersistentData.PersVendorID, oo.sOnuPersistentData.PersEquipmentID, oo.sOnuPersistentData.PersActiveSwVersion)
 }

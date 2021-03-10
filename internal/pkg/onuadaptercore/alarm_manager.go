@@ -279,7 +279,7 @@ func (am *onuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 	context := make(map[string]string)
 	intfID := am.getIntfIDAlarm(ctx, classID, instanceID)
 	onuID := am.pDeviceHandler.deviceID
-	serialNo := am.pDeviceHandler.pOnuOmciDevice.serialNumber
+	serialNo := am.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersSerialNumber
 	if intfID == nil {
 		logger.Warn(ctx, "intf-id-for-alarm-not-found", log.Fields{"alarm-no": alarm, "class-id": classID})
 		return

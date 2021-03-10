@@ -322,7 +322,7 @@ func (oo *OpenONUAC) Reconcile_device(ctx context.Context, device *voltha.Device
 		handler := newDeviceHandler(ctx, oo.coreProxy, oo.adapterProxy, oo.eventProxy, device, oo)
 		oo.addDeviceHandlerToMap(ctx, handler)
 		handler.device = device
-		handler.startReconciling(ctx)
+		handler.startReconciling(ctx, false)
 		go handler.adoptOrReconcileDevice(ctx, handler.device)
 		// reconcilement will be continued after onu-device entry is added
 	} else {

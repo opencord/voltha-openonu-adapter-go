@@ -227,6 +227,14 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 		return
 	}
 
+	if onuTP.baseDeviceHandler.isSkipOnuConfigReconciling() {
+		logger.Debugw(ctx, "reconciling - skip omci-config of ANI side ", log.Fields{"uni-id": aUniID, "device-id": onuTP.deviceID})
+		if _, existTP := onuTP.mapUniTpIndication[uniTpKey]; existTP {
+			onuTP.mapUniTpIndication[uniTpKey].techProfileConfigDone = true
+		}
+		return
+	}
+
 	processingStep++
 
 	valuePA, existPA := onuTP.mapPonAniConfig[uniTpKey]
@@ -633,7 +641,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			}
 		} else {
 			logger.Debugw(ctx, "uniPonAniConfigFsm delete Gem on OMCI skipped based on device state", log.Fields{
-				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.deviceReason})
+				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
 		// remove GemPort from config DB
 		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
@@ -713,7 +721,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			}
 		} else {
 			logger.Debugw(ctx, "uniPonAniConfigFsm TCont cleanup on OMCI skipped based on device state", log.Fields{
-				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.deviceReason})
+				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
 		//clear the internal store profile data
 		onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
@@ -744,7 +752,7 @@ func (onuTP *onuUniTechProf) waitForTimeoutOrCompletion(
 	}
 }
 
-// createUniLockFsm initializes and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
+// createAniConfigFsm initializes and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
 func (onuTP *onuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint8, aTpID uint8,
 	apCurrentUniPort *onuUniPort, devEvent OnuDeviceEvent, aProcessingStep uint8) error {
 	logger.Debugw(ctx, "createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
