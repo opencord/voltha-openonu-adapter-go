@@ -102,8 +102,10 @@ const (
 	vlanEvFlowDataRemoved         = "vlanEvFlowDataRemoved"
 	//vlanEvTimeoutSimple  = "vlanEvTimeoutSimple"
 	//vlanEvTimeoutMids    = "vlanEvTimeoutMids"
-	vlanEvReset   = "vlanEvReset"
-	vlanEvRestart = "vlanEvRestart"
+	vlanEvReset             = "vlanEvReset"
+	vlanEvRestart           = "vlanEvRestart"
+	vlanEvSkipOmciConfig    = "vlanEvSkipOmciConfig"
+	vlanEvSkipIncFlowConfig = "vlanEvSkipIncFlowConfig"
 )
 
 const (
@@ -231,6 +233,10 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler *deviceHandler, ap
 				Dst: vlanStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: vlanEvRestart, Src: []string{vlanStResetting}, Dst: vlanStDisabled},
+			// transitions for reconcile handling according to VOL-3834
+			{Name: vlanEvSkipOmciConfig, Src: []string{vlanStStarting}, Dst: vlanStConfigDone},
+			{Name: vlanEvSkipOmciConfig, Src: []string{vlanStConfigDone}, Dst: vlanStConfigIncrFlow},
+			{Name: vlanEvSkipIncFlowConfig, Src: []string{vlanStConfigIncrFlow}, Dst: vlanStConfigDone},
 		},
 		fsm.Callbacks{
 			"enter_state":                   func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(ctx, e) },
@@ -449,12 +455,24 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				"device-id": oFsm.deviceID})
 
 			oFsm.numUniFlows++
+			pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
+
+			if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+				logger.Debugw(ctx, "reconciling - skip omci-config of additional vlan rule",
+					log.Fields{"fsmState": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
+				oFsm.mutexFlowParams.Unlock()
+				if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
+					go func(a_pBaseFsm *fsm.FSM) {
+						_ = a_pBaseFsm.Event(vlanEvSkipOmciConfig)
+					}(pConfigVlanStateBaseFsm)
+				}
+				return nil
+			}
 			// note: theoretical it would be possible to clear the same rule from the remove slice
 			//  (for entries that have not yet been started with removal)
 			//  but that is getting quite complicated - maybe a future optimization in case it should prove reasonable
 			// anyway the precondition here is that the FSM checks for rules to delete first and adds new rules afterwards
 
-			pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
 			if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
 				//have to re-trigger the FSM to proceed with outstanding incremental flow configuration
 				if oFsm.configuredUniFlow == 0 {
@@ -801,8 +819,16 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 	//let the state machine run forward from here directly
 	pConfigVlanStateAFsm := oFsm.pAdaptFsm
 	if pConfigVlanStateAFsm != nil {
-		oFsm.mutexFlowParams.Lock()
 
+		if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+			logger.Debugw(ctx, "reconciling - skip omci-config of vlan rule",
+				log.Fields{"fsmState": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
+			go func(a_pAFsm *AdapterFsm) {
+				_ = a_pAFsm.pFsm.Event(vlanEvSkipOmciConfig)
+			}(pConfigVlanStateAFsm)
+			return
+		}
+		oFsm.mutexFlowParams.Lock()
 		//possibly the entry is not valid anymore based on intermediate delete requests
 		//just a basic protection ...
 		if len(oFsm.uniVlanFlowParamsSlice) == 0 {
@@ -815,7 +841,6 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 			}(pConfigVlanStateAFsm)
 			return
 		}
-
 		//access to uniVlanFlowParamsSlice is done on first element only here per definition
 		//store the actual rule that shall be worked upon in the following transient states
 		oFsm.actualUniVlanConfigRule = oFsm.uniVlanFlowParamsSlice[0].VlanRuleParams
@@ -926,6 +951,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigEvtocd(ctx context.Context, e *fsm.Even
 }
 
 func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Event) {
+
 	oFsm.mutexFlowParams.RLock()
 	defer oFsm.mutexFlowParams.RUnlock()
 
@@ -953,6 +979,12 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 		return
 	}
 	if oFsm.numUniFlows > oFsm.configuredUniFlow {
+		if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+			oFsm.configuredUniFlow = oFsm.numUniFlows
+			logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
+				log.Fields{"numUniFlows": oFsm.numUniFlows, "configuredUniFlow": oFsm.configuredUniFlow, "device-id": oFsm.deviceID})
+			return
+		}
 		if oFsm.configuredUniFlow == 0 {
 			// this is a restart with a complete new flow, we can re-use the initial flow config control
 			// including the check, if the related techProfile is (still) available (probably also removed in between)
@@ -997,6 +1029,15 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 }
 
 func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Event) {
+
+	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+		logger.Debugw(ctx, "reconciling - skip further processing for incremental flow",
+			log.Fields{"fsmState": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
+		go func(a_pBaseFsm *fsm.FSM) {
+			_ = a_pBaseFsm.Event(vlanEvSkipIncFlowConfig)
+		}(oFsm.pAdaptFsm.pFsm)
+		return
+	}
 	oFsm.mutexFlowParams.Lock()
 	logger.Debugw(ctx, "UniVlanConfigFsm - start config further incremental flow", log.Fields{
 		"in state": e.FSM.Current(), "recent flow-number": oFsm.configuredUniFlow,
@@ -1159,7 +1200,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 				oFsm.pLastTxMeInstance = meInstance
 			} else {
 				logger.Debugw(ctx, "UniVlanConfigFsm delete VTFD OMCI handling skipped based on device state", log.Fields{
-					"device-id": oFsm.deviceID, "device-state": deviceReasonMap[oFsm.pDeviceHandler.deviceReason]})
+					"device-id": oFsm.deviceID, "device-state": oFsm.pDeviceHandler.getDeviceReasonString()})
 			}
 		} else {
 			//many VTFD already should exists - find and remove the one concerned by the actual remove rule
@@ -1197,7 +1238,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 					oFsm.pLastTxMeInstance = meInstance
 				} else {
 					logger.Debugw(ctx, "UniVlanConfigFsm set VTFD OMCI handling skipped based on device state", log.Fields{
-						"device-id": oFsm.deviceID, "device-state": deviceReasonMap[oFsm.pDeviceHandler.deviceReason]})
+						"device-id": oFsm.deviceID, "device-state": oFsm.pDeviceHandler.getDeviceReasonString()})
 				}
 			} else {
 				logger.Warnw(ctx, "UniVlanConfigFsm: requested VLAN for removal not found in list - ignore and continue (no VTFD set)",

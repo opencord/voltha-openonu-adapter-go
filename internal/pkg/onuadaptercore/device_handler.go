@@ -153,6 +153,12 @@ var deviceReasonMap = map[uint8]string{
 	drTechProfileConfigDeleteSuccess:   "tech-profile-config-delete-success",
 }
 
+const (
+	cNoReconciling = iota
+	cOnuConfigReconciling
+	cSkipOnuConfigReconciling
+)
+
 //deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
 	deviceID         string
@@ -174,17 +180,18 @@ type deviceHandler struct {
 	pOpenOnuAc      *OpenONUAC
 	pDeviceStateFsm *fsm.FSM
 	//pPonPort        *voltha.Port
-	deviceEntrySet  chan bool //channel for DeviceEntry set event
-	pOnuOmciDevice  *OnuDeviceEntry
-	pOnuTP          *onuUniTechProf
-	pOnuMetricsMgr  *onuMetricsManager
-	pAlarmMgr       *onuAlarmManager
-	exitChannel     chan int
-	lockDevice      sync.RWMutex
-	pOnuIndication  *oop.OnuIndication
-	deviceReason    uint8
-	pLockStateFsm   *lockStateFsm
-	pUnlockStateFsm *lockStateFsm
+	deviceEntrySet    chan bool //channel for DeviceEntry set event
+	pOnuOmciDevice    *OnuDeviceEntry
+	pOnuTP            *onuUniTechProf
+	pOnuMetricsMgr    *onuMetricsManager
+	pAlarmMgr         *onuAlarmManager
+	exitChannel       chan int
+	lockDevice        sync.RWMutex
+	pOnuIndication    *oop.OnuIndication
+	deviceReason      uint8
+	mutexDeviceReason sync.RWMutex
+	pLockStateFsm     *lockStateFsm
+	pUnlockStateFsm   *lockStateFsm
 
 	//flowMgr       *OpenOltFlowMgr
 	//eventMgr      *OpenOltEventMgr
@@ -206,7 +213,7 @@ type deviceHandler struct {
 	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
 	lockUpgradeFsm             sync.RWMutex
 	pOnuUpradeFsm              *OnuUpgradeFsm
-	reconciling                bool
+	reconciling                uint8
 	mutexReconcilingFlag       sync.RWMutex
 	chReconcilingFinished      chan bool //channel to indicate that reconciling has been finished
 	ReadyForSpecificOmciConfig bool
@@ -238,7 +245,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.lockVlanConfig = sync.RWMutex{}
 	dh.lockUpgradeFsm = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
-	dh.reconciling = false
+	dh.reconciling = cNoReconciling
 	dh.chReconcilingFinished = make(chan bool)
 	dh.ReadyForSpecificOmciConfig = false
 
@@ -359,8 +366,8 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	}
 	if !dh.ReadyForSpecificOmciConfig {
 		logger.Errorw(ctx, "TechProf-set rejected: improper device state", log.Fields{"device-id": dh.deviceID,
-			"device-state": deviceReasonMap[dh.deviceReason]})
-		return fmt.Errorf("improper device state %s on device %s", deviceReasonMap[dh.deviceReason], dh.deviceID)
+			"device-state": dh.getDeviceReasonString()})
+		return fmt.Errorf("improper device state %s on device %s", dh.getDeviceReasonString(), dh.deviceID)
 	}
 	//previous state test here was just this one, now extended for more states to reject the SetRequest:
 	// at least 'mib-downloaded' should be reached for processing of this specific ONU configuration
@@ -680,7 +687,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				// also abort for the other still possible flows here
 				if !dh.ReadyForSpecificOmciConfig {
 					logger.Errorw(ctx, "flow-add rejected: improper device state", log.Fields{"device-id": dh.deviceID,
-						"last device-reason": deviceReasonMap[dh.deviceReason]})
+						"last device-reason": dh.getDeviceReasonString()})
 					return fmt.Errorf("improper device state on device %s", dh.deviceID)
 				}
 
@@ -716,7 +723,7 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 	//note that disableDevice sequences in some 'ONU active' state may yield also
 	// "tech...delete-success" or "omci-flow-deleted" according to further received requests in the end
 	// - inblock state checking to prevent possibly unneeded processing (on command repitition)
-	if dh.deviceReason != drOmciAdminLock {
+	if dh.getDeviceReason() != drOmciAdminLock {
 		//disable-device shall be just a UNi/ONU-G related admin state setting
 		//all other configurations/FSM's shall not be impacted and shall execute as required by the system
 
@@ -800,6 +807,7 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		dh.stopReconciling(ctx)
 		return
 	}
 	dh.pOnuTP.lockTpProcMutex()
@@ -813,14 +821,16 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 		dh.stopReconciling(ctx)
 		return
 	}
+	techProfsFound := false
+	flowsFound := false
 	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
 		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
 		if len(uniData.PersTpPathMap) == 0 {
-			logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
+			logger.Debugw(ctx, "reconciling - no TPs stored for uniID",
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
-			dh.stopReconciling(ctx)
-			return
+			continue
 		}
+		techProfsFound = true
 		for tpID := range uniData.PersTpPathMap {
 			// deadline context to ensure completion of background routines waited for
 			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
@@ -836,11 +846,23 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 			}
 		}
-		if len(uniData.PersFlowParams) == 0 {
-			logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
-				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
-			dh.stopReconciling(ctx)
+		if len(uniData.PersFlowParams) != 0 {
+			flowsFound = true
 		}
+	}
+	if !techProfsFound {
+		logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
+			log.Fields{"device-id": dh.deviceID})
+		dh.stopReconciling(ctx)
+		return
+	}
+	if dh.isSkipOnuConfigReconciling() {
+		dh.setDeviceReason(drTechProfileConfigDownloadSuccess)
+	}
+	if !flowsFound {
+		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
+			log.Fields{"device-id": dh.deviceID})
+		dh.stopReconciling(ctx)
 	}
 }
 
@@ -850,33 +872,43 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		dh.stopReconciling(ctx)
 		return
 	}
 	pDevEntry.persUniConfigMutex.RLock()
 	defer pDevEntry.persUniConfigMutex.RUnlock()
+
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
 		dh.stopReconciling(ctx)
 		return
 	}
+	flowsFound := false
 	for _, uniData := range pDevEntry.sOnuPersistentData.PersUniConfig {
 		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
 		if len(uniData.PersFlowParams) == 0 {
-			logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
+			logger.Debugw(ctx, "reconciling - no flows stored for uniID",
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
-			dh.stopReconciling(ctx)
-			return
+			continue
+		}
+		if len(uniData.PersTpPathMap) == 0 {
+			logger.Warnw(ctx, "reconciling - flows but no TPs stored for uniID",
+				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
 		}
 		var uniPort *onuUniPort
 		var exist bool
 		uniNo := mkUniPortNum(ctx, dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
 		if uniPort, exist = dh.uniEntityMap[uniNo]; !exist {
-			logger.Errorw(ctx, "onuUniPort data not found!", log.Fields{"uniNo": uniNo, "device-id": dh.deviceID})
+			logger.Errorw(ctx, "reconciling - onuUniPort data not found  - terminate reconcilement",
+				log.Fields{"uniNo": uniNo, "device-id": dh.deviceID})
+			dh.stopReconciling(ctx)
 			return
 		}
+		flowsFound = true
+		flowsProcessed := 0
 		for _, flowData := range uniData.PersFlowParams {
-			logger.Debugw(ctx, "add flow with cookie slice", log.Fields{"device-id": dh.deviceID, "cookies": flowData.CookieSlice})
+			logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{"device-id": dh.deviceID, "cookies": flowData.CookieSlice})
 			//the slice can be passed 'by value' here, - which internally passes its reference copy
 			dh.lockVlanConfig.RLock()
 			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
@@ -894,12 +926,20 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			}
+			flowsProcessed++
 		}
-		if len(uniData.PersTpPathMap) == 0 {
-			logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
-				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
-			dh.stopReconciling(ctx)
-		}
+		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{"device-id": dh.deviceID, "flowsProcessed": flowsProcessed,
+			"numUniFlows":       dh.UniVlanConfigFsmMap[uniData.PersUniID].numUniFlows,
+			"configuredUniFlow": dh.UniVlanConfigFsmMap[uniData.PersUniID].configuredUniFlow})
+	}
+	if !flowsFound {
+		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
+			log.Fields{"device-id": dh.deviceID})
+		dh.stopReconciling(ctx)
+		return
+	}
+	if dh.isSkipOnuConfigReconciling() {
+		dh.setDeviceReason(drOmciFlowsPushed)
 	}
 }
 
@@ -1051,7 +1091,7 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 	dh.device.Vendor = "OpenONU"
 	dh.device.Model = "go"
 	dh.device.Reason = deviceReasonMap[drActivatingOnu]
-	dh.deviceReason = drActivatingOnu
+	dh.setDeviceReason(drActivatingOnu)
 
 	dh.logicalDeviceID = dh.deviceID // really needed - what for ??? //TODO!!!
 
@@ -1533,7 +1573,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuIndication) error {
 	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
 	// (but note that the deviceReason may also have changed to e.g. TechProf*Delete_Success in between)
-	if dh.deviceReason != drStoppingOpenomci {
+	if dh.getDeviceReason() != drStoppingOpenomci {
 		logger.Debugw(ctx, "updateInterface-started - stopping-device", log.Fields{"device-id": dh.deviceID})
 
 		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
@@ -1674,38 +1714,14 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEvent OnuDeviceEvent) {
 	logger.Debugw(ctx, "MibInSync event received, adding uni ports and locking the ONU interfaces", log.Fields{"device-id": dh.deviceID})
 
+	// store persistent data collected during MIB upload processing
+	if err := dh.storePersistentData(ctx); err != nil {
+		logger.Warnw(ctx, "store persistent data error - continue as there will be additional write attempts",
+			log.Fields{"device-id": dh.deviceID, "err": err})
+	}
 	_ = dh.deviceReasonUpdate(ctx, drDiscoveryMibsyncComplete, !dh.isReconciling())
-	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
-	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
-		return
-	}
-	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
-	if pptpInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
-		ctx, me.PhysicalPathTerminationPointEthernetUniClassID); len(pptpInstKeys) > 0 {
-		for _, mgmtEntityID := range pptpInstKeys {
-			logger.Debugw(ctx, "Add PPTPEthUni port for MIB-stored instance:", log.Fields{
-				"device-id": dh.deviceID, "PPTPEthUni EntityID": mgmtEntityID})
-			dh.addUniPort(ctx, mgmtEntityID, i, uniPPTP)
-			i++
-		}
-	} else {
-		logger.Debugw(ctx, "No UniG instances found", log.Fields{"device-id": dh.deviceID})
-	}
-	if veipInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
-		ctx, me.VirtualEthernetInterfacePointClassID); len(veipInstKeys) > 0 {
-		for _, mgmtEntityID := range veipInstKeys {
-			logger.Debugw(ctx, "Add VEIP for MIB-stored instance:", log.Fields{
-				"device-id": dh.deviceID, "VEIP EntityID": mgmtEntityID})
-			dh.addUniPort(ctx, mgmtEntityID, i, uniVEIP)
-			i++
-		}
-	} else {
-		logger.Debugw(ctx, "No VEIP instances found", log.Fields{"device-id": dh.deviceID})
-	}
-	if i == 0 {
-		logger.Warnw(ctx, "No PPTP instances found", log.Fields{"device-id": dh.deviceID})
-	}
+	dh.addAllUniPorts(ctx)
+
 	/* 200605: lock processing after initial MIBUpload removed now as the ONU should be in the lock state per default here */
 	/* 201117: build_dt-berlin-pod-openonugo_1T8GEM_voltha_DT_openonugo_master_test runs into error TC
 	 *    'Test Disable ONUs and OLT Then Delete ONUs and OLT for DT' with Sercom ONU, which obviously needs
@@ -1733,7 +1749,7 @@ func (dh *deviceHandler) processUniLockStateDoneEvent(ctx context.Context, devEv
 	 */
 	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
 	pMibDlFsm := pDevEntry.pMibDownloadFsm.pFsm
@@ -1781,17 +1797,6 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 			logger.Debugw(ctx, "dev state updated to 'Oper.Active'", log.Fields{"device-id": dh.deviceID})
 		}
 	} else {
-		pDevEntry := dh.getOnuDeviceEntry(ctx, false)
-		if pDevEntry == nil {
-			logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
-			return
-		}
-		if pDevEntry.sOnuPersistentData.PersUniDisableDone {
-			logger.Debugw(ctx, "reconciling - uni-ports were disabled by admin before adapter restart - keep the ports locked and wait for re-enabling",
-				log.Fields{"device-id": dh.deviceID})
-			dh.stopReconciling(ctx)
-			return
-		}
 		logger.Debugw(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVE",
 			log.Fields{"device-id": dh.deviceID})
 	}
@@ -1805,12 +1810,25 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	}
 
 	dh.ReadyForSpecificOmciConfig = true
-	// *** should generate UniUnlockStateDone event *****
-	if dh.pUnlockStateFsm == nil {
-		dh.createUniLockFsm(ctx, false, UniUnlockStateDone)
-	} else { //UnlockStateFSM already init
-		dh.pUnlockStateFsm.setSuccessEvent(UniUnlockStateDone)
-		dh.runUniLockFsm(ctx, false)
+
+	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	if dh.isReconciling() && pDevEntry.sOnuPersistentData.PersUniDisableDone {
+		logger.Debugw(ctx, "reconciling - uni-ports were disabled by admin before adapter restart - keep the ports locked",
+			log.Fields{"device-id": dh.deviceID})
+		go dh.reconcileDeviceTechProf(ctx)
+		// reconcilement will be continued after ani config is done
+	} else {
+		// *** should generate UniUnlockStateDone event *****
+		if dh.pUnlockStateFsm == nil {
+			dh.createUniLockFsm(ctx, false, UniUnlockStateDone)
+		} else { //UnlockStateFSM already init
+			dh.pUnlockStateFsm.setSuccessEvent(UniUnlockStateDone)
+			dh.runUniLockFsm(ctx, false)
+		}
 	}
 }
 
@@ -1901,7 +1919,7 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 		logger.Debugw(ctx, "OmciAniConfigDone event received", log.Fields{"device-id": dh.deviceID})
 		// attention: the device reason update is done based on ONU-UNI-Port related activity
 		//  - which may cause some inconsistency
-		if dh.deviceReason != drTechProfileConfigDownloadSuccess {
+		if dh.getDeviceReason() != drTechProfileConfigDownloadSuccess {
 			// which may be the case from some previous actvity even on this UNI Port (but also other UNI ports)
 			_ = dh.deviceReasonUpdate(ctx, drTechProfileConfigDownloadSuccess, !dh.isReconciling())
 		}
@@ -1912,7 +1930,7 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 		logger.Debugw(ctx, "OmciAniResourceRemoved event received", log.Fields{"device-id": dh.deviceID})
 		// attention: the device reason update is done based on ONU-UNI-Port related activity
 		//  - which may cause some inconsistency
-		if dh.deviceReason != drTechProfileConfigDeleteSuccess {
+		if dh.getDeviceReason() != drTechProfileConfigDeleteSuccess {
 			// which may be the case from some previous actvity even on this ONU port (but also other UNI ports)
 			_ = dh.deviceReasonUpdate(ctx, drTechProfileConfigDeleteSuccess, true)
 		}
@@ -1926,7 +1944,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 	//  - which may cause some inconsistency
 
 	if aDevEvent == OmciVlanFilterAddDone || aDevEvent == OmciVlanFilterAddDoneNoKvStore {
-		if dh.deviceReason != drOmciFlowsPushed {
+		if dh.getDeviceReason() != drOmciFlowsPushed {
 			// which may be the case from some previous actvity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
 			_ = dh.deviceReasonUpdate(ctx, drOmciFlowsPushed, !dh.isReconciling())
@@ -1935,7 +1953,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 			}
 		}
 	} else {
-		if dh.deviceReason != drOmciFlowsDeleted {
+		if dh.getDeviceReason() != drOmciFlowsDeleted {
 			//not relevant for reconcile
 			_ = dh.deviceReasonUpdate(ctx, drOmciFlowsDeleted, true)
 		}
@@ -2021,6 +2039,40 @@ func (dh *deviceHandler) addUniPort(ctx context.Context, aUniInstNo uint16, aUni
 	}
 }
 
+func (dh *deviceHandler) addAllUniPorts(ctx context.Context) {
+	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	i := uint8(0) //UNI Port limit: see MaxUnisPerOnu (by now 16) (OMCI supports max 255 p.b.)
+	if pptpInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
+		ctx, me.PhysicalPathTerminationPointEthernetUniClassID); len(pptpInstKeys) > 0 {
+		for _, mgmtEntityID := range pptpInstKeys {
+			logger.Debugw(ctx, "Add PPTPEthUni port for MIB-stored instance:", log.Fields{
+				"device-id": dh.deviceID, "PPTPEthUni EntityID": mgmtEntityID})
+			dh.addUniPort(ctx, mgmtEntityID, i, uniPPTP)
+			i++
+		}
+	} else {
+		logger.Debugw(ctx, "No PPTP instances found", log.Fields{"device-id": dh.deviceID})
+	}
+	if veipInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
+		ctx, me.VirtualEthernetInterfacePointClassID); len(veipInstKeys) > 0 {
+		for _, mgmtEntityID := range veipInstKeys {
+			logger.Debugw(ctx, "Add VEIP for MIB-stored instance:", log.Fields{
+				"device-id": dh.deviceID, "VEIP EntityID": mgmtEntityID})
+			dh.addUniPort(ctx, mgmtEntityID, i, uniVEIP)
+			i++
+		}
+	} else {
+		logger.Debugw(ctx, "No VEIP instances found", log.Fields{"device-id": dh.deviceID})
+	}
+	if i == 0 {
+		logger.Warnw(ctx, "No UniG instances found", log.Fields{"device-id": dh.deviceID})
+	}
+}
+
 // enableUniPortStateUpdate enables UniPortState and update core port state accordingly
 func (dh *deviceHandler) enableUniPortStateUpdate(ctx context.Context) {
 	//  py code was updated 2003xx to activate the real ONU UNI ports per OMCI (VEIP or PPTP)
@@ -2029,7 +2081,7 @@ func (dh *deviceHandler) enableUniPortStateUpdate(ctx context.Context) {
 	//       # TODO: for now only support the first UNI given no requirement for multiple uni yet. Also needed to reduce flow
 	//       #  load on the core
 
-	// lock_ports(false) as done in py code here is shifted to separate call from devicevent processing
+	// lock_ports(false) as done in py code here is shifted to separate call from device event processing
 
 	for uniNo, uniPort := range dh.uniEntityMap {
 		// only if this port is validated for operState transfer
@@ -2040,7 +2092,6 @@ func (dh *deviceHandler) enableUniPortStateUpdate(ctx context.Context) {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go dh.coreProxy.PortStateUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
 			} else {
-				//TODO there is no retry mechanism, return error
 				logger.Debugw(ctx, "reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.deviceID})
 			}
 		}
@@ -2056,8 +2107,13 @@ func (dh *deviceHandler) disableUniPortStateUpdate(ctx context.Context) {
 		if (1<<uniPort.uniID)&activeUniPortStateUpdateMask == (1 << uniPort.uniID) {
 			logger.Infow(ctx, "onuUniPort-forced-OperState-UNKNOWN", log.Fields{"for PortNo": uniNo})
 			uniPort.setOperState(vc.OperStatus_UNKNOWN)
-			//maybe also use getter functions on uniPort - perhaps later ...
-			go dh.coreProxy.PortStateUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+			if !dh.isReconciling() {
+				//maybe also use getter functions on uniPort - perhaps later ...
+				go dh.coreProxy.PortStateUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.deviceID, voltha.Port_ETHERNET_UNI, uniPort.portNo, uniPort.operState)
+			} else {
+				logger.Debugw(ctx, "reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.deviceID})
+			}
+
 		}
 	}
 }
@@ -2737,7 +2793,7 @@ func (dh *deviceHandler) waitForCompletion(ctx context.Context, cancel context.C
 
 func (dh *deviceHandler) deviceReasonUpdate(ctx context.Context, deviceReason uint8, notifyCore bool) error {
 
-	dh.deviceReason = deviceReason
+	dh.setDeviceReason(deviceReason)
 	if notifyCore {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing at calling position
 		if err := dh.coreProxy.DeviceReasonUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.deviceID, deviceReasonMap[deviceReason]); err != nil {
@@ -3070,7 +3126,7 @@ func (dh *deviceHandler) prepareReconcilingWithActiveAdapter(ctx context.Context
 		go dh.startAlarmManager(ctx)
 	}
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
-	dh.startReconciling(ctx)
+	dh.startReconciling(ctx, false)
 }
 
 func (dh *deviceHandler) setCollectorIsRunning(flagValue bool) {
@@ -3113,10 +3169,13 @@ func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 	}
 }
 
-func (dh *deviceHandler) startReconciling(ctx context.Context) {
-	logger.Debugw(ctx, "start reconciling", log.Fields{"timeout": dh.pOpenOnuAc.maxTimeoutReconciling, "device-id": dh.deviceID})
+func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig bool) {
+	logger.Debugw(ctx, "start reconciling", log.Fields{"withOnuConfig": skipOnuConfig, "device-id": dh.deviceID})
+
 	if !dh.isReconciling() {
 		go func() {
+			logger.Debugw(ctx, "wait for channel signal or timeout",
+				log.Fields{"timeout": dh.pOpenOnuAc.maxTimeoutReconciling, "device-id": dh.deviceID})
 			select {
 			case <-dh.chReconcilingFinished:
 				logger.Debugw(ctx, "reconciling has been finished in time",
@@ -3126,15 +3185,17 @@ func (dh *deviceHandler) startReconciling(ctx context.Context) {
 					log.Fields{"device-id": dh.deviceID})
 			}
 			dh.mutexReconcilingFlag.Lock()
-			dh.reconciling = false
+			dh.reconciling = cNoReconciling
 			dh.mutexReconcilingFlag.Unlock()
 		}()
-		dh.mutexReconcilingFlag.Lock()
-		dh.reconciling = true
-		dh.mutexReconcilingFlag.Unlock()
-	} else {
-		logger.Warnw(ctx, "reconciling is already running", log.Fields{"device-id": dh.deviceID})
 	}
+	dh.mutexReconcilingFlag.Lock()
+	if skipOnuConfig {
+		dh.reconciling = cSkipOnuConfigReconciling
+	} else {
+		dh.reconciling = cOnuConfigReconciling
+	}
+	dh.mutexReconcilingFlag.Unlock()
 }
 
 func (dh *deviceHandler) stopReconciling(ctx context.Context) {
@@ -3148,7 +3209,29 @@ func (dh *deviceHandler) stopReconciling(ctx context.Context) {
 
 func (dh *deviceHandler) isReconciling() bool {
 	dh.mutexReconcilingFlag.RLock()
-	value := dh.reconciling
-	dh.mutexReconcilingFlag.RUnlock()
+	defer dh.mutexReconcilingFlag.RUnlock()
+	return dh.reconciling != cNoReconciling
+}
+
+func (dh *deviceHandler) isSkipOnuConfigReconciling() bool {
+	dh.mutexReconcilingFlag.RLock()
+	defer dh.mutexReconcilingFlag.RUnlock()
+	return dh.reconciling == cSkipOnuConfigReconciling
+}
+
+func (dh *deviceHandler) setDeviceReason(value uint8) {
+	dh.mutexDeviceReason.Lock()
+	dh.deviceReason = value
+	dh.mutexDeviceReason.Unlock()
+}
+
+func (dh *deviceHandler) getDeviceReason() uint8 {
+	dh.mutexDeviceReason.RLock()
+	value := dh.deviceReason
+	dh.mutexDeviceReason.RUnlock()
 	return value
+}
+
+func (dh *deviceHandler) getDeviceReasonString() string {
+	return deviceReasonMap[dh.getDeviceReason()]
 }
