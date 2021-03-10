@@ -16,6 +16,23 @@
       "revId": "ede1fac5df2737facb8d06a754fe9b4c945e627b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "46c41fca_c7ee6605",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 954,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-10T15:14:40Z",
+      "side": 1,
+      "message": "I think that is a left over from internal debugging, should not be needed anymore.",
+      "revId": "ede1fac5df2737facb8d06a754fe9b4c945e627b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
