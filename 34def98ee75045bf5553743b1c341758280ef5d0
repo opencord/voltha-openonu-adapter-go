@@ -231,6 +231,24 @@
     },
     {
       "key": {
+        "uuid": "99a07724_695878c1",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-10T19:12:17Z",
+      "side": 1,
+      "message": "yes, so now I have added the sleep inside the go routine so that stop event can be accepted.",
+      "parentUuid": "07f62ad1_11670f77",
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9bccf3e5_5269456c",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 3
@@ -416,6 +434,30 @@
       "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19697412_11b43b63",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 311,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-10T19:12:17Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b3a9f7c5_b1945579",
+      "range": {
+        "startLine": 311,
+        "startChar": 25,
+        "endLine": 311,
+        "endChar": 33
+      },
+      "revId": "34def98ee75045bf5553743b1c341758280ef5d0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
