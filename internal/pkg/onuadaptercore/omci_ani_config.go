@@ -423,7 +423,7 @@ func (oFsm *uniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e 
 	//ensure internal slices are empty (which might be set from previous run) - release memory
 	oFsm.gemPortAttribsSlice = nil
 
-	// start go routine for processing of LockState messages
+	// start go routine for processing of ANI config messages
 	go oFsm.processOmciAniMessages(ctx)
 
 	//let the state machine run forward from here directly

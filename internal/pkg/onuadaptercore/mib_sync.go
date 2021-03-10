@@ -128,71 +128,15 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 	oo.PDevOmciCC.pLastTxMeInstance = meInstance
 }
 
-func (oo *OnuDeviceEntry) enterGettingMibTemplate(ctx context.Context, e *fsm.Event) {
+func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *fsm.Event) {
 
 	if oo.onuSwImageIndications.activeEntityEntry.valid {
-		oo.activeSwVersion = oo.onuSwImageIndications.activeEntityEntry.version
+		oo.sOnuPersistentData.PersActiveSwVersion = oo.onuSwImageIndications.activeEntityEntry.version
 	} else {
 		logger.Errorw(ctx, "get-mib-template: no active SW version found, working with empty SW version, which might be untrustworthy",
 			log.Fields{"device-id": oo.deviceID})
 	}
-
-	meStoredFromTemplate := false
-	oo.mibTemplatePath = fmt.Sprintf(cSuffixMibTemplateKvStore, oo.vendorID, oo.equipmentID, oo.activeSwVersion)
-	logger.Debugw(ctx, "MibSync FSM - MibTemplate - etcd search string", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath)})
-	Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
-	if err == nil {
-		if Value != nil {
-			logger.Debugf(ctx, "MibSync FSM - MibTemplate read: Key: %s, Value: %s  %s", Value.Key, Value.Value)
-
-			// swap out tokens with specific data
-			mibTmpString, _ := kvstore.ToString(Value.Value)
-			mibTmpString2 := strings.Replace(mibTmpString, "%SERIAL_NUMBER%", oo.serialNumber, -1)
-			mibTmpString = strings.Replace(mibTmpString2, "%MAC_ADDRESS%", oo.macAddress, -1)
-			mibTmpBytes := []byte(mibTmpString)
-			logger.Debugf(ctx, "MibSync FSM - MibTemplate tokens swapped out: %s", mibTmpBytes)
-
-			var firstLevelMap map[string]interface{}
-			if err = json.Unmarshal(mibTmpBytes, &firstLevelMap); err != nil {
-				logger.Errorw(ctx, "MibSync FSM - Failed to unmarshal template", log.Fields{"error": err, "device-id": oo.deviceID})
-			} else {
-				for firstLevelKey, firstLevelValue := range firstLevelMap {
-					//logger.Debugw(ctx, "MibSync FSM - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
-					if uint16ValidNumber, err := strconv.ParseUint(firstLevelKey, 10, 16); err == nil {
-						meClassID := me.ClassID(uint16ValidNumber)
-						//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
-						if isSupportedClassID(meClassID) {
-							//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
-							secondLevelMap := firstLevelValue.(map[string]interface{})
-							for secondLevelKey, secondLevelValue := range secondLevelMap {
-								//logger.Debugw(ctx, "MibSync FSM - secondLevelKey", log.Fields{"secondLevelKey": secondLevelKey})
-								if uint16ValidNumber, err := strconv.ParseUint(secondLevelKey, 10, 16); err == nil {
-									meEntityID := uint16(uint16ValidNumber)
-									//logger.Debugw(ctx, "MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityID": meEntityID})
-									thirdLevelMap := secondLevelValue.(map[string]interface{})
-									for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
-										if thirdLevelKey == "Attributes" {
-											//logger.Debugw(ctx, "MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
-											attributesMap := thirdLevelValue.(map[string]interface{})
-											//logger.Debugw(ctx, "MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
-											oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, attributesMap)
-											meStoredFromTemplate = true
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		} else {
-			logger.Debugw(ctx, "No MIB template found", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
-		}
-	} else {
-		logger.Errorf(ctx, "Get from kvstore operation failed for path",
-			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
-	}
-	if meStoredFromTemplate {
+	if oo.getMibFromTemplate(ctx) {
 		logger.Debug(ctx, "MibSync FSM - valid MEs stored from template")
 		oo.pOnuDB.logMeDb(ctx)
 		fsmMsg = LoadMibTemplateOk
@@ -248,14 +192,7 @@ func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
 
 func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start GetMds processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	// TODO: As long as story VOL-3834 "Avoid ONU service distruption on adapter restart" is not finished,
-	// we need a full configuration cycle of the ONU to reconcile all local FSM data.
-	// Therefore we simulate a failed MDS check here to trigger this config
-	//oo.requestMdsValue(ctx)
-	logger.Debugw(ctx, "MibSync FSM - MDS examination failed - new provisioning", log.Fields{"device-id": oo.deviceID})
-	go func() {
-		_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
-	}()
+	oo.requestMdsValue(ctx)
 }
 
 func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.Event) {
@@ -266,6 +203,43 @@ func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.
 	// VOL-3785 - New event notifications and corresponding performance counters for openonu-adapter-go
 	// VOL-3792 - Support periodical audit via mib resync
 	// VOL-3793 - ONU-reconcile handling after adapter restart based on mib resync
+}
+
+func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "MibSync FSM",
+		log.Fields{"Start processing on examining MDS success in State": e.FSM.Current(), "device-id": oo.deviceID})
+
+	if oo.getMibFromTemplate(ctx) {
+		oo.baseDeviceHandler.startReconciling(ctx, true)
+		oo.baseDeviceHandler.addAllUniPorts(ctx)
+		oo.baseDeviceHandler.setDeviceReason(drInitialMibDownloaded)
+		oo.baseDeviceHandler.ReadyForSpecificOmciConfig = true
+		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
+
+		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
+		if oo.baseDeviceHandler.isReconciling() {
+			oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
+		}
+		// set admin state independent of reconciling state after tp/flow reconcilement
+		if oo.sOnuPersistentData.PersUniDisableDone {
+			oo.baseDeviceHandler.disableUniPortStateUpdate(ctx)
+			oo.baseDeviceHandler.setDeviceReason(drOmciAdminLock)
+		} else {
+			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
+		}
+		oo.baseDeviceHandler.stopReconciling(ctx)
+		go func() {
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+		}()
+
+	} else {
+		logger.Debugw(ctx, "MibSync FSM",
+			log.Fields{"Getting MIB from template not successful": e.FSM.Current(), "device-id": oo.deviceID})
+		go func() {
+			//switch to reconciling with OMCI config
+			_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+		}()
+	}
 }
 
 func (oo *OnuDeviceEntry) enterAuditingState(ctx context.Context, e *fsm.Event) {
@@ -455,25 +429,25 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			logger.Debugf(ctx, "MibSync FSM - GetResponse Data for %s", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj}, meInstance)
 			switch meInstance {
 			case "OnuG":
-				oo.vendorID = trimStringFromInterface(meAttributes["VendorId"])
+				oo.sOnuPersistentData.PersVendorID = trimStringFromInterface(meAttributes["VendorId"])
 				snBytes, _ := me.InterfaceToOctets(meAttributes["SerialNumber"])
 				if onugSerialNumberLen == len(snBytes) {
 					snVendorPart := fmt.Sprintf("%s", snBytes[:4])
 					snNumberPart := hex.EncodeToString(snBytes[4:])
-					oo.serialNumber = snVendorPart + snNumberPart
+					oo.sOnuPersistentData.PersSerialNumber = snVendorPart + snNumberPart
 					logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-G - VendorId/SerialNumber", log.Fields{"device-id": oo.deviceID,
-						"onuDeviceEntry.vendorID": oo.vendorID, "onuDeviceEntry.serialNumber": oo.serialNumber})
+						"onuDeviceEntry.vendorID": oo.sOnuPersistentData.PersVendorID, "onuDeviceEntry.serialNumber": oo.sOnuPersistentData.PersSerialNumber})
 				} else {
 					logger.Infow(ctx, "MibSync FSM - SerialNumber has wrong length - fill serialNumber with zeros", log.Fields{"device-id": oo.deviceID, "length": len(snBytes)})
-					oo.serialNumber = cEmptySerialNumberString
+					oo.sOnuPersistentData.PersSerialNumber = cEmptySerialNumberString
 				}
 				// trigger retrieval of EquipmentId
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetEquipmentID)
 				return nil
 			case "Onu2G":
-				oo.equipmentID = trimStringFromInterface(meAttributes["EquipmentId"])
+				oo.sOnuPersistentData.PersEquipmentID = trimStringFromInterface(meAttributes["EquipmentId"])
 				logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu2-G - EquipmentId", log.Fields{"device-id": oo.deviceID,
-					"onuDeviceEntry.equipmentID": oo.equipmentID})
+					"onuDeviceEntry.equipmentID": oo.sOnuPersistentData.PersEquipmentID})
 				// trigger retrieval of 1st SW-image info
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetFirstSwVersion)
 				return nil
@@ -490,12 +464,12 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			case "IpHostConfigData":
 				macBytes, _ := me.InterfaceToOctets(meAttributes["MacAddress"])
 				if omciMacAddressLen == len(macBytes) {
-					oo.macAddress = hex.EncodeToString(macBytes[:])
+					oo.sOnuPersistentData.PersMacAddress = hex.EncodeToString(macBytes[:])
 					logger.Debugw(ctx, "MibSync FSM - GetResponse Data for IpHostConfigData - MacAddress", log.Fields{"device-id": oo.deviceID,
-						"onuDeviceEntry.macAddress": oo.macAddress})
+						"macAddress": oo.sOnuPersistentData.PersMacAddress})
 				} else {
 					logger.Infow(ctx, "MibSync FSM - MacAddress wrong length - fill macAddress with zeros", log.Fields{"device-id": oo.deviceID, "length": len(macBytes)})
-					oo.macAddress = cEmptyMacAddrString
+					oo.sOnuPersistentData.PersMacAddress = cEmptyMacAddrString
 				}
 				// trigger retrieval of mib template
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
@@ -523,7 +497,7 @@ func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID
 	imageVersion := trimStringFromInterface(meAttributes["Version"])
 	logger.Infow(ctx, "MibSync FSM - GetResponse Data for SoftwareImage",
 		log.Fields{"device-id": oo.deviceID, "entityID": entityID,
-			"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted, "SNR": oo.serialNumber})
+			"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted, "SNR": oo.sOnuPersistentData.PersSerialNumber})
 	if firstSwImageMeID == entityID {
 		//always accept the state of the first image (2nd image info should not yet be available)
 		if imageIsActive == swIsActive {
@@ -614,7 +588,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseErrors(ctx context.Context, msgOb
 			case "IpHostConfigData":
 				logger.Debugw(ctx, "MibSync FSM - erroneous result for IpHostConfigData received - ONU doesn't support ME - fill macAddress with zeros",
 					log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
-				oo.macAddress = cEmptyMacAddrString
+				oo.sOnuPersistentData.PersMacAddress = cEmptyMacAddrString
 				// trigger retrieval of mib template
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMibTemplate)
 				return nil
@@ -743,9 +717,9 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 	logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-Data - MibDataSync", log.Fields{"device-id": oo.deviceID,
 		"mibDataSyncOnu": mibDataSyncOnu, "PersMibDataSyncAdpt": oo.sOnuPersistentData.PersMibDataSyncAdpt})
 
-	mdsCheckOk := oo.sOnuPersistentData.PersMibDataSyncAdpt == mibDataSyncOnu
+	mdsValuesAreEqual := oo.sOnuPersistentData.PersMibDataSyncAdpt == mibDataSyncOnu
 	if oo.pMibUploadFsm.pFsm.Is(ulStAuditing) {
-		if mdsCheckOk {
+		if mdsValuesAreEqual {
 			logger.Debugw(ctx, "MibSync FSM - mib audit - MDS check ok", log.Fields{"device-id": oo.deviceID})
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		} else {
@@ -753,7 +727,7 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
 		}
 	} else if oo.pMibUploadFsm.pFsm.Is(ulStReAuditing) {
-		if mdsCheckOk {
+		if mdsValuesAreEqual {
 			logger.Debugw(ctx, "MibSync FSM - mib reaudit - MDS check ok", log.Fields{"device-id": oo.deviceID})
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		} else {
@@ -762,7 +736,7 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
 		}
 	} else if oo.pMibUploadFsm.pFsm.Is(ulStExaminingMds) {
-		if mdsCheckOk {
+		if mdsValuesAreEqual && mibDataSyncOnu != 0 {
 			logger.Debugw(ctx, "MibSync FSM - MDS examination ok", log.Fields{"device-id": oo.deviceID})
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		} else {
@@ -800,4 +774,64 @@ func (oo *OnuDeviceEntry) IsImageToBeCommitted(ctx context.Context, aImageID uin
 		}
 	}
 	return false //all other case are treated as 'nothing to commit
+}
+func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
+
+	oo.mibTemplatePath = oo.buildMibTemplatePath()
+	logger.Debugw(ctx, "MibSync FSM - get Mib from template", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath)})
+
+	restoredFromMibTemplate := false
+	Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
+	if err == nil {
+		if Value != nil {
+			logger.Debugf(ctx, "MibSync FSM - Mib template read: Key: %s, Value: %s  %s", Value.Key, Value.Value)
+
+			// swap out tokens with specific data
+			mibTmpString, _ := kvstore.ToString(Value.Value)
+			mibTmpString2 := strings.Replace(mibTmpString, "%SERIAL_NUMBER%", oo.sOnuPersistentData.PersSerialNumber, -1)
+			mibTmpString = strings.Replace(mibTmpString2, "%MAC_ADDRESS%", oo.sOnuPersistentData.PersMacAddress, -1)
+			mibTmpBytes := []byte(mibTmpString)
+			logger.Debugf(ctx, "MibSync FSM - Mib template tokens swapped out: %s", mibTmpBytes)
+
+			var firstLevelMap map[string]interface{}
+			if err = json.Unmarshal(mibTmpBytes, &firstLevelMap); err != nil {
+				logger.Errorw(ctx, "MibSync FSM - Failed to unmarshal template", log.Fields{"error": err, "device-id": oo.deviceID})
+			} else {
+				for firstLevelKey, firstLevelValue := range firstLevelMap {
+					//logger.Debugw(ctx, "MibSync FSM - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
+					if uint16ValidNumber, err := strconv.ParseUint(firstLevelKey, 10, 16); err == nil {
+						meClassID := me.ClassID(uint16ValidNumber)
+						//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
+						if isSupportedClassID(meClassID) {
+							//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
+							secondLevelMap := firstLevelValue.(map[string]interface{})
+							for secondLevelKey, secondLevelValue := range secondLevelMap {
+								//logger.Debugw(ctx, "MibSync FSM - secondLevelKey", log.Fields{"secondLevelKey": secondLevelKey})
+								if uint16ValidNumber, err := strconv.ParseUint(secondLevelKey, 10, 16); err == nil {
+									meEntityID := uint16(uint16ValidNumber)
+									//logger.Debugw(ctx, "MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityID": meEntityID})
+									thirdLevelMap := secondLevelValue.(map[string]interface{})
+									for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
+										if thirdLevelKey == "Attributes" {
+											//logger.Debugw(ctx, "MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
+											attributesMap := thirdLevelValue.(map[string]interface{})
+											//logger.Debugw(ctx, "MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
+											oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, attributesMap)
+											restoredFromMibTemplate = true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			logger.Debugw(ctx, "No MIB template found", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+		}
+	} else {
+		logger.Errorf(ctx, "Get from kvstore operation failed for path",
+			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+	}
+	return restoredFromMibTemplate
 }
