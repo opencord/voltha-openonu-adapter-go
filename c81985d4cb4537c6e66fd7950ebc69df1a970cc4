@@ -16,6 +16,40 @@
       "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b36a3944_dfc4fa20",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-10T10:39:42Z",
+      "side": 1,
+      "message": "same comment, I\u0027d like this to be into the go routine, otherwise it\u0027s on the main thread.",
+      "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de55d100_2ae8840a",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 337,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-10T10:39:42Z",
+      "side": 1,
+      "message": "the comment is not correct, this is the sleep for the amount of the audit interval.\nAlso on which thread this sleep will be executed ? I do not want it to be executed on the main thread. is it a possibility to move it within the function ?",
+      "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
