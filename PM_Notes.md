@@ -28,27 +28,17 @@ The following group metrics are supported by openonu-go adapter.
 ```
 // OpticalPowerGroupMetrics are supported optical pm names
 var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
-	"ani_g_instance_id": voltha.PmConfig_CONTEXT,
-	"transmit_power":    voltha.PmConfig_GAUGE,
-	"receive_power":     voltha.PmConfig_GAUGE,
+	"ani_g_instance_id":  voltha.PmConfig_CONTEXT,
+	"transmit_power_dBm": voltha.PmConfig_GAUGE,
+	"receive_power_dBm":  voltha.PmConfig_GAUGE,
 }
 ```
+
 ### _UniStatus_
 ```
 // UniStatusGroupMetrics are supported UNI status names
 var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 	"uni_port_no":     voltha.PmConfig_CONTEXT,
-	"ethernet_type":   voltha.PmConfig_GAUGE,
-	"oper_status":     voltha.PmConfig_GAUGE,
-	"uni_admin_state": voltha.PmConfig_GAUGE,
-}
-```
-
-### _UniStatusGroupMetrics_
-```
-var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
-	"uni_port_no":     voltha.PmConfig_CONTEXT,
-	"entity_id":       voltha.PmConfig_CONTEXT,
 	"ethernet_type":   voltha.PmConfig_GAUGE,
 	"oper_status":     voltha.PmConfig_GAUGE,
 	"uni_admin_state": voltha.PmConfig_GAUGE,
@@ -135,8 +125,6 @@ var GemPortHistory = map[string]voltha.PmConfig_PmType{
 	"encryption_key_errors":     voltha.PmConfig_COUNTER,
 }
 ```
-
-`Note` : The values collected for the metrics are as is from the OMCI messages, meaning the adapter does not do any sort of conversion. Refer OMCI spec (G.988 v 11/2017 edition) to get more details of the units of the collected metrics.
 
 ## Basic KPI Format (**KpiEvent2**)
 
