@@ -634,7 +634,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				}
 				if sectionNumber != oFsm.omciDownloadWindowSizeLimit {
 					logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
-						log.Fields{"device-id": oFsm.deviceID, "window-section-limit": oFsm.omciDownloadWindowSizeLimit})
+						log.Fields{"device-id": oFsm.deviceID, "window-section-limit": oFsm.omciDownloadWindowSizeLimit, "actual-section": sectionNumber})
 					//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 					return
