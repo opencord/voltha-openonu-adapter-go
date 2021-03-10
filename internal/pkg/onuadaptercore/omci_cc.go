@@ -1830,6 +1830,116 @@ func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 	return nil
 }
 
+// nolint: unused
+func (oo *omciCC) sendCreateTDVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send TD-Create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+	meInstance, omciErr := me.NewTrafficDescriptor(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode TD for create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize TD create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send TD create", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug(ctx, "send TD-Create-msg done")
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate TD Instance", log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
+// nolint: unused
+func (oo *omciCC) sendSetTDVar(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send TD-Set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewTrafficDescriptor(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode TD for set", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize TD set", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send TD set", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug(ctx, "send TD-Set-msg done")
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate TD Instance", log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+
+}
+
+// nolint: unused
+func (oo *omciCC) sendDeleteTD(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send TD-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewTrafficDescriptor(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode TD for delete", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize TD delete", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, pkt, timeout, 0, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send TD delete", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug(ctx, "send TD-Delete-msg done")
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate TD Instance", log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+
+}
+
 func (oo *omciCC) sendDeleteGemIWTP(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
