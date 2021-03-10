@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da1346c0_f9b85d2f",
+        "filename": "Makefile",
+        "patchSetId": 10
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-10T14:08:31Z",
+      "side": 1,
+      "message": "That\u0027s really required with this change? strange...",
+      "revId": "0c063acb880c572a44352140dc4a8b07a0fdc122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c9faa9e_b6b9f2e2",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1834,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-10T14:08:31Z",
+      "side": 1,
+      "message": "To be consistent with the other sendCreateXXX methods I would prefer the name sendCreateTDVar here (to indicate that this functions allows for variable ME attribute setting)",
+      "revId": "0c063acb880c572a44352140dc4a8b07a0fdc122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a708f60_9e7578bc",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1869,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-10T14:08:31Z",
+      "side": 1,
+      "message": "To be consistent with the other sendSetXXX methods I would prefer the name sendsetTDVar here (to indicate that this functions allows for variable ME attribute setting)",
+      "revId": "0c063acb880c572a44352140dc4a8b07a0fdc122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b5acff0_88083500",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1906,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-10T14:08:31Z",
+      "side": 1,
+      "message": "To be consistent with the other sendDeleteXXX methods I would prefer not to use the variable ME parameter argument. Delete does not need ME Paramters. Instead use the InstanceId direactly as argument, something like: \nsendDeleteTD(ctx context.Context, timeout int, highPrio bool,\n\trxChan chan Message, aInstID uint16)\n(I now there is some exception to the rule: sendDeleteEvtocd - but that\u0027s just no goof example)",
+      "revId": "0c063acb880c572a44352140dc4a8b07a0fdc122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
