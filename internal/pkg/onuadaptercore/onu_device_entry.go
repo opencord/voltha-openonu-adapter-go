@@ -160,6 +160,11 @@ const (
 	// Add other events here as needed (alarms separate???)
 )
 
+//AdapterFsm related error string
+//error string could be checked on waitforOmciResponse() e.g. to avoid misleading error log
+// but not used that way so far (permit error log even for wanted cancellation)
+const cErrWaitAborted = "waitResponse aborted"
+
 type activityDescr struct {
 	databaseClass func(context.Context) error
 	//advertiseEvents bool
