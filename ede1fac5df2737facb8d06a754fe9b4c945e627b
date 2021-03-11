@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8c0c659e_165fbd5d",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-03-11T09:38:47Z",
+      "side": 1,
+      "message": "Because this is valid only for the two audit-states and the examining state needs special treatment anyway, I would like to keep it as it is.",
+      "parentUuid": "07a0f6c2_2edc06e5",
+      "revId": "ede1fac5df2737facb8d06a754fe9b4c945e627b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "46c41fca_c7ee6605",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -33,6 +51,24 @@
       "revId": "ede1fac5df2737facb8d06a754fe9b4c945e627b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1451d7b9_9686116f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 954,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-03-11T09:38:47Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "46c41fca_c7ee6605",
+      "revId": "ede1fac5df2737facb8d06a754fe9b4c945e627b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
