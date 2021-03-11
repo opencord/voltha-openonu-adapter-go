@@ -552,6 +552,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 		"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "Resource": aResource})
 	uniTPKey := uniTP{uniID: aUniID, tpID: aTpID}
 
+	bDeviceProcStatusUpdate := true
 	if cResourceGemPort == aResource {
 		logger.Debugw(ctx, "remove GemPort from the list of existing ones of the TP", log.Fields{
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "GemPort": aEntryID})
@@ -640,6 +641,12 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				return
 			}
 		} else {
+			//if we can't do the OMCI processing we also suppress the ProcStatusUpdate
+			//this is needed as in the device-down case where all FSM's are getting reset and internal data gets cleared
+			//as a consequence a possible remove-flow does not see any dependency on the TechProfile anymore and is executed (pro forma) directly
+			//a later TechProfile removal would cause the device-reason to be updated to 'techProfile-delete-success' which is not the expected state
+			// and anyway is no real useful information at that stage
+			bDeviceProcStatusUpdate = false
 			logger.Debugw(ctx, "uniPonAniConfigFsm delete Gem on OMCI skipped based on device state", log.Fields{
 				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
@@ -720,6 +727,8 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				return
 			}
 		} else {
+			//see gemPort comments
+			bDeviceProcStatusUpdate = false
 			logger.Debugw(ctx, "uniPonAniConfigFsm TCont cleanup on OMCI skipped based on device state", log.Fields{
 				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
@@ -729,8 +738,10 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 		// FSM stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
 		_ = onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Event(aniEvReset)
 	}
-	// generate deviceHandler StatusEvent in case the FSM was not invoked
-	go onuTP.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
+	if bDeviceProcStatusUpdate {
+		// generate deviceHandler StatusEvent in case the FSM was not invoked and OMCI processing not locked due to device state
+		go onuTP.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
+	}
 }
 
 func (onuTP *onuUniTechProf) waitForTimeoutOrCompletion(
