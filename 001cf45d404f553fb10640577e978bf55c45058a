@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "60794f3c_0233869c",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-11T11:57:47Z",
+      "side": 1,
+      "message": "go will optimise this and wont need any memory thats why used empty struct here as compared to bool.",
+      "parentUuid": "d57097f9_df6e1d00",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a586e8b4_7b754465",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 10
@@ -33,6 +51,24 @@
       "revId": "001cf45d404f553fb10640577e978bf55c45058a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "125e1656_20700b33",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-11T11:57:47Z",
+      "side": 1,
+      "message": "The intention here is to add the interrupt handler. for example: if stop event is generated when we are in the starting state and timer is running, we need to avoid calling the audit event and return from the starting state and immediately process the stop event. This is done as response to girish\u0027s comments regarding sleep.",
+      "parentUuid": "a586e8b4_7b754465",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "cd688341_c31a8c6f",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-11T11:57:47Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "af0d7224_c6b36da0",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7ae5a14e_ff343965",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 10
@@ -67,6 +121,24 @@
       "revId": "001cf45d404f553fb10640577e978bf55c45058a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4b845c65_a8206beb",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-11T11:57:47Z",
+      "side": 1,
+      "message": "Same as above, we need to interrupt handler for stop event",
+      "parentUuid": "7ae5a14e_ff343965",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
