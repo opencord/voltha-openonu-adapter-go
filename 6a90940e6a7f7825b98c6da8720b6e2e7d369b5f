@@ -16,6 +16,24 @@
       "revId": "6a90940e6a7f7825b98c6da8720b6e2e7d369b5f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e9d82fd5_7004bb0a",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 313,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-11T07:16:04Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "82a367c1_5b7f84a3",
+      "revId": "6a90940e6a7f7825b98c6da8720b6e2e7d369b5f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
