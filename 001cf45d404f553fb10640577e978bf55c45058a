@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "c728bccd_44114ecd",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-11T14:11:30Z",
+      "side": 1,
+      "message": "Yes I understand this and this is for sure correct. But the question here is, why does it have to be in some endless for-loop. As I tried to explain it means, that this entryXXX function is never left (except for \u0027stopAlarmAudit\u0027). This is in my point of view\na) unneeded, as the only other target is to make a state change via the according event\nb) it puts up some danger, that the events are never processed in this state (because the enterStateXXX function [normally] never ends)",
+      "parentUuid": "125e1656_20700b33",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "af0d7224_c6b36da0",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 10
