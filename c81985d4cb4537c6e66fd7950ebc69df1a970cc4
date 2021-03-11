@@ -104,6 +104,24 @@
       "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "80c5f8f5_c358c25a",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 337,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-11T10:06:51Z",
+      "side": 1,
+      "message": "agreed to Girish\u0027s approach. Thanks",
+      "parentUuid": "0079c1aa_11593170",
+      "revId": "c81985d4cb4537c6e66fd7950ebc69df1a970cc4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
