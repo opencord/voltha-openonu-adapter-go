@@ -1669,23 +1669,20 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// FSM  stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
 		if dh.pOnuTP.pAniConfigFsm != nil {
 			for uniTP := range dh.pOnuTP.pAniConfigFsm {
-				_ = dh.pOnuTP.pAniConfigFsm[uniTP].pAdaptFsm.pFsm.Event(aniEvReset)
+				dh.pOnuTP.pAniConfigFsm[uniTP].CancelProcessing()
 			}
 		}
 		for _, uniPort := range dh.uniEntityMap {
 			// reset the possibly existing VlanConfigFsm
 			dh.lockVlanConfig.RLock()
 			if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.uniID]; exist {
-				dh.lockVlanConfig.RUnlock()
 				//VlanFilterFsm exists and was already started
-				pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
-				if pVlanFilterStatemachine != nil {
-					//reset of all Fsm is always accompanied by global persistency data removal
-					//  no need to remove specific data
-					pVlanFilterFsm.RequestClearPersistency(false)
-					//and reset the UniVlanConfig FSM
-					_ = pVlanFilterStatemachine.Event(vlanEvReset)
-				}
+				dh.lockVlanConfig.RUnlock()
+				//reset of all Fsm is always accompanied by global persistency data removal
+				//  no need to remove specific data
+				pVlanFilterFsm.RequestClearPersistency(false)
+				//ensure the FSM processing is stopped in case waiting for some response
+				pVlanFilterFsm.CancelProcessing()
 			} else {
 				dh.lockVlanConfig.RUnlock()
 			}
@@ -1708,6 +1705,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	}
 	dh.lockUpgradeFsm.RUnlock()
 
+	logger.Infow(ctx, "resetFsms done", log.Fields{"device-id": dh.deviceID})
 	return nil
 }
 
