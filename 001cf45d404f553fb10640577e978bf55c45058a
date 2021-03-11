@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d57097f9_df6e1d00",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-11T11:31:57Z",
+      "side": 1,
+      "message": "personal preference ;-) Your a friend of nil structures .. Does it have some advantage to use that here instead of perhaps a simple chan bool - as used for stopProcessingOmciMessages? I mean it should work, but ...",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a586e8b4_7b754465",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-11T11:31:57Z",
+      "side": 1,
+      "message": "I still do not understand what you itend with this for loop.\nIn the select below you either end up with some event to change the state or waiting on the timer is aborted by returning from this enterXXX function.\nSo why should this function continue to run? (I\u0027m anyway surprised that this should work at all: except for the abortion the enterXXX is never completed - so I would expect, that also no state change can be done).",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "af0d7224_c6b36da0",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-11T11:31:57Z",
+      "side": 1,
+      "message": "style comment: failureTransition?",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ae5a14e_ff343965",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-11T11:31:57Z",
+      "side": 1,
+      "message": "same comment as above",
+      "revId": "001cf45d404f553fb10640577e978bf55c45058a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
