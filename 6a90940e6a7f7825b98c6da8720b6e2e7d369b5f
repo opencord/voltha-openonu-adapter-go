@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "82a367c1_5b7f84a3",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 313,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-11T01:48:10Z",
+      "side": 1,
+      "message": "you can check the generateTicks routine onu_metrics_mananger.go on how it generates the tick event. You need something similar here. The generateTicks routine has an interrupt handler using the stopTicks channel. \nThe only issue with what you have here is, if the FSM has stopped, there is no stopping from generating the asEvAudit event because the go routine has already fired and the event is going to generate no matter what. This could possibly have some unwanted consequences.",
+      "revId": "6a90940e6a7f7825b98c6da8720b6e2e7d369b5f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
