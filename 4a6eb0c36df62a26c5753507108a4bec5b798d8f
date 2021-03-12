@@ -46,6 +46,30 @@
       "revId": "4a6eb0c36df62a26c5753507108a4bec5b798d8f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "41496c48_83cd236e",
+        "filename": "VERSION",
+        "patchSetId": 15
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-12T10:24:12Z",
+      "side": 1,
+      "message": "Changing to dev version.",
+      "parentUuid": "8d60735a_b06bc5dc",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "4a6eb0c36df62a26c5753507108a4bec5b798d8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
