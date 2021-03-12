@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "0001a341_ba6e43e9",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 6
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-03-12T17:51:48Z",
+      "side": 1,
+      "message": "the reason for having a hardening script is it\u0027s reusability because it\u0027s done in a universal way so you can put it in any repo. If done as a part of docker file, it would be hard to support changes and adjustments for all repos since you need to find out in all repos lines responsible for hardening and modifiy them comparing to just copy pasting an adjusted harden.sh script to all repos",
+      "parentUuid": "4d34bc9e_ec2888d9",
+      "range": {
+        "startLine": 84,
+        "startChar": 0,
+        "endLine": 86,
+        "endChar": 60
+      },
+      "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bd9823f2_9229de48",
         "filename": "docker/Dockerfile.openonu",
         "patchSetId": 6
