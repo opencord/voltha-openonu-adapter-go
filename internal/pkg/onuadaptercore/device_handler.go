@@ -3163,8 +3163,7 @@ func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 	dh.setAlarmManagerIsRunning(true)
 	if stop := <-dh.stopAlarmManager; stop {
 		logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
-		dh.pAlarmMgr.stopAlarmAuditTimer <- struct{}{}
-		dh.pAlarmMgr.stopProcessingOmciMessages <- true // Stop the OMCI routines if any(This will stop the fsms also)
+		dh.pAlarmMgr.stopProcessingOmciMessages <- true // Stop the OMCI routines if any
 		dh.setAlarmManagerIsRunning(false)
 
 	}
