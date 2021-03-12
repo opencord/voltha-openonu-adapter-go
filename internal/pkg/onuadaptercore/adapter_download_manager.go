@@ -21,10 +21,12 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"sync"
-
-	//"time"
+	"time"
 
 	"github.com/opencord/voltha-protos/v4/go/voltha"
 
@@ -97,12 +99,23 @@ func (dm *adapterDownloadManager) imageLocallyDownloaded(ctx context.Context, ap
 //startDownload returns true if the download of the requested image could be started
 func (dm *adapterDownloadManager) startDownload(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
 	if apImageDsc.LocalDir != "" {
-		logger.Infow(ctx, "image download-to-adapter requested", log.Fields{"image-name": apImageDsc.Name})
+		logger.Infow(ctx, "image download-to-adapter requested", log.Fields{
+			"image-path": apImageDsc.LocalDir, "image-name": apImageDsc.Name})
 		newImageDscPos := len(dm.downloadImageDscSlice)
 		dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, apImageDsc)
 		dm.downloadImageDscSlice[newImageDscPos].DownloadState = voltha.ImageDownload_DOWNLOAD_STARTED
-		//just some basic test file simulation
-		go dm.writeFileToLFS(ctx, apImageDsc.Name, apImageDsc.LocalDir)
+		if apImageDsc.LocalDir == "/intern" {
+			//just for initial 'internal' test verification
+			//just some basic test file simulation
+			dm.downloadImageDscSlice[newImageDscPos].LocalDir = "/tmp"
+			go dm.writeFileToLFS(ctx, "/tmp", apImageDsc.Name)
+			return nil
+		} else if apImageDsc.LocalDir == "/reboot" {
+			dm.downloadImageDscSlice[newImageDscPos].LocalDir = "/tmp"
+		}
+		//try to download from http
+		urlName := apImageDsc.Url + "/" + apImageDsc.Name
+		go dm.downloadFile(ctx, urlName, apImageDsc.LocalDir, apImageDsc.Name)
 		//return success to comfort the core processing during integration
 		return nil
 	}
@@ -112,8 +125,77 @@ func (dm *adapterDownloadManager) startDownload(ctx context.Context, apImageDsc 
 	return errors.New("could not start download: no valid local directory to write to")
 }
 
+//downloadFile downloads the specified file from the given http location
+func (dm *adapterDownloadManager) downloadFile(ctx context.Context, aURLName string, aFilePath string, aFileName string) {
+	// Get the data
+	logger.Infow(ctx, "downloading from http", log.Fields{"url": aURLName, "localPath": aFilePath})
+	// http command is already part of the aURLName argument
+	urlBase, err1 := url.Parse(aURLName)
+	if err1 != nil {
+		logger.Errorw(ctx, "could not set base url command", log.Fields{"url": aURLName, "error": err1})
+	}
+	urlParams := url.Values{}
+	urlBase.RawQuery = urlParams.Encode()
+	req, err2 := http.NewRequest("GET", urlBase.String(), nil)
+	if err2 != nil {
+		logger.Errorw(ctx, "could not generate http request", log.Fields{"url": urlBase.String(), "error": err2})
+		return
+	}
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(10*time.Second)) //timeout to be discussed
+	defer cancel()
+	_ = req.WithContext(ctx)
+
+	resp, err3 := http.DefaultClient.Do(req)
+	if err3 != nil {
+		logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(), "error": err3})
+		return
+	}
+	defer func() {
+		deferredErr := resp.Body.Close()
+		if deferredErr != nil {
+			logger.Errorw(ctx, "error at closing http response body", log.Fields{"url": urlBase.String(), "error": deferredErr})
+		}
+	}()
+
+	// Create the file
+	aLocalPathName := aFilePath + "/" + aFileName
+	file, err := os.Create(aLocalPathName)
+	if err != nil {
+		logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})
+		return
+	}
+	defer func() {
+		deferredErr := file.Close()
+		if deferredErr != nil {
+			logger.Errorw(ctx, "error at closing new file", log.Fields{"path_file": aLocalPathName, "error": deferredErr})
+		}
+	}()
+
+	// Write the body to file
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		logger.Errorw(ctx, "could not copy file content", log.Fields{"url": urlBase.String(), "file": aLocalPathName, "error": err})
+		return
+	}
+
+	fileStats, statsErr := file.Stat()
+	if err != nil {
+		logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
+	}
+	logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileStats.Size()})
+
+	for _, pDnldImgDsc := range dm.downloadImageDscSlice {
+		if (*pDnldImgDsc).Name == aFileName {
+			//image found (by name)
+			(*pDnldImgDsc).DownloadState = voltha.ImageDownload_DOWNLOAD_SUCCEEDED
+			return //can leave directly
+		}
+	}
+}
+
 //writeFileToLFS writes the downloaded file to the local file system
-func (dm *adapterDownloadManager) writeFileToLFS(ctx context.Context, aFileName string, aLocalPath string) {
+//  this is just an internal test function and can be removed if other download capabilities exist
+func (dm *adapterDownloadManager) writeFileToLFS(ctx context.Context, aLocalPath string, aFileName string) {
 	// by now just a simulation to write a file with predefined 'variable' content
 	totalFileLength := 0
 	logger.Debugw(ctx, "writing fixed size simulation file locally", log.Fields{
@@ -138,8 +220,13 @@ func (dm *adapterDownloadManager) writeFileToLFS(ctx context.Context, aFileName 
 		logger.Errorw(ctx, "created file can't be accessed", log.Fields{"stat-error": statsErr})
 	}
 	logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPath + "/" + aFileName, "length": fileStats.Size()})
-	//nolint:gosec,errcheck
-	file.Close()
+
+	defer func() {
+		deferredErr := file.Close()
+		if deferredErr != nil {
+			logger.Errorw(ctx, "error at closing test file", log.Fields{"file": aLocalPath + "/" + aFileName, "error": deferredErr})
+		}
+	}()
 
 	for _, pDnldImgDsc := range dm.downloadImageDscSlice {
 		if (*pDnldImgDsc).Name == aFileName {

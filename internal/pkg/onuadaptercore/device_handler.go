@@ -2300,8 +2300,8 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 			// commit is only processed in case out upgrade FSM indicates the according state (for automatic commit)
 			//  (some manual forced commit could do without)
 			if pUpgradeStatemachine.Is(upgradeStWaitForCommit) {
-				forcedTest := true //TODO!!: needed as long as BBSIM does not fully support SW upgrade simulation
-				if forcedTest || pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.inactiveImageMeID) {
+				//TODO!!: needed as long as BBSIM does not fully support SW upgrade simulation (re-use SoftReboot flag for simplicity)
+				if dh.pOnuUpradeFsm.useSoftReboot || pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.inactiveImageMeID) {
 					if err := pUpgradeStatemachine.Event(upgradeEvCommitSw); err != nil {
 						logger.Errorw(ctx, "OnuSwUpgradeFSM: can't call commit event", log.Fields{"err": err})
 						return

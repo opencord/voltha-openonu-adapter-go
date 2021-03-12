@@ -107,6 +107,7 @@ type OnuUpgradeFsm struct {
 	omciSectionInterleaveMilliseconds time.Duration //DownloadSectionInterleave delay in milliseconds
 	delayEndSwDl                      bool          //flag to provide a delay between last section and EndSwDl
 	pLastTxMeInstance                 *me.ManagedEntity
+	useSoftReboot                     bool
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -196,6 +197,14 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 			"device-id": oFsm.deviceID, "image-description": apImageDsc})
 		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
 		oFsm.pImageDsc = apImageDsc
+		//path overwrite for internal test file usage
+		oFsm.useSoftReboot = false
+		if apImageDsc.LocalDir == "/intern" {
+			oFsm.pImageDsc.LocalDir = "/tmp"
+		} else if apImageDsc.LocalDir == "/reboot" {
+			oFsm.useSoftReboot = true
+			oFsm.pImageDsc.LocalDir = "/tmp"
+		}
 		oFsm.pDownloadManager = apDownloadManager
 
 		go func(aPBaseFsm *fsm.FSM) {
@@ -621,7 +630,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				oFsm.nextDownloadWindow++
 				if oFsm.nextDownloadWindow >= oFsm.noOfWindows {
 					if sectionNumber != oFsm.omciDownloadWindowSizeLast {
-						logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
+						logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error last window - later: repeat window once?", //TODO!!!
 							log.Fields{"device-id": oFsm.deviceID, "actual section": sectionNumber,
 								"expected section": oFsm.omciDownloadWindowSizeLast})
 						//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
@@ -634,7 +643,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				}
 				if sectionNumber != oFsm.omciDownloadWindowSizeLimit {
 					logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
-						log.Fields{"device-id": oFsm.deviceID, "window-section-limit": oFsm.omciDownloadWindowSizeLimit})
+						log.Fields{"device-id": oFsm.deviceID, "actual-section": sectionNumber,
+							"expected section": oFsm.omciDownloadWindowSizeLimit})
 					//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 					return
@@ -720,10 +730,12 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				return
 			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
-				logger.Debugw(ctx, "Expected ActivateSwResponse received", log.Fields{"device-id": oFsm.deviceID})
+				logger.Infow(ctx, "Expected ActivateSwResponse received", log.Fields{"device-id": oFsm.deviceID})
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForCommit)
-				//TODO:  as long as BBSIM does not fully support upgrade: simulate restart by calling the BBSIM (ONU) reboot
-				go oFsm.pDeviceHandler.rebootDevice(ctx, false, oFsm.pDeviceHandler.device)
+				if oFsm.useSoftReboot {
+					//TODO:  as long as BBSIM does not fully support upgrade: simulate restart by calling the BBSIM (ONU) reboot
+					go oFsm.pDeviceHandler.rebootDevice(ctx, false, oFsm.pDeviceHandler.device)
+				}
 				return
 			}
 			logger.Errorw(ctx, "OnuUpgradeFsm ActivateSwResponse wrong ME instance: abort",
@@ -811,15 +823,16 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			imageIsCommitted := meAttributes["IsCommitted"].(uint8)
 			imageIsActive := meAttributes["IsActive"].(uint8)
 			imageVersion := trimStringFromInterface(meAttributes["Version"])
-			logger.Infow(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
+			logger.Debugw(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
 				log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
 					"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})
 
 			//a check on the delivered image version is not done, the ONU delivered version might be different from what might have been
 			//  indicated in the download image version string (version must be part of the image content itself)
 			//  so checking that might be quite unreliable
-			if msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive &&
-				imageIsCommitted == swIsCommitted {
+			// TODO!! workaround for still not valid bbsim load indications (re-use SoftReboot flag for simplicity)
+			if oFsm.useSoftReboot || (msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive &&
+				imageIsCommitted == swIsCommitted) {
 				logger.Infow(ctx, "requested SW image committed, releasing OnuUpgrade", log.Fields{"device-id": oFsm.deviceID})
 				//releasing the upgrade FSM
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
