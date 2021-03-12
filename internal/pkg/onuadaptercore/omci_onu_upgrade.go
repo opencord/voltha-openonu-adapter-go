@@ -196,6 +196,10 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 			"device-id": oFsm.deviceID, "image-description": apImageDsc})
 		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
 		oFsm.pImageDsc = apImageDsc
+		//path overwrite for internal test file usage
+		if apImageDsc.LocalDir == "/intern" {
+			oFsm.pImageDsc.LocalDir = "/tmp"
+		}
 		oFsm.pDownloadManager = apDownloadManager
 
 		go func(aPBaseFsm *fsm.FSM) {
@@ -621,7 +625,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				oFsm.nextDownloadWindow++
 				if oFsm.nextDownloadWindow >= oFsm.noOfWindows {
 					if sectionNumber != oFsm.omciDownloadWindowSizeLast {
-						logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
+						logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error last window - later: repeat window once?", //TODO!!!
 							log.Fields{"device-id": oFsm.deviceID, "actual section": sectionNumber,
 								"expected section": oFsm.omciDownloadWindowSizeLast})
 						//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
@@ -634,7 +638,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				}
 				if sectionNumber != oFsm.omciDownloadWindowSizeLimit {
 					logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
-						log.Fields{"device-id": oFsm.deviceID, "window-section-limit": oFsm.omciDownloadWindowSizeLimit})
+						log.Fields{"device-id": oFsm.deviceID, "actual-section": sectionNumber,
+							"expected section": oFsm.omciDownloadWindowSizeLimit})
 					//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 					return
