@@ -42,6 +42,9 @@ import (
 	//"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
+// ### global test related tag #####
+const cbSwUpgradeRespSim = false
+
 // ### OMCI related definitions - retrieved from Python adapter code/trace ####
 
 const galEthernetEID = uint16(1)
@@ -2673,44 +2676,46 @@ func (oo *omciCC) sendStartSoftwareDownload(ctx context.Context, timeout int, hi
 	}
 	logger.Debug(ctx, "send StartSwDlRequest done")
 
-	go func() {
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
-		time.Sleep(time.Millisecond * 50) //give some response time
-		respOmciLayer := &omci.OMCI{
-			TransactionID: tid,
-			MessageType:   omci.StartSoftwareDownloadResponseType,
-			// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
-			// Length:           0x28,						// Optional, defaults to 40 octets
-		}
-		response := &omci.StartSoftwareDownloadResponse{
-			MeBasePacket: omci.MeBasePacket{
-				EntityClass:    me.SoftwareImageClassID,
-				EntityInstance: aImageMeID, //inactive image
-			},
-			Result:            0,
-			WindowSize:        aDownloadWindowSize,
-			NumberOfInstances: 0, //seems at the moment I can only generate 0 instances, using 1 here panics as MeResult can not be set below
-			//MeResults: cannot set here: downloadResults type not exported from omci-lib!
-		}
-		var respOptions gopacket.SerializeOptions
-		respOptions.FixLengths = true
-		respBuffer := gopacket.NewSerializeBuffer()
-		respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
-		if respErr != nil {
-			logger.Errorw(ctx, "Cannot serialize StartSwDlResponse", log.Fields{"Err": respErr,
-				"device-id": oo.deviceID})
-			return
-		}
-		respPacket := respBuffer.Bytes()
-		logger.Debugw(ctx, "simulate StartSwDlResponse", log.Fields{"device-id": oo.deviceID,
-			"SequNo":     strconv.FormatInt(int64(tid), 16),
-			"InstId":     strconv.FormatInt(int64(aImageMeID), 16),
-			"windowSize": aDownloadWindowSize})
-		go func(oo *omciCC) {
-			_ = oo.receiveMessage(ctx, respPacket)
-		}(oo)
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
-	}()
+	if cbSwUpgradeRespSim == true {
+		go func() {
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+			time.Sleep(time.Millisecond * 50) //give some response time
+			respOmciLayer := &omci.OMCI{
+				TransactionID: tid,
+				MessageType:   omci.StartSoftwareDownloadResponseType,
+				// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+				// Length:           0x28,						// Optional, defaults to 40 octets
+			}
+			response := &omci.StartSoftwareDownloadResponse{
+				MeBasePacket: omci.MeBasePacket{
+					EntityClass:    me.SoftwareImageClassID,
+					EntityInstance: aImageMeID, //inactive image
+				},
+				Result:            0,
+				WindowSize:        aDownloadWindowSize,
+				NumberOfInstances: 0, //seems at the moment I can only generate 0 instances, using 1 here panics as MeResult can not be set below
+				//MeResults: cannot set here: downloadResults type not exported from omci-lib!
+			}
+			var respOptions gopacket.SerializeOptions
+			respOptions.FixLengths = true
+			respBuffer := gopacket.NewSerializeBuffer()
+			respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+			if respErr != nil {
+				logger.Errorw(ctx, "Cannot serialize StartSwDlResponse", log.Fields{"Err": respErr,
+					"device-id": oo.deviceID})
+				return
+			}
+			respPacket := respBuffer.Bytes()
+			logger.Debugw(ctx, "simulate StartSwDlResponse", log.Fields{"device-id": oo.deviceID,
+				"SequNo":     strconv.FormatInt(int64(tid), 16),
+				"InstId":     strconv.FormatInt(int64(aImageMeID), 16),
+				"windowSize": aDownloadWindowSize})
+			go func(oo *omciCC) {
+				_ = oo.receiveMessage(ctx, respPacket)
+			}(oo)
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+		}()
+	}
 	return nil
 }
 
@@ -2772,50 +2777,52 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio
 	}
 	logger.Debug(ctx, "send DlSectionRequest done")
 
-	go func() {
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
-		if aAckRequest > 0 {
-			time.Sleep(time.Millisecond * 50) //give some response time
-			respOmciLayer := &omci.OMCI{
-				TransactionID: tid,
-				MessageType:   omci.DownloadSectionResponseType,
-				// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
-				// Length:           0x28,						// Optional, defaults to 40 octets
+	if cbSwUpgradeRespSim == true {
+		go func() {
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+			if aAckRequest > 0 {
+				time.Sleep(time.Millisecond * 50) //give some response time
+				respOmciLayer := &omci.OMCI{
+					TransactionID: tid,
+					MessageType:   omci.DownloadSectionResponseType,
+					// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+					// Length:           0x28,						// Optional, defaults to 40 octets
+				}
+				response := &omci.DownloadSectionResponse{
+					MeBasePacket: omci.MeBasePacket{
+						EntityClass:    me.SoftwareImageClassID,
+						EntityInstance: aImageMeID, //inactive image
+					},
+					Result:        0,
+					SectionNumber: aDownloadSectionNo,
+				}
+				var respOptions gopacket.SerializeOptions
+				respOptions.FixLengths = true
+				respBuffer := gopacket.NewSerializeBuffer()
+				respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+				if respErr != nil {
+					logger.Errorw(ctx, "Cannot serialize DlSectionResponse", log.Fields{"Err": respErr,
+						"device-id": oo.deviceID})
+					return
+				}
+				respPacket := respBuffer.Bytes()
+				if aPrint {
+					logger.Debugw(ctx, "simulate DlSectionResponse", log.Fields{"device-id": oo.deviceID,
+						"SequNo": strconv.FormatInt(int64(tid), 16),
+						"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+						"packet": hex.EncodeToString(respPacket)})
+				} else {
+					logger.Debugw(ctx, "simulate DlSectionResponse", log.Fields{"device-id": oo.deviceID,
+						"SequNo": strconv.FormatInt(int64(tid), 16),
+						"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
+				}
+				go func(oo *omciCC) {
+					_ = oo.receiveMessage(ctx, respPacket)
+				}(oo)
 			}
-			response := &omci.DownloadSectionResponse{
-				MeBasePacket: omci.MeBasePacket{
-					EntityClass:    me.SoftwareImageClassID,
-					EntityInstance: aImageMeID, //inactive image
-				},
-				Result:        0,
-				SectionNumber: aDownloadSectionNo,
-			}
-			var respOptions gopacket.SerializeOptions
-			respOptions.FixLengths = true
-			respBuffer := gopacket.NewSerializeBuffer()
-			respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
-			if respErr != nil {
-				logger.Errorw(ctx, "Cannot serialize DlSectionResponse", log.Fields{"Err": respErr,
-					"device-id": oo.deviceID})
-				return
-			}
-			respPacket := respBuffer.Bytes()
-			if aPrint {
-				logger.Debugw(ctx, "simulate DlSectionResponse", log.Fields{"device-id": oo.deviceID,
-					"SequNo": strconv.FormatInt(int64(tid), 16),
-					"InstId": strconv.FormatInt(int64(aImageMeID), 16),
-					"packet": hex.EncodeToString(respPacket)})
-			} else {
-				logger.Debugw(ctx, "simulate DlSectionResponse", log.Fields{"device-id": oo.deviceID,
-					"SequNo": strconv.FormatInt(int64(tid), 16),
-					"InstId": strconv.FormatInt(int64(aImageMeID), 16)})
-			}
-			go func(oo *omciCC) {
-				_ = oo.receiveMessage(ctx, respPacket)
-			}(oo)
-		}
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
-	}()
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+		}()
+	}
 	return nil
 }
 
@@ -2865,42 +2872,44 @@ func (oo *omciCC) sendEndSoftwareDownload(ctx context.Context, timeout int, high
 	}
 	logger.Debug(ctx, "send EndSwDlRequest done")
 
-	go func() {
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
-		time.Sleep(time.Millisecond * 50) //give some response time
-		respOmciLayer := &omci.OMCI{
-			TransactionID: tid,
-			MessageType:   omci.EndSoftwareDownloadResponseType,
-			// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
-			// Length:           0x28,						// Optional, defaults to 40 octets
-		}
-		response := &omci.EndSoftwareDownloadResponse{
-			MeBasePacket: omci.MeBasePacket{
-				EntityClass:    me.SoftwareImageClassID,
-				EntityInstance: aImageMeID, //inactive image
-			},
-			Result:            0, //simulate done, option would be busy
-			NumberOfInstances: 0, //basic ONU-G instance
-		}
-		var respOptions gopacket.SerializeOptions
-		respOptions.FixLengths = true
-		respBuffer := gopacket.NewSerializeBuffer()
-		respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
-		if respErr != nil {
-			logger.Errorw(ctx, "Cannot serialize EndSwDlResponse", log.Fields{"Err": respErr,
-				"device-id": oo.deviceID})
-			return
-		}
-		respPacket := respBuffer.Bytes()
-		logger.Debugw(ctx, "simulate EndSwDlResponse", log.Fields{"device-id": oo.deviceID,
-			"SequNo": strconv.FormatInt(int64(tid), 16),
-			"InstId": strconv.FormatInt(int64(aImageMeID), 16),
-			"result": 0})
-		go func(oo *omciCC) {
-			_ = oo.receiveMessage(ctx, respPacket)
-		}(oo)
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
-	}()
+	if cbSwUpgradeRespSim == true {
+		go func() {
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+			time.Sleep(time.Millisecond * 50) //give some response time
+			respOmciLayer := &omci.OMCI{
+				TransactionID: tid,
+				MessageType:   omci.EndSoftwareDownloadResponseType,
+				// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+				// Length:           0x28,						// Optional, defaults to 40 octets
+			}
+			response := &omci.EndSoftwareDownloadResponse{
+				MeBasePacket: omci.MeBasePacket{
+					EntityClass:    me.SoftwareImageClassID,
+					EntityInstance: aImageMeID, //inactive image
+				},
+				Result:            0, //simulate done, option would be busy
+				NumberOfInstances: 0, //basic ONU-G instance
+			}
+			var respOptions gopacket.SerializeOptions
+			respOptions.FixLengths = true
+			respBuffer := gopacket.NewSerializeBuffer()
+			respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+			if respErr != nil {
+				logger.Errorw(ctx, "Cannot serialize EndSwDlResponse", log.Fields{"Err": respErr,
+					"device-id": oo.deviceID})
+				return
+			}
+			respPacket := respBuffer.Bytes()
+			logger.Debugw(ctx, "simulate EndSwDlResponse", log.Fields{"device-id": oo.deviceID,
+				"SequNo": strconv.FormatInt(int64(tid), 16),
+				"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+				"result": 0})
+			go func(oo *omciCC) {
+				_ = oo.receiveMessage(ctx, respPacket)
+			}(oo)
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+		}()
+	}
 	return nil
 }
 
@@ -2947,42 +2956,44 @@ func (oo *omciCC) sendActivateSoftware(ctx context.Context, timeout int, highPri
 	}
 	logger.Debug(ctx, "send ActivateSwRequest done")
 
-	go func() {
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
-		time.Sleep(time.Millisecond * 50) //give some response time
+	if cbSwUpgradeRespSim == true {
+		go func() {
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+			time.Sleep(time.Millisecond * 50) //give some response time
 
-		respOmciLayer := &omci.OMCI{
-			TransactionID: tid,
-			MessageType:   omci.ActivateSoftwareResponseType,
-			// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
-			// Length:           0x28,						// Optional, defaults to 40 octets
-		}
-		response := &omci.ActivateSoftwareResponse{
-			MeBasePacket: omci.MeBasePacket{
-				EntityClass:    me.SoftwareImageClassID,
-				EntityInstance: aImageMeID, //inactive image
-			},
-			Result: 0, //simulate done, option would be busy
-		}
-		var respOptions gopacket.SerializeOptions
-		respOptions.FixLengths = true
-		respBuffer := gopacket.NewSerializeBuffer()
-		respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
-		if respErr != nil {
-			logger.Errorw(ctx, "Cannot serialize ActivateSwResponse", log.Fields{"Err": respErr,
-				"device-id": oo.deviceID})
-			return
-		}
-		respPacket := respBuffer.Bytes()
-		logger.Debugw(ctx, "simulate ActivateSwResponse", log.Fields{"device-id": oo.deviceID,
-			"SequNo": strconv.FormatInt(int64(tid), 16),
-			"InstId": strconv.FormatInt(int64(aImageMeID), 16),
-			"result": 0})
-		go func(oo *omciCC) {
-			_ = oo.receiveMessage(ctx, respPacket)
-		}(oo)
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
-	}()
+			respOmciLayer := &omci.OMCI{
+				TransactionID: tid,
+				MessageType:   omci.ActivateSoftwareResponseType,
+				// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+				// Length:           0x28,						// Optional, defaults to 40 octets
+			}
+			response := &omci.ActivateSoftwareResponse{
+				MeBasePacket: omci.MeBasePacket{
+					EntityClass:    me.SoftwareImageClassID,
+					EntityInstance: aImageMeID, //inactive image
+				},
+				Result: 0, //simulate done, option would be busy
+			}
+			var respOptions gopacket.SerializeOptions
+			respOptions.FixLengths = true
+			respBuffer := gopacket.NewSerializeBuffer()
+			respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+			if respErr != nil {
+				logger.Errorw(ctx, "Cannot serialize ActivateSwResponse", log.Fields{"Err": respErr,
+					"device-id": oo.deviceID})
+				return
+			}
+			respPacket := respBuffer.Bytes()
+			logger.Debugw(ctx, "simulate ActivateSwResponse", log.Fields{"device-id": oo.deviceID,
+				"SequNo": strconv.FormatInt(int64(tid), 16),
+				"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+				"result": 0})
+			go func(oo *omciCC) {
+				_ = oo.receiveMessage(ctx, respPacket)
+			}(oo)
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+		}()
+	}
 	return nil
 }
 
@@ -3028,41 +3039,43 @@ func (oo *omciCC) sendCommitSoftware(ctx context.Context, timeout int, highPrio 
 	}
 	logger.Debug(ctx, "send CommitSwRequest done")
 
-	go func() {
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
-		time.Sleep(time.Millisecond * 50) //give some response time
-		respOmciLayer := &omci.OMCI{
-			TransactionID: tid,
-			MessageType:   omci.CommitSoftwareResponseType,
-			// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
-			// Length:           0x28,						// Optional, defaults to 40 octets
-		}
-		response := &omci.CommitSoftwareResponse{
-			MeBasePacket: omci.MeBasePacket{
-				EntityClass:    me.SoftwareImageClassID,
-				EntityInstance: aImageMeID, //inactive image
-			},
-			//TODO: Not yet supported by omci-lib Result: 0, //simulate done
-		}
-		var respOptions gopacket.SerializeOptions
-		respOptions.FixLengths = true
-		respBuffer := gopacket.NewSerializeBuffer()
-		respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
-		if respErr != nil {
-			logger.Errorw(ctx, "Cannot serialize CommitSwResponse", log.Fields{"Err": respErr,
-				"device-id": oo.deviceID})
-			return
-		}
-		respPacket := respBuffer.Bytes()
-		logger.Debugw(ctx, "simulate CommitSwResponse", log.Fields{"device-id": oo.deviceID,
-			"SequNo": strconv.FormatInt(int64(tid), 16),
-			"InstId": strconv.FormatInt(int64(aImageMeID), 16),
-			"result": 0})
-		go func(oo *omciCC) {
-			_ = oo.receiveMessage(ctx, respPacket)
-		}(oo)
-		//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
-	}()
+	if cbSwUpgradeRespSim == true {
+		go func() {
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** start *****
+			time.Sleep(time.Millisecond * 50) //give some response time
+			respOmciLayer := &omci.OMCI{
+				TransactionID: tid,
+				MessageType:   omci.CommitSoftwareResponseType,
+				// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+				// Length:           0x28,						// Optional, defaults to 40 octets
+			}
+			response := &omci.CommitSoftwareResponse{
+				MeBasePacket: omci.MeBasePacket{
+					EntityClass:    me.SoftwareImageClassID,
+					EntityInstance: aImageMeID, //inactive image
+				},
+				//TODO: Not yet supported by omci-lib Result: 0, //simulate done
+			}
+			var respOptions gopacket.SerializeOptions
+			respOptions.FixLengths = true
+			respBuffer := gopacket.NewSerializeBuffer()
+			respErr := gopacket.SerializeLayers(respBuffer, respOptions, respOmciLayer, response)
+			if respErr != nil {
+				logger.Errorw(ctx, "Cannot serialize CommitSwResponse", log.Fields{"Err": respErr,
+					"device-id": oo.deviceID})
+				return
+			}
+			respPacket := respBuffer.Bytes()
+			logger.Debugw(ctx, "simulate CommitSwResponse", log.Fields{"device-id": oo.deviceID,
+				"SequNo": strconv.FormatInt(int64(tid), 16),
+				"InstId": strconv.FormatInt(int64(aImageMeID), 16),
+				"result": 0})
+			go func(oo *omciCC) {
+				_ = oo.receiveMessage(ctx, respPacket)
+			}(oo)
+			//**** test simulation - as long as BBSIM does not support ONU SW upgrade *** stop *****
+		}()
+	}
 	return nil
 }
 
