@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "524718a8_95f03469",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2021-03-12T18:44:24Z",
+      "side": 1,
+      "message": "looks like alarmSyncFsm is not initialized. This causes a panic in the adapter",
+      "range": {
+        "startLine": 161,
+        "startChar": 1,
+        "endLine": 161,
+        "endChar": 26
+      },
+      "revId": "a2592fe97dcff5cef1df67066812616230f3a1a9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
