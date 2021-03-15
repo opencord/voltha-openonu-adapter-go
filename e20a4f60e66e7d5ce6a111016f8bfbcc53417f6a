@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "52c29cd0_ffcec459",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 680,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T09:33:21Z",
+      "side": 1,
+      "message": "Statement from mail conversation on this Jira indicates, that the NMS \u0027interfacing\u0027 kafka messages are based on string values only? Hence somewhere there might be a further conversion of this float value to some string? In this case this float conversion here might be superfluous and the one digit resolution could be reached at the string conversion simply perhaps in a way like this: fmt.Printf(\"%.2f\", x). But may be that \u0027interfacing\u0027 code shall be kept quite general and not metric value dependant? Then the conversion here is of course favourable. The mentioned conversion is done somewhere in voltctl?",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
