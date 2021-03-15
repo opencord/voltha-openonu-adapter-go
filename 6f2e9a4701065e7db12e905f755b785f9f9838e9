@@ -104,6 +104,24 @@
       "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ca11e7e_04a6ddcc",
+        "filename": "docker/harden.sh",
+        "patchSetId": 6
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-03-15T12:28:44Z",
+      "side": 1,
+      "message": "It\u0027s from our internal security team, anyway we can add this without problem",
+      "parentUuid": "3f6f2abe_9b0e9160",
+      "revId": "6f2e9a4701065e7db12e905f755b785f9f9838e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
