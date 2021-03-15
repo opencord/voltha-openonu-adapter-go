@@ -37,7 +37,6 @@ const (
 	physicalPathTerminationPointEthernetUniClassID = me.PhysicalPathTerminationPointEthernetUniClassID
 	onuGClassID                                    = me.OnuGClassID
 	aniGClassID                                    = me.AniGClassID
-	auditInterval                                  = 300
 	defaultTimeoutDelay                            = 10
 	alarmBitMapSizeBytes                           = 28
 )
@@ -185,7 +184,7 @@ func (am *onuAlarmManager) asFsmStarting(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "alarm-sync-fsm-start-processing-msgs-in-state", log.Fields{"state": e.FSM.Current(), "device-id": am.pDeviceHandler.deviceID})
 	go am.processAlarmSyncMessages(ctx)
 	// Start the first audit, if audit interval configured, else reach the sync state
-	if auditInterval > 0 {
+	if am.pDeviceHandler.pOnuOmciDevice.alarmAuditInterval > 0 {
 		select {
 		//Transition into auditing state, using a very shorter timeout delay here, hence it is the first audit
 		case <-time.After(defaultTimeoutDelay * time.Second):
@@ -318,9 +317,9 @@ func (am *onuAlarmManager) asFsmResynchronizing(ctx context.Context, e *fsm.Even
 
 func (am *onuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.pDeviceHandler.deviceID})
-	if auditInterval > 0 {
+	if am.pDeviceHandler.pOnuOmciDevice.alarmAuditInterval > 0 {
 		select {
-		case <-time.After(auditInterval * time.Second):
+		case <-time.After(am.pDeviceHandler.pOnuOmciDevice.alarmAuditInterval):
 			go func() {
 				if err := am.alarmSyncFsm.pFsm.Event(asEvAudit); err != nil {
 					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
@@ -578,7 +577,7 @@ func (am *onuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 			return nil
 		}
 		am.incrementAlarmSequence()
-		if sequenceNo != am.lastAlarmSequence && auditInterval > 0 {
+		if sequenceNo != am.lastAlarmSequence && am.pDeviceHandler.pOnuOmciDevice.alarmAuditInterval > 0 {
 			// signal early audit, if no match(if we are reaching here it means that audit is not going on currently)
 			go func() {
 				if err := am.alarmSyncFsm.pFsm.Event(asEvAudit); err != nil {

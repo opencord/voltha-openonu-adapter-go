@@ -236,21 +236,22 @@ type uniPersConfig struct {
 }
 
 type onuPersistentData struct {
-	PersOnuID            uint32          `json:"onu_id"`
-	PersIntfID           uint32          `json:"intf_id"`
-	PersSerialNumber     string          `json:"serial_number"`
-	PersMacAddress       string          `json:"mac_address"`
-	PersVendorID         string          `json:"vendor_id"`
-	PersEquipmentID      string          `json:"equipment_id"`
-	PersActiveSwVersion  string          `json:"active_sw_version"`
-	PersAdminState       string          `json:"admin_state"`
-	PersOperState        string          `json:"oper_state"`
-	PersUniUnlockDone    bool            `json:"uni_unlock_done"`
-	PersUniDisableDone   bool            `json:"uni_disable_done"`
-	PersMibAuditInterval time.Duration   `json:"mib_audit_interval"`
-	PersMibLastDbSync    uint32          `json:"mib_last_db_sync"`
-	PersMibDataSyncAdpt  uint8           `json:"mib_data_sync_adpt"`
-	PersUniConfig        []uniPersConfig `json:"uni_config"`
+	PersOnuID              uint32          `json:"onu_id"`
+	PersIntfID             uint32          `json:"intf_id"`
+	PersSerialNumber       string          `json:"serial_number"`
+	PersMacAddress         string          `json:"mac_address"`
+	PersVendorID           string          `json:"vendor_id"`
+	PersEquipmentID        string          `json:"equipment_id"`
+	PersActiveSwVersion    string          `json:"active_sw_version"`
+	PersAdminState         string          `json:"admin_state"`
+	PersOperState          string          `json:"oper_state"`
+	PersUniUnlockDone      bool            `json:"uni_unlock_done"`
+	PersUniDisableDone     bool            `json:"uni_disable_done"`
+	PersMibAuditInterval   time.Duration   `json:"mib_audit_interval"`
+	PersMibLastDbSync      uint32          `json:"mib_last_db_sync"`
+	PersMibDataSyncAdpt    uint8           `json:"mib_data_sync_adpt"`
+	PersUniConfig          []uniPersConfig `json:"uni_config"`
+	PersAlarmAuditInterval time.Duration   `json:"alarm_audit_interval"`
 }
 
 // OnuDeviceEntry - ONU device info and FSM events.
@@ -277,7 +278,8 @@ type OnuDeviceEntry struct {
 	supportedFsms OmciDeviceFsms
 	devState      OnuDeviceEvent
 	// Audit and MDS
-	mibAuditInterval time.Duration
+	mibAuditInterval   time.Duration
+	alarmAuditInterval time.Duration
 	// TODO: periodical mib resync will be implemented with story VOL-3792
 	//mibNextDbResync uint32
 
@@ -339,13 +341,17 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	if !dh.isReconciling() {
 		onuDeviceEntry.mibAuditInterval = onuDeviceEntry.supportedFsms["mib-synchronizer"].auditInterval
 		onuDeviceEntry.sOnuPersistentData.PersMibAuditInterval = onuDeviceEntry.mibAuditInterval
+		onuDeviceEntry.alarmAuditInterval = dh.pOpenOnuAc.alarmAuditInterval
+		onuDeviceEntry.sOnuPersistentData.PersAlarmAuditInterval = onuDeviceEntry.alarmAuditInterval
 	} else {
 		logger.Debugw(ctx, "reconciling - take audit interval from persistent data", log.Fields{"device-id": dh.deviceID})
 		// TODO: This is a preparation for VOL-VOL-3811 to preserve config history in case of
 		// vendor- or deviceID-specific configurations via voltctl-commands
 		onuDeviceEntry.mibAuditInterval = onuDeviceEntry.sOnuPersistentData.PersMibAuditInterval
+		onuDeviceEntry.alarmAuditInterval = onuDeviceEntry.sOnuPersistentData.PersAlarmAuditInterval
 	}
-	logger.Debugw(ctx, "MibAudit is set to", log.Fields{"Interval": onuDeviceEntry.mibAuditInterval})
+	logger.Debugw(ctx, "MibAuditInterval and AlarmAuditInterval is set to", log.Fields{"mib-audit-interval": onuDeviceEntry.mibAuditInterval,
+		"alarm-audit-interval": onuDeviceEntry.alarmAuditInterval})
 	// TODO: periodical mib resync will be implemented with story VOL-3792
 	//onuDeviceEntry.mibNextDbResync = 0
 
@@ -592,7 +598,7 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 	oo.persUniConfigMutex.Lock()
 	defer oo.persUniConfigMutex.Unlock()
 	oo.sOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval}
 	oo.onuKVStoreMutex.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.onuKVStoreMutex.RUnlock()
@@ -646,7 +652,7 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 
 	oo.sOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.sOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0)}
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.onuKVStoreMutex.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
