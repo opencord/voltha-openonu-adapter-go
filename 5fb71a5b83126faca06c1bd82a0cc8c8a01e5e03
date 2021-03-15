@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "42236e5b_0040049d",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T08:55:22Z",
+      "side": 1,
+      "message": "Spelling: \"AlarmSync\"\nSorry for no having seen the missing initialisation in the previous patch. It would have been more apparant to me if you would use more the Hungarian notation, so something like pAlarmSyncFsm. But of course that would also be no guarantee for detecting this and as I experienced it is also not that common in Golang...",
+      "revId": "5fb71a5b83126faca06c1bd82a0cc8c8a01e5e03",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
