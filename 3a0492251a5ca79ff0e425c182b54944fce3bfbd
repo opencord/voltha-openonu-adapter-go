@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "98f72c36_cab647fa",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T15:16:15Z",
+      "side": 1,
+      "message": "Oh, just spoke to Holger - and his comment is right, the scheme is to work on a.b.c-devXXX as -pre-release Version, so the next release version is a.b.c (something  also do not really like, but it\u0027s defined that way.)\nTo be short, yes 1.2.6 should be the choice - probably with according effects on the helm chart files...",
+      "parentUuid": "c8480f82_8c666dcf",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8a35193f_b9626960",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
