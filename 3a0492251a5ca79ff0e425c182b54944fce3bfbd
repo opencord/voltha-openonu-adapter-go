@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "f00098b3_73336512",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-15T15:54:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "98f72c36_cab647fa",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8a35193f_b9626960",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
@@ -90,6 +114,24 @@
     },
     {
       "key": {
+        "uuid": "56e12b00_47dd37fe",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-15T15:54:50Z",
+      "side": 1,
+      "message": "Its only used as a start parameter. For mib audit interval it was envisioned to configure it using voltctl commands hence kept in persistent database. For the similarity, just kept audit interval also.",
+      "parentUuid": "8a35193f_b9626960",
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "62cd4dd7_7b53502f",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 1
@@ -104,6 +146,24 @@
       "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f2a287ee_35836966",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-03-15T15:54:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "62cd4dd7_7b53502f",
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
