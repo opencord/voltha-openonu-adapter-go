@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "4b30ffa9_768099ef",
+        "filename": "PM_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T09:51:15Z",
+      "side": 1,
+      "message": "Is there a reason why I can\u0027t find the difference between PPTP/VEIP and UNI-G metrics here?",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "52c29cd0_ffcec459",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
