@@ -22,6 +22,64 @@
       "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c8480f82_8c666dcf",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T15:10:21Z",
+      "side": 1,
+      "message": "?? No, I guess 1.2.7 is correct due to the helm chart update",
+      "parentUuid": "8c885fd6_42b866e8",
+      "range": {
+        "startLine": 1,
+        "startChar": 4,
+        "endLine": 1,
+        "endChar": 5
+      },
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8a35193f_b9626960",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T15:10:21Z",
+      "side": 1,
+      "message": "I guess this persistentData element is somewhere witten to KvStore automatically (in the changes I can see that it might be deleted or read from there). Question is, why it is stored to the persistentData/KvStore, if it is only configured once as start parameter. Can the value in persistentData anytime be different from the start parameter? \nWell - same question my apply to mibAuditInterval...",
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "62cd4dd7_7b53502f",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-15T15:10:21Z",
+      "side": 1,
+      "message": "You could unify that to one debug output avoiding multiple lines here",
+      "revId": "3a0492251a5ca79ff0e425c182b54944fce3bfbd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
