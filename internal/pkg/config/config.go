@@ -62,8 +62,9 @@ const (
 	defaultTraceAgentAddress     = "127.0.0.1:6831"
 	defaultLogCorrelationEnabled = true
 
-	defaultMetricsEnabled   = false
-	defaultMibAuditInterval = 0
+	defaultMetricsEnabled     = false
+	defaultMibAuditInterval   = 0
+	defaultAlarmAuditInterval = 300 * time.Second
 
 	defaultOmciTimeout = 3 * time.Second
 )
@@ -103,6 +104,7 @@ type AdapterFlags struct {
 	MetricsEnabled              bool
 	MibAuditInterval            time.Duration
 	OmciTimeout                 time.Duration
+	AlarmAuditInterval          time.Duration
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -139,6 +141,7 @@ func NewAdapterFlags() *AdapterFlags {
 		OnuVendorIds:                defaultOnuVendorIds,
 		MetricsEnabled:              defaultMetricsEnabled,
 		MibAuditInterval:            defaultMibAuditInterval,
+		AlarmAuditInterval:          defaultAlarmAuditInterval,
 		OmciTimeout:                 defaultOmciTimeout,
 	}
 	return &adapterFlags
@@ -241,6 +244,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = fmt.Sprintf("OMCI timeout duration - this timeout value is used on the OMCI channel for waiting on response from ONU")
 	flag.DurationVar(&(so.OmciTimeout), "omci_timeout", defaultOmciTimeout, help)
+
+	help = fmt.Sprintf("Alarm Audit Interval in seconds - the value zero will disable alarm audit")
+	flag.DurationVar(&(so.AlarmAuditInterval), "alarm_audit_interval", defaultAlarmAuditInterval, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
