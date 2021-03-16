@@ -34,6 +34,24 @@
       "revId": "fac2bcf153c685f5f2e694aaf0263cecafa261f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "98f1e16f_8172dc6b",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-16T09:39:11Z",
+      "side": 1,
+      "message": "sounds good to me.",
+      "parentUuid": "29cc195c_4e470597",
+      "revId": "fac2bcf153c685f5f2e694aaf0263cecafa261f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
