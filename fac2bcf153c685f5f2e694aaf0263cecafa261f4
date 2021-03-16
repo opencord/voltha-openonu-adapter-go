@@ -16,6 +16,24 @@
       "revId": "fac2bcf153c685f5f2e694aaf0263cecafa261f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "29cc195c_4e470597",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-16T09:04:39Z",
+      "side": 1,
+      "message": "Yes, I_m also wondering ;-) \nHere is my statement I made in this respect in our chat in slack on 21/03/3:\n---\nmichaelpag  9:38 AM\nYou are right. Writing the file is not checked for the response to rwCore and I don\u0027t intend to do that as it may take quite a long time. It is part of the user interface improvements we consider for future. In my point of view there should be an event notification that writing the file was successful or not.\n---\nI thought I made according comments and proposals in the \u0027ONU Software Upgrade\u0027 document, but obviously I forgot to that.\nAnyway I mentioned the problem in my meeting demonstration: Both the activationSuccess and ImageDownloaded state can\u0027t be trusted in the voltctl \u0027device image list\u0027 command and there is actually no way to get this information. \nI don\u0027t see some consistent way to reach that in the R2.7 release.",
+      "parentUuid": "a89738e0_49e0e101",
+      "revId": "fac2bcf153c685f5f2e694aaf0263cecafa261f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
