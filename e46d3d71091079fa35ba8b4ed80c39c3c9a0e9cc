@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4682f981_75d11fb4",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2021-03-16T01:36:08Z",
+      "side": 1,
+      "message": "why do we need to hardcode this? can I be passed with the URL? (in that way we can support https too)",
+      "range": {
+        "startLine": 131,
+        "startChar": 14,
+        "endLine": 131,
+        "endChar": 21
+      },
+      "revId": "e46d3d71091079fa35ba8b4ed80c39c3c9a0e9cc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
