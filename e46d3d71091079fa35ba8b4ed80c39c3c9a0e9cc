@@ -22,6 +22,30 @@
       "revId": "e46d3d71091079fa35ba8b4ed80c39c3c9a0e9cc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3f8394bb_153dbbd6",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-16T08:08:45Z",
+      "side": 1,
+      "message": "You are right, original intention was to have the protocol identifier within the parameter URL, somehow I lost that in my private testing. I\u0027ll change accordingly.",
+      "parentUuid": "4682f981_75d11fb4",
+      "range": {
+        "startLine": 131,
+        "startChar": 14,
+        "endLine": 131,
+        "endChar": 21
+      },
+      "revId": "e46d3d71091079fa35ba8b4ed80c39c3c9a0e9cc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
