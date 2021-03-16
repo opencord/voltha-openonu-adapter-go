@@ -384,6 +384,11 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 	logger.Infow(ctx, "delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		var errorsList []error
+
+		handler.mutexDeletionInProgressFlag.Lock()
+		handler.deletionInProgress = true
+		handler.mutexDeletionInProgressFlag.Unlock()
+
 		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
 			errorsList = append(errorsList, err)
 		}
