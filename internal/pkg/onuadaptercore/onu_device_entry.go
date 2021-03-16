@@ -708,6 +708,24 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 		oo.chOnuKvProcessingStep <- 0 //error indication
 		return
 	}
+	oo.pOpenOnuAc.lockDeviceHandlersMap.RLock()
+	if _, exist := oo.pOpenOnuAc.deviceHandlers[oo.deviceID]; !exist {
+		logger.Debugw(ctx, "delete_device in progress - skip write request", log.Fields{"device-id": oo.deviceID})
+		oo.chOnuKvProcessingStep <- aProcessingStep
+		oo.pOpenOnuAc.lockDeviceHandlersMap.RUnlock()
+		return
+	}
+	oo.baseDeviceHandler.mutexDeletionInProgressFlag.RLock()
+	if oo.baseDeviceHandler.deletionInProgress {
+		logger.Debugw(ctx, "delete_device in progress - skip write request", log.Fields{"device-id": oo.deviceID})
+		oo.chOnuKvProcessingStep <- aProcessingStep
+		oo.pOpenOnuAc.lockDeviceHandlersMap.RUnlock()
+		oo.baseDeviceHandler.mutexDeletionInProgressFlag.RUnlock()
+		return
+	}
+	oo.pOpenOnuAc.lockDeviceHandlersMap.RUnlock()
+	oo.baseDeviceHandler.mutexDeletionInProgressFlag.RUnlock()
+
 	oo.onuKVStoreMutex.Lock()
 	err = oo.onuKVStore.Put(ctx, oo.onuKVStorePath, Value)
 	oo.onuKVStoreMutex.Unlock()

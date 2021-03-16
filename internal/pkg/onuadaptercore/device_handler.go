@@ -200,23 +200,25 @@ type deviceHandler struct {
 	//discOnus sync.Map
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
-	collectorIsRunning         bool
-	mutexCollectorFlag         sync.RWMutex
-	stopCollector              chan bool
-	alarmManagerIsRunning      bool
-	mutextAlarmManagerFlag     sync.RWMutex
-	stopAlarmManager           chan bool
-	stopHeartbeatCheck         chan bool
-	uniEntityMap               map[uint32]*onuUniPort
-	mutexKvStoreContext        sync.Mutex
-	lockVlanConfig             sync.RWMutex
-	UniVlanConfigFsmMap        map[uint8]*UniVlanConfigFsm
-	lockUpgradeFsm             sync.RWMutex
-	pOnuUpradeFsm              *OnuUpgradeFsm
-	reconciling                uint8
-	mutexReconcilingFlag       sync.RWMutex
-	chReconcilingFinished      chan bool //channel to indicate that reconciling has been finished
-	ReadyForSpecificOmciConfig bool
+	collectorIsRunning          bool
+	mutexCollectorFlag          sync.RWMutex
+	stopCollector               chan bool
+	alarmManagerIsRunning       bool
+	mutextAlarmManagerFlag      sync.RWMutex
+	stopAlarmManager            chan bool
+	stopHeartbeatCheck          chan bool
+	uniEntityMap                map[uint32]*onuUniPort
+	mutexKvStoreContext         sync.Mutex
+	lockVlanConfig              sync.RWMutex
+	UniVlanConfigFsmMap         map[uint8]*UniVlanConfigFsm
+	lockUpgradeFsm              sync.RWMutex
+	pOnuUpradeFsm               *OnuUpgradeFsm
+	reconciling                 uint8
+	mutexReconcilingFlag        sync.RWMutex
+	chReconcilingFinished       chan bool //channel to indicate that reconciling has been finished
+	ReadyForSpecificOmciConfig  bool
+	deletionInProgress          bool
+	mutexDeletionInProgressFlag sync.RWMutex
 }
 
 //newDeviceHandler creates a new device handler
@@ -248,6 +250,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.reconciling = cNoReconciling
 	dh.chReconcilingFinished = make(chan bool)
 	dh.ReadyForSpecificOmciConfig = false
+	dh.deletionInProgress = false
 
 	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
 		dh.pmConfigs = cloned.PmConfigs
