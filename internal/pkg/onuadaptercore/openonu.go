@@ -388,6 +388,7 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 			errorsList = append(errorsList, err)
 		}
 		handler.stopCollector <- true // stop the metric collector routine
+		handler.stopAlarmManager <- true //stop the alarm manager.
 		if handler.pOnuMetricsMgr != nil {
 			if err := handler.pOnuMetricsMgr.clearAllPmData(ctx); err != nil {
 				errorsList = append(errorsList, err)
