@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "440728c4_f912da6a",
+        "filename": "VERSION",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-17T13:58:34Z",
+      "side": 1,
+      "message": "It probably won\u0027t be a new release version",
+      "revId": "28022df2a9e136c70da19beef4caedb88ce9c7a8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2cd49ba1_e97e2c7b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 3178,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-17T13:58:34Z",
+      "side": 1,
+      "message": "just spelling: I\u0027d prefer \u0027sent-all-stop-signals...\u0027",
+      "revId": "28022df2a9e136c70da19beef4caedb88ce9c7a8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
