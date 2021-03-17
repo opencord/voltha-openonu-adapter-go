@@ -39,6 +39,7 @@ var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
 // UniStatusGroupMetrics are supported UNI status names
 var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 	"uni_port_no":     voltha.PmConfig_CONTEXT,
+	"entity_id":       voltha.PmConfig_CONTEXT,
 	"ethernet_type":   voltha.PmConfig_GAUGE,
 	"oper_status":     voltha.PmConfig_GAUGE,
 	"uni_admin_state": voltha.PmConfig_GAUGE,
@@ -190,8 +191,8 @@ _voltha.events_ topic.
             },
             "metrics":{
                "ani_g_instance_id":32769,
-               "receive_power":57645,
-               "transmit_power":2748
+               "receive_power_dBm":1.2,
+               "transmit_power_dBm":-16.7
             }
          }
       ]
@@ -256,9 +257,11 @@ voltctl -k <kafka-ip:port> event listen --show-body -t 10000 -o json -F
 ```
 Note: For more `event listen` options, check `voltctl event listen --help` command.
 
-## Remaining work
+## Future work
 The following Metrics could be supported in the future.
 
+- ANI-G Test report on demand
+- EthernetBridgeHistory and EthernetUniHistory on demand
 - xgPON_TC_History
 - xgPON_Downstream_History
 - xgPON_Upstream_History
