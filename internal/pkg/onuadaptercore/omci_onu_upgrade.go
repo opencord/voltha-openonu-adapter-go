@@ -409,6 +409,10 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 		}(pBaseFsm)
 		return
 	}
+
+	// after we send the activateSoftware command we need to set the cached
+	// activeEntityEntry.valid to false
+	oFsm.pOnuOmciDevice.onuSwImageIndications.activeEntityEntry.valid = false
 }
 
 func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
