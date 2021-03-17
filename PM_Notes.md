@@ -39,11 +39,18 @@ var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
 // UniStatusGroupMetrics are supported UNI status names
 var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 	"uni_port_no":     voltha.PmConfig_CONTEXT,
-	"ethernet_type":   voltha.PmConfig_GAUGE,
+	"me_class_id":     voltha.PmConfig_CONTEXT,
+	"entity_id":       voltha.PmConfig_CONTEXT,
+	"sensed_type":     voltha.PmConfig_GAUGE,
 	"oper_status":     voltha.PmConfig_GAUGE,
 	"uni_admin_state": voltha.PmConfig_GAUGE,
 }
 ```
+Note:
+1. `sensed_type` is relevant only for PPTP ME and per G.988 specification, "When a circuit pack is present, this attribute represents its type as one of the values from Table 9.1.5-1."
+2. Valid values for `oper_state` are 0 (enabled) and 1 (disabled)
+3. Valid values for `uni_admin_state` are 0 (unlocks) and 1 (locks)
+4. `oper_state` and `uni_admin_state` are relevant for both PPTP and VEIP ME, however only `uni_admin_state` is relevant for UNI-G ME.
 
 ### _EthernetBridgeHistory_
 ```
@@ -190,8 +197,8 @@ _voltha.events_ topic.
             },
             "metrics":{
                "ani_g_instance_id":32769,
-               "receive_power":57645,
-               "transmit_power":2748
+               "receive_power_dBm":1.2,
+               "transmit_power_dBm":-16.7
             }
          }
       ]
@@ -256,9 +263,11 @@ voltctl -k <kafka-ip:port> event listen --show-body -t 10000 -o json -F
 ```
 Note: For more `event listen` options, check `voltctl event listen --help` command.
 
-## Remaining work
+## Future work
 The following Metrics could be supported in the future.
 
+- ANI-G Test report on demand
+- EthernetBridgeHistory and EthernetUniHistory counters on demand
 - xgPON_TC_History
 - xgPON_Downstream_History
 - xgPON_Upstream_History

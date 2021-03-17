@@ -81,8 +81,9 @@ const (
 // UniStatusGroupMetrics are supported UNI status names
 var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 	"uni_port_no":     voltha.PmConfig_CONTEXT,
+	"me_class_id":     voltha.PmConfig_CONTEXT,
 	"entity_id":       voltha.PmConfig_CONTEXT,
-	"ethernet_type":   voltha.PmConfig_GAUGE,
+	"sensed_type":     voltha.PmConfig_GAUGE,
 	"oper_status":     voltha.PmConfig_GAUGE,
 	"uni_admin_state": voltha.PmConfig_GAUGE,
 }
@@ -763,9 +764,11 @@ loop1:
 				for _, uni := range mm.pDeviceHandler.uniEntityMap {
 					if uni.entityID == entityID {
 						unigMetrics["uni_port_no"] = float32(uni.portNo)
+						break
 					}
 				}
 			}
+			unigMetrics["me_class_id"] = float32(me.UniGClassID)
 
 			// create slice of metrics given that there could be more than one UNI-G instance
 			metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: unigMetrics}
@@ -797,7 +800,7 @@ loop2:
 			// Populate metric only if it was enabled.
 			for k := range UniStatusGroupMetrics {
 				switch k {
-				case "ethernet_type":
+				case "sensed_type":
 					if val, ok := meAttributes["SensedType"]; ok && val != nil {
 						pptpMetrics[k] = float32(val.(byte))
 					}
@@ -821,9 +824,11 @@ loop2:
 			for _, uni := range mm.pDeviceHandler.uniEntityMap {
 				if uni.entityID == entityID {
 					pptpMetrics["uni_port_no"] = float32(uni.portNo)
+					break
 				}
 			}
 		}
+		pptpMetrics["me_class_id"] = float32(me.PhysicalPathTerminationPointEthernetUniClassID)
 
 		// create slice of metrics given that there could be more than one PPTP instance and
 		metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: pptpMetrics}
@@ -875,9 +880,11 @@ loop3:
 			for _, uni := range mm.pDeviceHandler.uniEntityMap {
 				if uni.entityID == entityID {
 					veipMetrics["uni_port_no"] = float32(uni.portNo)
+					break
 				}
 			}
 		}
+		veipMetrics["me_class_id"] = float32(me.VirtualEthernetInterfacePointClassID)
 
 		// create slice of metrics given that there could be more than one VEIP instance
 		metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: veipMetrics}
