@@ -1566,7 +1566,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		// Start PM collector routine
 		go dh.startCollector(ctx)
 	}
-	if !dh.getAlarmManagerIsRunning() {
+	if !dh.getAlarmManagerIsRunning(ctx) {
 		go dh.startAlarmManager(ctx)
 	}
 
@@ -1695,7 +1695,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// Stop collector routine
 		dh.stopCollector <- true
 	}
-	if dh.getAlarmManagerIsRunning() {
+	if dh.getAlarmManagerIsRunning(ctx) {
 		dh.stopAlarmManager <- true
 	}
 
@@ -3125,7 +3125,7 @@ func (dh *deviceHandler) prepareReconcilingWithActiveAdapter(ctx context.Context
 		// Start PM collector routine
 		go dh.startCollector(ctx)
 	}
-	if !dh.getAlarmManagerIsRunning() {
+	if !dh.getAlarmManagerIsRunning(ctx) {
 		go dh.startAlarmManager(ctx)
 	}
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
@@ -3151,9 +3151,10 @@ func (dh *deviceHandler) setAlarmManagerIsRunning(flagValue bool) {
 	dh.mutextAlarmManagerFlag.Unlock()
 }
 
-func (dh *deviceHandler) getAlarmManagerIsRunning() bool {
+func (dh *deviceHandler) getAlarmManagerIsRunning(ctx context.Context) bool {
 	dh.mutextAlarmManagerFlag.RLock()
 	flagValue := dh.alarmManagerIsRunning
+	logger.Debugw(ctx, "alarm-manager-is-running", log.Fields{"flag": dh.alarmManagerIsRunning})
 	dh.mutextAlarmManagerFlag.RUnlock()
 	return flagValue
 }
@@ -3168,11 +3169,13 @@ func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 		logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
 		dh.setAlarmManagerIsRunning(false)
 		go func() {
-			_ = dh.pAlarmMgr.alarmSyncFsm.pFsm.Event(asEvStop)
+			if dh.pAlarmMgr.alarmSyncFsm != nil && dh.pAlarmMgr.alarmSyncFsm.pFsm != nil {
+				_ = dh.pAlarmMgr.alarmSyncFsm.pFsm.Event(asEvStop)
+			}
 		}()
-		dh.pAlarmMgr.stopAlarmAuditTimer <- struct{}{}
 		dh.pAlarmMgr.stopProcessingOmciMessages <- true // Stop the OMCI routines if any(This will stop the fsms also)
-
+		dh.pAlarmMgr.stopAlarmAuditTimer <- struct{}{}
+		logger.Debugw(ctx, "sent-all-stop-signals-to-alarm-manager", log.Fields{"device-id": dh.device.Id})
 	}
 }
 
