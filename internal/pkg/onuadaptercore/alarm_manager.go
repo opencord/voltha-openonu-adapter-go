@@ -334,26 +334,35 @@ func (am *onuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 
 func (am *onuAlarmManager) processAlarmSyncMessages(ctx context.Context) {
 	logger.Debugw(ctx, "start-routine-to-process-omci-messages-for-alarm-sync", log.Fields{"device-id": am.pDeviceHandler.deviceID})
-	am.flushAlarmSyncChannels(ctx)
-loop:
 	for {
-		message, ok := <-am.eventChannel
-		if !ok {
-			logger.Info(ctx, "alarm-sync-omci-message-could-not-be-read-from-channel", log.Fields{"device-id": am.pDeviceHandler.deviceID})
-			break loop
-		}
-		logger.Debugw(ctx, "alarm-sync-omci-message-received", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		select {
+		case message, ok := <-am.eventChannel:
+			if !ok {
+				logger.Info(ctx, "alarm-sync-omci-message-could-not-be-read-from-channel", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+				continue
+			}
+			logger.Debugw(ctx, "alarm-sync-omci-message-received", log.Fields{"device-id": am.pDeviceHandler.deviceID})
 
-		switch message.Type {
-		case OMCI:
-			msg, _ := message.Data.(OmciMessage)
-			am.handleOmciMessage(ctx, msg)
-		default:
-			logger.Warn(ctx, "alarm-sync-unknown-message-type-received", log.Fields{"device-id": am.pDeviceHandler.deviceID, "message.Type": message.Type})
+			switch message.Type {
+			case OMCI:
+				msg, _ := message.Data.(OmciMessage)
+				am.handleOmciMessage(ctx, msg)
+			default:
+				logger.Warn(ctx, "alarm-sync-unknown-message-type-received", log.Fields{"device-id": am.pDeviceHandler.deviceID, "message.Type": message.Type})
+			}
+		case <-am.stopProcessingOmciMessages:
+			logger.Infow(ctx, "alarm-manager-stop-omci-alarm-message-processing-routines", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+			am.onuAlarmManagerLock.Lock()
+			am.processMessage = false
+			am.activeAlarms = nil
+			am.alarmBitMapDB = nil
+			am.alarmUploadNoOfCmds = 0
+			am.alarmUploadSeqNo = 0
+			am.onuAlarmManagerLock.Unlock()
+			return
+
 		}
 	}
-	logger.Info(ctx, "alarm-sync-stopped-handling-of-alarm-sync-omci-message", log.Fields{"device-id": am.pDeviceHandler.deviceID})
-	_ = am.alarmSyncFsm.pFsm.Event(asEvStop)
 }
 
 func (am *onuAlarmManager) handleOmciMessage(ctx context.Context, msg OmciMessage) {
@@ -492,6 +501,7 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 }
 
 func (am *onuAlarmManager) startOMCIAlarmMessageProcessing(ctx context.Context) {
+	logger.Infow(ctx, "alarm-manager-start-omci-alarm-message-processing-routines", log.Fields{"device-id": am.pDeviceHandler.deviceID})
 	am.onuAlarmManagerLock.Lock()
 	am.processMessage = true
 	if am.activeAlarms == nil {
@@ -499,6 +509,8 @@ func (am *onuAlarmManager) startOMCIAlarmMessageProcessing(ctx context.Context) 
 	}
 	am.alarmBitMapDB = make(map[meAlarmKey][alarmBitMapSizeBytes]byte)
 	am.onuAlarmManagerLock.Unlock()
+	am.flushAlarmSyncChannels(ctx) // Need to do this first as there might be stale data on the channels and the start state waits on same channels
+
 	if am.alarmSyncFsm.pFsm.Is(asStDisabled) {
 		if err := am.alarmSyncFsm.pFsm.Event(asEvStart); err != nil {
 			logger.Errorw(ctx, "alarm-sync-fsm-can-not-go-to-state-starting", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
@@ -510,17 +522,6 @@ func (am *onuAlarmManager) startOMCIAlarmMessageProcessing(ctx context.Context) 
 		return
 	}
 	logger.Debugw(ctx, "alarm-sync-fsm-started", log.Fields{"state": string(am.alarmSyncFsm.pFsm.Current())})
-
-	if stop := <-am.stopProcessingOmciMessages; stop {
-		am.onuAlarmManagerLock.Lock()
-		am.processMessage = false
-		am.activeAlarms = nil
-		am.alarmBitMapDB = nil
-		am.alarmUploadNoOfCmds = 0
-		am.alarmUploadSeqNo = 0
-		am.onuAlarmManagerLock.Unlock()
-
-	}
 }
 
 func (am *onuAlarmManager) handleOmciAlarmNotificationMessage(ctx context.Context, msg OmciMessage) {
