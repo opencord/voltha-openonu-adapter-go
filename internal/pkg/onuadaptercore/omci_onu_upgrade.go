@@ -763,13 +763,12 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
-			// TODO!!: not yet implemented by omci-lib:
-			/*if msgObj.Result != me.Success {
+			if msgObj.Result != me.Success {
 				logger.Errorw(ctx, "OnuUpgradeFsm SwImage CommitResponse result error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 				// TODO!!!: error treatment?, perhaps in the end reset the FSM
 				return
-			}*/
+			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				logger.Debugw(ctx, "OnuUpgradeFsm Expected SwImage CommitResponse received", log.Fields{"device-id": oFsm.deviceID})
 				//verifying committed image
