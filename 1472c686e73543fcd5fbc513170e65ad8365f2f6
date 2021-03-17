@@ -1,0 +1,7 @@
+Code-Review+2: Andrea Campanella <andrea@opennetworking.org>
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Submitted-by: Andrea Campanella <andrea@opennetworking.org>
+Submitted-at: Wed, 17 Mar 2021 16:48:01 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/23501
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
