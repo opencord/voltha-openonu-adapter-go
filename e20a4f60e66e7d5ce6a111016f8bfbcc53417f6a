@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "db8b61d0_e2afe13f",
+        "filename": "PM_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-17T18:17:10Z",
+      "side": 1,
+      "message": "Unfortunately, I could not find a way to put any indicator here to say PPTP/VEIP/UNI-G given the type of metric value is float32 and I did not find a good way to represent UNI Type in float32. Let me know if you have some suggestions.\nPerhaps 1 is PPTP, 2 is VEIP and 3 is UNI-G ? something like this? Or put the ME Class ID?",
+      "parentUuid": "4b30ffa9_768099ef",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fa520118_40efedaf",
         "filename": "PM_Notes.md",
         "patchSetId": 7
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "7174436a_c27cc8f9",
+        "filename": "PM_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-17T18:17:10Z",
+      "side": 1,
+      "message": "Ack.\nWill submit a patch.",
+      "parentUuid": "fa520118_40efedaf",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "52c29cd0_ffcec459",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 7
@@ -47,6 +83,24 @@
       "writtenOn": "2021-03-15T09:33:21Z",
       "side": 1,
       "message": "Statement from mail conversation on this Jira indicates, that the NMS \u0027interfacing\u0027 kafka messages are based on string values only? Hence somewhere there might be a further conversion of this float value to some string? In this case this float conversion here might be superfluous and the one digit resolution could be reached at the string conversion simply perhaps in a way like this: fmt.Printf(\"%.2f\", x). But may be that \u0027interfacing\u0027 code shall be kept quite general and not metric value dependant? Then the conversion here is of course favourable. The mentioned conversion is done somewhere in voltctl?",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fcca201f_f8954d68",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 680,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-17T18:17:10Z",
+      "side": 1,
+      "message": "The value of metric is float32 per protobuf definition, see herehttps://github.com/opencord/voltha-protos/blob/master/protos/voltha_protos/events.proto#L78 and hence this conversion is necessary.\n\nI am not sure about string conversion on kafka you mentioned. Yes, there was one topic about string conversion in voltctl. The frequency is displayed a number but should contain unit (like seconds, or hour)",
+      "parentUuid": "52c29cd0_ffcec459",
       "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
