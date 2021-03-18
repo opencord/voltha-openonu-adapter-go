@@ -46,8 +46,6 @@ import (
 type adapterDownloadManager struct {
 	mutexDownloadImageDsc sync.RWMutex
 	downloadImageDscSlice []*voltha.ImageDownload
-	// maybe just for test purpose
-	arrayFileFragment [32]byte
 }
 
 //newAdapterDownloadManager constructor returns a new instance of a adapterDownloadManager
@@ -105,15 +103,6 @@ func (dm *adapterDownloadManager) startDownload(ctx context.Context, apImageDsc 
 		newImageDscPos := len(dm.downloadImageDscSlice)
 		dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, apImageDsc)
 		dm.downloadImageDscSlice[newImageDscPos].DownloadState = voltha.ImageDownload_DOWNLOAD_STARTED
-		if apImageDsc.LocalDir == "/intern" {
-			//just for initial 'internal' test verification
-			//just some basic test file simulation
-			dm.downloadImageDscSlice[newImageDscPos].LocalDir = "/tmp"
-			go dm.writeFileToLFS(ctx, "/tmp", apImageDsc.Name)
-			return nil
-		} else if apImageDsc.LocalDir == "/reboot" {
-			dm.downloadImageDscSlice[newImageDscPos].LocalDir = "/tmp"
-		}
 		//try to download from http
 		urlName := apImageDsc.Url + "/" + apImageDsc.Name
 		err := dm.downloadFile(ctx, urlName, apImageDsc.LocalDir, apImageDsc.Name)
@@ -231,50 +220,6 @@ func (dm *adapterDownloadManager) downloadFile(ctx context.Context, aURLName str
 	return nil
 }
 
-//writeFileToLFS writes the downloaded file to the local file system
-//  this is just an internal test function and can be removed if other download capabilities exist
-func (dm *adapterDownloadManager) writeFileToLFS(ctx context.Context, aLocalPath string, aFileName string) {
-	// by now just a simulation to write a file with predefined 'variable' content
-	totalFileLength := 0
-	logger.Debugw(ctx, "writing fixed size simulation file locally", log.Fields{
-		"image-name": aFileName, "image-path": aLocalPath})
-	file, err := os.Create(aLocalPath + "/" + aFileName)
-	if err == nil {
-		// write 32KB test file
-		for totalFileLength < 32*1024 {
-			if written, wrErr := file.Write(dm.getIncrementalSliceContent(ctx)); wrErr == nil {
-				totalFileLength += written
-			} else {
-				logger.Errorw(ctx, "could not write to file", log.Fields{"create-error": wrErr})
-				break //stop writing
-			}
-		}
-	} else {
-		logger.Errorw(ctx, "could not create file", log.Fields{"create-error": err})
-	}
-
-	fileStats, statsErr := file.Stat()
-	if err != nil {
-		logger.Errorw(ctx, "created file can't be accessed", log.Fields{"stat-error": statsErr})
-	}
-	logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPath + "/" + aFileName, "length": fileStats.Size()})
-
-	defer func() {
-		deferredErr := file.Close()
-		if deferredErr != nil {
-			logger.Errorw(ctx, "error at closing test file", log.Fields{"file": aLocalPath + "/" + aFileName, "error": deferredErr})
-		}
-	}()
-
-	for _, pDnldImgDsc := range dm.downloadImageDscSlice {
-		if (*pDnldImgDsc).Name == aFileName {
-			//image found (by name)
-			(*pDnldImgDsc).DownloadState = voltha.ImageDownload_DOWNLOAD_SUCCEEDED
-			return //can leave directly
-		}
-	}
-}
-
 //getImageBufferLen returns the length of the specified file in bytes (file size)
 func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileName string,
 	aLocalPath string) (int64, error) {
@@ -319,15 +264,4 @@ func (dm *adapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aF
 	_, err = buffer.Read(bytes)
 
 	return bytes, err
-}
-
-//getIncrementalSliceContent returns a byte slice of incremented bytes of internal array (used for file emulation)
-// (used for file emulation)
-func (dm *adapterDownloadManager) getIncrementalSliceContent(ctx context.Context) []byte {
-	lastValue := dm.arrayFileFragment[len(dm.arrayFileFragment)-1]
-	for index := range dm.arrayFileFragment {
-		lastValue++
-		dm.arrayFileFragment[index] = lastValue
-	}
-	return dm.arrayFileFragment[:]
 }

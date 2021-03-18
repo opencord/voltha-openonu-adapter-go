@@ -505,11 +505,19 @@ func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID
 			oo.onuSwImageIndications.activeEntityEntry.valid = true
 			oo.onuSwImageIndications.activeEntityEntry.version = imageVersion
 			oo.onuSwImageIndications.activeEntityEntry.isCommitted = imageIsCommitted
+			//as the SW version indication may stem from some ONU Down/up event
+			//the complementary image state is to be invalidated
+			//  (state of the second image is always expected afterwards or just invalid)
+			oo.onuSwImageIndications.inactiveEntityEntry.valid = false
 		} else {
 			oo.onuSwImageIndications.inactiveEntityEntry.entityID = entityID
 			oo.onuSwImageIndications.inactiveEntityEntry.valid = true
 			oo.onuSwImageIndications.inactiveEntityEntry.version = imageVersion
 			oo.onuSwImageIndications.inactiveEntityEntry.isCommitted = imageIsCommitted
+			//as the SW version indication may stem form some ONU Down/up event
+			//the complementary image state is to be invalidated
+			//  (state of the second image is always expected afterwards or just invalid)
+			oo.onuSwImageIndications.activeEntityEntry.valid = false
 		}
 		_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
 		return
