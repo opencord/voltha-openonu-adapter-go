@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4fd24ff1_66cf1695",
+        "filename": "PM_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T08:34:13Z",
+      "side": 1,
+      "message": "See my remarks on the other patch, what I basically wanted here, is some hint on the ethernet_type usage across the different metric types.",
+      "revId": "2c5a2ed21d6e5229e11fbc6eee810a5edd2474ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2dc0ab2b_a69feb78",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T08:34:13Z",
+      "side": 1,
+      "message": "I don\u0027t think you have to change the SW version number if hust the document is changed. No change in real software.",
+      "revId": "2c5a2ed21d6e5229e11fbc6eee810a5edd2474ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
