@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8fac7861_4e6fde8b",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2576,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-18T15:22:14Z",
+      "side": 0,
+      "message": "Is this an issue with etcd? I see it clears during my test - so under some situation but not others.",
+      "revId": "1472c686e73543fcd5fbc513170e65ad8365f2f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
