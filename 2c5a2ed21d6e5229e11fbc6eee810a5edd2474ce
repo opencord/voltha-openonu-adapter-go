@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f5cf23ad_40bf8d43",
+        "filename": "PM_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-03-18T15:30:53Z",
+      "side": 1,
+      "message": "The \"ethernet_type\" is actually the \"sensed_type\" IE from the Physical Path Termination Point Ethernet UNI ME. This was actually a direct translation from python implementation which used the name ethernet_type for sensed_type. Let me change it and also put in some comments to describe that it is relevant for PPTP ME only.\nLet me also include here the ME Class ID.",
+      "parentUuid": "4fd24ff1_66cf1695",
+      "revId": "2c5a2ed21d6e5229e11fbc6eee810a5edd2474ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2dc0ab2b_a69feb78",
         "filename": "VERSION",
         "patchSetId": 2
