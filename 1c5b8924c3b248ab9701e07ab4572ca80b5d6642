@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9db39c67_f648bb11",
+        "filename": "PM_Notes.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T16:31:39Z",
+      "side": 1,
+      "message": "Perhaps that way?:\n1.) UniStatusMetrics comprise metrics for either PPTP or VEIP ME\u0027s and the UNI-G ME.\n2.) me_class_id defines the corresponding metric type with the ME class value as defined in G988, Table 12.2.4-1\n3.) `sensed_type` is relevant only for PPTP ME (meaning me_class_id \u003d 11) and per G.988 specification, \"When a circuit pack is present, this attribute represents its type as one of the values from Table 9.1.5-1.\"\nand so on",
+      "revId": "1c5b8924c3b248ab9701e07ab4572ca80b5d6642",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
