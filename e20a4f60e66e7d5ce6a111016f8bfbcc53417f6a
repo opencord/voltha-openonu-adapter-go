@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "f714f915_f863e04a",
+        "filename": "PM_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T08:29:20Z",
+      "side": 1,
+      "message": "I think ME classId would be a good idea, especially because you stick very close to the G988 with all the other parameter. Then there would be no reason to invent some own enumeration. Also that would it make simpler in case the metrics are extended to some further element/Omci-ME. But that was basically not my question. I think the ethernetType is only delivered with PPTP, or is it that way, that the element is present also for the other entities - and just left 0 (or something?) there? I think that should be made clear in this description.",
+      "parentUuid": "db8b61d0_e2afe13f",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fa520118_40efedaf",
         "filename": "PM_Notes.md",
         "patchSetId": 7
@@ -101,6 +119,24 @@
       "side": 1,
       "message": "The value of metric is float32 per protobuf definition, see herehttps://github.com/opencord/voltha-protos/blob/master/protos/voltha_protos/events.proto#L78 and hence this conversion is necessary.\n\nI am not sure about string conversion on kafka you mentioned. Yes, there was one topic about string conversion in voltctl. The frequency is displayed a number but should contain unit (like seconds, or hour)",
       "parentUuid": "52c29cd0_ffcec459",
+      "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e8c76cc_9f203adf",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 680,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T08:29:20Z",
+      "side": 1,
+      "message": "Well, the question was to leave the code here as in previous version, which already delivered float32, meaning not to do the rounding (and possibly customer specific representation) here, but in the conversion that is somewhere done when putting the numbers to Kafka (with a possibly simpler method than needed here). But as stated, functionally things are fine, so I guess it stays this way now.",
+      "parentUuid": "fcca201f_f8954d68",
       "revId": "e20a4f60e66e7d5ce6a111016f8bfbcc53417f6a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
