@@ -1704,7 +1704,14 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	// this possibly also refers later to (not yet existing) upgradeStWaitForActivate (with ctl API changes)
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
-		_ = dh.pOnuUpradeFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+		pUpgradeStatemachine := dh.pOnuUpradeFsm.pAdaptFsm.pFsm
+		if pUpgradeStatemachine != nil {
+			if pUpgradeStatemachine.Is(upgradeStWaitEndDL) {
+				dh.pOnuUpradeFsm.chReceiveExpectedResponse <- false //which aborts the FSM (activate was not yet sent)
+			}
+			_ = pUpgradeStatemachine.Event(upgradeEvReset) //anyway and for all other states
+		}
+		//else the FSM seems already to be in some released state
 	}
 	dh.lockUpgradeFsm.RUnlock()
 
@@ -2303,8 +2310,7 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 			// commit is only processed in case out upgrade FSM indicates the according state (for automatic commit)
 			//  (some manual forced commit could do without)
 			if pUpgradeStatemachine.Is(upgradeStWaitForCommit) {
-				//TODO!!: needed as long as BBSIM does not fully support SW upgrade simulation (re-use SoftReboot flag for simplicity)
-				if dh.pOnuUpradeFsm.useSoftReboot || pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.inactiveImageMeID) {
+				if pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.inactiveImageMeID) {
 					if err := pUpgradeStatemachine.Event(upgradeEvCommitSw); err != nil {
 						logger.Errorw(ctx, "OnuSwUpgradeFSM: can't call commit event", log.Fields{"err": err})
 						return

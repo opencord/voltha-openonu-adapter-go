@@ -40,6 +40,8 @@ const (
 	//cOmciDownloadWindowRetryMax  = 2    // max attempts for a specific window
 	cOmciSectionInterleaveMilliseconds = 100 //DownloadSection interleave time in milliseconds
 	cOmciEndSwDlDelaySeconds           = 1   //End Software Download delay after last section (may be also configurable?)
+	cWaitCountEndSwDl                  = 6   //maximum number of EndSwDl requests
+	cWaitDelayEndSwDlSeconds           = 10  //duration, how long is waited before next request on EndSwDl
 	//cOmciDownloadCompleteTimeout = 5400 //in s for the complete timeout (may be better scale to image size/ noOfWindows)
 )
 
@@ -51,6 +53,8 @@ const (
 	upgradeEvWaitWindowAck      = "upgradeEvWaitWindowAck"
 	upgradeEvContinueNextWindow = "upgradeEvContinueNextWindow"
 	upgradeEvEndSwDownload      = "upgradeEvEndSwDownload"
+	upgradeEvWaitEndDownload    = "upgradeEvWaitEndDownload"
+	upgradeEvContinueFinalize   = "upgradeEvContinueFinalize"
 	upgradeEvRequestActivate    = "upgradeEvRequestActivate"
 	upgradeEvWaitForCommit      = "upgradeEvWaitForCommit"
 	upgradeEvCommitSw           = "upgradeEvCommitSw"
@@ -71,6 +75,7 @@ const (
 	upgradeStDLSection          = "upgradeStDLSection"
 	upgradeStVerifyWindow       = "upgradeStVerifyWindow"
 	upgradeStFinalizeDL         = "upgradeStFinalizeDL"
+	upgradeStWaitEndDL          = "upgradeStWaitEndDL"
 	upgradeStRequestingActivate = "upgradeStRequestingActivate"
 	upgradeStWaitForCommit      = "upgradeStWaitForCommit"
 	upgradeStCommitSw           = "upgradeStCommitSw"
@@ -91,23 +96,26 @@ type OnuUpgradeFsm struct {
 	pOnuDB           *onuDeviceDB
 	requestEvent     OnuDeviceEvent
 	//omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
-	pAdaptFsm                         *AdapterFsm
-	pImageDsc                         *voltha.ImageDownload
-	imageBuffer                       []byte
-	origImageLength                   uint32        //as also limited by OMCI
-	imageLength                       uint32        //including last bytes padding
-	omciDownloadWindowSizeLimit       uint8         //windowSize-1 in sections
-	omciDownloadWindowSizeLast        uint8         //number of sections in last window
-	noOfSections                      uint32        //uint32 range for sections should be sufficient for very long images
-	nextDownloadSectionsAbsolute      uint32        //number of next section to download in overall image
-	nextDownloadSectionsWindow        uint8         //number of next section to download within current window
-	noOfWindows                       uint32        //uint32 range for windows should be sufficient for very long images
-	nextDownloadWindow                uint32        //number of next window to download
-	inactiveImageMeID                 uint16        //ME-ID of the inactive image
-	omciSectionInterleaveMilliseconds time.Duration //DownloadSectionInterleave delay in milliseconds
-	delayEndSwDl                      bool          //flag to provide a delay between last section and EndSwDl
-	pLastTxMeInstance                 *me.ManagedEntity
-	useSoftReboot                     bool
+	pAdaptFsm                    *AdapterFsm
+	pImageDsc                    *voltha.ImageDownload
+	imageBuffer                  []byte
+	origImageLength              uint32        //as also limited by OMCI
+	imageCRC                     uint32        //as per OMCI - ITU I.363.5 crc
+	imageLength                  uint32        //including last bytes padding
+	omciDownloadWindowSizeLimit  uint8         //windowSize-1 in sections
+	omciDownloadWindowSizeLast   uint8         //number of sections in last window
+	noOfSections                 uint32        //uint32 range for sections should be sufficient for very long images
+	nextDownloadSectionsAbsolute uint32        //number of next section to download in overall image
+	nextDownloadSectionsWindow   uint8         //number of next section to download within current window
+	noOfWindows                  uint32        //uint32 range for windows should be sufficient for very long images
+	nextDownloadWindow           uint32        //number of next window to download
+	inactiveImageMeID            uint16        //ME-ID of the inactive image
+	omciSectionInterleaveDelay   time.Duration //DownloadSectionInterleave delay in milliseconds
+	delayEndSwDl                 bool          //flag to provide a delay between last section and EndSwDl
+	pLastTxMeInstance            *me.ManagedEntity
+	waitCountEndSwDl             uint8         //number, how often is waited for EndSwDl at maximum
+	waitDelayEndSwDl             time.Duration //duration, how long is waited before next request on EndSwDl
+	chReceiveExpectedResponse    chan bool
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -116,15 +124,18 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 	apDevEntry *OnuDeviceEntry, apOnuDB *onuDeviceDB,
 	aRequestEvent OnuDeviceEvent, aName string, aCommChannel chan Message) *OnuUpgradeFsm {
 	instFsm := &OnuUpgradeFsm{
-		pDeviceHandler:                    apDeviceHandler,
-		deviceID:                          apDeviceHandler.deviceID,
-		pOnuOmciDevice:                    apDevEntry,
-		pOmciCC:                           apDevEntry.PDevOmciCC,
-		pOnuDB:                            apOnuDB,
-		requestEvent:                      aRequestEvent,
-		omciDownloadWindowSizeLimit:       cOmciDownloadWindowSizeLimit,
-		omciSectionInterleaveMilliseconds: cOmciSectionInterleaveMilliseconds,
+		pDeviceHandler:              apDeviceHandler,
+		deviceID:                    apDeviceHandler.deviceID,
+		pOnuOmciDevice:              apDevEntry,
+		pOmciCC:                     apDevEntry.PDevOmciCC,
+		pOnuDB:                      apOnuDB,
+		requestEvent:                aRequestEvent,
+		omciDownloadWindowSizeLimit: cOmciDownloadWindowSizeLimit,
+		omciSectionInterleaveDelay:  cOmciSectionInterleaveMilliseconds,
+		waitCountEndSwDl:            cWaitCountEndSwDl,
+		waitDelayEndSwDl:            cWaitDelayEndSwDlSeconds,
 	}
+	instFsm.chReceiveExpectedResponse = make(chan bool)
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
@@ -141,7 +152,9 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			{Name: upgradeEvWaitWindowAck, Src: []string{upgradeStDLSection}, Dst: upgradeStVerifyWindow},
 			{Name: upgradeEvContinueNextWindow, Src: []string{upgradeStVerifyWindow}, Dst: upgradeStDLSection},
 			{Name: upgradeEvEndSwDownload, Src: []string{upgradeStVerifyWindow}, Dst: upgradeStFinalizeDL},
-			{Name: upgradeEvRequestActivate, Src: []string{upgradeStFinalizeDL}, Dst: upgradeStRequestingActivate},
+			{Name: upgradeEvWaitEndDownload, Src: []string{upgradeStFinalizeDL}, Dst: upgradeStWaitEndDL},
+			{Name: upgradeEvContinueFinalize, Src: []string{upgradeStWaitEndDL}, Dst: upgradeStFinalizeDL},
+			{Name: upgradeEvRequestActivate, Src: []string{upgradeStWaitEndDL}, Dst: upgradeStRequestingActivate},
 			{Name: upgradeEvWaitForCommit, Src: []string{upgradeStRequestingActivate}, Dst: upgradeStWaitForCommit},
 			{Name: upgradeEvCommitSw, Src: []string{upgradeStStarting, upgradeStWaitForCommit},
 				Dst: upgradeStCommitSw},
@@ -155,11 +168,11 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			*/
 			// exceptional treatments
 			{Name: upgradeEvReset, Src: []string{upgradeStStarting, upgradeStPreparingDL, upgradeStDLSection,
-				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStRequestingActivate,
+				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStRequestingActivate,
 				upgradeStCommitSw, upgradeStCheckCommitted}, //upgradeStWaitForCommit is not reset (later perhaps also not upgradeStWaitActivate)
 				Dst: upgradeStResetting},
 			{Name: upgradeEvAbort, Src: []string{upgradeStStarting, upgradeStPreparingDL, upgradeStDLSection,
-				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStRequestingActivate,
+				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStRequestingActivate,
 				upgradeStWaitForCommit, upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
 			{Name: upgradeEvRestart, Src: []string{upgradeStResetting}, Dst: upgradeStDisabled},
@@ -171,6 +184,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			"enter_" + upgradeStDLSection:          func(e *fsm.Event) { instFsm.enterDownloadSection(ctx, e) },
 			"enter_" + upgradeStVerifyWindow:       func(e *fsm.Event) { instFsm.enterVerifyWindow(ctx, e) },
 			"enter_" + upgradeStFinalizeDL:         func(e *fsm.Event) { instFsm.enterFinalizeDL(ctx, e) },
+			"enter_" + upgradeStWaitEndDL:          func(e *fsm.Event) { instFsm.enterWaitEndDL(ctx, e) },
 			"enter_" + upgradeStRequestingActivate: func(e *fsm.Event) { instFsm.enterActivateSw(ctx, e) },
 			"enter_" + upgradeStCommitSw:           func(e *fsm.Event) { instFsm.enterCommitSw(ctx, e) },
 			"enter_" + upgradeStCheckCommitted:     func(e *fsm.Event) { instFsm.enterCheckCommitted(ctx, e) },
@@ -197,14 +211,6 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 			"device-id": oFsm.deviceID, "image-description": apImageDsc})
 		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
 		oFsm.pImageDsc = apImageDsc
-		//path overwrite for internal test file usage
-		oFsm.useSoftReboot = false
-		if apImageDsc.LocalDir == "/intern" {
-			oFsm.pImageDsc.LocalDir = "/tmp"
-		} else if apImageDsc.LocalDir == "/reboot" {
-			oFsm.useSoftReboot = true
-			oFsm.pImageDsc.LocalDir = "/tmp"
-		}
 		oFsm.pDownloadManager = apDownloadManager
 
 		go func(aPBaseFsm *fsm.FSM) {
@@ -354,9 +360,9 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 		}
 		framePrint = false                //for the next Section frame (if wanted, can be enabled in logic before sendXXX())
 		oFsm.nextDownloadSectionsWindow++ //increase the window related section counter only if not in the last section
-		if oFsm.omciSectionInterleaveMilliseconds > 0 {
+		if oFsm.omciSectionInterleaveDelay > 0 {
 			//ensure a defined intersection-time-gap to leave space for further processing, other ONU's ...
-			time.Sleep(oFsm.omciSectionInterleaveMilliseconds * time.Millisecond)
+			time.Sleep(oFsm.omciSectionInterleaveDelay * time.Millisecond)
 		}
 	}
 }
@@ -367,9 +373,8 @@ func (oFsm *OnuUpgradeFsm) enterVerifyWindow(ctx context.Context, e *fsm.Event) 
 }
 
 func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
-	imageCRC := crc32a.Checksum(oFsm.imageBuffer[:int(oFsm.origImageLength)]) //ITU I.363.5 crc
 	logger.Infow(ctx, "OnuUpgradeFsm finalize DL", log.Fields{
-		"device-id": oFsm.deviceID, "crc": strconv.FormatInt(int64(imageCRC), 16), "delay": oFsm.delayEndSwDl})
+		"device-id": oFsm.deviceID, "crc": strconv.FormatInt(int64(oFsm.imageCRC), 16), "delay": oFsm.delayEndSwDl})
 
 	if oFsm.delayEndSwDl {
 		//give the ONU some time for image evaluation (hoping it does not base that on first EndSwDl itself)
@@ -377,14 +382,87 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 		time.Sleep(cOmciEndSwDlDelaySeconds * time.Second)
 	}
 
+	pBaseFsm := oFsm.pAdaptFsm
+	if pBaseFsm == nil {
+		logger.Errorw(ctx, "EndSwDl abort: BaseFsm invalid", log.Fields{
+			"device-id": oFsm.deviceID})
+		//TODO!!!: define some more sophisticated error treatment with some repetition, for now just reset the FSM
+		// Can't call FSM Event directly, decoupling it
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
+		}(pBaseFsm)
+		return
+	}
 	err := oFsm.pOmciCC.sendEndSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
-		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.origImageLength, imageCRC)
+		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.origImageLength, oFsm.imageCRC)
 	if err != nil {
 		logger.Errorw(ctx, "EndSwDl abort: can't send section", log.Fields{
 			"device-id": oFsm.deviceID, "error": err})
 		//TODO!!!: define some more sophisticated error treatment with some repetition, for now just reset the FSM
-		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
+		}(pBaseFsm)
+		return
+	}
+	// go waiting for the EndSwDLResponse and check, if the ONU is ready for activation
+	// Can't call FSM Event directly, decoupling it
+	go func(a_pAFsm *AdapterFsm) {
+		_ = a_pAFsm.pFsm.Event(upgradeEvWaitEndDownload)
+	}(pBaseFsm)
+}
+
+func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
+	logger.Infow(ctx, "OnuUpgradeFsm WaitEndDl", log.Fields{
+		"device-id": oFsm.deviceID, "wait delay": oFsm.waitDelayEndSwDl * time.Second, "wait count": oFsm.waitCountEndSwDl})
+	if oFsm.waitCountEndSwDl == 0 {
+		logger.Errorw(ctx, "WaitEndDl abort: max limit of EndSwDL reached", log.Fields{
+			"device-id": oFsm.deviceID})
+		pBaseFsm := oFsm.pAdaptFsm
+		if pBaseFsm == nil {
+			logger.Errorw(ctx, "WaitEndDl abort: BaseFsm invalid", log.Fields{
+				"device-id": oFsm.deviceID})
+			return
+		}
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
+		}(pBaseFsm)
+		return
+	}
+
+	oFsm.waitCountEndSwDl--
+	select {
+	case <-time.After(oFsm.waitDelayEndSwDl * time.Second):
+		pBaseFsm := oFsm.pAdaptFsm
+		if pBaseFsm == nil {
+			logger.Errorw(ctx, "WaitEndDl abort: BaseFsm invalid", log.Fields{
+				"device-id": oFsm.deviceID})
+			//FSM may be reset already from somewhere else, nothing we can do here anymore
+			return
+		}
+		//retry End SW DL
+		oFsm.delayEndSwDl = false //no more extra delay for the request
+		go func(a_pAFsm *AdapterFsm) {
+			_ = a_pAFsm.pFsm.Event(upgradeEvContinueFinalize)
+		}(pBaseFsm)
+		return
+	case success := <-oFsm.chReceiveExpectedResponse:
+		logger.Debugw(ctx, "WaitEndDl stop  wait timer", log.Fields{"device-id": oFsm.deviceID})
+		pBaseFsm := oFsm.pAdaptFsm
+		if pBaseFsm == nil {
+			logger.Errorw(ctx, "WaitEndDl abort: BaseFsm invalid", log.Fields{
+				"device-id": oFsm.deviceID})
+			//FSM may be reset already from somewhere else, nothing we can do here anymore
+			return
+		}
+		if success {
+			//answer received with ready indication
+			go func(a_pAFsm *AdapterFsm) {
+				_ = a_pAFsm.pFsm.Event(upgradeEvRequestActivate)
+			}(pBaseFsm)
+			return
+		}
+		//timer was aborted
 		go func(a_pAFsm *AdapterFsm) {
 			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 		}(pBaseFsm)
@@ -491,6 +569,12 @@ func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 
 func (oFsm *OnuUpgradeFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm enters disabled state", log.Fields{"device-id": oFsm.deviceID})
+	//flush possible left-over channels
+	select {
+	case <-oFsm.chReceiveExpectedResponse:
+		logger.Debug(ctx, "OnuUpgradeFsm chReceiveExpectedResponse flushed", log.Fields{"for device-id": oFsm.deviceID})
+	default:
+	}
 	if oFsm.pDeviceHandler != nil {
 		//request removal of 'reference' in the Handler (completely clear the FSM and its data)
 		go oFsm.pDeviceHandler.removeOnuUpgradeFsm(ctx)
@@ -637,7 +721,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 						_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 						return
 					}
-					oFsm.delayEndSwDl = true //ensure a delay for the EndSwDl message
+					oFsm.delayEndSwDl = true                                                      //ensure a delay for the EndSwDl message
+					oFsm.imageCRC = crc32a.Checksum(oFsm.imageBuffer[:int(oFsm.origImageLength)]) //store internal for multiple usage
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvEndSwDownload)
 					return
 				}
@@ -681,7 +766,12 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			logger.Debugw(ctx, "OnuUpgradeFsm EndSwDlResponse data", log.Fields{
 				"device-id": oFsm.deviceID, "data-fields": msgObj})
 			if msgObj.Result != me.Success {
-				//TODO!!: Busy must be handled to give the ONU time for internal image storage, perhaps also processing error (CRC incorrect)
+				if msgObj.Result == me.DeviceBusy {
+					//ONU indicates it is still processing the image - let the FSM just wait and then repeat the request
+					logger.Debugw(ctx, "OnuUpgradeFsm EndSwDlResponse busy: waiting before sending new request", log.Fields{
+						"device-id": oFsm.deviceID})
+					return
+				}
 				logger.Errorw(ctx, "OnuUpgradeFsm EndSwDlResponse result error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
@@ -691,7 +781,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			}
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				logger.Debugw(ctx, "Expected EndSwDlResponse received", log.Fields{"device-id": oFsm.deviceID})
-				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvRequestActivate)
+				oFsm.chReceiveExpectedResponse <- true //let the FSM proceed from the waitState
 				return
 			}
 			logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse wrong ME instance: try again (later)?",
@@ -732,10 +822,6 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				logger.Infow(ctx, "Expected ActivateSwResponse received", log.Fields{"device-id": oFsm.deviceID})
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForCommit)
-				if oFsm.useSoftReboot {
-					//TODO:  as long as BBSIM does not fully support upgrade: simulate restart by calling the BBSIM (ONU) reboot
-					go oFsm.pDeviceHandler.rebootDevice(ctx, false, oFsm.pDeviceHandler.device)
-				}
 				return
 			}
 			logger.Errorw(ctx, "OnuUpgradeFsm ActivateSwResponse wrong ME instance: abort",
@@ -829,9 +915,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			//a check on the delivered image version is not done, the ONU delivered version might be different from what might have been
 			//  indicated in the download image version string (version must be part of the image content itself)
 			//  so checking that might be quite unreliable
-			// TODO!! workaround for still not valid bbsim load indications (re-use SoftReboot flag for simplicity)
-			if oFsm.useSoftReboot || (msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive &&
-				imageIsCommitted == swIsCommitted) {
+			if msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive &&
+				imageIsCommitted == swIsCommitted {
 				logger.Infow(ctx, "requested SW image committed, releasing OnuUpgrade", log.Fields{"device-id": oFsm.deviceID})
 				//releasing the upgrade FSM
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
