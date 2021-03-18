@@ -16,6 +16,24 @@
       "revId": "1472c686e73543fcd5fbc513170e65ad8365f2f6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "27429ea4_0f063904",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2576,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-03-18T15:37:38Z",
+      "side": 0,
+      "message": "It seems to work in docker-compose environment (is this your current testing environment?), but not in the full blown kubernetes system.",
+      "parentUuid": "8fac7861_4e6fde8b",
+      "revId": "1472c686e73543fcd5fbc513170e65ad8365f2f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
