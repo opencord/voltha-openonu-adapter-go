@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d7d408c5_67a5af4c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2576,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T14:47:47Z",
+      "side": 1,
+      "message": "As Holger explained to me, he wanted to find an easy patch to solve the problems possibly arising form the path/key arguments when trying to delete from kvStore. For that this might work.\nBut from \u0027academic\u0027 point of view this function clearAllPmData now basically does not do anything else than above function clearPmGroupData() - except that it now imroved the error return handling here.\nSo at some refactoring only one function should be used with a suitable error handling and error evaluation (if that makes sense) - or as Holger mentioned to me, perhaps a complete re-working with some modified baseKvStore path and key usage.",
+      "revId": "c41127ced423079c84540f0fb7f90ef411599971",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "23adad04_c38dfc5a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2587,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-18T14:47:47Z",
+      "side": 1,
+      "message": "I\u0027d say the specific error logs above are enough.",
+      "revId": "c41127ced423079c84540f0fb7f90ef411599971",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
