@@ -21,6 +21,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"sync"
+	"time"
+
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
@@ -28,9 +32,6 @@ import (
 	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
-	"math"
-	"sync"
-	"time"
 )
 
 const (
@@ -2572,10 +2573,19 @@ func (mm *onuMetricsManager) clearAllPmData(ctx context.Context) error {
 		logger.Errorw(ctx, "pmKvStore not set - abort", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 		return fmt.Errorf(fmt.Sprintf("pmKvStore-not-set-abort-%s", mm.pDeviceHandler.deviceID))
 	}
-
-	if err := mm.pmKvStore.Delete(ctx, ""); err != nil {
-		logger.Errorw(ctx, "unable to delete PM data from kv store", log.Fields{"deviceID": mm.pDeviceHandler.deviceID, "err": err})
-		return err
+	var value error
+	for n := range mm.groupMetricMap {
+		if err := mm.pmKvStore.Delete(ctx, n); err != nil {
+			logger.Errorw(ctx, "clearPmGroupData - fail", log.Fields{"deviceID": mm.pDeviceHandler.deviceID, "groupName": n, "err": err})
+			value = err
+			// do not abort this procedure - continue to delete next group.
+		} else {
+			logger.Debugw(ctx, "clearPmGroupData - success", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "groupName": n})
+		}
+	}
+	if value != nil {
+		logger.Errorw(ctx, "unable to delete all PM data from kv store", log.Fields{"deviceID": mm.pDeviceHandler.deviceID, "err": value})
+		return value
 	}
 	logger.Debugw(ctx, "clearAllPmData - success", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 	return nil
