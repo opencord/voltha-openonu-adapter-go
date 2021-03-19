@@ -36,6 +36,8 @@ type TechProfileIf interface {
 		ShapingCfg *tp_pb.TrafficShapingInfo) *tp_pb.TrafficScheduler
 	GetTrafficQueues(ctx context.Context, tp *TechProfile, Dir tp_pb.Direction) ([]*tp_pb.TrafficQueue, error)
 	GetMulticastTrafficQueues(ctx context.Context, tp *TechProfile) []*tp_pb.TrafficQueue
-	GetGemportIDForPbit(ctx context.Context, tp interface{}, Dir tp_pb.Direction, pbit uint32) uint32
+	GetGemportForPbit(ctx context.Context, tp interface{}, Dir tp_pb.Direction, pbit uint32) interface{}
 	FindAllTpInstances(ctx context.Context, techProfiletblID uint32, ponIntf uint32, onuID uint32) interface{}
+	GetResourceID(ctx context.Context, IntfID uint32, ResourceType string, NumIDs uint32) ([]uint32, error)
+	FreeResourceID(ctx context.Context, IntfID uint32, ResourceType string, ReleaseContent []uint32) error
 }
