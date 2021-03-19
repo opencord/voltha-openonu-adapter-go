@@ -36,8 +36,10 @@ import (
 // Interface to pon resource manager APIs
 type iPonResourceMgr interface {
 	GetResourceID(ctx context.Context, IntfID uint32, ResourceType string, NumIDs uint32) ([]uint32, error)
+	FreeResourceID(ctx context.Context, IntfID uint32, ResourceType string, ReleaseContent []uint32) error
 	GetResourceTypeAllocID() string
 	GetResourceTypeGemPortID() string
+	GetResourceTypeOnuID() string
 	GetTechnology() string
 }
 
@@ -221,6 +223,7 @@ type IGemPortAttribute struct {
 type TechProfileMgr struct {
 	config            *TechProfileFlags
 	resourceMgr       iPonResourceMgr
+	OnuIDMgmtLock     sync.RWMutex
 	GemPortIDMgmtLock sync.RWMutex
 	AllocIDMgmtLock   sync.RWMutex
 }
@@ -659,9 +662,7 @@ func (t *TechProfileMgr) allocateTPInstance(ctx context.Context, uniPortName str
 	logger.Infow(ctx, "Allocating TechProfileMgr instance from techprofile template", log.Fields{"uniPortName": uniPortName, "intfId": intfId, "numGem": tp.NumGemPorts})
 
 	if tp.InstanceCtrl.Onu == "multi-instance" {
-		t.AllocIDMgmtLock.Lock()
-		tcontIDs, err = t.resourceMgr.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1)
-		t.AllocIDMgmtLock.Unlock()
+		tcontIDs, err = t.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1)
 		if err != nil {
 			logger.Errorw(ctx, "Error getting alloc id from rsrcrMgr", log.Fields{"intfId": intfId})
 			return nil
@@ -673,9 +674,7 @@ func (t *TechProfileMgr) allocateTPInstance(ctx context.Context, uniPortName str
 		} else if tpInst == nil {
 			// No "single-instance" tp found on one any uni port for the given TP ID
 			// Allocate a new TcontID or AllocID
-			t.AllocIDMgmtLock.Lock()
-			tcontIDs, err = t.resourceMgr.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1)
-			t.AllocIDMgmtLock.Unlock()
+			tcontIDs, err = t.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1)
 			if err != nil {
 				logger.Errorw(ctx, "Error getting alloc id from rsrcrMgr", log.Fields{"intfId": intfId})
 				return nil
@@ -686,9 +685,7 @@ func (t *TechProfileMgr) allocateTPInstance(ctx context.Context, uniPortName str
 		}
 	}
 	logger.Debugw(ctx, "Num GEM ports in TP:", log.Fields{"NumGemPorts": tp.NumGemPorts})
-	t.GemPortIDMgmtLock.Lock()
-	gemPorts, err = t.resourceMgr.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeGemPortID(), tp.NumGemPorts)
-	t.GemPortIDMgmtLock.Unlock()
+	gemPorts, err = t.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeGemPortID(), tp.NumGemPorts)
 	if err != nil {
 		logger.Errorw(ctx, "Error getting gemport ids from rsrcrMgr", log.Fields{"intfId": intfId, "numGemports": tp.NumGemPorts})
 		return nil
@@ -793,7 +790,7 @@ func (t *TechProfileMgr) allocateEponTPInstance(ctx context.Context, uniPortName
 	logger.Infow(ctx, "Allocating TechProfileMgr instance from techprofile template", log.Fields{"uniPortName": uniPortName, "intfId": intfId, "numGem": tp.NumGemPorts})
 
 	if tp.InstanceCtrl.Onu == "multi-instance" {
-		if tcontIDs, err = t.resourceMgr.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1); err != nil {
+		if tcontIDs, err = t.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1); err != nil {
 			logger.Errorw(ctx, "Error getting alloc id from rsrcrMgr", log.Fields{"intfId": intfId})
 			return nil
 		}
@@ -804,7 +801,7 @@ func (t *TechProfileMgr) allocateEponTPInstance(ctx context.Context, uniPortName
 		} else if tpInst == nil {
 			// No "single-instance" tp found on one any uni port for the given TP ID
 			// Allocate a new TcontID or AllocID
-			if tcontIDs, err = t.resourceMgr.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1); err != nil {
+			if tcontIDs, err = t.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeAllocID(), 1); err != nil {
 				logger.Errorw(ctx, "Error getting alloc id from rsrcrMgr", log.Fields{"intfId": intfId})
 				return nil
 			}
@@ -814,7 +811,7 @@ func (t *TechProfileMgr) allocateEponTPInstance(ctx context.Context, uniPortName
 		}
 	}
 	logger.Debugw(ctx, "Num GEM ports in TP:", log.Fields{"NumGemPorts": tp.NumGemPorts})
-	if gemPorts, err = t.resourceMgr.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeGemPortID(), tp.NumGemPorts); err != nil {
+	if gemPorts, err = t.GetResourceID(ctx, intfId, t.resourceMgr.GetResourceTypeGemPortID(), tp.NumGemPorts); err != nil {
 		logger.Errorw(ctx, "Error getting gemport ids from rsrcrMgr", log.Fields{"intfId": intfId, "numGemports": tp.NumGemPorts})
 		return nil
 	}
@@ -1272,9 +1269,9 @@ func (tpm *TechProfileMgr) GetUsTrafficScheduler(ctx context.Context, tp *TechPr
 		Scheduler: UsScheduler}
 }
 
-func (t *TechProfileMgr) GetGemportIDForPbit(ctx context.Context, tp interface{}, dir tp_pb.Direction, pbit uint32) uint32 {
+func (t *TechProfileMgr) GetGemportForPbit(ctx context.Context, tp interface{}, dir tp_pb.Direction, pbit uint32) interface{} {
 	/*
-	  Function to get the Gemport ID mapped to a pbit.
+	  Function to get the Gemport mapped to a pbit.
 	*/
 	switch tp := tp.(type) {
 	case *TechProfile:
@@ -1289,7 +1286,7 @@ func (t *TechProfileMgr) GetGemportIDForPbit(ctx context.Context, tp interface{}
 					if p, err := strconv.Atoi(string(tp.UpstreamGemPortAttributeList[gemCnt].PbitMap[lenOfPbitMap-pbitMapIdx+1])); err == nil {
 						if uint32(pbitMapIdx-2) == pbit && p == 1 { // Check this p-bit is set
 							logger.Debugw(ctx, "Found-US-GEMport-for-Pcp", log.Fields{"pbit": pbit, "GEMport": tp.UpstreamGemPortAttributeList[gemCnt].GemportID})
-							return tp.UpstreamGemPortAttributeList[gemCnt].GemportID
+							return tp.UpstreamGemPortAttributeList[gemCnt]
 						}
 					}
 				}
@@ -1305,7 +1302,7 @@ func (t *TechProfileMgr) GetGemportIDForPbit(ctx context.Context, tp interface{}
 					if p, err := strconv.Atoi(string(tp.DownstreamGemPortAttributeList[gemCnt].PbitMap[lenOfPbitMap-pbitMapIdx+1])); err == nil {
 						if uint32(pbitMapIdx-2) == pbit && p == 1 { // Check this p-bit is set
 							logger.Debugw(ctx, "Found-DS-GEMport-for-Pcp", log.Fields{"pbit": pbit, "GEMport": tp.DownstreamGemPortAttributeList[gemCnt].GemportID})
-							return tp.DownstreamGemPortAttributeList[gemCnt].GemportID
+							return tp.DownstreamGemPortAttributeList[gemCnt]
 						}
 					}
 				}
@@ -1324,7 +1321,7 @@ func (t *TechProfileMgr) GetGemportIDForPbit(ctx context.Context, tp interface{}
 					if p, err := strconv.Atoi(string(tp.UpstreamQueueAttributeList[gemCnt].PbitMap[lenOfPbitMap-pbitMapIdx+1])); err == nil {
 						if uint32(pbitMapIdx-2) == pbit && p == 1 { // Check this p-bit is set
 							logger.Debugw(ctx, "Found-US-Queue-for-Pcp", log.Fields{"pbit": pbit, "Queue": tp.UpstreamQueueAttributeList[gemCnt].GemportID})
-							return tp.UpstreamQueueAttributeList[gemCnt].GemportID
+							return tp.UpstreamQueueAttributeList[gemCnt]
 						}
 					}
 				}
@@ -1340,7 +1337,7 @@ func (t *TechProfileMgr) GetGemportIDForPbit(ctx context.Context, tp interface{}
 					if p, err := strconv.Atoi(string(tp.DownstreamQueueAttributeList[gemCnt].PbitMap[lenOfPbitMap-pbitMapIdx+1])); err == nil {
 						if uint32(pbitMapIdx-2) == pbit && p == 1 { // Check this p-bit is set
 							logger.Debugw(ctx, "Found-DS-Queue-for-Pcp", log.Fields{"pbit": pbit, "Queue": tp.DownstreamQueueAttributeList[gemCnt].GemportID})
-							return tp.DownstreamQueueAttributeList[gemCnt].GemportID
+							return tp.DownstreamQueueAttributeList[gemCnt]
 						}
 					}
 				}
@@ -1350,7 +1347,7 @@ func (t *TechProfileMgr) GetGemportIDForPbit(ctx context.Context, tp interface{}
 	default:
 		logger.Errorw(ctx, "unknown-tech", log.Fields{"tp": tp})
 	}
-	return 0
+	return nil
 }
 
 // FindAllTpInstances returns all TechProfile instances for a given TechProfile table-id, pon interface ID and onu ID.
@@ -1394,6 +1391,65 @@ func (t *TechProfileMgr) FindAllTpInstances(ctx context.Context, techProfiletblI
 			logger.Errorw(ctx, "unknown-technology", log.Fields{"tech": tech})
 			return nil
 		}
+	}
+	return nil
+}
+
+func (t *TechProfileMgr) GetResourceID(ctx context.Context, IntfID uint32, ResourceType string, NumIDs uint32) ([]uint32, error) {
+	logger.Debugw(ctx, "getting-resource-id", log.Fields{
+		"intf-id":       IntfID,
+		"resource-type": ResourceType,
+		"num":           NumIDs,
+	})
+	var err error
+	var ids []uint32
+	switch ResourceType {
+	case t.resourceMgr.GetResourceTypeAllocID():
+		t.AllocIDMgmtLock.Lock()
+		ids, err = t.resourceMgr.GetResourceID(ctx, IntfID, ResourceType, NumIDs)
+		t.AllocIDMgmtLock.Unlock()
+	case t.resourceMgr.GetResourceTypeGemPortID():
+		t.GemPortIDMgmtLock.Lock()
+		ids, err = t.resourceMgr.GetResourceID(ctx, IntfID, ResourceType, NumIDs)
+		t.GemPortIDMgmtLock.Unlock()
+	case t.resourceMgr.GetResourceTypeOnuID():
+		t.OnuIDMgmtLock.Lock()
+		ids, err = t.resourceMgr.GetResourceID(ctx, IntfID, ResourceType, NumIDs)
+		t.OnuIDMgmtLock.Unlock()
+	default:
+		return nil, fmt.Errorf("ResourceType %s not supported", ResourceType)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+func (t *TechProfileMgr) FreeResourceID(ctx context.Context, IntfID uint32, ResourceType string, ReleaseContent []uint32) error {
+	logger.Debugw(ctx, "freeing-resource-id", log.Fields{
+		"intf-id":         IntfID,
+		"resource-type":   ResourceType,
+		"release-content": ReleaseContent,
+	})
+	var err error
+	switch ResourceType {
+	case t.resourceMgr.GetResourceTypeAllocID():
+		t.AllocIDMgmtLock.Lock()
+		err = t.resourceMgr.FreeResourceID(ctx, IntfID, ResourceType, ReleaseContent)
+		t.AllocIDMgmtLock.Unlock()
+	case t.resourceMgr.GetResourceTypeGemPortID():
+		t.GemPortIDMgmtLock.Lock()
+		err = t.resourceMgr.FreeResourceID(ctx, IntfID, ResourceType, ReleaseContent)
+		t.GemPortIDMgmtLock.Unlock()
+	case t.resourceMgr.GetResourceTypeOnuID():
+		t.OnuIDMgmtLock.Lock()
+		err = t.resourceMgr.FreeResourceID(ctx, IntfID, ResourceType, ReleaseContent)
+		t.OnuIDMgmtLock.Unlock()
+	default:
+		return fmt.Errorf("ResourceType %s not supported", ResourceType)
+	}
+	if err != nil {
+		return err
 	}
 	return nil
 }
