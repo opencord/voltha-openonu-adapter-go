@@ -543,7 +543,7 @@ func (oo *OpenONUAC) Disable_port(ctx context.Context, deviceID string, port *vo
 
 //Child_device_lost - unimplemented
 //needed for if update >= 3.1.x
-func (oo *OpenONUAC) Child_device_lost(ctx context.Context, deviceID string, pPortNo uint32, onuID uint32) error {
+func (oo *OpenONUAC) Child_device_lost(ctx context.Context, device *voltha.Device) error {
 	return errors.New("unImplemented")
 }
 
