@@ -271,8 +271,10 @@ type onuMetricsManager struct {
 	standaloneMetricMap map[string]*standaloneMetric
 
 	stopProcessingOmciResponses chan bool
+	omciProcessingActive        bool
 
-	stopTicks chan bool
+	stopTicks            chan bool
+	tickGenerationActive bool
 
 	nextGlobalMetricCollectionTime time.Time // valid only if pmConfig.FreqOverride is set to false.
 
@@ -916,11 +918,12 @@ func (mm *onuMetricsManager) processOmciMessages(ctx context.Context) {
 	// The processOmciMessages routine will get stopped if startCollector routine (in device_handler.go)
 	// is stopped - as a result of ONU going down.
 	mm.flushMetricCollectionChannels(ctx)
-
+	mm.updateOmciProcessingStatus(true)
 	for {
 		select {
 		case <-mm.stopProcessingOmciResponses: // stop this routine
 			logger.Infow(ctx, "Stop routine to process OMCI-GET messages for device-id", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+			mm.updateOmciProcessingStatus(false)
 			return
 		case message, ok := <-mm.pAdaptFsm.commChan:
 			if !ok {
@@ -1558,7 +1561,7 @@ func (mm *onuMetricsManager) syncTime(ctx context.Context) error {
 
 	select {
 	case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
-		logger.Errorf(ctx, "timed out waiting for sync time response from onu", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		logger.Errorw(ctx, "timed out waiting for sync time response from onu", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 		return fmt.Errorf("timed-out-waiting-for-sync-time-response-%v", mm.pDeviceHandler.deviceID)
 	case syncTimeRes := <-mm.syncTimeResponseChan:
 		if !syncTimeRes {
@@ -2087,6 +2090,7 @@ func (mm *onuMetricsManager) handleOmciDeleteResponseMessage(ctx context.Context
 }
 
 func (mm *onuMetricsManager) generateTicks(ctx context.Context) {
+	mm.updateTickGenerationStatus(true)
 	for {
 		select {
 		case <-time.After(L2PmCollectionInterval * time.Second):
@@ -2097,6 +2101,7 @@ func (mm *onuMetricsManager) generateTicks(ctx context.Context) {
 			}()
 		case <-mm.stopTicks:
 			logger.Infow(ctx, "stopping ticks", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+			mm.updateTickGenerationStatus(false)
 			return
 		}
 	}
@@ -2594,6 +2599,30 @@ func (mm *onuMetricsManager) clearAllPmData(ctx context.Context) error {
 		logger.Debugw(ctx, "clearAllPmData - success", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 	}
 	return value
+}
+
+func (mm *onuMetricsManager) updateOmciProcessingStatus(status bool) {
+	mm.onuMetricsManagerLock.Lock()
+	defer mm.onuMetricsManagerLock.Unlock()
+	mm.omciProcessingActive = status
+}
+
+func (mm *onuMetricsManager) updateTickGenerationStatus(status bool) {
+	mm.onuMetricsManagerLock.Lock()
+	defer mm.onuMetricsManagerLock.Unlock()
+	mm.tickGenerationActive = status
+}
+
+func (mm *onuMetricsManager) getOmciProcessingStatus() bool {
+	mm.onuMetricsManagerLock.RLock()
+	defer mm.onuMetricsManagerLock.RUnlock()
+	return mm.omciProcessingActive
+}
+
+func (mm *onuMetricsManager) getTickGenerationStatus() bool {
+	mm.onuMetricsManagerLock.RLock()
+	defer mm.onuMetricsManagerLock.RUnlock()
+	return mm.tickGenerationActive
 }
 
 func (mm *onuMetricsManager) appendIfMissingString(slice []string, n string) []string {
