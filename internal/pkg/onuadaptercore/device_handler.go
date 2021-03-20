@@ -1810,6 +1810,14 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	}
 	_ = dh.deviceReasonUpdate(ctx, drInitialMibDownloaded, !dh.isReconciling())
 
+	if !dh.getCollectorIsRunning() {
+		// Start PM collector routine
+		go dh.startCollector(ctx)
+	}
+	if !dh.getAlarmManagerIsRunning(ctx) {
+		go dh.startAlarmManager(ctx)
+	}
+
 	// Initialize classical L2 PM Interval Counters
 	if err := dh.pOnuMetricsMgr.pAdaptFsm.pFsm.Event(l2PmEventInit); err != nil {
 		// There is no way we should be landing here, but if we do then
@@ -2961,9 +2969,12 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 					logger.Errorw(ctx, "metrics manager fsm not initialized", log.Fields{"device-id": dh.deviceID})
 				}
 			}()
-
-			dh.pOnuMetricsMgr.stopProcessingOmciResponses <- true // Stop the OMCI GET response processing routine
-			dh.pOnuMetricsMgr.stopTicks <- true
+			if dh.pOnuMetricsMgr.getOmciProcessingStatus() {
+				dh.pOnuMetricsMgr.stopProcessingOmciResponses <- true // Stop the OMCI GET response processing routine
+			}
+			if dh.pOnuMetricsMgr.getTickGenerationStatus() {
+				dh.pOnuMetricsMgr.stopTicks <- true
+			}
 
 			return
 		case <-time.After(time.Duration(FrequencyGranularity) * time.Second): // Check every FrequencyGranularity to see if it is time for collecting metrics
