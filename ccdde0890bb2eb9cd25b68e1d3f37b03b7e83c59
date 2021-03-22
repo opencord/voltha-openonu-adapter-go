@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "243b69ec_0a0026cf",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-22T14:29:54Z",
+      "side": 1,
+      "message": "No, this function is called in background, hence the error return can not be checked. It is an outstanding discussion on how to indicate failure/success of the download.",
+      "parentUuid": "d22a205f_dcb025ef",
+      "revId": "ccdde0890bb2eb9cd25b68e1d3f37b03b7e83c59",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fc498e7e_ec6703fa",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
@@ -42,6 +60,30 @@
     },
     {
       "key": {
+        "uuid": "52daaf8b_65c1405e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 940,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-22T14:29:54Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "fc498e7e_ec6703fa",
+      "range": {
+        "startLine": 940,
+        "startChar": 15,
+        "endLine": 940,
+        "endChar": 24
+      },
+      "revId": "ccdde0890bb2eb9cd25b68e1d3f37b03b7e83c59",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "293c0ac8_cb831788",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 2
@@ -62,6 +104,30 @@
       "revId": "ccdde0890bb2eb9cd25b68e1d3f37b03b7e83c59",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "31fe2423_75fe168f",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 207,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-22T14:29:54Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "293c0ac8_cb831788",
+      "range": {
+        "startLine": 207,
+        "startChar": 21,
+        "endLine": 207,
+        "endChar": 26
+      },
+      "revId": "ccdde0890bb2eb9cd25b68e1d3f37b03b7e83c59",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
