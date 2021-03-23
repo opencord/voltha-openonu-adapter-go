@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "2c0392b6_a812b542",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2271,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-03-23T16:56:48Z",
+      "side": 1,
+      "message": "Downstream IGMP TCI is not working If these entities don\u0027t have the same entity id.",
+      "parentUuid": "858ad79d_4c92f169",
+      "revId": "b7052b061aa64494663be7e311ae1e0a313f4439",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f24771eb_a741a247",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 5
