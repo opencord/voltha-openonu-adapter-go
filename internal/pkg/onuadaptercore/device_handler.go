@@ -3385,13 +3385,41 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 			select {
 			case success := <-dh.chReconcilingFinished:
 				if success {
+					if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
+							log.Fields{"device-id": dh.deviceID})
+					} else {
+						connectStatus := voltha.ConnectStatus_UNREACHABLE
+						operState := voltha.OperStatus_UNKNOWN
+						if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
+							connectStatus = voltha.ConnectStatus_REACHABLE
+							if !onuDevEntry.sOnuPersistentData.PersUniDisableDone {
+								if onuDevEntry.sOnuPersistentData.PersUniUnlockDone {
+									operState = voltha.OperStatus_ACTIVE
+								} else {
+									operState = voltha.OperStatus_ACTIVATING
+								}
+							}
+						} else if onuDevEntry.sOnuPersistentData.PersOperState == "down" ||
+							onuDevEntry.sOnuPersistentData.PersOperState == "unknown" ||
+							onuDevEntry.sOnuPersistentData.PersOperState == "" {
+							operState = voltha.OperStatus_DISCOVERED
+						}
+
+						logger.Debugw(ctx, "Core DeviceStateUpdate", log.Fields{"connectStatus": connectStatus, "operState": operState})
+						if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, connectStatus, operState); err != nil {
+							logger.Errorw(ctx, "unable to update device state to core",
+								log.Fields{"OperState": onuDevEntry.sOnuPersistentData.PersOperState, "Err": err})
+						}
+					}
 					logger.Debugw(ctx, "reconciling has been finished in time",
 						log.Fields{"device-id": dh.deviceID})
 				} else {
-					logger.Debugw(ctx, "wait for reconciling aborted",
+					logger.Errorw(ctx, "wait for reconciling aborted",
 						log.Fields{"device-id": dh.deviceID})
 				}
 			case <-time.After(dh.pOpenOnuAc.maxTimeoutReconciling):
+				//TODO: handle notification to core if reconciling timed out
 				logger.Errorw(ctx, "timeout waiting for reconciling to be finished!",
 					log.Fields{"device-id": dh.deviceID})
 			}
