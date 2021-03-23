@@ -1103,8 +1103,24 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 		_ = dh.coreProxy.DeviceUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.device)
 		//TODO Need to Update Device Reason To CORE as part of device update userstory
 	} else {
-		logger.Debugw(ctx, "reconciling - don't notify core about DeviceUpdate",
-			log.Fields{"device-id": dh.deviceID})
+		if dh.device.OperStatus == voltha.OperStatus_RECONCILING {
+			operStatus := voltha.OperStatus_UNKNOWN
+			if dh.device.ConnectStatus == voltha.ConnectStatus_REACHABLE {
+				operStatus = voltha.OperStatus_ACTIVE
+			}
+
+			err = dh.coreProxy.DeviceStateUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.deviceID,
+				dh.device.ConnectStatus, operStatus)
+
+			if err != nil {
+				logger.Fatalf(ctx, "Device FSM: Device State Update Failed-%s", err)
+				e.Cancel(err)
+				return
+			}
+		} else {
+			logger.Debugw(ctx, "reconciling - don't notify core about DeviceUpdate",
+				log.Fields{"device-id": dh.deviceID})
+		}
 	}
 
 	dh.parentID = dh.device.ParentId
