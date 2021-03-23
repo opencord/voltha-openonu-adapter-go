@@ -344,7 +344,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
 		go rxCallbackEntry.cbFunction(ctx, omciMsg, &packet, rxCallbackEntry.cbRespChannel)
-		if isResponseWithMibDataSync(omciMsg.MessageType) {
+		if isSuccessfulResponseWithMibDataSync(omciMsg, &packet) {
 			oo.pOnuDeviceEntry.incrementMibDataSync(ctx)
 		}
 
@@ -2872,10 +2872,41 @@ func (oo *omciCC) sendCommitSoftware(ctx context.Context, timeout int, highPrio 
 	return nil
 }
 
-func isResponseWithMibDataSync(msgType omci.MessageType) bool {
+func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) bool {
 	for _, v := range responsesWithMibDataSync {
-		if v == msgType {
-			return true
+		if v == omciMsg.MessageType {
+			nextLayer, _ := omci.MsgTypeToNextLayer(v)
+			msgLayer := (*packet).Layer(nextLayer)
+			switch nextLayer {
+			case omci.LayerTypeCreateResponse:
+				if msgLayer.(*omci.CreateResponse).Result == me.Success {
+					return true
+				}
+			case omci.LayerTypeDeleteResponse:
+				if msgLayer.(*omci.DeleteResponse).Result == me.Success {
+					return true
+				}
+			case omci.LayerTypeSetResponse:
+				if msgLayer.(*omci.SetResponse).Result == me.Success {
+					return true
+				}
+			case omci.LayerTypeStartSoftwareDownloadResponse:
+				if msgLayer.(*omci.StartSoftwareDownloadResponse).Result == me.Success {
+					return true
+				}
+			case omci.LayerTypeEndSoftwareDownloadResponse:
+				if msgLayer.(*omci.EndSoftwareDownloadResponse).Result == me.Success {
+					return true
+				}
+			case omci.LayerTypeActivateSoftwareResponse:
+				if msgLayer.(*omci.ActivateSoftwareResponse).Result == me.Success {
+					return true
+				}
+			case omci.LayerTypeCommitSoftwareResponse:
+				if msgLayer.(*omci.CommitSoftwareResponse).Result == me.Success {
+					return true
+				}
+			}
 		}
 	}
 	return false
