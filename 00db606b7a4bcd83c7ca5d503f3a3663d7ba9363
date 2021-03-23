@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0fc52206_f1d278ed",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 399,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-03-23T16:23:37Z",
+      "side": 1,
+      "message": "Please correct spelling.",
+      "range": {
+        "startLine": 399,
+        "startChar": 39,
+        "endLine": 399,
+        "endChar": 49
+      },
+      "revId": "00db606b7a4bcd83c7ca5d503f3a3663d7ba9363",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
