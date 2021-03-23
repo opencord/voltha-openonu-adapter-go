@@ -3200,6 +3200,22 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 			select {
 			case success := <-dh.chReconcilingFinished:
 				if success {
+					onuDevEntry := dh.getOnuDeviceEntry(ctx, true)
+					if onuDevEntry == nil {
+						logger.Errorw(ctx, "No valid OnuDevice - aborting core state update",
+							log.Fields{"device-id": dh.deviceID})
+					} else {
+						var err error
+						if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
+							err = dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, dh.device.GetConnectStatus(), voltha.OperStatus_ACTIVE)
+						} else {
+							err = dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, dh.device.GetConnectStatus(), voltha.OperStatus_UNKNOWN)
+						}
+						if err != nil {
+							logger.Errorw(ctx, "unable to update device state to core",
+								log.Fields{"OperState": onuDevEntry.sOnuPersistentData.PersOperState, "Err": err})
+						}
+					}
 					logger.Debugw(ctx, "reconciling has been finished in time",
 						log.Fields{"device-id": dh.deviceID})
 				} else {
@@ -3207,6 +3223,7 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 						log.Fields{"device-id": dh.deviceID})
 				}
 			case <-time.After(dh.pOpenOnuAc.maxTimeoutReconciling):
+				//TODO: handle notification to core if reconciling timed out
 				logger.Errorw(ctx, "timeout waiting for reconciling to be finished!",
 					log.Fields{"device-id": dh.deviceID})
 			}
