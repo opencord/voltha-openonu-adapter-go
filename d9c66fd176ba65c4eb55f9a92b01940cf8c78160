@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "86f07055_fcdcd399",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2239,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-23T10:33:15Z",
+      "side": 1,
+      "message": "Hmm, I dont think this is correct. I remember we discussed that here is some error already a while ago. But I suppose this correction does not go the right direction. McSubscriberConfigInfo shall be implicitely linked to MacBridgePortConfidData via the EntityID.\nHence I suppose it should be this way here:\n        instID, err :\u003d oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)\n\tif err !\u003d nil {\n\t\tlogger.Errorw(ctx, \"error fetching uni port me instance\",\n\t\t\tlog.Fields{\"device-id\": oFsm.deviceID, \"portNo\": oFsm.pOnuUniPort.portNo})\n\t\treturn err\n\t}\n        //set the instId equal to the related MBPCD\n        instID +\u003d macBridgePortAniEID",
+      "revId": "d9c66fd176ba65c4eb55f9a92b01940cf8c78160",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
