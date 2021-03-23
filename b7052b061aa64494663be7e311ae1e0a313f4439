@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "eb078547_61693ca5",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2271,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-03-23T14:13:59Z",
+      "side": 1,
+      "message": "We observed a problem about multicast operation profile and multicast subscriber config info\u0027s entity id is not the same. So that, We should use the same entity id. I\u0027ll change it.",
+      "parentUuid": "5e113b82_90982a45",
+      "revId": "b7052b061aa64494663be7e311ae1e0a313f4439",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f24771eb_a741a247",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 5
