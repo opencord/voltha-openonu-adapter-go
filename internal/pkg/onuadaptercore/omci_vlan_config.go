@@ -2242,13 +2242,14 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx c
 			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
 		return err
 	}
+	instID += macBridgePortAniEID
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
 			"MeType": 0,
 			//Direct reference to the Operation profile
 			//TODO ANI side used on UNI side, not the clearest option.
-			"MulticastOperationsProfilePointer": macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo),
+			"MulticastOperationsProfilePointer": instID,
 		},
 	}
 	meInstance := oFsm.pOmciCC.sendCreateMulticastSubConfigInfoVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
@@ -2267,7 +2268,13 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx c
 }
 
 func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx context.Context) error {
-	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
+	if err != nil {
+		logger.Errorw(ctx, "error fetching uni port me instance",
+			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
+		return err
+	}
+	instID += macBridgePortAniEID
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
@@ -2290,7 +2297,7 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
 	//verify response
-	err := oFsm.waitforOmciResponse(ctx)
+	err = oFsm.waitforOmciResponse(ctx)
 	if err != nil {
 		logger.Errorw(ctx, "CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
 			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
@@ -2300,7 +2307,13 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 }
 
 func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx context.Context, multicastGemPortID uint16, vlanID uint32) error {
-	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
+	if err != nil {
+		logger.Errorw(ctx, "error fetching uni port me instance",
+			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
+		return err
+	}
+	instID += macBridgePortAniEID
 	//TODO check that this is correct
 	// Table control
 	//setCtrl = 1
@@ -2338,7 +2351,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
 	//verify response
-	err := oFsm.waitforOmciResponse(ctx)
+	err = oFsm.waitforOmciResponse(ctx)
 	if err != nil {
 		logger.Errorw(ctx, "CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
 			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
