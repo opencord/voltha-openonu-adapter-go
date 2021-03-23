@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "858ad79d_4c92f169",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2271,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-23T16:30:12Z",
+      "side": 1,
+      "message": "According to G988 there is to be no problem. Are you sure the problem you saw is based on this? \nBut anyway, of course there is also no reason to not work with the same entity ID.",
+      "parentUuid": "eb078547_61693ca5",
+      "revId": "b7052b061aa64494663be7e311ae1e0a313f4439",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f24771eb_a741a247",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 5
