@@ -2236,12 +2236,8 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 }
 
 func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx context.Context) error {
-	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
-	if err != nil {
-		logger.Errorw(ctx, "error fetching uni port me instance",
-			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
-		return err
-	}
+	instID := macBridgePortAniEID + uint16(oFsm.pOnuUniPort.macBpNo)
+
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
@@ -2257,7 +2253,7 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx c
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
 	//verify response
-	err = oFsm.waitforOmciResponse(ctx)
+	err := oFsm.waitforOmciResponse(ctx)
 	if err != nil {
 		logger.Errorw(ctx, "CreateMulticastSubConfigInfo create failed, aborting AniConfig FSM!",
 			log.Fields{"device-id": oFsm.deviceID, "MulticastSubConfigInfo": instID})
