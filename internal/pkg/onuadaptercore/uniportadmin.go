@@ -316,29 +316,35 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg Om
 			// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 			return
 		}
-		// compare comments above for CreateResponse (apply also here ...)
-		if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
-			msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
-			//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
-			// if, then something like:
-			//oFsm.pOnuDB.StoreMe(msgObj)
 
-			switch oFsm.pLastTxMeInstance.GetName() {
-			case "OnuG":
-				{ // let the FSM proceed ...
-					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
+		if oFsm.pLastTxMeInstance != nil {
+			// compare comments above for CreateResponse (apply also here ...)
+			if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
+				msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
+				//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
+				// if, then something like:
+				//oFsm.pOnuDB.StoreMe(msgObj)
+
+				switch oFsm.pLastTxMeInstance.GetName() {
+				case "OnuG":
+					{ // let the FSM proceed ...
+						_ = oFsm.pAdaptFsm.pFsm.Event(uniEvRxOnugResp)
+					}
+				case "PhysicalPathTerminationPointEthernetUni", "VirtualEthernetInterfacePoint":
+					{ // let the PPTP init proceed by stopping the wait function
+						oFsm.omciLockResponseReceived <- true
+					}
 				}
-			case "PhysicalPathTerminationPointEthernetUni", "VirtualEthernetInterfacePoint":
-				{ // let the PPTP init proceed by stopping the wait function
-					oFsm.omciLockResponseReceived <- true
-				}
+			} else {
+				logger.Warnf(ctx, "LockStateFsm - Received SetResponse Data for %s with wrong classID or entityID ",
+					log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj}, msgObj.EntityClass)
 			}
 		} else {
-			logger.Warnf(ctx, "LockStateFsm - Received SetResponse Data for %s with wrong classID or entityID ",
-				log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj}, msgObj.EntityClass)
+			logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+			return
 		}
 	} else {
-		logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+		logger.Warnw(ctx, "pLastTxMeInstance is nil, possibly the pLastTxMeInstance has already reset", log.Fields{"device-id": oFsm.deviceID})
 		return
 	}
 }
