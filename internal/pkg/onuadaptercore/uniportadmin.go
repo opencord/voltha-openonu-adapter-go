@@ -173,10 +173,13 @@ func (oFsm *lockStateFsm) enterAdminStartingState(ctx context.Context, e *fsm.Ev
 		logger.Debug(ctx, "LockStateFSM - OMCI UniLock RxChannel defined")
 	} else {
 		// as we may 're-use' this instance of FSM and the connected channel
-		// make sure there is no 'lingering' request in the already existing channel:
+		// make sure there is no 'lingering' request in the already existing channels:
 		// (simple loop sufficient as we are the only receiver)
 		for len(oFsm.omciLockResponseReceived) > 0 {
 			<-oFsm.omciLockResponseReceived
+		}
+		for len(oFsm.pAdaptFsm.commChan) > 0 {
+			<-oFsm.pAdaptFsm.commChan
 		}
 	}
 	// start go routine for processing of LockState messages
@@ -206,9 +209,21 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 		requestedAttributes, oFsm.pAdaptFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	//  we might already abort the processing with nil here, but maybe some auto-recovery may be tried
-	//  - may be improved later, for now we just handle it with the Rx timeout or missing next event (stick in state)
 	oFsm.pLastTxMeInstance = meInstance
+	if oFsm.pLastTxMeInstance == nil {
+		logger.Errorw(ctx, "could not send OMCI message from LockStateFsm", log.Fields{
+			"device-id": oFsm.deviceID})
+		//some more sophisticated approach is possible, e.g. repeating once, by now let's reset the state machine in order to release all resources now
+		pLockStateAFsm := oFsm.pAdaptFsm
+		if pLockStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(a_pAFsm *AdapterFsm) {
+				if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+					_ = a_pAFsm.pFsm.Event(uniEvReset)
+				}
+			}(pLockStateAFsm)
+		}
+	}
 }
 
 func (oFsm *lockStateFsm) enterSettingUnisState(ctx context.Context, e *fsm.Event) {
@@ -317,6 +332,7 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg Om
 			return
 		}
 
+		//should never appear, left here for robustness
 		if oFsm.pLastTxMeInstance != nil {
 			// compare comments above for CreateResponse (apply also here ...)
 			if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
@@ -340,11 +356,11 @@ func (oFsm *lockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg Om
 					log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj}, msgObj.EntityClass)
 			}
 		} else {
-			logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+			logger.Errorw(ctx, "pLastTxMeInstance is nil", log.Fields{"device-id": oFsm.deviceID})
 			return
 		}
 	} else {
-		logger.Warnw(ctx, "pLastTxMeInstance is nil, possibly the pLastTxMeInstance has already reset", log.Fields{"device-id": oFsm.deviceID})
+		logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
 		return
 	}
 }
@@ -378,6 +394,13 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				logger.Warnw(ctx, "Unsupported UniTP type - skip",
 					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
 				continue
+			}
+			if oFsm.pLastTxMeInstance == nil {
+				logger.Errorw(ctx, "could not send PortDamin OMCI message from LockStateFsm", log.Fields{
+					"device-id": oFsm.deviceID, "Port": uniNo})
+				//some more sophisticated approach is possible, e.g. repeating once, by now let's reset the state machine in order to release all resources now
+				_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+				return
 			}
 
 			//verify response
