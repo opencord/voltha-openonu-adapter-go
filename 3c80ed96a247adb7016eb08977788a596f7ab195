@@ -16,6 +16,24 @@
       "revId": "3c80ed96a247adb7016eb08977788a596f7ab195",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f2da25e8_47ff8569",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1112,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-03-24T11:49:24Z",
+      "side": 1,
+      "message": "yes, working on an appropriate design yet . Will make necessary changes soon.",
+      "parentUuid": "e19c2a8f_209e553e",
+      "revId": "3c80ed96a247adb7016eb08977788a596f7ab195",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
