@@ -747,10 +747,10 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
-			logger.Debugw(ctx, "PersUniConfig-entry already exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
+			logger.Debugw(ctx, "PersUniConfig-entry exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
 			existingPath, ok := oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID]
 			if !ok {
-				logger.Debugw(ctx, "tp-does-not-exist--to-be-created-afresh", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
+				logger.Debugw(ctx, "tp-does-not-exist", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
 			}
 			if existingPath != aPathString {
 				if aPathString == "" {
@@ -769,11 +769,6 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 				//no active TechProfile
 				logger.Debugw(ctx, "UniTp path has already been removed - no AniSide config to be removed", log.Fields{
 					"device-id": oo.deviceID, "uniID": aUniID})
-				// attention 201105: this block is at the moment entered for each of subsequent GemPortDeletes and TContDelete
-				//   as the path is already cleared with the first GemPort - this will probably change with the upcoming real
-				//   TechProfile removal (still TODO), but anyway the reasonUpdate initiated here should not harm overall behavior
-				go oo.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
-				// no flow config pending on 'remove' so far
 			} else {
 				//the given TechProfile already exists and is assumed to be active - update devReason as if the config has been done here
 				//was needed e.g. in voltha POD Tests:Validate authentication on a disabled ONU
@@ -823,6 +818,11 @@ func (oo *OnuDeviceEntry) updateOnuUniFlowConfig(aUniID uint8, aUniVlanFlowParam
 		}
 	}
 	//flow update was faster than tp-config - create PersUniConfig-entry
+	//TODO!!: following activity to 'add' some new uni entry might not be quite correct if this function is called to clear the data
+	//  (e.g after flow removal from RemoveUniFlowParams()).
+	//  This has the effect of misleading indication that there is still some active UNI entry, even though there might be only some nil flow entry
+	//  The effect of this flaw is that at TechProfile removal there is an additional attempt to remove the entry even though no techProfile exists anymore
+	//  The code is not changed here because of the current release lane, changes might have unexpected secondary effects, perhaps later with more elaborate tests
 	tmpConfig := uniPersConfig{PersUniID: aUniID, PersTpPathMap: make(map[uint8]string), PersFlowParams: make([]uniVlanFlowParams, len(*aUniVlanFlowParams))}
 	copy(tmpConfig.PersFlowParams, *aUniVlanFlowParams)
 	oo.sOnuPersistentData.PersUniConfig = append(oo.sOnuPersistentData.PersUniConfig, tmpConfig)
