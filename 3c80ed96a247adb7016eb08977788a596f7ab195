@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e19c2a8f_209e553e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1112,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-03-24T11:02:16Z",
+      "side": 1,
+      "message": "It\u0027s a bit fuzzy. Seems in reconciling case you want to check if the OperStatus was set by the core to \u0027RECONCILING\u0027, and if so you want to update that to some more actual value, depending again on the core stored connection status. But at this point of code you must be aware that the reconcilement has not yet really been done and hence it is a bit questionable, if the reachable/active state (if relevant) can really be reached by the adapter again (probably yes, but not for sure). So if wanted, a cleaner solution would be to keep track of all the relavant state transitions within the reconcile processing to verify, if such states are really reached (and maybe set the states only in the end?).",
+      "revId": "3c80ed96a247adb7016eb08977788a596f7ab195",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
