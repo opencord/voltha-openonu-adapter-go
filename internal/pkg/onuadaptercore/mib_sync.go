@@ -227,8 +227,16 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		} else {
 			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
 		}
-		oo.baseDeviceHandler.stopReconciling(ctx)
 		go func() {
+			// Stopping reconcilement has to be delayed as in multi-ONU/multi-flow environment
+			// the parallel processing to rebuild the adapter internal flow data could still be
+			// running here. It will take only a few milliseconds until the corresponding threads
+			// will be finished as no OMCI-config is done in this use case.
+			// TODO: The timer approach should be replaced by a more sophisticated solution using
+			// a real interaction between this routine and the threads configuring the flow data
+			// after imminent release VOLTHA v2.7
+			time.Sleep(100 * time.Millisecond)
+			oo.baseDeviceHandler.stopReconciling(ctx)
 			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		}()
 
