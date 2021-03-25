@@ -42,6 +42,11 @@ import (
 	//"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
+type sLastTxMeParameter struct {
+	lastTxMessageType omci.MessageType
+	pLastTxMeInstance *me.ManagedEntity
+}
+
 var supportedClassIds = []me.ClassID{
 	me.CardholderClassID,                              // 5
 	me.CircuitPackClassID,                             // 6
@@ -81,6 +86,9 @@ func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Eve
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"send mibReset in State": e.FSM.Current(), "device-id": oo.deviceID})
 	_ = oo.PDevOmciCC.sendMibReset(log.WithSpanFromContext(context.TODO(), ctx), oo.pOpenOnuAc.omciTimeout, true)
 	//TODO: needs to handle timeouts
+	//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
+	//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
+	oo.lastTxParamStruct.lastTxMessageType = omci.MibResetRequestType
 }
 
 func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, e *fsm.Event) {
@@ -89,7 +97,8 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, onugMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	oo.PDevOmciCC.pLastTxMeInstance = meInstance
+	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
+	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *fsm.Event) {
@@ -98,7 +107,8 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, onu2gMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	oo.PDevOmciCC.pLastTxMeInstance = meInstance
+	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
+	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
@@ -107,7 +117,8 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	oo.PDevOmciCC.pLastTxMeInstance = meInstance
+	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
+	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, e *fsm.Event) {
@@ -116,7 +127,8 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	oo.PDevOmciCC.pLastTxMeInstance = meInstance
+	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
+	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fsm.Event) {
@@ -125,7 +137,8 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, ipHostConfigDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	oo.PDevOmciCC.pLastTxMeInstance = meInstance
+	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
+	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *fsm.Event) {
@@ -167,6 +180,9 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *f
 func (oo *OnuDeviceEntry) enterUploadingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"send MibUpload in State": e.FSM.Current(), "device-id": oo.deviceID})
 	_ = oo.PDevOmciCC.sendMibUpload(log.WithSpanFromContext(context.TODO(), ctx), oo.pOpenOnuAc.omciTimeout, true)
+	//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
+	//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
+	oo.lastTxParamStruct.lastTxMessageType = omci.MibUploadRequestType
 }
 
 func (oo *OnuDeviceEntry) enterUploadDoneState(ctx context.Context, e *fsm.Event) {
@@ -362,6 +378,9 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadResponseMessage(ctx context.Context
 	oo.PDevOmciCC.uploadNoOfCmds = msgObj.NumberOfCommands
 	if oo.PDevOmciCC.uploadSequNo < oo.PDevOmciCC.uploadNoOfCmds {
 		_ = oo.PDevOmciCC.sendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx), oo.pOpenOnuAc.omciTimeout, true)
+		//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
+		//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
+		oo.lastTxParamStruct.lastTxMessageType = omci.MibUploadNextRequestType
 	} else {
 		logger.Errorw(ctx, "Invalid number of commands received for:", log.Fields{"device-id": oo.deviceID, "uploadNoOfCmds": oo.PDevOmciCC.uploadNoOfCmds})
 		//TODO right action?
@@ -395,6 +414,9 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 	}
 	if oo.PDevOmciCC.uploadSequNo < oo.PDevOmciCC.uploadNoOfCmds {
 		_ = oo.PDevOmciCC.sendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx), oo.pOpenOnuAc.omciTimeout, true)
+		//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
+		//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
+		oo.lastTxParamStruct.lastTxMessageType = omci.MibUploadNextRequestType
 	} else {
 		oo.pOnuDB.logMeDb(ctx)
 		err := oo.createAndPersistMibTemplate(ctx)
@@ -408,6 +430,12 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 
 func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg OmciMessage) error {
 	var err error = nil
+
+	if oo.lastTxParamStruct.lastTxMessageType != omci.GetRequestType ||
+		oo.lastTxParamStruct.pLastTxMeInstance == nil {
+		logger.Warnw(ctx, "unexpected GetResponse - ignoring", log.Fields{"device-id": oo.deviceID})
+		return nil
+	}
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetResponse)
 	if msgLayer == nil {
 		logger.Errorw(ctx, "omci Msg layer could not be detected for GetResponse - handling of MibSyncChan stopped", log.Fields{"device-id": oo.deviceID})
@@ -422,10 +450,10 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 	}
 	logger.Debugw(ctx, "MibSync FSM - GetResponse Data", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj})
 	if msgObj.Result == me.Success {
-		entityID := oo.PDevOmciCC.pLastTxMeInstance.GetEntityID()
-		if msgObj.EntityClass == oo.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
+		entityID := oo.lastTxParamStruct.pLastTxMeInstance.GetEntityID()
+		if msgObj.EntityClass == oo.lastTxParamStruct.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
 			meAttributes := msgObj.Attributes
-			meInstance := oo.PDevOmciCC.pLastTxMeInstance.GetName()
+			meInstance := oo.lastTxParamStruct.pLastTxMeInstance.GetName()
 			logger.Debugf(ctx, "MibSync FSM - GetResponse Data for %s", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj}, meInstance)
 			switch meInstance {
 			case "OnuG":
@@ -589,9 +617,9 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseErrors(ctx context.Context, msgOb
 	logger.Debugf(ctx, "MibSync FSM - erroneous result in GetResponse Data: %s", log.Fields{"device-id": oo.deviceID, "data-fields": msgObj}, msgObj.Result)
 	// Up to now the following erroneous results have been seen for different ONU-types to indicate an unsupported ME
 	if msgObj.Result == me.UnknownInstance || msgObj.Result == me.UnknownEntity || msgObj.Result == me.ProcessingError || msgObj.Result == me.NotSupported {
-		entityID := oo.PDevOmciCC.pLastTxMeInstance.GetEntityID()
-		if msgObj.EntityClass == oo.PDevOmciCC.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
-			meInstance := oo.PDevOmciCC.pLastTxMeInstance.GetName()
+		entityID := oo.lastTxParamStruct.pLastTxMeInstance.GetEntityID()
+		if msgObj.EntityClass == oo.lastTxParamStruct.pLastTxMeInstance.GetClassID() && msgObj.EntityInstance == entityID {
+			meInstance := oo.lastTxParamStruct.pLastTxMeInstance.GetName()
 			switch meInstance {
 			case "IpHostConfigData":
 				logger.Debugw(ctx, "MibSync FSM - erroneous result for IpHostConfigData received - ONU doesn't support ME - fill macAddress with zeros",
@@ -718,7 +746,8 @@ func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 		me.OnuDataClassID, onuDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
-	oo.PDevOmciCC.pLastTxMeInstance = meInstance
+	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
+	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
 
 func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint8) {

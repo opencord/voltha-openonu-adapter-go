@@ -289,7 +289,8 @@ type OnuDeviceEntry struct {
 	//mibNextDbResync uint32
 
 	// for mibUpload
-	pMibUploadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
+	pMibUploadFsm     *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
+	lastTxParamStruct sLastTxMeParameter
 	// for mibDownload
 	pMibDownloadFsm *AdapterFsm //could be handled dynamically and more general as pAdapterFsm - perhaps later
 	//remark: general usage of pAdapterFsm would require generalization of commChan  usage and internal event setting
