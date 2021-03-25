@@ -1001,13 +1001,13 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 		}(pConfigVlanStateBaseFsm)
 		return
 	}
+	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+		oFsm.configuredUniFlow = oFsm.numUniFlows
+		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
+			log.Fields{"numUniFlows": oFsm.numUniFlows, "configuredUniFlow": oFsm.configuredUniFlow, "device-id": oFsm.deviceID})
+		return
+	}
 	if oFsm.numUniFlows > oFsm.configuredUniFlow {
-		if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
-			oFsm.configuredUniFlow = oFsm.numUniFlows
-			logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
-				log.Fields{"numUniFlows": oFsm.numUniFlows, "configuredUniFlow": oFsm.configuredUniFlow, "device-id": oFsm.deviceID})
-			return
-		}
 		if oFsm.configuredUniFlow == 0 {
 			// this is a restart with a complete new flow, we can re-use the initial flow config control
 			// including the check, if the related techProfile is (still) available (probably also removed in between)

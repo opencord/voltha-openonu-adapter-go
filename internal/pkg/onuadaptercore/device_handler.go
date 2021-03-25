@@ -946,10 +946,8 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 	}
 }
 
-func (dh *deviceHandler) reconcileMetrics(ctx context.Context) {
-	logger.Debugw(ctx, "reconciling - trigger metrics - to be implemented in scope of VOL-3324!", log.Fields{"device-id": dh.deviceID})
-
-	//TODO: reset of reconciling-flag has always to be done in the last reconcile*() function
+func (dh *deviceHandler) reconcileEnd(ctx context.Context) {
+	logger.Debugw(ctx, "reconciling - completed!", log.Fields{"device-id": dh.deviceID})
 	dh.stopReconciling(ctx)
 }
 
@@ -1965,7 +1963,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 			// or even some previous flow add activity on the same port
 			_ = dh.deviceReasonUpdate(ctx, drOmciFlowsPushed, !dh.isReconciling())
 			if dh.isReconciling() {
-				go dh.reconcileMetrics(ctx)
+				go dh.reconcileEnd(ctx)
 			}
 		}
 	} else {
