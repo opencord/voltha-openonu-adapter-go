@@ -235,10 +235,8 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 
 		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
-		if oo.baseDeviceHandler.isReconciling() {
-			oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
-		}
-		// set admin state independent of reconciling state after tp/flow reconcilement
+		oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
+
 		if oo.sOnuPersistentData.PersUniDisableDone {
 			oo.baseDeviceHandler.disableUniPortStateUpdate(ctx)
 			oo.baseDeviceHandler.setDeviceReason(drOmciAdminLock)

@@ -810,7 +810,9 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 		return
 	}
 	dh.pOnuTP.lockTpProcMutex()
@@ -821,7 +823,9 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 		return
 	}
 	techProfsFound := false
@@ -856,7 +860,9 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	if !techProfsFound {
 		logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 		return
 	}
 	if dh.isSkipOnuConfigReconciling() {
@@ -865,7 +871,9 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	if !flowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 	}
 }
 
@@ -875,7 +883,9 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 		return
 	}
 	pDevEntry.persUniConfigMutex.RLock()
@@ -884,7 +894,9 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 		return
 	}
 	flowsFound := false
@@ -898,6 +910,8 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		if len(uniData.PersTpPathMap) == 0 {
 			logger.Warnw(ctx, "reconciling - flows but no TPs stored for uniID",
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+			// It doesn't make sense to configure any flows if no TPs are available
+			continue
 		}
 		var uniPort *onuUniPort
 		var exist bool
@@ -905,7 +919,9 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		if uniPort, exist = dh.uniEntityMap[uniNo]; !exist {
 			logger.Errorw(ctx, "reconciling - onuUniPort data not found  - terminate reconcilement",
 				log.Fields{"uniNo": uniNo, "device-id": dh.deviceID})
-			dh.stopReconciling(ctx)
+			if !dh.isSkipOnuConfigReconciling() {
+				dh.stopReconciling(ctx)
+			}
 			return
 		}
 		flowsFound = true
@@ -938,7 +954,9 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 	if !flowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
-		dh.stopReconciling(ctx)
+		if !dh.isSkipOnuConfigReconciling() {
+			dh.stopReconciling(ctx)
+		}
 		return
 	}
 	if dh.isSkipOnuConfigReconciling() {
