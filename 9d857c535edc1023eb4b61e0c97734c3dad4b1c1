@@ -22,6 +22,30 @@
       "revId": "9d857c535edc1023eb4b61e0c97734c3dad4b1c1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71839b2d_b7652588",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-03-26T10:07:43Z",
+      "side": 1,
+      "message": "Done\nhttps://jira.opencord.org/browse/VOL-3959",
+      "parentUuid": "1edc91ad_bc38617a",
+      "range": {
+        "startLine": 231,
+        "startChar": 0,
+        "endLine": 238,
+        "endChar": 37
+      },
+      "revId": "9d857c535edc1023eb4b61e0c97734c3dad4b1c1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
