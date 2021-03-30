@@ -1,0 +1,191 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ca42a572_1fdda78c",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove space here and insert colon (:)",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d44c802d_fd9bdb34",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove space and comma",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "65bf74f9_b0c4991c",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove comma",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6e791fd5_ae4359c9",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove and",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e5c9bed_c80364e3",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove space",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "db8594cd_fc3d1473",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "this can be more simply phrased as: The commands lists:",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3a9ed06c_9f1974e4",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove and and space",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c5e9a772_b9e6d3d3",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "remove space",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8a95cf51_498ffb58",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "is",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "369a1348_a900a71d",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "after commitment i\u0027d add `after ONU reboot`",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "58db50bd_bba26ee5",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-03-30T14:21:37Z",
+      "side": 1,
+      "message": "unsend ?",
+      "revId": "ccdf2a5adeb76d4c40595874da34152c9b454596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
