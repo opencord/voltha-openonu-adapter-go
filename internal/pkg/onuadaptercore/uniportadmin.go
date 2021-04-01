@@ -205,8 +205,20 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	logger.Debugw(ctx, "LockStateFSM Tx Set::ONU-G:admin", log.Fields{
 		"omciAdmin": omciAdminState, "in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 	requestedAttributes := me.AttributeValueMap{"AdministrativeState": omciAdminState}
-	meInstance := oFsm.pOmciCC.sendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		requestedAttributes, oFsm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "OnuGLS set failed, aborting LockStateFSM", log.Fields{"device-id": oFsm.deviceID})
+		pLockStateAFsm := oFsm.pAdaptFsm
+		if pLockStateAFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+					_ = a_pAFsm.pFsm.Event(uniEvReset)
+				}
+			}(pLockStateAFsm)
+		}
+		return
+	}
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
@@ -381,14 +393,28 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 			if uniPort.portType == uniPPTP {
 				logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
-				meInstance = oFsm.pOmciCC.sendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
+				meInstance, err := oFsm.pOmciCC.sendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx),
+					uniPort.entityID, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 					true, requestedAttributes, oFsm.pAdaptFsm.commChan)
+				if err != nil {
+					logger.Errorw(ctx, "SetPptpEthUniLS set failed, aborting LockStateFsm!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+					return
+				}
 				oFsm.pLastTxMeInstance = meInstance
 			} else if uniPort.portType == uniVEIP {
 				logger.Debugw(ctx, "Setting VEIP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
-				meInstance = oFsm.pOmciCC.sendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx), uniPort.entityID, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
+				meInstance, err := oFsm.pOmciCC.sendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx),
+					uniPort.entityID, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 					true, requestedAttributes, oFsm.pAdaptFsm.commChan)
+				if err != nil {
+					logger.Errorw(ctx, "SetVeipLS set failed, aborting LockStateFsm!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
+					return
+				}
 				oFsm.pLastTxMeInstance = meInstance
 			} else {
 				logger.Warnw(ctx, "Unsupported UniTP type - skip",
