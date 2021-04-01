@@ -536,10 +536,14 @@ func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event
 	logger.Infow(ctx, "OnuUpgradeFsm checking committed SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
-	meInstance := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+	meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
 		me.SoftwareImageClassID, oFsm.inactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false, oFsm.pAdaptFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+		return
+	}
 	oFsm.pLastTxMeInstance = meInstance
 }
 
