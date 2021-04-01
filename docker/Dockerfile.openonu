@@ -15,7 +15,12 @@
 # -------------
 # Build stage
 
-FROM golang:1.13.8-alpine3.11 AS build-env
+ARG GOLANG_IMAGE=golang:1.13.8-alpine3.11
+ARG DEPLOY_IMAGE=gcr.io/distroless/static:nonroot
+ARG IMAGE_OS=linux
+ARG IMAGE_ARCH=amd64
+# hadolint ignore=DL3006
+FROM --platform=$IMAGE_OS/$IMAGE_ARCH  $GOLANG_IMAGE AS build-env
 
 # Install required packages
 RUN apk add --no-cache build-base=0.5-r1
@@ -37,27 +42,29 @@ ARG org_opencord_vcs_dirty=unknown
 
 # Build openonu
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
-RUN go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /go/bin/openonu \
-	-ldflags \
-	"-X github.com/opencord/voltha-lib-go/v4/pkg/version.version=$org_label_schema_version \
-	 -X github.com/opencord/voltha-lib-go/v4/pkg/version.vcsRef=$org_label_schema_vcs_ref  \
-	 -X github.com/opencord/voltha-lib-go/v4/pkg/version.vcsDirty=$org_opencord_vcs_dirty \
-	 -X github.com/opencord/voltha-lib-go/v4/pkg/version.goVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
-	 -X github.com/opencord/voltha-lib-go/v4/pkg/version.os=$(go env GOHOSTOS) \
-	 -X github.com/opencord/voltha-lib-go/v4/pkg/version.arch=$(go env GOHOSTARCH) \
-	 -X github.com/opencord/voltha-lib-go/v4/pkg/version.buildTime=$org_label_schema_build_date" \
-	 ./cmd/openonu-adapter/
+RUN \
+CGO_ENABLED=0 GOOS=$IMAGE_OS GOARCH=$IMAGE_ARCH \
+go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /go/bin/openonu \
+-ldflags \
+"-X github.com/opencord/voltha-lib-go/v4/pkg/version.version=$org_label_schema_version \
+-X github.com/opencord/voltha-lib-go/v4/pkg/version.vcsRef=$org_label_schema_vcs_ref \
+-X github.com/opencord/voltha-lib-go/v4/pkg/version.vcsDirty=$org_opencord_vcs_dirty \
+-X github.com/opencord/voltha-lib-go/v4/pkg/version.goVersion=$(go version 2>&1 | sed -E  's/.*go([0-9]+\.[0-9]+\.[0-9]+).*/\1/g') \
+-X github.com/opencord/voltha-lib-go/v4/pkg/version.os=$(go env GOHOSTOS) \
+-X github.com/opencord/voltha-lib-go/v4/pkg/version.arch=$(go env GOHOSTARCH) \
+-X github.com/opencord/voltha-lib-go/v4/pkg/version.buildTime=$org_label_schema_build_date" \
+./cmd/openonu-adapter/
 
 # -------------
 # Image creation stage
-
-FROM alpine:3.11.3
+# hadolint ignore=DL3006
+FROM --platform=$IMAGE_OS/$IMAGE_ARCH $DEPLOY_IMAGE
 
 # Set the working directory
 WORKDIR /app
 
 # Copy required files
-COPY --from=build-env /go/bin/openonu /app/
+COPY --from=build-env /go/bin/openonu /app/openonu
 
 # Label image
 ARG org_label_schema_version=unknown
@@ -66,12 +73,17 @@ ARG org_label_schema_vcs_ref=unknown
 ARG org_label_schema_build_date=unknown
 ARG org_opencord_vcs_commit_date=unknown
 ARG org_opencord_vcs_dirty=unknown
+ARG IMAGE_USER=nonroot
+ARG IMAGE_GROUP=nonroot
 
-LABEL org.label-schema.schema-version=1.0 \
-      org.label-schema.name=voltha-openonu-adapter-go \
-      org.label-schema.version=$org_label_schema_version \
-      org.label-schema.vcs-url=$org_label_schema_vcs_url \
-      org.label-schema.vcs-ref=$org_label_schema_vcs_ref \
-      org.label-schema.build-date=$org_label_schema_build_date \
-      org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date \
-      org.opencord.vcs-dirty=$org_opencord_vcs_dirty
+LABEL \
+org.label-schema.schema-version=1.0 \
+org.label-schema.name=voltha-openonu-adapter-go \
+org.label-schema.version=$org_label_schema_version \
+org.label-schema.vcs-url=$org_label_schema_vcs_url \
+org.label-schema.vcs-ref=$org_label_schema_vcs_ref \
+org.label-schema.build-date=$org_label_schema_build_date \
+org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date \
+org.opencord.vcs-dirty=$org_opencord_vcs_dirty
+
+USER $IMAGE_USER:$IMAGE_GROUP
