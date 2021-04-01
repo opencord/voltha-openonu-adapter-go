@@ -579,7 +579,12 @@ func (mm *onuMetricsManager) collectAllGroupAndStandaloneMetrics(ctx context.Con
 func (mm *onuMetricsManager) collectAllGroupMetrics(ctx context.Context) {
 	go func() {
 		logger.Debug(ctx, "startCollector before collecting optical metrics")
-		metricInfo := mm.collectOpticalMetrics(ctx)
+		metricInfo, err := mm.collectOpticalMetrics(ctx)
+		if err != nil {
+			logger.Errorw(ctx, "collectOpticalMetrics failed",
+				log.Fields{"device-id": mm.pAdaptFsm.deviceID, "Error": err})
+			return
+		}
 		if metricInfo != nil {
 			mm.publishMetrics(ctx, metricInfo)
 		}
@@ -587,7 +592,12 @@ func (mm *onuMetricsManager) collectAllGroupMetrics(ctx context.Context) {
 
 	go func() {
 		logger.Debug(ctx, "startCollector before collecting uni metrics")
-		metricInfo := mm.collectUniStatusMetrics(ctx)
+		metricInfo, err := mm.collectUniStatusMetrics(ctx)
+		if err != nil {
+			logger.Errorw(ctx, "collectOpticalMetrics failed",
+				log.Fields{"device-id": mm.pAdaptFsm.deviceID, "Error": err})
+			return
+		}
 		if metricInfo != nil {
 			mm.publishMetrics(ctx, metricInfo)
 		}
@@ -604,13 +614,13 @@ func (mm *onuMetricsManager) collectGroupMetric(ctx context.Context, groupName s
 	switch groupName {
 	case OpticalPowerGroupMetricName:
 		go func() {
-			if mi := mm.collectOpticalMetrics(ctx); mm != nil {
+			if mi, _ := mm.collectOpticalMetrics(ctx); mi != nil {
 				mm.publishMetrics(ctx, mi)
 			}
 		}()
 	case UniStatusGroupMetricName:
 		go func() {
-			if mi := mm.collectUniStatusMetrics(ctx); mm != nil {
+			if mi, _ := mm.collectUniStatusMetrics(ctx); mi != nil {
 				mm.publishMetrics(ctx, mi)
 			}
 		}()
@@ -628,14 +638,14 @@ func (mm *onuMetricsManager) collectStandaloneMetric(ctx context.Context, metric
 }
 
 // collectOpticalMetrics collects groups metrics related to optical power from ani-g ME.
-func (mm *onuMetricsManager) collectOpticalMetrics(ctx context.Context) []*voltha.MetricInformation {
+func (mm *onuMetricsManager) collectOpticalMetrics(ctx context.Context) ([]*voltha.MetricInformation, error) {
 	logger.Debugw(ctx, "collectOpticalMetrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 
 	mm.onuMetricsManagerLock.RLock()
 	if !mm.groupMetricMap[OpticalPowerGroupMetricName].enabled {
 		mm.onuMetricsManagerLock.RUnlock()
 		logger.Debugw(ctx, "optical power group metric is not enabled", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-		return nil
+		return nil, nil
 	}
 	mm.onuMetricsManagerLock.RUnlock()
 
@@ -663,7 +673,14 @@ loop:
 		opticalMetrics := make(map[string]float32)
 		// Get the ANI-G instance optical power attributes
 		requestedAttributes := me.AttributeValueMap{"OpticalSignalLevel": 0, "TransmitOpticalLevel": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+		if err != nil {
+			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+			_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+			return nil, err
+		}
+
+		if meInstance != nil {
 			select {
 			case meAttributes = <-mm.opticalMetricsChan:
 				logger.Debugw(ctx, "received optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
@@ -698,18 +715,18 @@ loop:
 		metricInfoSlice = append(metricInfoSlice, &metricInfo)
 	}
 
-	return metricInfoSlice
+	return metricInfoSlice, nil
 }
 
 // collectUniStatusMetrics collects UNI status group metric from various MEs (uni-g, pptp and veip).
 // nolint: gocyclo
-func (mm *onuMetricsManager) collectUniStatusMetrics(ctx context.Context) []*voltha.MetricInformation {
+func (mm *onuMetricsManager) collectUniStatusMetrics(ctx context.Context) ([]*voltha.MetricInformation, error) {
 	logger.Debugw(ctx, "collectUniStatusMetrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 	mm.onuMetricsManagerLock.RLock()
 	if !mm.groupMetricMap[UniStatusGroupMetricName].enabled {
 		mm.onuMetricsManagerLock.RUnlock()
 		logger.Debugw(ctx, "uni status group metric is not enabled", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-		return nil
+		return nil, nil
 	}
 	mm.onuMetricsManagerLock.RUnlock()
 
@@ -739,7 +756,13 @@ loop1:
 		var meAttributes me.AttributeValueMap
 		// Get the UNI-G instance optical power attributes
 		requestedAttributes := me.AttributeValueMap{"AdministrativeState": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+		if err != nil {
+			logger.Errorw(ctx, "UNI-G failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+			_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+			return nil, err
+		}
+		if meInstance != nil {
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
@@ -789,7 +812,13 @@ loop2:
 		pptpMetrics := make(map[string]float32)
 
 		requestedAttributes := me.AttributeValueMap{"SensedType": 0, "OperationalState": 0, "AdministrativeState": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, pptpInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, pptpInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+		if err != nil {
+			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+			_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+			return nil, err
+		}
+		if meInstance != nil {
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
@@ -848,7 +877,13 @@ loop3:
 		veipMetrics := make(map[string]float32)
 
 		requestedAttributes := me.AttributeValueMap{"OperationalState": 0, "AdministrativeState": 0}
-		if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+		meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+		if err != nil {
+			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+			_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+			return nil, err
+		}
+		if meInstance != nil {
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
@@ -894,7 +929,7 @@ loop3:
 		metricInfoSlice = append(metricInfoSlice, &metricInfo)
 	}
 
-	return metricInfoSlice
+	return metricInfoSlice, nil
 }
 
 // publishMetrics publishes the metrics on kafka
@@ -1260,7 +1295,7 @@ func (mm *onuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 }
 
 // nolint: gocyclo
-func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) {
+func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) error {
 	// Copy the l2PmToAdd for which we want to collect the metrics since l2PmToAdd can change dynamically
 	mm.onuMetricsManagerLock.RLock()
 	copyOfL2PmToAdd := make([]string, len(mm.l2PmToAdd))
@@ -1285,8 +1320,20 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 				inner1:
 					// retry L2PmCreateAttempts times to create the instance of PM
 					for cnt = 0; cnt < L2PmCreateAttempts; cnt++ {
-						mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
+						_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
 							ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, direction, true, mm.pAdaptFsm.commChan, entityID)
+						if err != nil {
+							logger.Errorw(ctx, "EthernetPerformanceMonitoringHistoryME create or delete failed, failure PM FSM!",
+								log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+							pPMFsm := mm.pAdaptFsm
+							if pPMFsm != nil {
+								go func(p_pmFsm *AdapterFsm) {
+									_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+								}(pPMFsm)
+							}
+							return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetPerformanceMonitoringHistoryMe-failed-%s-%s",
+								mm.pDeviceHandler.deviceID, err))
+						}
 						if resp = mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetFramePerformanceMonitoringHistoryData"); resp {
 							atLeastOneSuccess = true
 							_ = mm.updatePmData(ctx, n, entityID, cPmAdded) // TODO: ignore error for now
@@ -1307,8 +1354,15 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 				inner2:
 					// retry L2PmCreateAttempts times to create the instance of PM
 					for cnt = 0; cnt < L2PmCreateAttempts; cnt++ {
-						mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
+						_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
 							ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, true, mm.pAdaptFsm.commChan, entityID)
+						if err != nil {
+							logger.Errorw(ctx, "CreateOrDeleteEthernetUNIHistoryME failed, failure PM FSM!",
+								log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+							_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+							return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetUniHistoryMe-failed-%s-%s",
+								mm.pDeviceHandler.deviceID, err))
+						}
 						if resp = mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetPerformanceMonitoringHistoryData"); resp {
 							atLeastOneSuccess = true
 							_ = mm.updatePmData(ctx, n, entityID, cPmAdded) // TODO: ignore error for now
@@ -1323,8 +1377,15 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 		case FecHistoryName:
 			for _, anigInstID := range mm.pDeviceHandler.pOnuOmciDevice.pOnuDB.getSortedInstKeys(ctx, me.AniGClassID) {
 				// Attach the FecPerformanceMonitoringHistoryData ME to the ANI-G ME instance
-				mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
+				_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
 					ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, true, mm.pAdaptFsm.commChan, anigInstID)
+				if err != nil {
+					logger.Errorw(ctx, "CreateOrDeleteFecHistoryME failed, failure PM FSM!",
+						log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+					_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+					return fmt.Errorf(fmt.Sprintf("CreateOrDeleteFecHistoryMe-failed-%s-%s",
+						mm.pDeviceHandler.deviceID, err))
+				}
 				_ = mm.updatePmData(ctx, n, anigInstID, cPmAdd) // TODO: ignore error for now
 			inner3:
 				// retry L2PmCreateAttempts times to create the instance of PM
@@ -1357,8 +1418,15 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 			}
 
 			for _, v := range copyOfGemPortInstIDsToAdd {
-				mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteGemPortHistoryME(
+				_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteGemPortHistoryME(
 					ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, true, mm.pAdaptFsm.commChan, v)
+				if err != nil {
+					logger.Errorw(ctx, "CreateOrDeleteGemPortHistoryME failed, failure PM FSM!",
+						log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+					_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+					return fmt.Errorf(fmt.Sprintf("CreateOrDeleteGemPortHistoryMe-failed-%s-%s",
+						mm.pDeviceHandler.deviceID, err))
+				}
 				_ = mm.updatePmData(ctx, n, v, cPmAdd) // TODO: ignore error for now
 			inner4:
 				// retry L2PmCreateAttempts times to create the instance of PM
@@ -1407,10 +1475,11 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "err": err})
 		}
 	}()
+	return nil
 }
 
 // nolint: gocyclo
-func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) {
+func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) error {
 	// Copy the l2PmToDelete for which we want to collect the metrics since l2PmToDelete can change dynamically
 	mm.onuMetricsManagerLock.RLock()
 	copyOfL2PmToDelete := make([]string, len(mm.l2PmToDelete))
@@ -1449,8 +1518,20 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 				inner1:
 					// retry L2PmDeleteAttempts times to delete the instance of PM
 					for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
-						mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
+						_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(
 							ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, direction, false, mm.pAdaptFsm.commChan, entityID)
+						if err != nil {
+							logger.Errorw(ctx, "CreateOrDeleteEthernetPerformanceMonitoringHistoryME failed, failure PM FSM!",
+								log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+							pPMFsm := mm.pAdaptFsm
+							if pPMFsm != nil {
+								go func(p_pmFsm *AdapterFsm) {
+									_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+								}(pPMFsm)
+							}
+							return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetPerformanceMonitoringHistoryMe-failed-%s-%s",
+								mm.pDeviceHandler.deviceID, err))
+						}
 						_ = mm.updatePmData(ctx, n, entityID, cPmRemove) // TODO: ignore error for now
 						if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetFramePerformanceMonitoringHistoryData"); !resp {
 							atLeastOneDeleteFailure = true
@@ -1469,8 +1550,15 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 			inner2:
 				// retry L2PmDeleteAttempts times to delete the instance of PM
 				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
-					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
+					_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetUniHistoryME(
 						ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
+					if err != nil {
+						logger.Errorw(ctx, "CreateOrDeleteEthernetUniHistoryME failed, failure PM FSM!",
+							log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+						_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+						return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetUniHistoryMe-failed-%s-%s",
+							mm.pDeviceHandler.deviceID, err))
+					}
 					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetPerformanceMonitoringHistoryData"); !resp {
 						atLeastOneDeleteFailure = true
 					} else {
@@ -1487,8 +1575,15 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 			inner3:
 				// retry L2PmDeleteAttempts times to delete the instance of PM
 				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
-					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
+					_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteFecHistoryME(
 						ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
+					if err != nil {
+						logger.Errorw(ctx, "CreateOrDeleteFecHistoryME failed, failure PM FSM!",
+							log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+						_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+						return fmt.Errorf(fmt.Sprintf("CreateOrDeleteFecHistoryMe-failed-%s-%s",
+							mm.pDeviceHandler.deviceID, err))
+					}
 					if resp := mm.waitForResponseOrTimeout(ctx, false, entityID, "FecPerformanceMonitoringHistoryData"); !resp {
 						atLeastOneDeleteFailure = true
 					} else {
@@ -1505,8 +1600,15 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 			inner4:
 				// retry L2PmDeleteAttempts times to delete the instance of PM
 				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
-					mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteGemPortHistoryME(
+					_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteGemPortHistoryME(
 						ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, false, mm.pAdaptFsm.commChan, entityID)
+					if err != nil {
+						logger.Errorw(ctx, "CreateOrDeleteGemPortHistoryME failed, failure PM FSM!",
+							log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+						_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+						return fmt.Errorf(fmt.Sprintf("CreateOrDeleteGemPortHistoryMe-failed-%s-%s",
+							mm.pDeviceHandler.deviceID, err))
+					}
 					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "GemPortNetworkCtpPerformanceMonitoringHistoryData"); !resp {
 						atLeastOneDeleteFailure = true
 					} else {
@@ -1548,6 +1650,7 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "err": err})
 		}
 	}()
+	return nil
 }
 
 // ** L2 PM FSM Handlers end **
@@ -1718,7 +1821,13 @@ func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "GetME failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+		_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.pDeviceHandler.deviceID, err))
+	}
+	if meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received ethernet pm history data metrics",
@@ -1814,7 +1923,13 @@ func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+		_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.pDeviceHandler.deviceID, err))
+	}
+	if meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received ethernet uni history data metrics",
@@ -1910,7 +2025,13 @@ func (mm *onuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+		_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.pDeviceHandler.deviceID, err))
+	}
+	if meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received fec history data metrics",
@@ -1970,7 +2091,13 @@ func (mm *onuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
+	meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "GetMe failed", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+		_ = mm.pAdaptFsm.pFsm.Event(l2PmEventFailure)
+		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.pDeviceHandler.deviceID, err))
+	}
+	if meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received gem port history data metrics",
@@ -2276,8 +2403,8 @@ func (mm *onuMetricsManager) initializeL2PmFsm(ctx context.Context, aCommChannel
 			"enter_" + l2PmStStarting:    func(e *fsm.Event) { mm.l2PMFsmStarting(ctx, e) },
 			"enter_" + l2PmStSyncTime:    func(e *fsm.Event) { mm.l2PMFsmSyncTime(ctx, e) },
 			"enter_" + l2PmStCollectData: func(e *fsm.Event) { mm.l2PmFsmCollectData(ctx, e) },
-			"enter_" + l2PmStCreatePmMe:  func(e *fsm.Event) { mm.l2PmFsmCreatePM(ctx, e) },
-			"enter_" + l2PmStDeletePmMe:  func(e *fsm.Event) { mm.l2PmFsmDeletePM(ctx, e) },
+			"enter_" + l2PmStCreatePmMe:  func(e *fsm.Event) { _ = mm.l2PmFsmCreatePM(ctx, e) },
+			"enter_" + l2PmStDeletePmMe:  func(e *fsm.Event) { _ = mm.l2PmFsmDeletePM(ctx, e) },
 		},
 	)
 	return nil
