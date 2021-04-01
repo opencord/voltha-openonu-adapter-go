@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "df60cc22_b1119425",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 9
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-04-01T16:08:55Z",
+      "side": 1,
+      "message": "What is the value of making these vars?",
+      "range": {
+        "startLine": 56,
+        "startChar": 0,
+        "endLine": 58,
+        "endChar": 0
+      },
+      "revId": "7828eb09458dfb9199e23ca5d3c4dd4fc2727b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d1f02013_6a190ec3",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 9
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-04-01T16:08:55Z",
+      "side": 1,
+      "message": "The issue with doing something like this, as i understand it, is that when the container is run user 1000 will map to what ever user 1000 is on the host system. I have seen containers starting to use the MAX user/group ID (4294967295) as opposed to the min (1000) to avoid or at least make overlap less likely.",
+      "range": {
+        "startLine": 60,
+        "startChar": 0,
+        "endLine": 60,
+        "endChar": 95
+      },
+      "revId": "7828eb09458dfb9199e23ca5d3c4dd4fc2727b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
