@@ -96,9 +96,19 @@ func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Eve
 func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting VendorId and SerialNumber in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"VendorId": "", "SerialNumber": 0}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, onugMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
+	meInstance, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, onugMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		logger.Errorw(ctx, "ONU-G get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+			}(pMibUlFsm)
+		}
+		return
+	}
 	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
 	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
@@ -106,9 +116,19 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting EquipmentId in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"EquipmentId": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, onu2gMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
+	meInstance, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, onu2gMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		logger.Errorw(ctx, "ONU2-G get failed, aborting MibSync FSM!", log.Fields{"device-id": oo.deviceID})
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+			}(pMibUlFsm)
+		}
+		return
+	}
 	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
 	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
@@ -116,9 +136,19 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
+	meInstance, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, firstSwImageMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		logger.Errorw(ctx, "SoftwareImage get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+			}(pMibUlFsm)
+		}
+		return
+	}
 	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
 	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
@@ -126,9 +156,19 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
+	meInstance, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, secondSwImageMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		logger.Errorw(ctx, "SoftwareImage get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+			}(pMibUlFsm)
+		}
+		return
+	}
 	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
 	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
@@ -136,9 +176,19 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting MacAddress in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"MacAddress": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, ipHostConfigDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
+	meInstance, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, ipHostConfigDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		logger.Errorw(ctx, "IpHostConfigData get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+			}(pMibUlFsm)
+		}
+		return
+	}
 	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
 	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 }
@@ -380,8 +430,18 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 		if oo.lastTxParamStruct.lastTxMessageType == omci.GetRequestType && oo.lastTxParamStruct.repeatCount == 0 {
 			logger.Debugw(ctx, "MibSync FSM - repeat MdsGetRequest (updated SequenceNumber)", log.Fields{"device-id": oo.deviceID})
 			requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
-			_ = oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+			_, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
 				me.OnuDataClassID, onuDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
+			if err != nil {
+				logger.Errorw(ctx, "ONUData get failed, aborting MibSync", log.Fields{"device-id": oo.deviceID})
+				pMibUlFsm := oo.pMibUploadFsm
+				if pMibUlFsm != nil {
+					go func(a_pAFsm *AdapterFsm) {
+						_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+					}(pMibUlFsm)
+				}
+				return
+			}
 			//TODO: needs extra handling of timeouts
 			oo.lastTxParamStruct.repeatCount = 1
 			return
@@ -785,10 +845,20 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 	logger.Debugw(ctx, "Request MDS value", log.Fields{"device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
-	meInstance := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+	meInstance, err := oo.PDevOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
 		me.OnuDataClassID, onuDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
+	if err != nil {
+		logger.Errorw(ctx, "ONUData get failed, aborting MibSync FSM!", log.Fields{"device-id": oo.deviceID})
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			go func(a_pAFsm *AdapterFsm) {
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+			}(pMibUlFsm)
+		}
+		return
+	}
 	oo.lastTxParamStruct.lastTxMessageType = omci.GetRequestType
 	oo.lastTxParamStruct.pLastTxMeInstance = meInstance
 	oo.lastTxParamStruct.repeatCount = 0
