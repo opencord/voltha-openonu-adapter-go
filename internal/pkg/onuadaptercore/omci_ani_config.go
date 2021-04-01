@@ -464,8 +464,15 @@ func (oFsm *uniPonAniConfigFsm) enterCreatingDot1PMapper(ctx context.Context, e 
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 	oFsm.requestEventOffset = 0 //0 offset for last config request activity
-	meInstance := oFsm.pOmciCC.sendCreateDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendCreateDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.mapperSP0ID, oFsm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "CreateDot1PMapper create failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
@@ -486,8 +493,15 @@ func (oFsm *uniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 			"TpPointer":       oFsm.mapperSP0ID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
+	if err != nil {
+		logger.Errorw(ctx, "CreateMBPConfigDataVar create failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
@@ -504,8 +518,15 @@ func (oFsm *uniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 			"AllocId": oFsm.alloc0ID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
+	if err != nil {
+		logger.Errorw(ctx, "SetTcontVar set failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
@@ -628,8 +649,14 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 			}(pConfigAniStateAFsm)
 		}
 	} else {
-		meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+		meInstance, err := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
+		if err != nil {
+			logger.Errorw(ctx, "SetDot1PMapperVar set failed, aborting uniPonAniConfigFsm!",
+				log.Fields{"device-id": oFsm.deviceID})
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
 		oFsm.pLastTxMeInstance = meInstance
@@ -691,8 +718,15 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	oFsm.requestEventOffset = 1 //offset 1 to indicate last activity = remove
 
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
-	meInstance := oFsm.pOmciCC.sendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
+	if err != nil {
+		logger.Errorw(ctx, "DeleteGemIWTP delete failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	oFsm.pLastTxMeInstance = meInstance
 }
 
@@ -704,8 +738,15 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
 		"GemNCTP-entity-id": loGemPortID})
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
-	meInstance := oFsm.pOmciCC.sendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
+	if err != nil {
+		logger.Errorw(ctx, "DeleteGemNCTP delete failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	oFsm.pLastTxMeInstance = meInstance
 	// Mark the gem port to be removed for Performance History monitoring
 	if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
@@ -725,8 +766,15 @@ func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 			"AllocId": unusedTcontAllocID,
 		},
 	}
-	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
+	if err != nil {
+		logger.Errorw(ctx, "SetTcontVar set failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	oFsm.pLastTxMeInstance = meInstance
 }
 
@@ -734,8 +782,15 @@ func (oFsm *uniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
-	meInstance := oFsm.pOmciCC.sendDeleteDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendDeleteDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, oFsm.mapperSP0ID)
+	if err != nil {
+		logger.Errorw(ctx, "DeleteDot1Mapper delete failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	oFsm.pLastTxMeInstance = meInstance
 }
 
@@ -743,8 +798,15 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
-	meInstance := oFsm.pOmciCC.sendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+	meInstance, err := oFsm.pOmciCC.sendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, oFsm.macBPCD0ID)
+	if err != nil {
+		logger.Errorw(ctx, "DeleteMBPConfigData delete failed, aborting uniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 	oFsm.pLastTxMeInstance = meInstance
 }
 
@@ -1026,14 +1088,21 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 				"PriorityQueuePointerForDownStream":   gemPortAttribs.downQueueID,
 			},
 		}
-		meInstance := oFsm.pOmciCC.sendCreateGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+		meInstance, err := oFsm.pOmciCC.sendCreateGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx),
+			oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
+		if err != nil {
+			logger.Errorw(ctx, "CreateGemNCTPVar create failed, aborting uniPonAniConfigFsm!",
+				log.Fields{"device-id": oFsm.deviceID})
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
 		oFsm.pLastTxMeInstance = meInstance
 
 		//verify response
-		err := oFsm.waitforOmciResponse(ctx)
+		err = oFsm.waitforOmciResponse(ctx)
 		if err != nil {
 			logger.Errorw(ctx, "GemNWCtp create failed, aborting AniConfig FSM!",
 				log.Fields{"device-id": oFsm.deviceID, "GemIndex": gemIndex})
@@ -1071,11 +1140,17 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
-				true, oFsm.pAdaptFsm.commChan, meParams)
+			meInstance, err := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(),
+				oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meParams)
+			if err != nil {
+				logger.Errorw(ctx, "CreateMulticastGemIWTPVar create failed, aborting uniPonAniConfigFsm!",
+					log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
 			oFsm.pLastTxMeInstance = meInstance
 			//verify response
-			err := oFsm.waitforOmciResponse(ctx)
+			err = oFsm.waitforOmciResponse(ctx)
 			if err != nil {
 				logger.Errorw(ctx, "GemTP IW multicast create failed, aborting AniConfig FSM!",
 					log.Fields{"device-id": oFsm.deviceID, "GemIndex": gemIndex})
@@ -1098,8 +1173,14 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"Ipv4MulticastAddressTable": ipv4MulticastTable,
 				},
 			}
-			meIPV4MCTableInstance := oFsm.pOmciCC.sendSetMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
-				true, oFsm.pAdaptFsm.commChan, meIPV4MCTableParams)
+			meIPV4MCTableInstance, err := oFsm.pOmciCC.sendSetMulticastGemIWTPVar(context.TODO(),
+				oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meIPV4MCTableParams)
+			if err != nil {
+				logger.Errorw(ctx, "MulticastGemIWTPVar set failed, aborting uniPonAniConfigFsm!",
+					log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
 			oFsm.pLastTxMeInstance = meIPV4MCTableInstance
 
 		} else {
@@ -1113,8 +1194,14 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
-			meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
-				oFsm.pAdaptFsm.commChan, meParams)
+			meInstance, err := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(),
+				oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meParams)
+			if err != nil {
+				logger.Errorw(ctx, "GEMIWTPVar create failed, aborting uniPonAniConfigFsm!",
+					log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
 			oFsm.pLastTxMeInstance = meInstance
@@ -1187,14 +1274,20 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 			meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
 			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
 		}
-		meInstance := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
-			oFsm.pAdaptFsm.commChan, meParams)
+		meInstance, err := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx),
+			oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meParams)
+		if err != nil {
+			logger.Errorw(ctx, "PrioQueueVar set failed, aborting uniPonAniConfigFsm!",
+				log.Fields{"device-id": oFsm.deviceID})
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
 		oFsm.pLastTxMeInstance = meInstance
 
 		//verify response
-		err := oFsm.waitforOmciResponse(ctx)
+		err = oFsm.waitforOmciResponse(ctx)
 		if err != nil {
 			logger.Errorw(ctx, "PrioQueue set failed, aborting AniConfig FSM!",
 				log.Fields{"device-id": oFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
