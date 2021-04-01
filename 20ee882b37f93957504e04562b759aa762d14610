@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d43ca0e9_c00d64ca",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-01T08:03:38Z",
+      "side": 1,
+      "message": "please always log the error within the fields of the log. valid for all instances of the patch.\nAlso please remove the exclamation point (!) from the end of all the logs, valid for all changes in the patch",
+      "revId": "20ee882b37f93957504e04562b759aa762d14610",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "40005b12_2cf06567",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 544,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-01T08:03:38Z",
+      "side": 1,
+      "message": "please log the error",
+      "revId": "20ee882b37f93957504e04562b759aa762d14610",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d952ac24_6d123f86",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1145,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-01T08:03:38Z",
+      "side": 1,
+      "message": "please log error",
+      "revId": "20ee882b37f93957504e04562b759aa762d14610",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11764a3a_d12762b8",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1236,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-01T08:03:38Z",
+      "side": 1,
+      "message": "same",
+      "revId": "20ee882b37f93957504e04562b759aa762d14610",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "681a55b0_bfd4e8eb",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1278,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-01T08:03:38Z",
+      "side": 1,
+      "message": "same",
+      "revId": "20ee882b37f93957504e04562b759aa762d14610",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38e0d74e_2ed5a43c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 582,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-01T08:03:38Z",
+      "side": 1,
+      "message": "why are you ignoring the error here ? I think it\u0027s worth saving and checking. Valid for all the same cases in the class.",
+      "revId": "20ee882b37f93957504e04562b759aa762d14610",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
