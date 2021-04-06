@@ -15,20 +15,13 @@
 # -------------
 # Build stage
 
-ARG GOLANG_IMAGE=golang:1.13.8-alpine3.11
-ARG DEPLOY_IMAGE=gcr.io/distroless/static:nonroot
-ARG IMAGE_OS=linux
-ARG IMAGE_ARCH=amd64
-# hadolint ignore=DL3006
-FROM --platform=$IMAGE_OS/$IMAGE_ARCH  $GOLANG_IMAGE AS build-env
+FROM --platform=linux/amd64 golang:1.13.8-alpine3.11 AS dev
 
 # Install required packages
 RUN apk add --no-cache build-base=0.5-r1
 
-# Prepare directory structure
-WORKDIR /go/src/github.com/opencord/voltha-openonu-adapter-go
-
-# Copy common files.
+# Use Standard go build directory structure
+WORKDIR /go/src
 COPY . .
 
 ARG EXTRA_GO_BUILD_TAGS=""
@@ -40,11 +33,10 @@ ARG org_label_schema_build_date=unknown
 ARG org_opencord_vcs_commit_date=unknown
 ARG org_opencord_vcs_dirty=unknown
 
-# Build openonu
+# Build
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 RUN \
-CGO_ENABLED=0 GOOS=$IMAGE_OS GOARCH=$IMAGE_ARCH \
-go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /go/bin/openonu \
+CGO_ENABLED=0 go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /app/openonu \
 -ldflags \
 "-X github.com/opencord/voltha-lib-go/v4/pkg/version.version=$org_label_schema_version \
 -X github.com/opencord/voltha-lib-go/v4/pkg/version.vcsRef=$org_label_schema_vcs_ref \
@@ -55,16 +47,18 @@ go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /go/bin/openonu \
 -X github.com/opencord/voltha-lib-go/v4/pkg/version.buildTime=$org_label_schema_build_date" \
 ./cmd/openonu-adapter/
 
+WORKDIR /app
+
 # -------------
 # Image creation stage
-# hadolint ignore=DL3006
-FROM --platform=$IMAGE_OS/$IMAGE_ARCH $DEPLOY_IMAGE
+
+FROM --platform=linux/amd64 gcr.io/distroless/static:nonroot AS prod
 
 # Set the working directory
 WORKDIR /app
 
 # Copy required files
-COPY --from=build-env /go/bin/openonu /app/openonu
+COPY --from=dev /app/openonu /app/openonu
 
 # Label image
 ARG org_label_schema_version=unknown
@@ -73,8 +67,6 @@ ARG org_label_schema_vcs_ref=unknown
 ARG org_label_schema_build_date=unknown
 ARG org_opencord_vcs_commit_date=unknown
 ARG org_opencord_vcs_dirty=unknown
-ARG IMAGE_USER=nonroot
-ARG IMAGE_GROUP=nonroot
 
 LABEL \
 org.label-schema.schema-version=1.0 \
@@ -86,4 +78,4 @@ org.label-schema.build-date=$org_label_schema_build_date \
 org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date \
 org.opencord.vcs-dirty=$org_opencord_vcs_dirty
 
-USER $IMAGE_USER:$IMAGE_GROUP
+USER nonroot:nonroot
