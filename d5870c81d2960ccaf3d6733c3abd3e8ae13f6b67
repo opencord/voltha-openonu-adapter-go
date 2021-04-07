@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e9a3fff3_c72b6571",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-07T13:13:19Z",
+      "side": 1,
+      "message": "Some reason to go to some official version? I\u0027d prefer a dev version (some similar correction is also still needed for spome other Jira)",
+      "revId": "d5870c81d2960ccaf3d6733c3abd3e8ae13f6b67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e8d7d86_ec124fea",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-07T13:13:19Z",
+      "side": 1,
+      "message": "Would prefer RLock/RUnlock.",
+      "revId": "d5870c81d2960ccaf3d6733c3abd3e8ae13f6b67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
