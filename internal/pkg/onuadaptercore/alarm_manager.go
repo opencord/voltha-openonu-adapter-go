@@ -527,34 +527,26 @@ func (am *onuAlarmManager) startOMCIAlarmMessageProcessing(ctx context.Context) 
 func (am *onuAlarmManager) handleOmciAlarmNotificationMessage(ctx context.Context, msg OmciMessage) {
 	logger.Debugw(ctx, "omci-alarm-notification-msg", log.Fields{"device-id": am.pDeviceHandler.deviceID,
 		"msg-type": msg.OmciMsg.MessageType})
-	am.onuAlarmManagerLock.RLock()
-	processMessage := am.processMessage
-	am.onuAlarmManagerLock.RUnlock()
 
-	if processMessage {
-		msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeAlarmNotification)
-		if msgLayer == nil {
-			logger.Errorw(ctx, "omci-msg-layer-could-not-be-detected-for-alarm-notification",
-				log.Fields{"device-id": am.pDeviceHandler.deviceID})
-			return
-		}
-		msgObj, msgOk := msgLayer.(*omci.AlarmNotificationMsg)
-		if !msgOk {
-			logger.Errorw(ctx, "omci-msg-layer-could-not-be-assigned-for-alarm-notification",
-				log.Fields{"device-id": am.pDeviceHandler.deviceID})
-			return
-		}
-		//Alarm Notification decoding at omci lib validates that the me class ID supports the
-		// alarm notifications.
-		logger.Debugw(ctx, "alarm-notification-data", log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
-		if err := am.processAlarmData(ctx, msgObj); err != nil {
-			logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.pDeviceHandler.deviceID})
-		}
-
-	} else {
-		logger.Warnw(ctx, "ignoring-alarm-notification-received-for-me-as-channel-for-processing-is-closed",
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeAlarmNotification)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "omci-msg-layer-could-not-be-detected-for-alarm-notification",
 			log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return
 	}
+	msgObj, msgOk := msgLayer.(*omci.AlarmNotificationMsg)
+	if !msgOk {
+		logger.Errorw(ctx, "omci-msg-layer-could-not-be-assigned-for-alarm-notification",
+			log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return
+	}
+	//Alarm Notification decoding at omci lib validates that the me class ID supports the
+	// alarm notifications.
+	logger.Debugw(ctx, "alarm-notification-data-received", log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
+	if err := am.processAlarmData(ctx, msgObj); err != nil {
+		logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.pDeviceHandler.deviceID})
+	}
+
 }
 
 func (am *onuAlarmManager) processAlarmData(ctx context.Context, msg *omci.AlarmNotificationMsg) error {
@@ -564,12 +556,17 @@ func (am *onuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 	alarmBitmap := msg.AlarmBitmap
 	logger.Debugw(ctx, "processing-alarm-data", log.Fields{"class-id": classID, "instance-id": meInstance,
 		"alarmBitMap": alarmBitmap, "sequence-no": sequenceNo})
+	am.onuAlarmManagerLock.Lock()
+	defer am.onuAlarmManagerLock.Unlock()
+	if !am.processMessage {
+		logger.Warnw(ctx, "ignoring-alarm-notification-received-for-me-as-channel-for-processing-is-closed",
+			log.Fields{"device-id": am.pDeviceHandler.deviceID})
+		return fmt.Errorf("alarm-manager-is-in-stopped-state")
+	}
 	if _, present := am.pDeviceHandler.pOnuOmciDevice.pOnuDB.meDb[classID][meInstance]; !present {
 		logger.Errorw(ctx, "me-class-instance-not-present", log.Fields{"class-id": classID, "instance-id": meInstance})
 		return fmt.Errorf("me-class-%d-instance-%d-not-present", classID, meInstance)
 	}
-	am.onuAlarmManagerLock.Lock()
-	defer am.onuAlarmManagerLock.Unlock()
 	if sequenceNo > 0 {
 		if am.alarmSyncFsm.pFsm.Is(asStAuditing) || am.alarmSyncFsm.pFsm.Is(asStResynchronizing) {
 			am.bufferedNotifications = append(am.bufferedNotifications, msg)
