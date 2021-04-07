@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "644ca921_94a0e8ca",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-07T13:16:58Z",
+      "side": 1,
+      "message": "Here it might make sense to indicate it as official version as marker for changed external behavior - I am not sure.",
+      "revId": "caf6cf4901a65d35755a21ee605ef61a36d7d19b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
