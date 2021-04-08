@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "97c50785_315b86af",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 9
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-04-08T06:16:04Z",
+      "side": 1,
+      "message": "They are used below in order to not repeat the same values multiple times (DRY principle)",
+      "parentUuid": "df60cc22_b1119425",
+      "range": {
+        "startLine": 56,
+        "startChar": 0,
+        "endLine": 58,
+        "endChar": 0
+      },
+      "revId": "7828eb09458dfb9199e23ca5d3c4dd4fc2727b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d1f02013_6a190ec3",
         "filename": "docker/Dockerfile.openonu",
         "patchSetId": 9
@@ -36,6 +60,30 @@
       "writtenOn": "2021-04-01T16:08:55Z",
       "side": 1,
       "message": "The issue with doing something like this, as i understand it, is that when the container is run user 1000 will map to what ever user 1000 is on the host system. I have seen containers starting to use the MAX user/group ID (4294967295) as opposed to the min (1000) to avoid or at least make overlap less likely.",
+      "range": {
+        "startLine": 60,
+        "startChar": 0,
+        "endLine": 60,
+        "endChar": 95
+      },
+      "revId": "7828eb09458dfb9199e23ca5d3c4dd4fc2727b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3e42ff4_2985dc76",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 9
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-04-08T06:16:04Z",
+      "side": 1,
+      "message": "the issue is not in overlapping, but in having a root user in docker containers which is a security issue. The idea is to use any numeric user id (1000 or any other) as opposite of root. Further on the k8s will have a check to allow only a numeric user ids rather than root.",
+      "parentUuid": "d1f02013_6a190ec3",
       "range": {
         "startLine": 60,
         "startChar": 0,
