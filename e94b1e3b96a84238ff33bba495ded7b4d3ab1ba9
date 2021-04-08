@@ -34,6 +34,24 @@
       "revId": "e94b1e3b96a84238ff33bba495ded7b4d3ab1ba9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a8f54758_fd6d006f",
+        "filename": "VERSION",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-08T06:56:22Z",
+      "side": 1,
+      "message": "1.3.0 is the right one. We need to leave space for big fixes in the 2.7 release. @Michael you can add the 190 in you future patch.",
+      "parentUuid": "7228d161_81c9e7ec",
+      "revId": "e94b1e3b96a84238ff33bba495ded7b4d3ab1ba9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
