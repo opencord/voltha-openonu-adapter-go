@@ -16,6 +16,24 @@
       "revId": "e94b1e3b96a84238ff33bba495ded7b4d3ab1ba9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7228d161_81c9e7ec",
+        "filename": "VERSION",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-04-08T06:54:03Z",
+      "side": 1,
+      "message": "Changed to 1.3.0-dev as per andrea\u0027s comment.",
+      "parentUuid": "08809bed_e3069dd5",
+      "revId": "e94b1e3b96a84238ff33bba495ded7b4d3ab1ba9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
