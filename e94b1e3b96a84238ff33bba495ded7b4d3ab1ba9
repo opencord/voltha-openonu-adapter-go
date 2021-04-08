@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "08809bed_e3069dd5",
+        "filename": "VERSION",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T06:51:52Z",
+      "side": 1,
+      "message": "Please use dev version 1.2.10-dev190",
+      "revId": "e94b1e3b96a84238ff33bba495ded7b4d3ab1ba9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
