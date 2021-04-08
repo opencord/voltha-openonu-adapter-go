@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "358a7f78_c4ac9a9b",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-08T06:44:21Z",
+      "side": 1,
+      "message": "1.2.9 was already release and we actually need to bump to 1.3.0 for 2.8. so please go to 1.3.0-dev",
+      "parentUuid": "24f1a2ea_b24ef191",
+      "revId": "d5870c81d2960ccaf3d6733c3abd3e8ae13f6b67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3e8d7d86_ec124fea",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 1
