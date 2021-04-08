@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "24f1a2ea_b24ef191",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T06:41:43Z",
+      "side": 1,
+      "message": "@Andrea: What do you think",
+      "parentUuid": "96d770aa_585bf8c5",
+      "revId": "d5870c81d2960ccaf3d6733c3abd3e8ae13f6b67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3e8d7d86_ec124fea",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 1
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "Cannot add rlock/runlock as we are modifying the alarmbitmap below which will be set to nil in case of stop. So It has to be lock only.",
       "parentUuid": "3e8d7d86_ec124fea",
+      "revId": "d5870c81d2960ccaf3d6733c3abd3e8ae13f6b67",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3d4df98d_bea5020e",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 559,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T06:41:43Z",
+      "side": 1,
+      "message": "right, accepted.",
+      "parentUuid": "4eced911_80b28f57",
       "revId": "d5870c81d2960ccaf3d6733c3abd3e8ae13f6b67",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
