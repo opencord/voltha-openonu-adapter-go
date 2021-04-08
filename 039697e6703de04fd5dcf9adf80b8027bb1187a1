@@ -1,0 +1,293 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bc804cb8_e871304d",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027ONU-G get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0ee57104_0e7b2f86",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Setting the FSM event synchronously does not work with this FSM here, you have to use a go-routine (asynchronous). Cmp (similar) line 218 ff.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "802cc819_8b0b3b4f",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027ONU2-G get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5893fb44_39ee565c",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027first SoftwareImage get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f9ce39be_4c117941",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "use go-routine.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a20583c_6b56ad2f",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027second SoftwareImage get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eb35e08e_79a03f25",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "use go-routine.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8824a9b9_45768272",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027IPHost get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de5fc1ba_d75c84b1",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "use go-routine.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e35ceb19_8e0ba6d6",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 399,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027repeated ONU-Data MDS get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d28bcf1b_73a50a24",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 811,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027ONU-Data MDS get failed, ...\u0027",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dca63316_c161d8f1",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 617,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "I\u0027m not sure, if that was really meant here - seems the problem already existed in the base. It does not make much sense to test mm on nil when using already before. So I guess the real intention was here to test on a possible returned error, in base probably on \u0027mi\u0027, now on the returned error.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5f3e5da0_77b9e06f",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 623,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "see above.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84857936_5941e06c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 1298,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "see at end of file",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "35e2a61b_21263eef",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 1477,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "see at end of file",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "876b4269_65c0324c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 2396,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "I don\u0027t see some sense in returning some error with these functions and not evaluation it here (and I have some doubts that using the (error) assignment here in the Callback assignment is really working).",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aba93861_349ace9a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 2397,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "same as above.",
+      "revId": "039697e6703de04fd5dcf9adf80b8027bb1187a1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

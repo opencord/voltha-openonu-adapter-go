@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7bd08355_dedfb82a",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027GalEthernetProfile create failed, ...\u0027",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42b15e0a_484b8b98",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Setting the FSM event synchronously does not work with this FSM here, you have to use a go-routine (asynchronous). Cmp line 88 ff.",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "578d66fd_8708d62e",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027Onu2G set failed, ...\u0027",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a28675e3_a1d76475",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "use go-routine.",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b31f2fa6_d5de62b4",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "spelling? Use \u0027MBSP create ..\u0027 or \u0027MBServiceProfile create ...\u0027",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "45d9fc36_55543cde",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027MBPCD create ...\u0027 or \u0027MBPConfigData create...\u0027",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c962427_e490c4a7",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 299,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-08T08:09:42Z",
+      "side": 1,
+      "message": "Syntax: use \u0027EVTOCD create failed, ...\u0027 or \u0027EVTOConfigData create failed,...\u0027",
+      "revId": "a4d756b744054d6e74d69e179f9e821e2c43a15c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
