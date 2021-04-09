@@ -239,7 +239,9 @@ func (oFsm *uniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, a
 }
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
-func (oFsm *uniPonAniConfigFsm) CancelProcessing() {
+func (oFsm *uniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
+	//early indication about started reset processing
+	oFsm.pUniTechProf.setProfileResetting(ctx, oFsm.pOnuUniPort.uniID, oFsm.techProfileID, true)
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexIsAwaitingResponse.RLock()
 	defer oFsm.mutexIsAwaitingResponse.RUnlock()
@@ -257,6 +259,15 @@ func (oFsm *uniPonAniConfigFsm) CancelProcessing() {
 			}
 		}(pAdaptFsm)
 	}
+
+	//wait for completion of possibly ongoing techprofile config/remove requests to avoid
+	// access conflicts on internal data by next needed data clearance
+	//activity should be aborted in short time if running with FSM due to above FSM reset
+	//  or finished without FSM dependency in short time
+	oFsm.pUniTechProf.lockTpProcMutex()
+	defer oFsm.pUniTechProf.unlockTpProcMutex()
+	//remove all TechProf related internal data to allow for new configuration
+	oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.uniID, oFsm.techProfileID)
 }
 
 func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, aPAFsm *AdapterFsm) {
@@ -801,9 +812,6 @@ func (oFsm *uniPonAniConfigFsm) enterDisabledState(ctx context.Context, e *fsm.E
 	logger.Debugw(ctx, "uniPonAniConfigFsm enters disabled state", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 	oFsm.pLastTxMeInstance = nil
-
-	//remove all TechProf related internal data to allow for new configuration (e.g. with disable/enable procedure)
-	oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.uniID, oFsm.techProfileID)
 }
 
 func (oFsm *uniPonAniConfigFsm) processOmciAniMessages(ctx context.Context) {

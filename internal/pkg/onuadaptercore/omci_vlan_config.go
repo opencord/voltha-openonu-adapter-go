@@ -330,7 +330,7 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 }
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
-func (oFsm *UniVlanConfigFsm) CancelProcessing() {
+func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexIsAwaitingResponse.RLock()
 	defer oFsm.mutexIsAwaitingResponse.RUnlock()
