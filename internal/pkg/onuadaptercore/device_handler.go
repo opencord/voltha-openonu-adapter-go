@@ -1688,7 +1688,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		// FSM  stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
 		if dh.pOnuTP.pAniConfigFsm != nil {
 			for uniTP := range dh.pOnuTP.pAniConfigFsm {
-				dh.pOnuTP.pAniConfigFsm[uniTP].CancelProcessing()
+				dh.pOnuTP.pAniConfigFsm[uniTP].CancelProcessing(ctx)
 			}
 		}
 		for _, uniPort := range dh.uniEntityMap {
@@ -1701,7 +1701,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 				//  no need to remove specific data
 				pVlanFilterFsm.RequestClearPersistency(false)
 				//ensure the FSM processing is stopped in case waiting for some response
-				pVlanFilterFsm.CancelProcessing()
+				pVlanFilterFsm.CancelProcessing(ctx)
 			} else {
 				dh.lockVlanConfig.RUnlock()
 			}
