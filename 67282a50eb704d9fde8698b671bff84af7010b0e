@@ -1,0 +1,188 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a7f8b126_a6d56b83",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 813,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 813,
+        "startChar": 21,
+        "endLine": 813,
+        "endChar": 24
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b7774a68_4e5da6ca",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 824,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 824,
+        "startChar": 5,
+        "endLine": 824,
+        "endChar": 20
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c95e776_17272643",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 859,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 859,
+        "startChar": 5,
+        "endLine": 859,
+        "endChar": 20
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cdfe4ee2_dd54f264",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 868,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 868,
+        "startChar": 5,
+        "endLine": 868,
+        "endChar": 20
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e4e35b61_99a7450c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 878,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 878,
+        "startChar": 5,
+        "endLine": 878,
+        "endChar": 20
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91b06eeb_e224ae49",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 887,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 887,
+        "startChar": 5,
+        "endLine": 887,
+        "endChar": 20
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e6abce21_cba03933",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 908,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 908,
+        "startChar": 6,
+        "endLine": 908,
+        "endChar": 21
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a678a7d_753841f8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 941,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-12T10:43:23Z",
+      "side": 1,
+      "message": "Merging issue - please have a look.",
+      "range": {
+        "startLine": 941,
+        "startChar": 21,
+        "endLine": 941,
+        "endChar": 24
+      },
+      "revId": "67282a50eb704d9fde8698b671bff84af7010b0e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
