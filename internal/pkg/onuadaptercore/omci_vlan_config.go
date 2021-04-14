@@ -341,12 +341,9 @@ func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
 	pAdaptFsm := oFsm.pAdaptFsm
 	if pAdaptFsm != nil {
-		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-		go func(aPAFsm *AdapterFsm) {
-			if aPAFsm.pFsm != nil {
-				_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
-			}
-		}(pAdaptFsm)
+		if pAdaptFsm.pFsm != nil {
+			_ = pAdaptFsm.pFsm.Event(vlanEvReset)
+		}
 	}
 }
 
@@ -485,9 +482,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 					log.Fields{"fsmState": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
 				oFsm.mutexFlowParams.Unlock()
 				if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
-					go func(a_pBaseFsm *fsm.FSM) {
-						_ = a_pBaseFsm.Event(vlanEvSkipOmciConfig)
-					}(pConfigVlanStateBaseFsm)
+					_ = pConfigVlanStateBaseFsm.Event(vlanEvSkipOmciConfig)
 				}
 				return nil
 			}
@@ -501,10 +496,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				if oFsm.configuredUniFlow == 0 {
 					// this is a restart with a complete new flow, we can re-use the initial flow config control
 					// including the check, if the related techProfile is (still) available (probably also removed in between)
-					// Can't call FSM Event directly, decoupling it
-					go func(a_pBaseFsm *fsm.FSM) {
-						_ = a_pBaseFsm.Event(vlanEvRenew)
-					}(pConfigVlanStateBaseFsm)
+					_ = pConfigVlanStateBaseFsm.Event(vlanEvRenew)
 				} else {
 					//some further flows are to be configured
 					//store the actual rule that shall be worked upon in the following transient states
@@ -516,16 +508,13 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 					logger.Debugw(ctx, "UniVlanConfigFsm - incremental config request (on setConfig)", log.Fields{
 						"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
 						"set-Vlan": oFsm.actualUniVlanConfigRule.SetVid, "tp-id": tpID, "ProfDone": loTechProfDone})
-
-					go func(aPBaseFsm *fsm.FSM, aTechProfDone bool) {
-						if aTechProfDone {
-							// let the vlan processing continue with next rule
-							_ = aPBaseFsm.Event(vlanEvIncrFlowConfig)
-						} else {
-							// set to waiting for Techprofile
-							_ = aPBaseFsm.Event(vlanEvWaitTPIncr)
-						}
-					}(pConfigVlanStateBaseFsm, loTechProfDone)
+					if loTechProfDone {
+						// let the vlan processing continue with next rule
+						_ = pConfigVlanStateBaseFsm.Event(vlanEvIncrFlowConfig)
+					} else {
+						// set to waiting for Techprofile
+						_ = pConfigVlanStateBaseFsm.Event(vlanEvWaitTPIncr)
+					}
 				}
 			} // if not in the appropriate state a new entry will be automatically considered later
 			//   when the configDone state is reached
@@ -740,9 +729,7 @@ remove_loop:
 					//trigger the FSM to remove the relevant rule
 					if cancelPendingConfig {
 						oFsm.requestEventOffset = uint8(cDeviceEventOffsetRemoveWithKvStore) //offset for last flow-remove activity (with kvStore request)
-						go func(a_pBaseFsm *fsm.FSM) {
-							_ = a_pBaseFsm.Event(vlanEvCancelOutstandingConfig)
-						}(pConfigVlanStateBaseFsm)
+						_ = pConfigVlanStateBaseFsm.Event(vlanEvCancelOutstandingConfig)
 					} else {
 						if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
 							logger.Debugw(ctx, "UniVlanConfigFsm rule removal request", log.Fields{
@@ -751,9 +738,7 @@ remove_loop:
 								"set-Vlan": loRemoveParams.vlanRuleParams.SetVid})
 							//have to re-trigger the FSM to proceed with outstanding incremental flow configuration
 							// Can't call FSM Event directly, decoupling it
-							go func(a_pBaseFsm *fsm.FSM) {
-								_ = a_pBaseFsm.Event(vlanEvRemFlowConfig)
-							}(pConfigVlanStateBaseFsm)
+							_ = pConfigVlanStateBaseFsm.Event(vlanEvRemFlowConfig)
 						} // if not in the appropriate state a new entry will be automatically considered later
 						//   when the configDone state is reached
 					}
@@ -1003,6 +988,10 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 	}
 	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
 		oFsm.configuredUniFlow = oFsm.numUniFlows
+		if !oFsm.pDeviceHandler.isReconcilingFlows() {
+			logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{"device-id": oFsm.deviceID})
+			oFsm.pDeviceHandler.chReconcilingFlowsFinished <- true
+		}
 		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
 			log.Fields{"numUniFlows": oFsm.numUniFlows, "configuredUniFlow": oFsm.configuredUniFlow, "device-id": oFsm.deviceID})
 		return

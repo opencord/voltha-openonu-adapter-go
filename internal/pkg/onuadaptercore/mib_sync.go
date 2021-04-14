@@ -244,16 +244,28 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
 		}
 		go func() {
-			// Stopping reconcilement has to be delayed as in multi-ONU/multi-flow environment
-			// the parallel processing to rebuild the adapter internal flow data could still be
-			// running here. It will take only a few milliseconds until the corresponding threads
-			// will be finished as no OMCI-config is done in this use case.
-			// TODO: The timer approach should be replaced by a more sophisticated solution using
-			// a real interaction between this routine and the threads configuring the flow data
-			// after imminent release VOLTHA v2.7
-			time.Sleep(100 * time.Millisecond)
+			// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
+			// we get a signal that the processing of the last step to rebuild the adapter internal
+			// flow data is finished.
+			select {
+			case success := <-oo.baseDeviceHandler.chReconcilingFlowsFinished:
+				if success {
+					logger.Debugw(ctx, "reconciling flows has been finished in time",
+						log.Fields{"device-id": oo.deviceID})
+					_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+				} else {
+					logger.Debugw(ctx, "wait for reconciling flows aborted",
+						log.Fields{"device-id": oo.deviceID})
+					oo.baseDeviceHandler.setReconcilingFlows(false)
+					return
+				}
+			case <-time.After(100 * time.Millisecond):
+				logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
+					log.Fields{"device-id": oo.deviceID})
+				oo.baseDeviceHandler.setReconcilingFlows(false)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+			}
 			oo.baseDeviceHandler.stopReconciling(ctx)
-			_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 		}()
 
 	} else {
@@ -903,4 +915,21 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
 	}
 	return restoredFromMibTemplate
+}
+
+//CancelProcessing terminates potentially running reconciling processes and stops the FSM
+func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
+
+	if oo.baseDeviceHandler.isReconcilingFlows() {
+		oo.baseDeviceHandler.chReconcilingFlowsFinished <- false
+	}
+	if oo.baseDeviceHandler.isReconciling() {
+		oo.baseDeviceHandler.chReconcilingFinished <- false
+	}
+	//the MibSync FSM might be active all the ONU-active time,
+	// hence it must be stopped unconditionally
+	pMibUlFsm := oo.pMibUploadFsm.pFsm
+	if pMibUlFsm != nil {
+		_ = pMibUlFsm.Event(ulEvStop)
+	}
 }
