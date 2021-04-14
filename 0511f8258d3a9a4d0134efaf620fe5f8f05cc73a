@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a546e76d_38238bd5",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 251,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-14T12:54:52Z",
+      "side": 1,
+      "message": "I think you did not make sure that this select is aborted e.g. in case the overall FSM processing is cancelled. So there might be some misleading dangling timeout event later on. Make sure the select is aborted e.g. by \u0027false\u0027 indication in case waiting on success is not anymore needed.",
+      "revId": "0511f8258d3a9a4d0134efaf620fe5f8f05cc73a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b53938bc_f49c2494",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 488,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-14T12:54:52Z",
+      "side": 1,
+      "message": "Yes, you are right, there should be no need to call these events from background in this function (this is not state processing function). But to be consistent that then should be done on all event calls in this function and also the other functions that do not need this construct, meaning also CancelProcessing and RemoveUniFlowParams.\nSo - while you are at it ;-) - please update also lines 347, 506, 523/526, 744, 755 (line numbers from base version)",
+      "revId": "0511f8258d3a9a4d0134efaf620fe5f8f05cc73a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
