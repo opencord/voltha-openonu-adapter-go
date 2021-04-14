@@ -485,9 +485,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 					log.Fields{"fsmState": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
 				oFsm.mutexFlowParams.Unlock()
 				if pConfigVlanStateBaseFsm.Is(vlanStConfigDone) {
-					go func(a_pBaseFsm *fsm.FSM) {
-						_ = a_pBaseFsm.Event(vlanEvSkipOmciConfig)
-					}(pConfigVlanStateBaseFsm)
+					_ = pConfigVlanStateBaseFsm.Event(vlanEvSkipOmciConfig)
 				}
 				return nil
 			}
@@ -1003,6 +1001,10 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 	}
 	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
 		oFsm.configuredUniFlow = oFsm.numUniFlows
+		if !oFsm.pDeviceHandler.isReconcilingFlows() {
+			logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{"device-id": oFsm.deviceID})
+			oFsm.pDeviceHandler.chReconcilingFlowsFinished <- true
+		}
 		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
 			log.Fields{"numUniFlows": oFsm.numUniFlows, "configuredUniFlow": oFsm.configuredUniFlow, "device-id": oFsm.deviceID})
 		return

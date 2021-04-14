@@ -216,6 +216,9 @@ type deviceHandler struct {
 	reconciling                 uint8
 	mutexReconcilingFlag        sync.RWMutex
 	chReconcilingFinished       chan bool //channel to indicate that reconciling has been finished
+	reconcilingFlows            bool
+	mutexReconcilingFlowsFlag   sync.RWMutex
+	chReconcilingFlowsFinished  chan bool //channel to indicate that reconciling of flows has been finished
 	ReadyForSpecificOmciConfig  bool
 	deletionInProgress          bool
 	mutexDeletionInProgressFlag sync.RWMutex
@@ -249,6 +252,8 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
 	dh.chReconcilingFinished = make(chan bool)
+	dh.reconcilingFlows = false
+	dh.chReconcilingFlowsFinished = make(chan bool)
 	dh.ReadyForSpecificOmciConfig = false
 	dh.deletionInProgress = false
 
@@ -926,6 +931,7 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		}
 		flowsFound = true
 		flowsProcessed := 0
+		dh.setReconcilingFlows(true)
 		for _, flowData := range uniData.PersFlowParams {
 			logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{"device-id": dh.deviceID, "cookies": flowData.CookieSlice})
 			//the slice can be passed 'by value' here, - which internally passes its reference copy
@@ -950,6 +956,7 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{"device-id": dh.deviceID, "flowsProcessed": flowsProcessed,
 			"numUniFlows":       dh.UniVlanConfigFsmMap[uniData.PersUniID].numUniFlows,
 			"configuredUniFlow": dh.UniVlanConfigFsmMap[uniData.PersUniID].configuredUniFlow})
+		dh.setReconcilingFlows(false)
 	}
 	if !flowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
@@ -3277,4 +3284,17 @@ func (dh *deviceHandler) getDeviceReason() uint8 {
 
 func (dh *deviceHandler) getDeviceReasonString() string {
 	return deviceReasonMap[dh.getDeviceReason()]
+}
+
+func (dh *deviceHandler) setReconcilingFlows(value bool) {
+	dh.mutexReconcilingFlowsFlag.Lock()
+	dh.reconcilingFlows = value
+	dh.mutexReconcilingFlowsFlag.Unlock()
+}
+
+func (dh *deviceHandler) isReconcilingFlows() bool {
+	dh.mutexReconcilingFlowsFlag.RLock()
+	value := dh.reconcilingFlows
+	dh.mutexReconcilingFlowsFlag.RUnlock()
+	return value
 }
