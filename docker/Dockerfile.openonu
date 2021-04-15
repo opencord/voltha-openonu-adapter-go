@@ -26,6 +26,8 @@ COPY . .
 
 ARG EXTRA_GO_BUILD_TAGS=""
 
+ARG CGO_PARAMETER=0
+
 ARG org_label_schema_version=unknown
 ARG org_label_schema_vcs_url=unknown
 ARG org_label_schema_vcs_ref=unknown
@@ -36,7 +38,7 @@ ARG org_opencord_vcs_dirty=unknown
 # Build
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 RUN \
-CGO_ENABLED=0 go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /app/openonu \
+CGO_ENABLED=$CGO_PARAMETER go build $EXTRA_GO_BUILD_TAGS -mod=vendor -o /app/openonu \
 -ldflags \
 "-X github.com/opencord/voltha-lib-go/v4/pkg/version.version=$org_label_schema_version \
 -X github.com/opencord/voltha-lib-go/v4/pkg/version.vcsRef=$org_label_schema_vcs_ref \

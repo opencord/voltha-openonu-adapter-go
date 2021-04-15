@@ -82,15 +82,21 @@ build: docker-build ## Alias for 'docker build'
 
 ## Docker targets
 docker-build: local-protos local-lib-go ## Build openonu adapter docker image (set BUILD_PROFILED=true to also build the profiled image)
-	docker build $(DOCKER_BUILD_ARGS) --target=${DOCKER_TARGET} -t ${ADAPTER_IMAGENAME} -f docker/Dockerfile.openonu .
+	docker build $(DOCKER_BUILD_ARGS) --target=${DOCKER_TARGET} --build-arg CGO_PARAMETER=0 -t ${ADAPTER_IMAGENAME} -f docker/Dockerfile.openonu .
 ifdef BUILD_PROFILED
-	docker build $(DOCKER_BUILD_ARGS) --target=${DOCKER_TARGET} --build-arg EXTRA_GO_BUILD_TAGS="-tags profile" -t ${ADAPTER_IMAGENAME}-profile -f docker/Dockerfile.openonu .
+	docker build $(DOCKER_BUILD_ARGS) --target=dev --build-arg CGO_PARAMETER=1 --build-arg EXTRA_GO_BUILD_TAGS="-tags profile" -t ${ADAPTER_IMAGENAME}-profile -f docker/Dockerfile.openonu .
+endif
+ifdef BUILD_RACE
+	docker build $(DOCKER_BUILD_ARGS) --target=dev --build-arg CGO_PARAMETER=1 --build-arg EXTRA_GO_BUILD_TAGS="-race" -t ${ADAPTER_IMAGENAME}-rd -f docker/Dockerfile.openonu .
 endif
 
 docker-push: ## Push the docker images to an external repository
 	docker push ${ADAPTER_IMAGENAME}
 ifdef BUILD_PROFILED
 	docker push ${ADAPTER_IMAGENAME}-profile
+endif
+ifdef BUILD_RACE
+	docker push ${ADAPTER_IMAGENAME}-rd
 endif
 
 docker-kind-load: ## Load docker images into a KinD cluster
