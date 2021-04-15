@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "d1bf7615_5e9c2e12",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 251,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-15T08:36:20Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a546e76d_38238bd5",
+      "revId": "0511f8258d3a9a4d0134efaf620fe5f8f05cc73a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b53938bc_f49c2494",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -33,6 +51,24 @@
       "revId": "0511f8258d3a9a4d0134efaf620fe5f8f05cc73a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a81785b6_729166a6",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 488,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-15T08:36:20Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b53938bc_f49c2494",
+      "revId": "0511f8258d3a9a4d0134efaf620fe5f8f05cc73a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
