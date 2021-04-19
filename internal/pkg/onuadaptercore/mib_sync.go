@@ -252,20 +252,22 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 				if success {
 					logger.Debugw(ctx, "reconciling flows has been finished in time",
 						log.Fields{"device-id": oo.deviceID})
+					oo.baseDeviceHandler.stopReconciling(ctx)
 					_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+
 				} else {
 					logger.Debugw(ctx, "wait for reconciling flows aborted",
 						log.Fields{"device-id": oo.deviceID})
 					oo.baseDeviceHandler.setReconcilingFlows(false)
-					return
 				}
-			case <-time.After(100 * time.Millisecond):
+			case <-time.After(500 * time.Millisecond):
 				logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
 					log.Fields{"device-id": oo.deviceID})
 				oo.baseDeviceHandler.setReconcilingFlows(false)
+				//try reconciling with omci-config
+				oo.baseDeviceHandler.startReconciling(ctx, false)
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
 			}
-			oo.baseDeviceHandler.stopReconciling(ctx)
 		}()
 
 	} else {
@@ -859,7 +861,8 @@ func (oo *OnuDeviceEntry) IsImageToBeCommitted(ctx context.Context, aImageID uin
 func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 
 	oo.mibTemplatePath = oo.buildMibTemplatePath()
-	logger.Debugw(ctx, "MibSync FSM - get Mib from template", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath)})
+	logger.Debugw(ctx, "MibSync FSM - get Mib from template", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath),
+		"device-id": oo.deviceID})
 
 	restoredFromMibTemplate := false
 	Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
