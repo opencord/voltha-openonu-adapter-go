@@ -80,7 +80,8 @@ func (oo *OnuDeviceEntry) enterStartingState(ctx context.Context, e *fsm.Event) 
 func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start MibTemplate processing in State": e.FSM.Current(), "device-id": oo.deviceID})
 
-	if !oo.isNewOnu() && !oo.baseDeviceHandler.isReconciling() {
+	if (!oo.isNewOnu() && !oo.baseDeviceHandler.isReconciling()) || //use case: re-auditing failed
+		oo.baseDeviceHandler.isSkipOnuConfigReconciling() { //use case: reconciling without omci-config failed
 		oo.baseDeviceHandler.prepareReconcilingWithActiveAdapter(ctx)
 		oo.devState = DeviceStatusInit
 	}
@@ -235,14 +236,9 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 
 		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
-		oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
 
-		if oo.sOnuPersistentData.PersUniDisableDone {
-			oo.baseDeviceHandler.disableUniPortStateUpdate(ctx)
-			oo.baseDeviceHandler.setDeviceReason(drOmciAdminLock)
-		} else {
-			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
-		}
+		// start go routine with select() on reconciling flow channel before
+		// starting flow reconciling process to prevent loss of any signal
 		go func() {
 			// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
 			// we get a signal that the processing of the last step to rebuild the adapter internal
@@ -252,22 +248,29 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 				if success {
 					logger.Debugw(ctx, "reconciling flows has been finished in time",
 						log.Fields{"device-id": oo.deviceID})
+					oo.baseDeviceHandler.stopReconciling(ctx)
 					_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+
 				} else {
 					logger.Debugw(ctx, "wait for reconciling flows aborted",
 						log.Fields{"device-id": oo.deviceID})
 					oo.baseDeviceHandler.setReconcilingFlows(false)
-					return
 				}
-			case <-time.After(100 * time.Millisecond):
+			case <-time.After(500 * time.Millisecond):
 				logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
 					log.Fields{"device-id": oo.deviceID})
 				oo.baseDeviceHandler.setReconcilingFlows(false)
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
 			}
-			oo.baseDeviceHandler.stopReconciling(ctx)
 		}()
+		oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
 
+		if oo.sOnuPersistentData.PersUniDisableDone {
+			oo.baseDeviceHandler.disableUniPortStateUpdate(ctx)
+			oo.baseDeviceHandler.setDeviceReason(drOmciAdminLock)
+		} else {
+			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
+		}
 	} else {
 		logger.Debugw(ctx, "MibSync FSM",
 			log.Fields{"Getting MIB from template not successful": e.FSM.Current(), "device-id": oo.deviceID})
@@ -859,7 +862,8 @@ func (oo *OnuDeviceEntry) IsImageToBeCommitted(ctx context.Context, aImageID uin
 func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 
 	oo.mibTemplatePath = oo.buildMibTemplatePath()
-	logger.Debugw(ctx, "MibSync FSM - get Mib from template", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath)})
+	logger.Debugw(ctx, "MibSync FSM - get Mib from template", log.Fields{"path": fmt.Sprintf("%s/%s", cBasePathMibTemplateKvStore, oo.mibTemplatePath),
+		"device-id": oo.deviceID})
 
 	restoredFromMibTemplate := false
 	Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
