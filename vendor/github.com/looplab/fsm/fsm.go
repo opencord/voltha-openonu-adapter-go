@@ -84,7 +84,7 @@ type Callback func(*Event)
 // Events is a shorthand for defining the transition map in NewFSM.
 type Events []EventDesc
 
-// Callbacks is a shorthand for defining the callbacks in NewFSM.a
+// Callbacks is a shorthand for defining the callbacks in NewFSM.
 type Callbacks map[string]Callback
 
 // NewFSM constructs a FSM from events and callbacks.
@@ -318,8 +318,8 @@ func (f *FSM) Event(event string, args ...interface{}) error {
 
 	// Perform the rest of the transition, if not asynchronous.
 	f.stateMu.RUnlock()
+	defer f.stateMu.RLock()
 	err = f.doTransition()
-	f.stateMu.RLock()
 	if err != nil {
 		return InternalError{}
 	}

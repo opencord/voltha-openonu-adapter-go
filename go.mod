@@ -8,7 +8,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.3.2
 	github.com/google/gopacket v1.1.17
-	github.com/looplab/fsm v0.1.0
+	github.com/looplab/fsm v0.2.0
 	github.com/opencord/omci-lib-go v0.17.0
 	github.com/opencord/voltha-lib-go/v4 v4.2.3
 	github.com/opencord/voltha-protos/v4 v4.1.0
