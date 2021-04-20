@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c303708c_2f0d2bc8",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1351,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-20T14:00:54Z",
+      "side": 1,
+      "message": "you can extract these lines as a method e.g. performAniEvReset, it\u0027s used everywhere where err!\u003d nil. thus doing this you can just have \nif err !\u003d nil {\n \u003cdifferent log for each case\u003e\n performAniEvReset(oFsm, pConfigAniStateAFsm)\n return\n}",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
