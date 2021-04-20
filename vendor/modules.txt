@@ -58,7 +58,7 @@ github.com/hashicorp/go-uuid
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
-# github.com/looplab/fsm v0.1.0
+# github.com/looplab/fsm v0.2.0
 ## explicit
 github.com/looplab/fsm
 # github.com/opencord/omci-lib-go v0.17.0

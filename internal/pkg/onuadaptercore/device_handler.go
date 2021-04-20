@@ -2746,35 +2746,6 @@ func (dh *deviceHandler) RemoveVlanFilterFsm(ctx context.Context, apUniPort *onu
 	dh.lockVlanConfig.Unlock()
 }
 
-//ProcessPendingTpDelete processes any pending TP delete (if available)
-func (dh *deviceHandler) ProcessPendingTpDelete(ctx context.Context, apUniPort *onuUniPort, aTpID uint8) {
-	logger.Debugw(ctx, "enter processing pending tp delete", log.Fields{"device-id": dh.deviceID, "tpID": aTpID})
-	if apUniPort == nil {
-		logger.Errorw(ctx, "uni port is nil", log.Fields{"device-id": dh.deviceID})
-		return
-	}
-	k := uniTP{uniID: apUniPort.uniID, tpID: aTpID}
-	if pAniConfigFsm, ok := dh.pOnuTP.pAniConfigFsm[k]; pAniConfigFsm != nil && ok {
-		pAniConfigStatemachine := pAniConfigFsm.pAdaptFsm.pFsm
-		if pAniConfigStatemachine != nil {
-			//If the gem port delete was waiting on flow remove, indicate event that flow remove is done
-			if pAniConfigStatemachine.Is(aniStWaitingFlowRem) {
-				logger.Debugw(ctx, "ani fsm in aniStWaitingFlowRem state - handling aniEvFlowRemDone event",
-					log.Fields{"device-id": dh.deviceID, "tpID": aTpID})
-				if err := pAniConfigStatemachine.Event(aniEvFlowRemDone); err != nil {
-					logger.Warnw(ctx, "AniConfigFsm: can't continue processing", log.Fields{"err": err,
-						"device-id": dh.deviceID, "UniPort": apUniPort.portNo, "tpID": aTpID})
-					return
-				}
-			} else {
-				logger.Debugw(ctx, "ani fsm not in aniStWaitingFlowRem state", log.Fields{"device-id": dh.deviceID, "tpID": aTpID})
-				return
-			}
-		}
-		return
-	}
-}
-
 //startWritingOnuDataToKvStore initiates the KVStore write of ONU persistent data
 func (dh *deviceHandler) startWritingOnuDataToKvStore(ctx context.Context, aPDevEntry *OnuDeviceEntry) error {
 	dh.mutexKvStoreContext.Lock()         //this write routine may (could) be called with the same context,

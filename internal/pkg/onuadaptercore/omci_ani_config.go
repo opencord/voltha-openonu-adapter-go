@@ -127,6 +127,8 @@ type uniPonAniConfigFsm struct {
 	gemPortAttribsSlice      []ponAniGemPortAttribs
 	pLastTxMeInstance        *me.ManagedEntity
 	requestEventOffset       uint8 //used to indicate ConfigDone or Removed using successor (enum)
+	isWaitingForFlowDelete   bool
+	waitFlowDeleteChannel    chan bool
 }
 
 //newUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
@@ -145,6 +147,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 		chanSet:        false,
 	}
 	instFsm.uniTpKey = uniTP{uniID: apUniPort.uniID, tpID: aTechProfileID}
+	instFsm.waitFlowDeleteChannel = make(chan bool)
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
@@ -194,7 +197,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			// exceptional treatment for all states except aniStResetting
 			{Name: aniEvReset, Src: []string{aniStStarting, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
 				aniStSettingTconts, aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs, aniStSettingDot1PMapper,
-				aniStConfigDone, aniStRemovingGemIW, aniStRemovingGemNCTP,
+				aniStConfigDone, aniStRemovingGemIW, aniStWaitingFlowRem, aniStRemovingGemNCTP,
 				aniStResetTcont, aniStRemDot1PMapper, aniStRemAniBPCD, aniStRemoveDone}, Dst: aniStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: aniEvRestart, Src: []string{aniStResetting}, Dst: aniStDisabled},
@@ -212,6 +215,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			("enter_" + aniStSettingDot1PMapper):  func(e *fsm.Event) { instFsm.enterSettingDot1PMapper(ctx, e) },
 			("enter_" + aniStConfigDone):          func(e *fsm.Event) { instFsm.enterAniConfigDone(ctx, e) },
 			("enter_" + aniStRemovingGemIW):       func(e *fsm.Event) { instFsm.enterRemovingGemIW(ctx, e) },
+			("enter_" + aniStWaitingFlowRem):      func(e *fsm.Event) { instFsm.enterWaitingFlowRem(ctx, e) },
 			("enter_" + aniStRemovingGemNCTP):     func(e *fsm.Event) { instFsm.enterRemovingGemNCTP(ctx, e) },
 			("enter_" + aniStResetTcont):          func(e *fsm.Event) { instFsm.enterResettingTcont(ctx, e) },
 			("enter_" + aniStRemDot1PMapper):      func(e *fsm.Event) { instFsm.enterRemoving1pMapper(ctx, e) },
@@ -248,6 +252,10 @@ func (oFsm *uniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	if oFsm.isAwaitingResponse {
 		//use channel to indicate that the response waiting shall be aborted
 		oFsm.omciMIdsResponseReceived <- false
+	}
+	if oFsm.isWaitingForFlowDelete {
+		//use channel to indicate that the response waiting shall be aborted
+		oFsm.waitFlowDeleteChannel <- false
 	}
 	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
 	pAdaptFsm := oFsm.pAdaptFsm
@@ -672,9 +680,14 @@ func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 }
 
 func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.Event) {
-
 	oFsm.pUniTechProf.mutexTPState.Lock()
-	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending() {
+	//flush the waitFlowDeleteChannel - possibly already/still set by some previous activity
+	select {
+	case <-oFsm.waitFlowDeleteChannel:
+		logger.Debug(ctx, "flushed waitFlowDeleteChannel")
+	default:
+	}
+	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending(oFsm.waitFlowDeleteChannel) {
 		oFsm.pUniTechProf.mutexTPState.Unlock()
 		logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
 			log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
@@ -705,6 +718,76 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	meInstance := oFsm.pOmciCC.sendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
 	oFsm.pLastTxMeInstance = meInstance
+}
+
+func (oFsm *uniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.Event) {
+	oFsm.mutexIsAwaitingResponse.Lock()
+	oFsm.isWaitingForFlowDelete = true
+	oFsm.mutexIsAwaitingResponse.Unlock()
+	select {
+	// maybe be also some outside cancel (but no context modeled for the moment ...)
+	// case <-ctx.Done():
+	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
+	case <-time.After(10 * time.Second): //give flow processing enough time to finish (but try to be less than rwCore flow timeouts)
+		logger.Warnw(ctx, "uniPonAniConfigFsm WaitingFlowRem timeout", log.Fields{
+			"for device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+		oFsm.mutexIsAwaitingResponse.Lock()
+		oFsm.isWaitingForFlowDelete = false
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		//if the flow is not removed as expected we just try to continue with GemPort removal and hope things are clearing up afterwards
+		pConfigAniStateAFsm := oFsm.pAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.pFsm != nil {
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvFlowRemDone)
+				}
+			}(pConfigAniStateAFsm)
+		} else {
+			logger.Errorw(ctx, "pConfigAniStateAFsm is nil", log.Fields{
+				"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+		}
+		return
+
+	case success := <-oFsm.waitFlowDeleteChannel:
+		if success {
+			logger.Debugw(ctx, "uniPonAniConfigFsm flow removed info received", log.Fields{
+				"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+			oFsm.mutexIsAwaitingResponse.Lock()
+			oFsm.isWaitingForFlowDelete = false
+			oFsm.mutexIsAwaitingResponse.Unlock()
+			pConfigAniStateAFsm := oFsm.pAdaptFsm
+			if pConfigAniStateAFsm != nil {
+				// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+				go func(aPAFsm *AdapterFsm) {
+					if aPAFsm != nil && aPAFsm.pFsm != nil {
+						_ = oFsm.pAdaptFsm.pFsm.Event(aniEvFlowRemDone)
+					}
+				}(pConfigAniStateAFsm)
+			} else {
+				logger.Errorw(ctx, "pConfigAniStateAFsm is nil", log.Fields{
+					"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+			}
+			return
+		}
+		// waiting was aborted (probably on external request)
+		logger.Debugw(ctx, "uniPonAniConfigFsm WaitingFlowRem aborted", log.Fields{
+			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+		oFsm.mutexIsAwaitingResponse.Lock()
+		oFsm.isWaitingForFlowDelete = false
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		//to be sure we can just generate the reset-event to ensure leaving this state towards 'reset'
+		pConfigAniStateAFsm := oFsm.pAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.pFsm != nil {
+					_ = aPAFsm.pFsm.Event(aniEvReset)
+				}
+			}(pConfigAniStateAFsm)
+		}
+		return
+	}
 }
 
 func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm.Event) {
