@@ -2,6 +2,91 @@
   "comments": [
     {
       "key": {
+        "uuid": "48e76a89_2965d880",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "background (go routine) handling required, see your change in line 70",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eca55d86_7814a7da",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "\"ONU2-G set ...\"",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91701efb_5ac5c564",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "Sorry, but here not required and should not be done in background. performInitialBridgeSetup already runs in background.\nAplies to other positions in this function as well.",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a85651f4_44831da3",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "here not required and should not be done in background - this is no \u0027enter_state\u0027 function (not bound synchronously to the FSM)",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0267f405_09fd3d48",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1180,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "here not required and should not be done in background - function already running in background.\nApplies to more places in this function and also the following performe* functions",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c303708c_2f0d2bc8",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 9
@@ -13,6 +98,125 @@
       "writtenOn": "2021-04-20T14:00:54Z",
       "side": 1,
       "message": "you can extract these lines as a method e.g. performAniEvReset, it\u0027s used everywhere where err!\u003d nil. thus doing this you can just have \nif err !\u003d nil {\n \u003cdifferent log for each case\u003e\n performAniEvReset(oFsm, pConfigAniStateAFsm)\n return\n}",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c3d6468a_20383567",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 546,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "Event sending required in background in the enter* FSM functions",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c0f63b71_470c6f8e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 933,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "Event sending required in background in the enter* FSM functions, applies to multiple places in this code",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bca699d0_e1cf1f9e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1102,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "no error log here?",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cfd5aec_3c8ee62e",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 761,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "Perhaps you could be more specific here and in the next error logs below, they are all the same by now. Perhaps here: \"UNI-G get failed, ...\"",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0903956e_9e44ce86",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1328,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "needs to be called in background (l2PmFsmCreatePM is some direct enter* FSM function), applies also to other events below in this function and also l2PmFsmDeletePM()",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d7ea92d_2977c6d2",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "Here you still have the dobled set .. set ...",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ff62adc_f68dbe3b",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-20T15:25:19Z",
+      "side": 1,
+      "message": "must be called in background here (enter* FSM function)",
       "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
