@@ -721,7 +721,7 @@ func (mm *onuMetricsManager) collectUniStatusMetrics(ctx context.Context) []*vol
 
 	raisedTs := time.Now().Unix()
 	mmd := voltha.MetricMetaData{
-		Title:           "UniStatus", // Is this ok to hard code?
+		Title:           UniStatusGroupMetricName,
 		Ts:              float64(raisedTs),
 		Context:         metricsContext,
 		DeviceId:        mm.pDeviceHandler.deviceID,
