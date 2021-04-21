@@ -125,6 +125,7 @@ type uniPonAniConfigFsm struct {
 	tcont0ID                 uint16
 	alloc0ID                 uint16
 	gemPortAttribsSlice      []ponAniGemPortAttribs
+	mutexPLastTxMeInstance   sync.RWMutex
 	pLastTxMeInstance        *me.ManagedEntity
 	requestEventOffset       uint8 //used to indicate ConfigDone or Removed using successor (enum)
 }
@@ -475,6 +476,8 @@ func (oFsm *uniPonAniConfigFsm) enterCreatingDot1PMapper(ctx context.Context, e 
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 	oFsm.requestEventOffset = 0 //0 offset for last config request activity
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendCreateDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.mapperSP0ID, oFsm.pAdaptFsm.commChan)
 	//accept also nil as (error) return value for writing to LastTx
@@ -497,6 +500,8 @@ func (oFsm *uniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 			"TpPointer":       oFsm.mapperSP0ID,
 		},
 	}
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
@@ -515,6 +520,8 @@ func (oFsm *uniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 			"AllocId": oFsm.alloc0ID,
 		},
 	}
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	//accept also nil as (error) return value for writing to LastTx
@@ -639,6 +646,8 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 			}(pConfigAniStateAFsm)
 		}
 	} else {
+		oFsm.mutexPLastTxMeInstance.Lock()
+		defer oFsm.mutexPLastTxMeInstance.Unlock()
 		meInstance := oFsm.pOmciCC.sendSetDot1PMapperVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
@@ -702,6 +711,8 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	oFsm.requestEventOffset = 1 //offset 1 to indicate last activity = remove
 
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
 	oFsm.pLastTxMeInstance = meInstance
@@ -715,9 +726,11 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
 		"GemNCTP-entity-id": loGemPortID})
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
+	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance := oFsm.pOmciCC.sendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, loGemPortID)
 	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
 	// Mark the gem port to be removed for Performance History monitoring
 	if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
 		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(loGemPortID)
@@ -736,6 +749,8 @@ func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 			"AllocId": unusedTcontAllocID,
 		},
 	}
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendSetTcontVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, meParams)
 	oFsm.pLastTxMeInstance = meInstance
@@ -745,6 +760,8 @@ func (oFsm *uniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendDeleteDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, oFsm.mapperSP0ID)
 	oFsm.pLastTxMeInstance = meInstance
@@ -754,6 +771,8 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	meInstance := oFsm.pOmciCC.sendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		oFsm.pAdaptFsm.commChan, oFsm.macBPCD0ID)
 	oFsm.pLastTxMeInstance = meInstance
@@ -811,6 +830,8 @@ func (oFsm *uniPonAniConfigFsm) enterResettingState(ctx context.Context, e *fsm.
 func (oFsm *uniPonAniConfigFsm) enterDisabledState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "uniPonAniConfigFsm enters disabled state", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
 	oFsm.pLastTxMeInstance = nil
 }
 
@@ -866,6 +887,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 	logger.Debugw(ctx, "CreateResponse Data", log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj})
 	if msgObj.Result == me.Success || msgObj.Result == me.InstanceExists {
 		//if the result is ok or Instance already exists (latest needed at least as long as we do not clear the OMCI techProfile data)
+		oFsm.mutexPLastTxMeInstance.RLock()
 		if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
 			msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 			// maybe we can use just the same eventName for different state transitions like "forward"
@@ -873,17 +895,22 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 			switch oFsm.pLastTxMeInstance.GetName() {
 			case "Ieee8021PMapperServiceProfile":
 				{ // let the FSM proceed ...
+					oFsm.mutexPLastTxMeInstance.RUnlock()
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapCResp)
 				}
 			case "MacBridgePortConfigurationData":
 				{ // let the FSM proceed ...
+					oFsm.mutexPLastTxMeInstance.RUnlock()
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxMbpcdResp)
 				}
 			case "GemPortNetworkCtp", "GemInterworkingTerminationPoint", "MulticastGemInterworkingTerminationPoint":
 				{ // let aniConfig Multi-Id processing proceed by stopping the wait function
+					oFsm.mutexPLastTxMeInstance.RUnlock()
 					oFsm.omciMIdsResponseReceived <- true
 				}
 			}
+		} else {
+			oFsm.mutexPLastTxMeInstance.RUnlock()
 		}
 	} else {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
@@ -912,6 +939,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 		return
 	}
+	oFsm.mutexPLastTxMeInstance.RLock()
 	if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
 		msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 		//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
@@ -921,6 +949,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 		switch oFsm.pLastTxMeInstance.GetName() {
 		case "TCont":
 			{ // let the FSM proceed ...
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				if oFsm.requestEventOffset == 0 { //from TCont config request
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
 				} else { // from T-Cont reset request
@@ -929,13 +958,17 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 			}
 		case "PriorityQueue", "MulticastGemInterworkingTerminationPoint":
 			{ // let the PrioQueue init proceed by stopping the wait function
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				oFsm.omciMIdsResponseReceived <- true
 			}
 		case "Ieee8021PMapperServiceProfile":
 			{ // let the FSM proceed ...
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxDot1pmapSResp)
 			}
 		}
+	} else {
+		oFsm.mutexPLastTxMeInstance.RUnlock()
 	}
 }
 
@@ -960,6 +993,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 		//         store error for mgmt display?
 		return
 	}
+	oFsm.mutexPLastTxMeInstance.RLock()
 	if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
 		msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 		//remove ME from DB //TODO??? obviously the Python code does not store/remove the config ...
@@ -968,21 +1002,27 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 		switch oFsm.pLastTxMeInstance.GetName() {
 		case "GemInterworkingTerminationPoint":
 			{ // let the FSM proceed ...
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemGemiwResp)
 			}
 		case "GemPortNetworkCtp":
 			{ // let the FSM proceed ...
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemGemntpResp)
 			}
 		case "Ieee8021PMapperServiceProfile":
 			{ // let the FSM proceed ...
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRem1pMapperResp)
 			}
 		case "MacBridgePortConfigurationData":
 			{ // this is the last event of the T-Cont cleanup procedure, FSM may be reset here
+				oFsm.mutexPLastTxMeInstance.RUnlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemAniBPCDResp)
 			}
 		}
+	} else {
+		oFsm.mutexPLastTxMeInstance.RUnlock()
 	}
 }
 
@@ -1034,11 +1074,13 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 				"PriorityQueuePointerForDownStream":   gemPortAttribs.downQueueID,
 			},
 		}
+		oFsm.mutexPLastTxMeInstance.Lock()
 		meInstance := oFsm.pOmciCC.sendCreateGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
 		oFsm.pLastTxMeInstance = meInstance
+		oFsm.mutexPLastTxMeInstance.Unlock()
 
 		//verify response
 		err := oFsm.waitforOmciResponse(ctx)
@@ -1079,9 +1121,11 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
+			oFsm.mutexPLastTxMeInstance.Lock()
 			meInstance := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			oFsm.pLastTxMeInstance = meInstance
+			oFsm.mutexPLastTxMeInstance.Unlock()
 			//verify response
 			err := oFsm.waitforOmciResponse(ctx)
 			if err != nil {
@@ -1106,9 +1150,11 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"Ipv4MulticastAddressTable": ipv4MulticastTable,
 				},
 			}
+			oFsm.mutexPLastTxMeInstance.Lock()
 			meIPV4MCTableInstance := oFsm.pOmciCC.sendSetMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meIPV4MCTableParams)
 			oFsm.pLastTxMeInstance = meIPV4MCTableInstance
+			oFsm.mutexPLastTxMeInstance.Unlock()
 
 		} else {
 			meParams := me.ParamData{
@@ -1121,11 +1167,13 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
+			oFsm.mutexPLastTxMeInstance.Lock()
 			meInstance := oFsm.pOmciCC.sendCreateGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 				oFsm.pAdaptFsm.commChan, meParams)
 			//accept also nil as (error) return value for writing to LastTx
 			//  - this avoids misinterpretation of new received OMCI messages
 			oFsm.pLastTxMeInstance = meInstance
+			oFsm.mutexPLastTxMeInstance.Unlock()
 		}
 		//verify response
 		err := oFsm.waitforOmciResponse(ctx)
@@ -1195,11 +1243,13 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 			meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
 			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
 		}
+		oFsm.mutexPLastTxMeInstance.Lock()
 		meInstance := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 			oFsm.pAdaptFsm.commChan, meParams)
 		//accept also nil as (error) return value for writing to LastTx
 		//  - this avoids misinterpretation of new received OMCI messages
 		oFsm.pLastTxMeInstance = meInstance
+		oFsm.mutexPLastTxMeInstance.Unlock()
 
 		//verify response
 		err := oFsm.waitforOmciResponse(ctx)
