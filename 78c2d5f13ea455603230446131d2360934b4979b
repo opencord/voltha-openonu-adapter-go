@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba4b8937_9fbc9bc0",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 891,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-21T16:20:51Z",
+      "side": 1,
+      "message": "Think we discussed it would be more safe to check pLastTxMeInstance against nil here anyway. Applies to similar code in the other handle* methods as well.",
+      "revId": "78c2d5f13ea455603230446131d2360934b4979b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "39f54dfa_26ba9eca",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 911,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-21T16:20:51Z",
+      "side": 1,
+      "message": "Didn\u0027t you insert a default block as you assume that no other classes are relevant here because of the LastTxMeInstance correlation? Might be sufficient, but I would prefer to have the default unlock anyway (for intermediate changes, not intended pLastTxMeInstance values ...). Should not harm that much.\nApplies to similar code in the other handle* methods as well.",
+      "revId": "78c2d5f13ea455603230446131d2360934b4979b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
