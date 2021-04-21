@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a8b56a50_bcd696e0",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-21T06:42:09Z",
+      "side": 1,
+      "message": "No own protection by mutex necessary (apart from mutexIsAwaitingResponse)?",
+      "range": {
+        "startLine": 130,
+        "startChar": 1,
+        "endLine": 130,
+        "endChar": 26
+      },
+      "revId": "bb47bc2048d943718ab50b23e71495085b6f9a11",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "edf1d5df_8248809c",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 731,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-21T06:42:09Z",
+      "side": 1,
+      "message": "How long is the rwCore timeout in this case?",
+      "range": {
+        "startLine": 731,
+        "startChar": 120,
+        "endLine": 731,
+        "endChar": 128
+      },
+      "revId": "bb47bc2048d943718ab50b23e71495085b6f9a11",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
