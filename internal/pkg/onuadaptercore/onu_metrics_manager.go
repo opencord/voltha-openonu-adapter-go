@@ -182,9 +182,9 @@ const (
 	L2PmDeleteAttempts     = 3
 	L2PmCollectAttempts    = 3
 	// Per Table 11.2.9-1 – OMCI baseline message limitations in G.988 spec, the max GET Response
-	// payload size is 25. We define 24 (one less) to allow for dynamic insertion of IntervalEndTime
-	// attribute (1 byte) in L2 PM GET Requests.
-	MaxL2PMGetPayLoadSize = 24
+	// payload size is 25. We define 22 (three less) to allow for dynamic insertion of IntervalEndTime
+	// attribute (1 byte) and ManagedEntityID (2 bytes - inserted by OMCI library) in L2 PM GET Requests.
+	MaxL2PMGetPayLoadSize = 22
 )
 
 // EthernetUniHistoryName specific constants
@@ -2152,6 +2152,11 @@ func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 	size := 0
 	requestedAttributes := make(me.AttributeValueMap)
 	for _, v := range mEnt.GetAttributeDefinitions() {
+		if v.Name == "ManagedEntityId" || v.Name == "IntervalEndTime" {
+			// Exclude the ManagedEntityId from the GetParam List. It will be inserted by omci library
+			// Exclude IntervalEndTime. It will be inserted by the group PM populater function.
+			continue
+		}
 		if (v.Size + size) <= MaxL2PMGetPayLoadSize {
 			requestedAttributes[v.Name] = v.DefValue
 			size = v.Size + size
@@ -2162,8 +2167,9 @@ func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
 				return err
 			}
-			size = 0                                         // reset size
 			requestedAttributes = make(me.AttributeValueMap) // reset map
+			requestedAttributes[v.Name] = v.DefValue         // populate the metric that was missed in the current iteration
+			size = v.Size                                    // reset size
 		}
 	}
 	// Collect the omci get attributes for the last bunch of attributes.
