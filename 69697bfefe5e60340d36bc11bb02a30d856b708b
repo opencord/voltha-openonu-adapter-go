@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d67550dd_7468c9e3",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-22T13:22:16Z",
+      "side": 1,
+      "message": "How do we get out of this operstate? \nWhen reconciling is finished, the appropriate operstate has to be set depending on the outcome of reconcilement.",
+      "range": {
+        "startLine": 332,
+        "startChar": 2,
+        "endLine": 332,
+        "endChar": 3
+      },
+      "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
