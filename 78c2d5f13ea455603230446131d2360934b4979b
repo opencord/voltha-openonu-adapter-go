@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f414d558_1c0f5013",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 891,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-22T09:34:27Z",
+      "side": 1,
+      "message": "Since we are already processing the response and the mutex shows us that our send routine has been successfully processed, the probability that pLastTxMeInstance is nil here is extremely low. Nevertheless, since we cannot completely exclude this constellation, I will include the check for nil for this unlikely case ;-)",
+      "parentUuid": "ba4b8937_9fbc9bc0",
+      "revId": "78c2d5f13ea455603230446131d2360934b4979b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "39f54dfa_26ba9eca",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2021-04-21T16:20:51Z",
       "side": 1,
       "message": "Didn\u0027t you insert a default block as you assume that no other classes are relevant here because of the LastTxMeInstance correlation? Might be sufficient, but I would prefer to have the default unlock anyway (for intermediate changes, not intended pLastTxMeInstance values ...). Should not harm that much.\nApplies to similar code in the other handle* methods as well.",
+      "revId": "78c2d5f13ea455603230446131d2360934b4979b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1c69a89e_67b83573",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 911,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-22T09:34:27Z",
+      "side": 1,
+      "message": "Even though we already check the received ClassID against the originally sent one, you are right. To protect against possible coding errors, a default case is useful here.",
+      "parentUuid": "39f54dfa_26ba9eca",
       "revId": "78c2d5f13ea455603230446131d2360934b4979b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
