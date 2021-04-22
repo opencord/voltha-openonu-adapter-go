@@ -1722,10 +1722,8 @@ func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 	if classID == me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID {
 		upstream = true
 	}
-	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
-	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
-		requestedAttributes["IntervalEndTime"] = 0
-	}
+	// Insert "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
+	requestedAttributes["IntervalEndTime"] = 0
 	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
@@ -1818,10 +1816,8 @@ func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 // nolint: gocyclo
 func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, ethPMUniHistData map[string]float32, intervalEndTime *int) error {
-	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
-	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
-		requestedAttributes["IntervalEndTime"] = 0
-	}
+	// Insert "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
+	requestedAttributes["IntervalEndTime"] = 0
 	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
@@ -1914,10 +1910,8 @@ func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 // nolint: gocyclo
 func (mm *onuMetricsManager) populateFecHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, fecHistData map[string]float32, intervalEndTime *int) error {
-	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
-	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
-		requestedAttributes["IntervalEndTime"] = 0
-	}
+	// Insert "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
+	requestedAttributes["IntervalEndTime"] = 0
 	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
@@ -1974,10 +1968,8 @@ func (mm *onuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 // nolint: gocyclo
 func (mm *onuMetricsManager) populateGemPortMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, gemPortHistData map[string]float32, intervalEndTime *int) error {
-	// Make sure "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
-	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
-		requestedAttributes["IntervalEndTime"] = 0
-	}
+	// Insert "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
+	requestedAttributes["IntervalEndTime"] = 0
 	if meInstance := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan); meInstance != nil {
 		select {
 		case meAttributes = <-mm.l2PmChan:
@@ -2152,6 +2144,12 @@ func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 	size := 0
 	requestedAttributes := make(me.AttributeValueMap)
 	for _, v := range mEnt.GetAttributeDefinitions() {
+		if v.Name == "ManagedEntityId" || v.Name == "IntervalEndTime" || v.Name == "ThresholdData12Id" {
+			// Exclude the ManagedEntityId , it will be inserted by omci library based on 'entityID' information
+			// Exclude IntervalEndTime. It will be inserted by the group PM populater function.
+			// Exclude ThresholdData12Id as that is of no particular relevance for metrics collection.
+			continue
+		}
 		if (v.Size + size) <= MaxL2PMGetPayLoadSize {
 			requestedAttributes[v.Name] = v.DefValue
 			size = v.Size + size
@@ -2162,17 +2160,16 @@ func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 					log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
 				return err
 			}
-			size = 0                                         // reset size
 			requestedAttributes = make(me.AttributeValueMap) // reset map
+			requestedAttributes[v.Name] = v.DefValue         // populate the metric that was missed in the current iteration
+			size = v.Size                                    // reset size
 		}
 	}
 	// Collect the omci get attributes for the last bunch of attributes.
-	if len(requestedAttributes) > 0 {
-		if err := grpFunc(ctx, classID, entityID, meAttributes, requestedAttributes, data, intervalEndTime); err != nil {
-			logger.Errorw(ctx, "error during metric collection",
-				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
-			return err
-		}
+	if err := grpFunc(ctx, classID, entityID, meAttributes, requestedAttributes, data, intervalEndTime); err != nil {
+		logger.Errorw(ctx, "error during metric collection",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
+		return err
 	}
 	return nil
 }
