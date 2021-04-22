@@ -59,7 +59,7 @@ const cL2PmFsmIdleState = l2PmStIdle
 
 // general constants used for overall Metric Collection management
 const (
-	DefaultMetricCollectionFrequency = 15 * 60 // unit in seconds. This setting can be changed from voltha NBI PmConfig configuration
+	DefaultMetricCollectionFrequency = 15 // unit in seconds. This setting can be changed from voltha NBI PmConfig configuration
 	GroupMetricEnabled               = true    // This is READONLY and cannot be changed from VOLTHA NBI
 	DefaultFrequencyOverrideEnabled  = true    // This is READONLY and cannot be changed from VOLTHA NBI
 	FrequencyGranularity             = 5       // The frequency (in seconds) has to be multiple of 5. This setting cannot changed later.
@@ -176,7 +176,7 @@ var GemPortHistory = map[string]voltha.PmConfig_PmType{
 
 // Constants specific for L2 PM collection
 const (
-	L2PmCollectionInterval = 15 * 60 // Unit in seconds. Do not change this as this fixed by OMCI specification for L2 PM counters
+	L2PmCollectionInterval = 15 // Unit in seconds. Do not change this as this fixed by OMCI specification for L2 PM counters
 	SyncTimeRetryInterval  = 15      // Unit seconds
 	L2PmCreateAttempts     = 3
 	L2PmDeleteAttempts     = 3
@@ -2156,6 +2156,8 @@ func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 			}
 			size = 0                                         // reset size
 			requestedAttributes = make(me.AttributeValueMap) // reset map
+			requestedAttributes[v.Name] = v.DefValue         // populate the metric that was missed in the current iteration
+			size = v.Size + size
 		}
 	}
 	// Collect the omci get attributes for the last bunch of attributes.
