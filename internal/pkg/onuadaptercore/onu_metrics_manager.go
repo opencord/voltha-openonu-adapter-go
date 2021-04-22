@@ -2164,6 +2164,8 @@ func (mm *onuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 			}
 			size = 0                                         // reset size
 			requestedAttributes = make(me.AttributeValueMap) // reset map
+			requestedAttributes[v.Name] = v.DefValue         // populate the metric that was missed in the current iteration
+			size = v.Size
 		}
 	}
 	// Collect the omci get attributes for the last bunch of attributes.
