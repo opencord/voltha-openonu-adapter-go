@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "56730a6f_78f1d8a8",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1385,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-23T17:43:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c1e21217_0b3d6852",
+      "revId": "df2056ad192cbf7fe1cfdca9a451344fe95ea01b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2c6b4317_e2d56a30",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 3
@@ -33,6 +51,24 @@
       "revId": "df2056ad192cbf7fe1cfdca9a451344fe95ea01b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "270e9a69_1b6689e0",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1543,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-23T17:43:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2c6b4317_e2d56a30",
+      "revId": "df2056ad192cbf7fe1cfdca9a451344fe95ea01b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -80,6 +116,30 @@
       "revId": "df2056ad192cbf7fe1cfdca9a451344fe95ea01b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f2f7f85e_4a6bca82",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2272,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-23T17:43:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "699b62a7_e2a04f5b",
+      "range": {
+        "startLine": 2272,
+        "startChar": 69,
+        "endLine": 2272,
+        "endChar": 86
+      },
+      "revId": "df2056ad192cbf7fe1cfdca9a451344fe95ea01b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
