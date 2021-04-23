@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "028147f8_3e8f39a6",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1006,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-23T08:12:02Z",
+      "side": 1,
+      "message": "One RUnlock missing, applies also to the other occurances.",
+      "revId": "d46ac75ddd047cb576c44a13e6ed0426305e4e0d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
