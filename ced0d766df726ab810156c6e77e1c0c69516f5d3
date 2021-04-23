@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0b999fb8_aafdfb25",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2147,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-23T21:07:53Z",
+      "side": 1,
+      "message": "I think you are probably right. Strangely enough I never saw issues, but probably I haven\u0027t validated each and every PM report to analyze the issues. Let me make the change you suggest and test and see it does not break anything while also giving a proper PM report.",
+      "parentUuid": "c9dadf87_513b293a",
+      "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "831a9a5b_1b456cd6",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
@@ -62,6 +80,54 @@
       "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a4baff25_144b5263",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2160,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-23T21:07:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6952b367_ecaa91df",
+      "range": {
+        "startLine": 2160,
+        "startChar": 3,
+        "endLine": 2160,
+        "endChar": 8
+      },
+      "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "02babe20_ec71fa1a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2160,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-23T21:07:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "831a9a5b_1b456cd6",
+      "range": {
+        "startLine": 2160,
+        "startChar": 3,
+        "endLine": 2160,
+        "endChar": 23
+      },
+      "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
