@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3426b538_10d01797",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2272,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-23T08:23:05Z",
+      "side": 1,
+      "message": "Shouldn\u0027t this be a state not an event?",
+      "range": {
+        "startLine": 2272,
+        "startChar": 69,
+        "endLine": 2272,
+        "endChar": 86
+      },
+      "revId": "df2056ad192cbf7fe1cfdca9a451344fe95ea01b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
