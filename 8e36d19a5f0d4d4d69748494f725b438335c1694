@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9014f7f4_6e9b0117",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "48e76a89_2965d880",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "eca55d86_7814a7da",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 9
@@ -30,6 +48,24 @@
       "writtenOn": "2021-04-20T15:25:19Z",
       "side": 1,
       "message": "\"ONU2-G set ...\"",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f551222d_612cff95",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eca55d86_7814a7da",
       "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "63e2abc7_7e79a723",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "91701efb_5ac5c564",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a85651f4_44831da3",
         "filename": "internal/pkg/onuadaptercore/mib_sync.go",
         "patchSetId": 9
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "52a3dfa9_a7d26307",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "You mean  Is not go routine required here?",
+      "parentUuid": "a85651f4_44831da3",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0267f405_09fd3d48",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 9
@@ -81,6 +153,24 @@
       "writtenOn": "2021-04-20T15:25:19Z",
       "side": 1,
       "message": "here not required and should not be done in background - function already running in background.\nApplies to more places in this function and also the following performe* functions",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8600a63b_16bf9bda",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1180,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0267f405_09fd3d48",
       "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -115,6 +205,24 @@
       "writtenOn": "2021-04-20T15:25:19Z",
       "side": 1,
       "message": "Event sending required in background in the enter* FSM functions",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bce54bd3_58d789cd",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 546,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c3d6468a_20383567",
       "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -189,6 +297,24 @@
     },
     {
       "key": {
+        "uuid": "0535e127_e9d3e14c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1328,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0903956e_9e44ce86",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1d7ea92d_2977c6d2",
         "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
         "patchSetId": 9
@@ -206,6 +332,24 @@
     },
     {
       "key": {
+        "uuid": "f60fc76f_a9ebc4e2",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1d7ea92d_2977c6d2",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7ff62adc_f68dbe3b",
         "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
         "patchSetId": 9
@@ -217,6 +361,24 @@
       "writtenOn": "2021-04-20T15:25:19Z",
       "side": 1,
       "message": "must be called in background here (enter* FSM function)",
+      "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e66e1b2f_466502b4",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-23T11:19:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7ff62adc_f68dbe3b",
       "revId": "8e36d19a5f0d4d4d69748494f725b438335c1694",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
