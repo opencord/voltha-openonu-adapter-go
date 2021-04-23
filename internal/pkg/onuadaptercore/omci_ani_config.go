@@ -114,6 +114,7 @@ type uniPonAniConfigFsm struct {
 	uniTpKey                 uniTP
 	requestEvent             OnuDeviceEvent
 	mutexIsAwaitingResponse  sync.RWMutex
+	isCanceled               bool
 	isAwaitingResponse       bool
 	omciMIdsResponseReceived chan bool //separate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                *AdapterFsm
@@ -248,16 +249,27 @@ func (oFsm *uniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	//early indication about started reset processing
 	oFsm.pUniTechProf.setProfileResetting(ctx, oFsm.pOnuUniPort.uniID, oFsm.techProfileID, true)
 	//mutex protection is required for possible concurrent access to FSM members
-	oFsm.mutexIsAwaitingResponse.RLock()
-	defer oFsm.mutexIsAwaitingResponse.RUnlock()
+	oFsm.mutexIsAwaitingResponse.Lock()
+	oFsm.isCanceled = true
 	if oFsm.isAwaitingResponse {
+		//attention: for an unbuffered channel the sender is blocked until the value is received (processed)!
+		// accordingly the mutex must be released before sending to channel here (mutex acquired in receiver)
+		oFsm.mutexIsAwaitingResponse.Unlock()
 		//use channel to indicate that the response waiting shall be aborted
 		oFsm.omciMIdsResponseReceived <- false
+	} else {
+		oFsm.mutexIsAwaitingResponse.Unlock()
 	}
+
+	oFsm.mutexIsAwaitingResponse.Lock()
 	if oFsm.isWaitingForFlowDelete {
+		oFsm.mutexIsAwaitingResponse.Unlock()
 		//use channel to indicate that the response waiting shall be aborted
 		oFsm.waitFlowDeleteChannel <- false
+	} else {
+		oFsm.mutexIsAwaitingResponse.Unlock()
 	}
+
 	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
 	pAdaptFsm := oFsm.pAdaptFsm
 	if pAdaptFsm != nil {
@@ -466,6 +478,10 @@ func (oFsm *uniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e 
 	}
 	//ensure internal slices are empty (which might be set from previous run) - release memory
 	oFsm.gemPortAttribsSlice = nil
+	oFsm.mutexIsAwaitingResponse.Lock()
+	//reset the canceled state possibly existing from previous reset
+	oFsm.isCanceled = false
+	oFsm.mutexIsAwaitingResponse.Unlock()
 
 	// start go routine for processing of ANI config messages
 	go oFsm.processOmciAniMessages(ctx)
@@ -1391,6 +1407,12 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 
 func (oFsm *uniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
 	oFsm.mutexIsAwaitingResponse.Lock()
+	if oFsm.isCanceled {
+		// FSM already canceled before entering wait
+		logger.Debugw(ctx, "uniPonAniConfigFsm wait-for-multi-entity-response aborted (on enter)", log.Fields{"for device-id": oFsm.deviceID})
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		return fmt.Errorf(cErrWaitAborted)
+	}
 	oFsm.isAwaitingResponse = true
 	oFsm.mutexIsAwaitingResponse.Unlock()
 	select {
@@ -1405,14 +1427,14 @@ func (oFsm *uniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
 		return fmt.Errorf("uniPonAniConfigFsm multi entity timeout %s", oFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
-			logger.Debug(ctx, "uniPonAniConfigFsm multi entity response received")
+			logger.Debugw(ctx, "uniPonAniConfigFsm multi entity response received", log.Fields{"for device-id": oFsm.deviceID})
 			oFsm.mutexIsAwaitingResponse.Lock()
 			oFsm.isAwaitingResponse = false
 			oFsm.mutexIsAwaitingResponse.Unlock()
 			return nil
 		}
 		// waiting was aborted (probably on external request)
-		logger.Debugw(ctx, "uniPonAniConfigFsm wait for multi entity response aborted", log.Fields{"for device-id": oFsm.deviceID})
+		logger.Debugw(ctx, "uniPonAniConfigFsm wait-for-multi-entity-response aborted", log.Fields{"for device-id": oFsm.deviceID})
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
