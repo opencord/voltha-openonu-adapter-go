@@ -22,6 +22,29 @@
       "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6952b367_ecaa91df",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2160,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-23T08:30:55Z",
+      "side": 1,
+      "message": "I join the previous speaker ;-)",
+      "range": {
+        "startLine": 2160,
+        "startChar": 3,
+        "endLine": 2160,
+        "endChar": 8
+      },
+      "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
