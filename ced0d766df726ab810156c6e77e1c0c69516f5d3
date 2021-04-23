@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "831a9a5b_1b456cd6",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2160,
+      "author": {
+        "id": 1000643
+      },
+      "writtenOn": "2021-04-23T07:45:17Z",
+      "side": 1,
+      "message": "I think here it would be good enough to set \u0027size \u003d v.Size\u0027 because size is 0 at this point (see L2157). But the result will be the same:-)",
+      "range": {
+        "startLine": 2160,
+        "startChar": 3,
+        "endLine": 2160,
+        "endChar": 23
+      },
+      "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
