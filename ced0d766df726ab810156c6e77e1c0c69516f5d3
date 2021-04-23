@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "c9dadf87_513b293a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2147,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-23T14:42:04Z",
+      "side": 1,
+      "message": "While you are at this point, would you also exclude the unwanted size counting for the ME-Id attribute as discussed with Chip Bowling? So something like that here at the beginning:\nif v.Name \u003d\u003d \"ManagedEntityId\" {\n    //exclude the MEId from the GetParam List\n    continue\n}",
+      "revId": "ced0d766df726ab810156c6e77e1c0c69516f5d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "831a9a5b_1b456cd6",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 2
