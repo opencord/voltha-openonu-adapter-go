@@ -158,6 +158,7 @@ type UniVlanConfigFsm struct {
 	pAdaptFsm                   *AdapterFsm
 	acceptIncrementalEvtoOption bool
 	clearPersistency            bool
+	isCancelled                 bool
 	isAwaitingResponse          bool
 	mutexIsAwaitingResponse     sync.RWMutex
 	mutexFlowParams             sync.RWMutex
@@ -335,17 +336,23 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 	//mutex protection is required for possible concurrent access to FSM members
-	oFsm.mutexIsAwaitingResponse.RLock()
-	defer oFsm.mutexIsAwaitingResponse.RUnlock()
+	oFsm.mutexIsAwaitingResponse.Lock()
+	oFsm.isCancelled = true
 	if oFsm.isAwaitingResponse {
+		//attention: for an unbuffered channel the sender is blocked until the value is received (processed)!
+		// accordingly the mutex must be released before sending to channel here (mutex aquired in receiver)
+		oFsm.mutexIsAwaitingResponse.Unlock()
 		//use channel to indicate that the response waiting shall be aborted
 		oFsm.omciMIdsResponseReceived <- false
+	} else {
+		oFsm.mutexIsAwaitingResponse.Unlock()
 	}
+
 	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
 	pAdaptFsm := oFsm.pAdaptFsm
 	if pAdaptFsm != nil {
 		if fsmErr := pAdaptFsm.pFsm.Event(vlanEvReset); fsmErr != nil {
-			logger.Errorw(ctx, "error in FsmEvent handling UniVlanConfigFsm!",
+			logger.Errorw(ctx, "reset-event failed in UniVlanConfigFsm!",
 				log.Fields{"fsmState": oFsm.pAdaptFsm.pFsm.Current(), "error": fsmErr, "device-id": oFsm.deviceID})
 		}
 	}
@@ -1101,6 +1108,10 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 		logger.Debugw(ctx, "UniVlanConfigFsm: no VTFD config required", log.Fields{
 			"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 	} else {
+		//TODO!!!: it was not really intended to keep this enter* FSM method waiting on OMCI response (preventing other state transitions)
+		// so it would be conceptually better to wait for the response in background like for the other multi-entity processing
+		// but as the OMCI sequence must be ensured, a separate new state would be required - perhaps later
+		// in practice should have no influence by now as no other state transition is currently accepted (while cancel() is ensured)
 		if oFsm.numVlanFilterEntries == 0 {
 			// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
 			// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
@@ -2150,6 +2161,12 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 
 func (oFsm *UniVlanConfigFsm) waitforOmciResponse(ctx context.Context) error {
 	oFsm.mutexIsAwaitingResponse.Lock()
+	if oFsm.isCancelled {
+		// FSM already cancelled before entering wait
+		logger.Debugw(ctx, "UniVlanConfigFsm wait-for-multi-entity-response aborted (on enter)", log.Fields{"for device-id": oFsm.deviceID})
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		return fmt.Errorf(cErrWaitAborted)
+	}
 	oFsm.isAwaitingResponse = true
 	oFsm.mutexIsAwaitingResponse.Unlock()
 	select {
@@ -2164,14 +2181,14 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse(ctx context.Context) error {
 		return fmt.Errorf("uniVlanConfigFsm multi entity timeout %s", oFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
-			logger.Debug(ctx, "UniVlanConfigFsm multi entity response received")
+			logger.Debugw(ctx, "UniVlanConfigFsm multi entity response received", log.Fields{"for device-id": oFsm.deviceID})
 			oFsm.mutexIsAwaitingResponse.Lock()
 			oFsm.isAwaitingResponse = false
 			oFsm.mutexIsAwaitingResponse.Unlock()
 			return nil
 		}
 		// waiting was aborted (probably on external request)
-		logger.Debugw(ctx, "UniVlanConfigFsm wait for multi entity response aborted", log.Fields{"for device-id": oFsm.deviceID})
+		logger.Debugw(ctx, "UniVlanConfigFsm wait-for-multi-entity-response aborted", log.Fields{"for device-id": oFsm.deviceID})
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
