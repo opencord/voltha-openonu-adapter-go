@@ -832,7 +832,7 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	oFsm.mutexPLastTxMeInstance.Unlock()
 	// Mark the gem port to be removed for Performance History monitoring
 	if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
-		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(loGemPortID)
+		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(ctx, loGemPortID)
 	}
 }
 
@@ -1225,7 +1225,7 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 		}
 		// Mark the gem port to be removed for Performance History monitoring
 		if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
-			oFsm.pDeviceHandler.pOnuMetricsMgr.AddGemPortForPerfMonitoring(gemPortAttribs.gemPortID)
+			oFsm.pDeviceHandler.pOnuMetricsMgr.AddGemPortForPerfMonitoring(ctx, gemPortAttribs.gemPortID)
 		}
 	} //for all GemPorts of this T-Cont
 
