@@ -1381,7 +1381,11 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 		if atLeastOneSuccess {
 			mm.onuMetricsManagerLock.Lock()
 			mm.activeL2Pms = mm.appendIfMissingString(mm.activeL2Pms, n)
-			mm.l2PmToAdd = mm.removeIfFoundString(mm.l2PmToAdd, n)
+			// gem ports can be added dynamically for perf monitoring. We want to clear the GemPortHistoryName from mm.l2PmToAdd
+			// only if the there no more new gem port instances created.
+			if n != GemPortHistoryName || (n == GemPortHistoryName && len(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd) == 0) {
+				mm.l2PmToAdd = mm.removeIfFoundString(mm.l2PmToAdd, n)
+			}
 			logger.Debugw(ctx, "success-resp", log.Fields{"pm-name": n, "active-l2-pms": mm.activeL2Pms, "pms-to-add": mm.l2PmToAdd})
 			mm.onuMetricsManagerLock.Unlock()
 		} else {
@@ -1535,7 +1539,11 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 		} else { // success case
 			mm.onuMetricsManagerLock.Lock()
 			mm.activeL2Pms = mm.removeIfFoundString(mm.activeL2Pms, n)
-			mm.l2PmToDelete = mm.removeIfFoundString(mm.l2PmToDelete, n)
+			// gem ports can be deleted dynamically from perf monitoring. We want to clear the GemPortHistoryName from mm.l2PmToDelete
+			// only if the there no more new gem port instances removed.
+			if n != GemPortHistoryName || (n == GemPortHistoryName && len(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete) == 0) {
+				mm.l2PmToDelete = mm.removeIfFoundString(mm.l2PmToDelete, n)
+			}
 			logger.Debugw(ctx, "success-resp", log.Fields{"pm-name": n, "active-l2-pms": mm.activeL2Pms, "pms-to-delete": mm.l2PmToDelete})
 			mm.onuMetricsManagerLock.Unlock()
 		}
@@ -2261,7 +2269,7 @@ func (mm *onuMetricsManager) initializeL2PmFsm(ctx context.Context, aCommChannel
 		fsm.Events{
 			{Name: l2PmEventInit, Src: []string{l2PmStNull}, Dst: l2PmStStarting},
 			{Name: l2PmEventTick, Src: []string{l2PmStStarting}, Dst: l2PmStSyncTime},
-			{Name: l2PmEventTick, Src: []string{l2PmStIdle, l2PmEventDeleteMe, l2PmEventAddMe}, Dst: l2PmStCollectData},
+			{Name: l2PmEventTick, Src: []string{l2PmStIdle, l2PmStCreatePmMe, l2PmEventDeleteMe}, Dst: l2PmStCollectData},
 			{Name: l2PmEventSuccess, Src: []string{l2PmStSyncTime, l2PmStCreatePmMe, l2PmStDeletePmMe, l2PmStCollectData}, Dst: l2PmStIdle},
 			{Name: l2PmEventFailure, Src: []string{l2PmStCreatePmMe, l2PmStDeletePmMe, l2PmStCollectData}, Dst: l2PmStIdle},
 			{Name: l2PmEventFailure, Src: []string{l2PmStSyncTime}, Dst: l2PmStSyncTime},
@@ -2364,9 +2372,10 @@ func (mm *onuMetricsManager) populateLocalGroupMetricData(ctx context.Context) {
 	}
 }
 
-func (mm *onuMetricsManager) AddGemPortForPerfMonitoring(gemPortNTPInstID uint16) {
+func (mm *onuMetricsManager) AddGemPortForPerfMonitoring(ctx context.Context, gemPortNTPInstID uint16) {
 	mm.onuMetricsManagerLock.Lock()
 	defer mm.onuMetricsManagerLock.Unlock()
+	logger.Debugw(ctx, "add gemport for perf monitoring - start", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "gemPortID": gemPortNTPInstID})
 	// mark the instance for addition
 	mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd = mm.appendIfMissingUnt16(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd, gemPortNTPInstID)
 	// If the instance presence toggles too soon, we need to remove it from gemPortNCTPPerfHistInstToDelete slice
@@ -2377,11 +2386,22 @@ func (mm *onuMetricsManager) AddGemPortForPerfMonitoring(gemPortNTPInstID uint16
 	// GemPortPerfHistory ME simultaneously for different instances of the ME.
 	// The creation or deletion of an instance is decided based on its presence in gemPortNCTPPerfHistInstToDelete or
 	// gemPortNCTPPerfHistInstToAdd slice
+
+	logger.Debugw(ctx, "add gemport for perf monitoring - end",
+		log.Fields{"device-id": mm.pDeviceHandler.deviceID, "pms-to-add": mm.l2PmToAdd,
+			"instances-to-add": mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd})
+	go func() {
+		if err := mm.pAdaptFsm.pFsm.Event(l2PmEventAddMe); err != nil {
+			// log at warn level as the gem port for monitoring is going to be added eventually
+			logger.Warnw(ctx, "error calling event", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "err": err})
+		}
+	}()
 }
 
-func (mm *onuMetricsManager) RemoveGemPortForPerfMonitoring(gemPortNTPInstID uint16) {
+func (mm *onuMetricsManager) RemoveGemPortForPerfMonitoring(ctx context.Context, gemPortNTPInstID uint16) {
 	mm.onuMetricsManagerLock.Lock()
 	defer mm.onuMetricsManagerLock.Unlock()
+	logger.Debugw(ctx, "remove gemport for perf monitoring - start", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "gemPortID": gemPortNTPInstID})
 	mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete = mm.appendIfMissingUnt16(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete, gemPortNTPInstID)
 	// If the instance presence toggles too soon, we need to remove it from gemPortNCTPPerfHistInstToAdd slice
 	mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd = mm.removeIfFoundUint16(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd, gemPortNTPInstID)
@@ -2391,6 +2411,16 @@ func (mm *onuMetricsManager) RemoveGemPortForPerfMonitoring(gemPortNTPInstID uin
 	// GemPortPerfHistory ME simultaneously for different instances of the ME.
 	// The creation or deletion of an instance is decided based on its presence in gemPortNCTPPerfHistInstToDelete or
 	// gemPortNCTPPerfHistInstToAdd slice
+
+	logger.Debugw(ctx, "remove gemport from perf monitoring - end",
+		log.Fields{"device-id": mm.pDeviceHandler.deviceID, "pms-to-delete": mm.l2PmToDelete,
+			"instances-to-delete": mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete})
+	go func() {
+		if err := mm.pAdaptFsm.pFsm.Event(l2PmEventDeleteMe); err != nil {
+			// log at warn level as the gem port for monitoring is going to be removed eventually
+			logger.Warnw(ctx, "error calling event", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "err": err})
+		}
+	}()
 }
 
 func (mm *onuMetricsManager) updateGemPortNTPInstanceToAddForPerfMonitoring(ctx context.Context) {
