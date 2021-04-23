@@ -1,0 +1,8 @@
+Code-Review+2: Andrea Campanella <andrea@opennetworking.org>
+Code-Review+1: Matteo Scandolo <teo@opennetworking.org>
+Verified+1: Matteo Scandolo <teo@opennetworking.org>
+Submitted-by: Girish Gowdra <girish@opennetworking.org>
+Submitted-at: Fri, 23 Apr 2021 17:32:15 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/24348
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
