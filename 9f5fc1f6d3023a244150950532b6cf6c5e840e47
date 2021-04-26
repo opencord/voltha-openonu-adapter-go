@@ -1,0 +1,191 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "778210e9_ec726e96",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "I know, these fragments are already there in the base version, but if you are at it: It looks a bit strange - giving the function the pointer and using the instance member then directly. So better simply use a_pAFsm.pFsm.Event(dlEvReset) here - and also within similar code positions where you changed the code recently.",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "710929da_2f69d120",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "My comment was more on the \u0027set\u0027 instead of \u0027create\u0027",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8efc8c37_a4501f25",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 497,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "compare MibDownload comment, use aPAFsm.pFsm.Event(...) (at least in your changes, I know it is used like this here already in base code on other places ...)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1c820dfd_70aa26dd",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 501,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "If the FSM pointer is nil here, it should be a fatal error and there is now way to resolve that from within the FSM. Even though it should \u0027never\u0027 appear it might make sense to put some error log here - but not that important...(would apply also to the other treatments on send* error in this file and maybe also in other other files).",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "93259b05_3602692e",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "This code was unintentionally moved into error block, needs to be in the \u0027success\u0027 block! (this blocks the FSM processing).\nCompare also comment on sendCreateDot1PMapper.",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ef261f53_5babd202",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 549,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "compare MibDownload comment, use a_pAFsm.pFsm.Event(...)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c0f8b56_bdf9b244",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 969,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "compare MibDownload comment, use a_pAFsm.pFsm.Event(...)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c989f16_5d11d966",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1145,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "compare MibDownload comment, use a_pAFsm.pFsm.Event(...)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a367e004_aa6fb74f",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1331,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "compare MibDownload comment, use p_pmFsm.pFsm.Event(...)(also on differnet places)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d52eed99_fe040428",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1558,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "Also here and in some further positions of this function Event must be called in background.",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f0c248ba_6b41d883",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1827,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T09:16:28Z",
+      "side": 1,
+      "message": "Also here and in all following populate*() functions Event must be called in background (synchronously called from enter* FSM function)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
