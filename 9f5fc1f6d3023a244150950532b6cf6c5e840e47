@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "bee756be_101e4379",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-26T12:58:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "778210e9_ec726e96",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "710929da_2f69d120",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 11
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "5bc5d920_9a105517",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-26T12:58:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "710929da_2f69d120",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8efc8c37_a4501f25",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 11
@@ -47,6 +83,24 @@
       "writtenOn": "2021-04-26T09:16:28Z",
       "side": 1,
       "message": "compare MibDownload comment, use aPAFsm.pFsm.Event(...) (at least in your changes, I know it is used like this here already in base code on other places ...)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c8e701c_b1ac6ee7",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 497,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-26T12:58:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8efc8c37_a4501f25",
       "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -98,6 +152,24 @@
       "writtenOn": "2021-04-26T09:16:28Z",
       "side": 1,
       "message": "compare MibDownload comment, use a_pAFsm.pFsm.Event(...)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9276a55_56472a41",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 549,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-26T12:58:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ef261f53_5babd202",
       "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -172,6 +244,24 @@
     },
     {
       "key": {
+        "uuid": "80c0c085_3dd41e4c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1558,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-26T12:58:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d52eed99_fe040428",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f0c248ba_6b41d883",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 11
@@ -183,6 +273,24 @@
       "writtenOn": "2021-04-26T09:16:28Z",
       "side": 1,
       "message": "Also here and in all following populate*() functions Event must be called in background (synchronously called from enter* FSM function)",
+      "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "06d97561_3ad27fed",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1827,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-26T12:58:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f0c248ba_6b41d883",
       "revId": "9f5fc1f6d3023a244150950532b6cf6c5e840e47",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
