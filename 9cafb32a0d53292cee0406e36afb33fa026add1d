@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3ae6799b_01b4b2ac",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 1340,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T15:34:43Z",
+      "side": 1,
+      "message": "mutexPLastTxMeInstance.Unlock() missing, also in some many of below similar code blocks.",
+      "revId": "9cafb32a0d53292cee0406e36afb33fa026add1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
