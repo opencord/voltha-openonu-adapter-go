@@ -60,6 +60,7 @@ const (
 	aniEvTimeoutMids       = "aniEvTimeoutMids"
 	aniEvReset             = "aniEvReset"
 	aniEvRestart           = "aniEvRestart"
+	aniEvSkipOmciConfig    = "aniEvSkipOmciConfig"
 )
 const (
 	// states of config PON ANI port FSM
@@ -201,6 +202,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 				aniStResetTcont, aniStRemDot1PMapper, aniStRemAniBPCD, aniStRemoveDone}, Dst: aniStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: aniEvRestart, Src: []string{aniStResetting}, Dst: aniStDisabled},
+			{Name: aniEvSkipOmciConfig, Src: []string{aniStStarting}, Dst: aniStConfigDone},
 		},
 
 		fsm.Callbacks{
@@ -430,6 +432,7 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 					"multicastGemID": loGemPortAttribs.multicastGemID,
 					"staticACL":      loGemPortAttribs.staticACL,
 					"dynamicACL":     loGemPortAttribs.dynamicACL,
+					"device-id":      oFsm.deviceID,
 				})
 
 			} else {
@@ -439,12 +442,18 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 					"downQueueID":    loGemPortAttribs.downQueueID,
 					"pbitString":     loGemPortAttribs.pbitString,
 					"prioQueueIndex": gemEntry.prioQueueIndex,
+					"device-id":      oFsm.deviceID,
 				})
 			}
 
 			oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
 		}
-		_ = aPAFsm.pFsm.Event(aniEvStartConfig)
+		if !oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+			_ = aPAFsm.pFsm.Event(aniEvStartConfig)
+		} else {
+			logger.Debugw(ctx, "reconciling - skip omci-config of ANI side ", log.Fields{"device-id": oFsm.deviceID})
+			_ = aPAFsm.pFsm.Event(aniEvSkipOmciConfig)
+		}
 	}
 }
 
@@ -658,16 +667,19 @@ func (oFsm *uniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "uniPonAniConfigFsm ani config done", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
-	//use DeviceHandler event notification directly
-	oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
 	//store that the UNI related techProfile processing is done for the given Profile and Uni
 	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.uniID, oFsm.techProfileID, true)
-	//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
-	//  but only in case the techProfile was configured (not deleted)
-	if oFsm.requestEventOffset == 0 {
-		go oFsm.pDeviceHandler.verifyUniVlanConfigRequest(ctx, oFsm.pOnuUniPort, oFsm.techProfileID)
+	if !oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+		//use DeviceHandler event notification directly
+		oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
+		//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
+		//  but only in case the techProfile was configured (not deleted)
+		if oFsm.requestEventOffset == 0 {
+			go oFsm.pDeviceHandler.verifyUniVlanConfigRequest(ctx, oFsm.pOnuUniPort, oFsm.techProfileID)
+		}
+	} else {
+		logger.Debugw(ctx, "reconciling - skip AniConfigDone processing", log.Fields{"device-id": oFsm.deviceID})
 	}
-
 	if oFsm.chanSet {
 		// indicate processing done to the caller
 		logger.Debugw(ctx, "uniPonAniConfigFsm processingDone on channel", log.Fields{

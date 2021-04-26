@@ -249,17 +249,6 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 			aUniID, onuTP.deviceID)
 		return
 	}
-
-	if onuTP.baseDeviceHandler.isSkipOnuConfigReconciling() {
-		logger.Debugw(ctx, "reconciling - skip omci-config of ANI side ", log.Fields{"uni-id": aUniID, "device-id": onuTP.deviceID})
-		onuTP.mutexTPState.Lock()
-		defer onuTP.mutexTPState.Unlock()
-		if _, existTP := onuTP.mapUniTpIndication[uniTpKey]; existTP {
-			onuTP.mapUniTpIndication[uniTpKey].techProfileConfigDone = true
-		}
-		return
-	}
-
 	if onuTP.getProfileResetting(uniTpKey) {
 		logger.Debugw(ctx, "aborting TP configuration, reset requested in parallel", log.Fields{
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": uniTpKey.tpID})
