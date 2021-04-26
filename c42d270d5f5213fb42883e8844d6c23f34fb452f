@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "14e507fe_9557c865",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-26T20:24:21Z",
+      "side": 1,
+      "message": "Are you sure? Ok, I will make the change.",
+      "parentUuid": "d6dfeb28_a39d079c",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c874be98_9b6b6262",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 5
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "e6c61cc9_902e0463",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1978,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-26T20:24:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c874be98_9b6b6262",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "276c5230_193ea7d5",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 5
@@ -47,6 +83,24 @@
       "writtenOn": "2021-04-26T07:24:05Z",
       "side": 1,
       "message": "While you are here - I think we have discussed that in slack? You could possibly also exclude \"ThresholdData12Id\" now here.",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33212c57_6f108221",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2155,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-26T20:24:21Z",
+      "side": 1,
+      "message": "I must have missed this from slack message, sorry. There were too many slack messages to process after I was back from vacation 😊",
+      "parentUuid": "276c5230_193ea7d5",
       "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "2b17fc5a_bd16ba9a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2156,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-26T20:24:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a2ebf8a7_6cf0c0ba",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2643b51a_bf2357d5",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 5
@@ -84,6 +156,24 @@
       "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a226e65_5e0f4ced",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2176,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-04-26T20:24:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2643b51a_bf2357d5",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
