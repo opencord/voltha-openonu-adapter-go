@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d6dfeb28_a39d079c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T07:24:05Z",
+      "side": 1,
+      "message": "24 as before is the right value. MEId is never part of the  MessageContent AttributeList (which is restricted for GetResponse to max 25 bytes). So if you exclude IntervalEndTime here, it still remains 24.",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c874be98_9b6b6262",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1978,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T07:24:05Z",
+      "side": 1,
+      "message": "The check can be removed with last patch changes, \u0027IntervalEndTime\u0027 should never be set when when entering this funtion now, so can and must be set unconditionally here.\nApplies to the othe populater functions as well.",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "276c5230_193ea7d5",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2155,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T07:24:05Z",
+      "side": 1,
+      "message": "While you are here - I think we have discussed that in slack? You could possibly also exclude \"ThresholdData12Id\" now here.",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2ebf8a7_6cf0c0ba",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2156,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T07:24:05Z",
+      "side": 1,
+      "message": "inserted by omci_lib based on parameter \u0027entityID\u0027, it is not part of the message content attribute list.",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2643b51a_bf2357d5",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2176,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-26T07:24:05Z",
+      "side": 1,
+      "message": "This test should be obsolete now, based on above code the len should always be \u003e0 here (would be a quite fatal error else). There is no HistoryData definition with only IntervalTime (and perhaps threshold pointer).",
+      "revId": "c42d270d5f5213fb42883e8844d6c23f34fb452f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
