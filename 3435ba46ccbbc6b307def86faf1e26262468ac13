@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "c953ef54_00789b82",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-04-27T15:08:38Z",
+      "side": 1,
+      "message": "Ok I removed it.",
+      "parentUuid": "a458725a_8ebbaee0",
+      "revId": "3435ba46ccbbc6b307def86faf1e26262468ac13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9aebb2f9_5d6e36aa",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 24
