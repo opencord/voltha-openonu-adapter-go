@@ -68,6 +68,75 @@
       "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "872027a3_66e6c4d5",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 1835,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T13:54:28Z",
+      "side": 1,
+      "message": "i think this if can be removed and no change shoudl be introeuced in this patch at line 1726",
+      "parentUuid": "50b92cd8_98b401e9",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c0caaa5_9bf04a14",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 1943,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T13:54:28Z",
+      "side": 1,
+      "message": "same, you can remove the check",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d35cc5a_dcaa8a1f",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 2045,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T13:54:28Z",
+      "side": 1,
+      "message": "same",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ad354d4_1d348426",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 2111,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T13:54:28Z",
+      "side": 1,
+      "message": "same",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
