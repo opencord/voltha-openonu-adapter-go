@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9aebb2f9_5d6e36aa",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 918,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T12:42:20Z",
+      "side": 1,
+      "message": "Seems like still not understood: you need the unlock in each \u0027exit block\u0027, so one here between line 918 and 919 (like in patch #19) and the one you now have in line 928.\nAnd you have to implement that scheme on all the modified code positions, starting e.g. in line  513 (don\u0027t use defer where-ever you inserted some event call).",
+      "revId": "3435ba46ccbbc6b307def86faf1e26262468ac13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c23756c9_e24b23d4",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 1941,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T12:42:20Z",
+      "side": 1,
+      "message": "The change like above (in populateEthernetBridgeHistoryMetrics() now corrected) has been in all populate functions. Somehow your merge worked only partly. Please verify the complete onu_metrics_manager.go file oncemore (I did not check all changed code positions).",
+      "revId": "3435ba46ccbbc6b307def86faf1e26262468ac13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
