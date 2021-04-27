@@ -36,6 +36,23 @@
     },
     {
       "key": {
+        "uuid": "1e80e5c1_a4e5715f",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 1835,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T13:32:05Z",
+      "side": 1,
+      "message": "i think you are missing \nif _, ok :\u003d requestedAttributes[\"IntervalEndTime\"]; !ok {\n     requestedAttributes[\"IntervalEndTime\"] \u003d 0\n}",
+      "revId": "3435ba46ccbbc6b307def86faf1e26262468ac13",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c23756c9_e24b23d4",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 24
