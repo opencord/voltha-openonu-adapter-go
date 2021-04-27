@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "f34d7f5b_f1067223",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T13:50:51Z",
+      "side": 1,
+      "message": "Still missing the change like in Andreas\u0027s comment on patch #24. And also on all the other places where you inserted the error treatment on send error with some FSM event scheduling.",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "48c5bbcb_7e3c4168",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 25
@@ -13,6 +30,41 @@
       "writtenOn": "2021-04-27T13:29:21Z",
       "side": 1,
       "message": "you still need the oFsm.mutexPLastTxMeInstance.Unlock() here at line 928",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc57d686_1e21f7e4",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 929,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T13:50:51Z",
+      "side": 1,
+      "message": "Yes, needs to be on both blocks ...",
+      "parentUuid": "48c5bbcb_7e3c4168",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "50b92cd8_98b401e9",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 1835,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T13:50:51Z",
+      "side": 1,
+      "message": "Now I\u0027m confused 😕. Is this code (and all other positions) merged with Girish\u0027 last changes (that are merged in master)? Now the code here looks like it was before Girish changes, but I would expect the code to be like merged from https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/24338.\n??",
       "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
