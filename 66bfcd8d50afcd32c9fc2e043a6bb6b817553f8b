@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "48c5bbcb_7e3c4168",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 929,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T13:29:21Z",
+      "side": 1,
+      "message": "you still need the oFsm.mutexPLastTxMeInstance.Unlock() here at line 928",
+      "revId": "66bfcd8d50afcd32c9fc2e043a6bb6b817553f8b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
