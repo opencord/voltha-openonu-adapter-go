@@ -84,8 +84,8 @@ func (ep *EventProxy) getEventHeader(eventName string,
 	header.Type = eventType
 	header.TypeVersion = eventif.EventTypeVersion
 
-	// raisedTs is in nanoseconds
-	timestamp, err := ptypes.TimestampProto(time.Unix(0, raisedTs))
+	// raisedTs is in seconds
+	timestamp, err := ptypes.TimestampProto(time.Unix(raisedTs, 0))
 	if err != nil {
 		return nil, err
 	}
