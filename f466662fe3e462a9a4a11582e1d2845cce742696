@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b54e5e24_d1d2c791",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 911,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T07:34:03Z",
+      "side": 1,
+      "message": "I would not accept this change here and on all lately modified similar code points. Setting the mutex explicitly on according code positions was willingly done. This is to ensure that a call to activate a new state never sees some of the FSM related mutexes locked. This decreases the potential of deadlock. In this case here it might not be needed (for the moment), but it was a kind of design decision as we faced already several ocurrances where such deadlocks appeared.\nAnd in some of the below changes this handling is really needed to avoid deadlocks. So please revert to explicit unlock calls whenever a state event will be invoked in the subsequent function processing.",
+      "revId": "f466662fe3e462a9a4a11582e1d2845cce742696",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
