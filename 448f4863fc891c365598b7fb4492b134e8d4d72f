@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a8249fa6_1d375404",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 27
+      },
+      "lineNbr": 1941,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T14:52:29Z",
+      "side": 1,
+      "message": "this check has to be removed, only \nrequestedAttributes[\"IntervalEndTime\"] \u003d 0\nneeds to be there",
+      "revId": "448f4863fc891c365598b7fb4492b134e8d4d72f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cbe00f94_818669f2",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 27
+      },
+      "lineNbr": 2043,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T14:52:29Z",
+      "side": 1,
+      "message": "this check has to be removed, only \nrequestedAttributes[\"IntervalEndTime\"] \u003d 0\nneeds to be there",
+      "revId": "448f4863fc891c365598b7fb4492b134e8d4d72f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6bc80337_7a27cd53",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 27
+      },
+      "lineNbr": 2109,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-04-27T14:52:29Z",
+      "side": 1,
+      "message": "this check has to be removed, only \nrequestedAttributes[\"IntervalEndTime\"] \u003d 0\nneeds to be there",
+      "revId": "448f4863fc891c365598b7fb4492b134e8d4d72f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
