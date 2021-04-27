@@ -574,5 +574,41 @@ func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request exten
 	return postUniStatusErrResponse(extension.GetValueResponse_INVALID_DEVICE_ID), nil
 }
 
+//if update >= 4.3.0
+
+// Download_onu_image downloads (and optionally activates and commits) the indicated ONU image to the requested ONU(s)
+//   if the image is not yet present on the adapter it has to be automatically downloaded
+func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.DeviceImageDownloadRequest) (*voltha.DeviceImageResponse, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// Get_onu_image_status delivers the adapter-related information about the download/activation/commitment
+//   status for the requested image
+func (oo *OpenONUAC) Get_onu_image_status(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// Abort_onu_image_upgrade stops the actual download/activation/commitment process (on next possibly step)
+func (oo *OpenONUAC) Abort_onu_image_upgrade(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// Get_onu_images retrieves the ONU SW image status information via OMCI
+func (oo *OpenONUAC) Get_onu_images(ctx context.Context, deviceID string) (*voltha.OnuImages, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// Activate_onu_image initiates the activation of the image for the requested ONU(s)
+//  precondition: image downloaded and not yet activated
+func (oo *OpenONUAC) Activate_onu_image(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// Commit_onu_image enforces the commitment of the image for the requested ONU(s)
+//  precondition: image activated and not yet committed
+func (oo *OpenONUAC) Commit_onu_image(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
+	return nil, errors.New("unImplemented")
+}
+
 // Adapter interface required methods ################ end #########
 // #################################################################
