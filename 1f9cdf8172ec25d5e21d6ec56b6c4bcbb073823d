@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5400cf69_5228b1dd",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 928,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T10:26:30Z",
+      "side": 1,
+      "message": "You could not remove the mutex Unlock here (after write access to pLastTxMeInstance), it is needed as a possible \u0027exit branch\u0027.\nApplies to all last changes below as well.",
+      "revId": "1f9cdf8172ec25d5e21d6ec56b6c4bcbb073823d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84853d65_d142c4aa",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 1834,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-27T10:26:30Z",
+      "side": 1,
+      "message": "Is this change from some rebasing? But it looks to me only partly done - not yet the the final changes from Girish. Please re-check.",
+      "revId": "1f9cdf8172ec25d5e21d6ec56b6c4bcbb073823d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
