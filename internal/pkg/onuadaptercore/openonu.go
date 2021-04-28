@@ -565,6 +565,21 @@ func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request exten
 		switch reqType := request.GetRequest().GetRequest().(type) {
 		case *extension.GetValueRequest_UniInfo:
 			return handler.getUniPortStatus(ctx, reqType.UniInfo), nil
+		case *extension.GetValueRequest_OnuOpticalInfo:
+			commChan := make(chan Message)
+			respChan := make(chan extension.SingleGetValueResponse)
+			// Initiate the self test request
+			if err := handler.pSelfTestHdlr.SelfTestRequestStart(ctx, request, commChan, respChan); err != nil {
+				return &extension.SingleGetValueResponse{
+					Response: &extension.GetValueResponse{
+						Status:    extension.GetValueResponse_ERROR,
+						ErrReason: extension.GetValueResponse_INTERNAL_ERROR,
+					},
+				}, err
+			}
+			// The timeout handling is already implemented in omci_self_test_handler module
+			resp := <-respChan
+			return &resp, nil
 		default:
 			return postUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
 
