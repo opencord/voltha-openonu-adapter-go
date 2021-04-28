@@ -392,12 +392,28 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
 			errorsList = append(errorsList, err)
 		}
-		handler.stopCollector <- true    // stop the metric collector routine
-		handler.stopAlarmManager <- true //stop the alarm manager.
+		select {
+		case handler.stopCollector <- true: // stop the metric collector routine
+			logger.Debugw(ctx, "sent stop signal to metric collector routine", log.Fields{"device-id": device.Id})
+		default:
+			logger.Warnw(ctx, "metric collector routine not waiting on stop signal", log.Fields{"device-id": device.Id})
+		}
+		select {
+		case handler.stopAlarmManager <- true: //stop the alarm manager.
+			logger.Debugw(ctx, "sent stop signal to alarm manager", log.Fields{"device-id": device.Id})
+		default:
+			logger.Warnw(ctx, "alarm manager not waiting on stop signal", log.Fields{"device-id": device.Id})
+		}
 		if handler.pOnuMetricsMgr != nil {
 			if err := handler.pOnuMetricsMgr.clearAllPmData(ctx); err != nil {
 				errorsList = append(errorsList, err)
 			}
+		}
+		select {
+		case handler.pSelfTestHdlr.stopSelfTestModule <- true:
+			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
+		default:
+			logger.Warnw(ctx, "self test handler module not waiting on stop signal", log.Fields{"device-id": device.Id})
 		}
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
@@ -565,6 +581,21 @@ func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request exten
 		switch reqType := request.GetRequest().GetRequest().(type) {
 		case *extension.GetValueRequest_UniInfo:
 			return handler.getUniPortStatus(ctx, reqType.UniInfo), nil
+		case *extension.GetValueRequest_OnuOpticalInfo:
+			commChan := make(chan Message)
+			respChan := make(chan extension.SingleGetValueResponse)
+			// Initiate the self test request
+			if err := handler.pSelfTestHdlr.SelfTestRequestStart(ctx, request, commChan, respChan); err != nil {
+				return &extension.SingleGetValueResponse{
+					Response: &extension.GetValueResponse{
+						Status:    extension.GetValueResponse_ERROR,
+						ErrReason: extension.GetValueResponse_INTERNAL_ERROR,
+					},
+				}, err
+			}
+			// The timeout handling is already implemented in omci_self_test_handler module
+			resp := <-respChan
+			return &resp, nil
 		default:
 			return postUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
 
