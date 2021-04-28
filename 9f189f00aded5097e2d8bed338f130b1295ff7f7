@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f4aea345_f519a2b4",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2697,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "Some omci-lib update? Then it might be usefule to extend the code changes in order to e.g. avoid below copy.",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "67cb379d_a18d111d",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2875,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "tid should not be a paramter, like for the other send functions TID assignment is direct omci_cc functionality.\nInstead of this it might be required to have the MeId as argument (aInstId)",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "23fdf876_42e4d100",
+        "filename": "internal/pkg/onuadaptercore/omci_me_test_msg_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "I\u0027d prefer to have pOmciCC *omciCC as direct member like in the other FSM\u0027s (access efficiency)",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "15aa203b_2accbd26",
+        "filename": "internal/pkg/onuadaptercore/omci_me_test_msg_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "tid should not be a parameter/element of this FSM",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d5f2809a_329393dd",
+        "filename": "internal/pkg/onuadaptercore/omci_me_test_msg_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "I still don\u0027t see that \u0027Failure\u0027 event is required, \u0027Abort\u0027 could be used directly instead.",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "784d331d_db91c7a0",
+        "filename": "internal/pkg/onuadaptercore/omci_me_test_msg_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "If really instance control is immanent to this object, then the resource release is still missing (but I would prefer to do that from outside)",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0d04bde4_4bd1d7e1",
+        "filename": "internal/pkg/onuadaptercore/omci_me_test_msg_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-28T09:45:08Z",
+      "side": 1,
+      "message": "As already stated, using the tid for instance control is a question of FSM instance control (internal or external).",
+      "revId": "9f189f00aded5097e2d8bed338f130b1295ff7f7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
