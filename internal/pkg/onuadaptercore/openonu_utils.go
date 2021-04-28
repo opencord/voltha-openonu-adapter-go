@@ -71,3 +71,13 @@ func AsByteSlice(bitString string) []byte {
 	}
 	return out
 }
+
+// TwosComplementToSignedInt16 convert 2s complement to signed int16
+func TwosComplementToSignedInt16(val uint16) int16 {
+	var uint16MsbMask uint16 = 0x8000
+	if val&uint16MsbMask == uint16MsbMask {
+		return int16(^val+1) * -1
+	}
+
+	return int16(val)
+}
