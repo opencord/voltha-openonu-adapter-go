@@ -61,7 +61,7 @@ github.com/jcmturner/gofork/x/crypto/pbkdf2
 # github.com/looplab/fsm v0.2.0
 ## explicit
 github.com/looplab/fsm
-# github.com/opencord/omci-lib-go v0.17.0
+# github.com/opencord/omci-lib-go v1.1.0
 ## explicit
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated

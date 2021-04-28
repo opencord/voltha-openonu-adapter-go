@@ -2544,7 +2544,7 @@ func (mm *onuMetricsManager) RemoveGemPortForPerfMonitoring(ctx context.Context,
 	mm.onuMetricsManagerLock.Lock()
 	defer mm.onuMetricsManagerLock.Unlock()
 	logger.Debugw(ctx, "remove gemport for perf monitoring - start", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "gemPortID": gemPortNTPInstID})
-	mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete = mm.appendIfMissingUnt16(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete, gemPortNTPInstID)
+	mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToDelete = mm.appendIfMissingUnt16(mm.groupMetricMap[GemPortHistoryName].:qa.InstancesToDelete, gemPortNTPInstID)
 	// If the instance presence toggles too soon, we need to remove it from gemPortNCTPPerfHistInstToAdd slice
 	mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd = mm.removeIfFoundUint16(mm.groupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd, gemPortNTPInstID)
 
