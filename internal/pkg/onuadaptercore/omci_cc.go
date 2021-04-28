@@ -321,7 +321,7 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 	}
 	logger.Debugw(ctx, "omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "DeviceIdent": omciMsg.DeviceIdentifier})
-	if byte(omciMsg.MessageType)&me.AK == 0 {
+	if byte(omciMsg.MessageType)&me.AK == 0 && omciMsg.MessageType != omci.TestResultType {
 		// Not a response
 		oo.printRxMessage(ctx, rxMsg)
 		logger.Debug(ctx, "RxMsg is no Omci Response Message")
@@ -332,7 +332,6 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload),
 				"device-id": oo.deviceID})
 		return fmt.Errorf("autonomous Omci Message with TranSCorrId != 0 not acccepted %s", oo.deviceID)
-
 	}
 	//logger.Debug(ctx,"RxMsg is a Omci Response Message: try to schedule it to the requester")
 	oo.mutexRxSchedMap.Lock()
@@ -348,8 +347,19 @@ func (oo *omciCC) receiveMessage(ctx context.Context, rxMsg []byte) error {
 			oo.pOnuDeviceEntry.incrementMibDataSync(ctx)
 		}
 
-		// having posted the response the request is regarded as 'done'
-		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
+		// If omciMsg.MessageType is omci.TestResponseType, we still expect the TestResult OMCI message,
+		// so do not clean up the TransactionID -- unless -- TestResponse is not Success ( in that case we do not expect TestResult)
+		if omciMsg.MessageType != omci.TestResponseType {
+			// having posted the response the request is regarded as 'done'
+			delete(oo.rxSchedulerMap, omciMsg.TransactionID)
+		} else if omciMsg.MessageType == omci.TestResponseType {
+			nextLayer, _ := omci.MsgTypeToNextLayer(omci.TestResponseType, false)
+			msgLayer := (packet).Layer(nextLayer)
+			if msgLayer.(*omci.TestResponse).Result != me.Success {
+				// We do not expect TestResult with the same TransactionID anymore because the TestResponse failed.
+				delete(oo.rxSchedulerMap, omciMsg.TransactionID)
+			}
+		}
 		oo.mutexRxSchedMap.Unlock()
 		return nil
 	}
@@ -2872,10 +2882,64 @@ func (oo *omciCC) sendCommitSoftware(ctx context.Context, timeout int, highPrio 
 	return nil
 }
 
+func (oo *omciCC) sendSelfTestReq(ctx context.Context, classID me.ClassID, instdID uint16, timeout int, highPrio bool, rxChan chan Message) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send self test request:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(instdID), 16)})
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.TestRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,    // Optional, defaults to Baseline
+		// Length:           0x28,                                      // Optional, defaults to 40 octets
+	}
+
+	var request *omci.OpticalLineSupervisionTestRequest
+	switch classID {
+	case aniGClassID:
+		request = &omci.OpticalLineSupervisionTestRequest{
+			MeBasePacket: omci.MeBasePacket{
+				EntityClass:    classID,
+				EntityInstance: instdID,
+			},
+			SelectTest:               uint8(7), // self test
+			GeneralPurposeBuffer:     uint16(0),
+			VendorSpecificParameters: uint16(0),
+		}
+	default:
+		logger.Errorw(ctx, "unsupported class id for self test request", log.Fields{"device-id": oo.deviceID, "classID": classID})
+		return fmt.Errorf("unsupported-class-id-for-self-test-request-%v", classID)
+	}
+	// Test serialization back to former string
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize self test request", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	outgoingPacket := buffer.Bytes()
+
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+	err = oo.send(ctx, outgoingPacket, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send self test request", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send self test request done")
+	return nil
+}
+
 func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) bool {
 	for _, v := range responsesWithMibDataSync {
 		if v == omciMsg.MessageType {
-			nextLayer, _ := omci.MsgTypeToNextLayer(v)
+			nextLayer, _ := omci.MsgTypeToNextLayer(v, false)
 			msgLayer := (*packet).Layer(nextLayer)
 			switch nextLayer {
 			case omci.LayerTypeCreateResponse:
