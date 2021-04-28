@@ -61,7 +61,7 @@ github.com/jcmturner/gofork/x/crypto/pbkdf2
 # github.com/looplab/fsm v0.2.0
 ## explicit
 github.com/looplab/fsm
-# github.com/opencord/omci-lib-go v0.17.0
+# github.com/opencord/omci-lib-go v1.1.0
 ## explicit
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
@@ -81,7 +81,7 @@ github.com/opencord/voltha-lib-go/v4/pkg/log
 github.com/opencord/voltha-lib-go/v4/pkg/probe
 github.com/opencord/voltha-lib-go/v4/pkg/techprofile
 github.com/opencord/voltha-lib-go/v4/pkg/version
-# github.com/opencord/voltha-protos/v4 v4.1.1
+# github.com/opencord/voltha-protos/v4 v4.1.3
 ## explicit
 github.com/opencord/voltha-protos/v4/go/common
 github.com/opencord/voltha-protos/v4/go/ext/config
