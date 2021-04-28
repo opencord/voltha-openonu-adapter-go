@@ -2694,7 +2694,7 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
-	var localSectionData [31]byte
+	localSectionData := make([]byte, len(aSection))
 	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
 	request := &omci.DownloadSectionRequest{
 		MeBasePacket: omci.MeBasePacket{
@@ -2872,10 +2872,15 @@ func (oo *omciCC) sendCommitSoftware(ctx context.Context, timeout int, highPrio 
 	return nil
 }
 
+func (oo *omciCC) sendSelfTestReq(ctx context.Context, classID me.ClassID, tid uint16, timeout int, rxChan chan Message) error {
+	// TODO: fill here
+	return nil
+}
+
 func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) bool {
 	for _, v := range responsesWithMibDataSync {
 		if v == omciMsg.MessageType {
-			nextLayer, _ := omci.MsgTypeToNextLayer(v)
+			nextLayer, _ := omci.MsgTypeToNextLayer(v, false)
 			msgLayer := (*packet).Layer(nextLayer)
 			switch nextLayer {
 			case omci.LayerTypeCreateResponse:
