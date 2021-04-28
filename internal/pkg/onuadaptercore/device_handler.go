@@ -185,6 +185,7 @@ type deviceHandler struct {
 	pOnuTP            *onuUniTechProf
 	pOnuMetricsMgr    *onuMetricsManager
 	pAlarmMgr         *onuAlarmManager
+	pSelfTestHdlr     *selfTestControlBlock
 	exitChannel       chan int
 	lockDevice        sync.RWMutex
 	pOnuIndication    *oop.OnuIndication
@@ -1369,13 +1370,14 @@ func (dh *deviceHandler) getOnuDeviceEntry(ctx context.Context, aWait bool) *Onu
 
 //setOnuDeviceEntry sets the ONU device entry within the handler
 func (dh *deviceHandler) setOnuDeviceEntry(
-	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuMetricsMgr *onuMetricsManager, apOnuAlarmMgr *onuAlarmManager) {
+	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuMetricsMgr *onuMetricsManager, apOnuAlarmMgr *onuAlarmManager, apSelfTestHdlr *selfTestControlBlock) {
 	dh.lockDevice.Lock()
 	defer dh.lockDevice.Unlock()
 	dh.pOnuOmciDevice = apDeviceEntry
 	dh.pOnuTP = apOnuTp
 	dh.pOnuMetricsMgr = apOnuMetricsMgr
 	dh.pAlarmMgr = apOnuAlarmMgr
+	dh.pSelfTestHdlr = apSelfTestHdlr
 }
 
 //addOnuDeviceEntry creates a new ONU device or returns the existing
@@ -1392,8 +1394,9 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		onuTechProfProc := newOnuUniTechProf(ctx, dh)
 		onuMetricsMgr := newonuMetricsManager(ctx, dh)
 		onuAlarmManager := newAlarmManager(ctx, dh)
+		selfTestHdlr := NewSelfTestMsgHandlerCb(dh)
 		//error treatment possible //TODO!!!
-		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuMetricsMgr, onuAlarmManager)
+		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuMetricsMgr, onuAlarmManager, selfTestHdlr)
 		// fire deviceEntry ready event to spread to possibly waiting processing
 		dh.deviceEntrySet <- true
 		logger.Debugw(ctx, "onuDeviceEntry-added", log.Fields{"device-id": dh.deviceID})
