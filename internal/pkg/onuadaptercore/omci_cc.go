@@ -2694,7 +2694,7 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
-	var localSectionData [31]byte
+	localSectionData := make([]byte, len(aSection))
 	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
 	request := &omci.DownloadSectionRequest{
 		MeBasePacket: omci.MeBasePacket{
@@ -2872,10 +2872,59 @@ func (oo *omciCC) sendCommitSoftware(ctx context.Context, timeout int, highPrio 
 	return nil
 }
 
+func (oo *omciCC) sendSelfTestReq(ctx context.Context, classID me.ClassID, instdID uint16, timeout int, highPrio bool, rxChan chan Message) error {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send self test request:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(instdID), 16)})
+	omciLayer := &omci.OMCI{
+		TransactionID: 0xbbbb,
+		MessageType:   omci.TestRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,    // Optional, defaults to Baseline
+		// Length:           0x28,                                      // Optional, defaults to 40 octets
+	}
+	// TODO: At the moment omci-lib-go can handle generic serialize request only if we supply the payload as raw hex byte stream.
+	// However full support is available only for OpticalLineSupervisionTestRequest (good for now). Fix this when omci-lib-go has
+	// full support to custom form the payload struct.
+	request := &omci.OpticalLineSupervisionTestRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    classID,
+			EntityInstance: uint16(0x8001),
+		},
+		SelectTest:               uint8(7), // self test
+		GeneralPurposeBuffer:     uint16(0),
+		VendorSpecificParameters: uint16(0),
+	}
+	// Test serialization back to former string
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize self test request", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	outgoingPacket := buffer.Bytes()
+
+	omciRxCallbackPair := callbackPair{cbKey: tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+	err = oo.send(ctx, outgoingPacket, timeout, 0, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send self test request", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send self test request done")
+	return nil
+}
+
 func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) bool {
 	for _, v := range responsesWithMibDataSync {
 		if v == omciMsg.MessageType {
-			nextLayer, _ := omci.MsgTypeToNextLayer(v)
+			nextLayer, _ := omci.MsgTypeToNextLayer(v, false)
 			msgLayer := (*packet).Layer(nextLayer)
 			switch nextLayer {
 			case omci.LayerTypeCreateResponse:
