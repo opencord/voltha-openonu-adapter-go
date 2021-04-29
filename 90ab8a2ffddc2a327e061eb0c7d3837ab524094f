@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "99bb1a84_3cbebd92",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:16:02Z",
+      "side": 1,
+      "message": "In the end you would also need a cancel() routine and a way to abort your wait-timer(s).",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4c19833e_7d7b4657",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:16:02Z",
+      "side": 1,
+      "message": "I don\u0027t see any other \u0027selfTest\u0027 application that might be requested on the horizon. So I don\u0027t know if it is worth the effort of handling it that generally (and a bit complex that way). But - never say never ;-)",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2b74b782_d31eb027",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:16:02Z",
+      "side": 1,
+      "message": "I don\u0027t really like this approach of suspending the enter_* FSM function, even though at least basically it might work in this context. The problem with this is that the complete FSM processing is blocked this way, not other state transition is possible except to what you you define here with the select on channels or timer. In your case that means that no abort is possible from outside except you use the channel additionally. This approach is also quite dangerous in case you still should have some mutex locked before the select (not [yet] the case here).\nI find it a better approach to let the enter_* function run to completion and waiting for activity in the detached task, like handle*(). I know that in some of our procedures the according timeout supervision may still be missing, but if wanted my assumption is, that this should be done then in some background routine.",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4eee8ffc_bc07dd1a",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:16:02Z",
+      "side": 1,
+      "message": "In our state machines we also used the \u0027lastTxMe...\u0027 to verify if what we receive here is really what we expect. This avoids the evaluation of some wrongly assigned or dangling messages - or even inconsistent messages [e.g using the TID but a different message type]. Not that important, but sometimes useful to avoid unneeded error/warning logs.",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "683e4d6e_2f075162",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:16:02Z",
+      "side": 1,
+      "message": "I had my doubts if that is really working - the reason why I prefer to always delete the instance from outside the FSM. We are here in a \u0027method\u0027 of the FSM - still using the selfTestControlBlock. But on the way we request to destroy this. So not really that logical to me, but maybe it is working kind of magically ...",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1985cfa3_722af1c0",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:16:02Z",
+      "side": 1,
+      "message": "But in this case I would really avoid accessing selfTestCb after the delete",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
