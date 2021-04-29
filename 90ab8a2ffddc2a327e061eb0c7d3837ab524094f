@@ -101,6 +101,23 @@
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32d0f060_868af8d7",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-29T09:37:44Z",
+      "side": 1,
+      "message": "I wonder why this API is not used for the \u0027self test\u0027",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
