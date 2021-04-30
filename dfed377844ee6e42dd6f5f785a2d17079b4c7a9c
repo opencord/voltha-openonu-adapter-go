@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fc820f74_63992c9c",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-30T07:48:29Z",
+      "side": 1,
+      "message": "I would avoid that OMCI_CC is parsing that far into the OMCI message, that level of OMCI message should not be evaluated here, this is part of lower layers (which have to evaluate this anyway). Lower levels could also provide a more specific analysis of the error code and maybe react accordingly.\nSo my suggestion here would be provide a method in omci_cc that allows for removal of dedicated SchedulerMap entries based on the TID. This can then be called by the FSM if needed. Might be useful also in other situations.",
+      "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dd15319d_77d8e6f4",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-04-30T07:48:29Z",
+      "side": 1,
+      "message": "I did not dive to deep into this code, but see my comments to your voltctl outputs. I think that is related to the conversions here ...",
+      "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
