@@ -22,6 +22,29 @@
       "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6dc3a434_c667bdfd",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-04-30T06:25:22Z",
+      "side": 1,
+      "message": "The question above is still valid.",
+      "range": {
+        "startLine": 332,
+        "startChar": 2,
+        "endLine": 332,
+        "endChar": 3
+      },
+      "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
