@@ -190,6 +190,24 @@
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe821787_86caf103",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-01T23:12:48Z",
+      "side": 1,
+      "message": "This API although seems more logical to use rather than Single_get_value_request, the request and response message in this API did not seem to have any support to achieve the Optical Line Supervision test. However the Single_get_value_request/response seemed to have full support for this - hence used that.",
+      "parentUuid": "32d0f060_868af8d7",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

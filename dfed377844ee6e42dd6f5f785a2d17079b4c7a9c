@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "08382822_bcc73264",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-01T23:12:48Z",
+      "side": 1,
+      "message": "I am not entirely convinced with the argument here. This code snippet did not account for tid management for Test Result notification message. I do not see any further changes to this section with respect to tid management post this.",
+      "parentUuid": "fc820f74_63992c9c",
+      "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dd15319d_77d8e6f4",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 6
@@ -30,6 +48,24 @@
       "writtenOn": "2021-04-30T07:48:29Z",
       "side": 1,
       "message": "I did not dive to deep into this code, but see my comments to your voltctl outputs. I think that is related to the conversions here ...",
+      "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c7f1864_1f96a54b",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-01T23:12:48Z",
+      "side": 1,
+      "message": "Submitted voltha-protos patch to provide decimal value resolution.\nI have a slight confusion about the power level. The converted values seem to be in db-milliwatt and not in dB-microwatt.",
+      "parentUuid": "dd15319d_77d8e6f4",
       "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
