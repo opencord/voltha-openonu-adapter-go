@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f7ae255f_c9e66b75",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-01T23:01:32Z",
+      "side": 1,
+      "message": "Which timers to you mean to cancel?",
+      "parentUuid": "99bb1a84_3cbebd92",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4c19833e_7d7b4657",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -105,6 +123,24 @@
     },
     {
       "key": {
+        "uuid": "7c8aae5a_7dbf9358",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-01T23:01:32Z",
+      "side": 1,
+      "message": "selfTestControlBlock is not created and deleted per self-test transaction. It is created once for the ONU device. The `fsmCb` gets created per self-test transaction and is ephemeral - existing only for the duration of the self test. This also allows for self-test across different MEs in parallel - as each self-test processing has its own ephemeral state machine.\nThe selfTestControlBlock has a map of `fsmCb` which is keyed by ME class-id.",
+      "parentUuid": "e7add26a_f4e7fe2b",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1985cfa3_722af1c0",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -116,6 +152,24 @@
       "writtenOn": "2021-04-29T09:16:02Z",
       "side": 1,
       "message": "But in this case I would really avoid accessing selfTestCb after the delete",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05dd86a0_34005ecc",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-01T23:01:32Z",
+      "side": 1,
+      "message": "I can move this line above delete.",
+      "parentUuid": "1985cfa3_722af1c0",
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
