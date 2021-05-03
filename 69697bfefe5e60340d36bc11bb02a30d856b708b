@@ -45,6 +45,30 @@
       "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "95d71e6d_477a1dc4",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-03T07:54:33Z",
+      "side": 1,
+      "message": "agreed, where is the correspecitve update of the core to ACTIVE ?",
+      "parentUuid": "d67550dd_7468c9e3",
+      "range": {
+        "startLine": 332,
+        "startChar": 2,
+        "endLine": 332,
+        "endChar": 3
+      },
+      "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
