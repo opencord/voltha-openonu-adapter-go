@@ -105,7 +105,7 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 		pMibUlFsm := oo.pMibUploadFsm
 		if pMibUlFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 			}(pMibUlFsm)
 		}
 		return
@@ -125,7 +125,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 		pMibUlFsm := oo.pMibUploadFsm
 		if pMibUlFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 			}(pMibUlFsm)
 		}
 		return
@@ -145,7 +145,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 		pMibUlFsm := oo.pMibUploadFsm
 		if pMibUlFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 			}(pMibUlFsm)
 		}
 		return
@@ -165,7 +165,7 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 		pMibUlFsm := oo.pMibUploadFsm
 		if pMibUlFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 			}(pMibUlFsm)
 		}
 		return
@@ -185,7 +185,7 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 		pMibUlFsm := oo.pMibUploadFsm
 		if pMibUlFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 			}(pMibUlFsm)
 		}
 		return
@@ -437,7 +437,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 				me.OnuDataClassID, onuDataMeID, requestedAttributes, oo.pOpenOnuAc.omciTimeout, true, oo.pMibUploadFsm.commChan)
 			if err != nil {
 				logger.Errorw(ctx, "ONUData get failed, aborting MibSync", log.Fields{"device-id": oo.deviceID})
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 				return
 			}
 			//TODO: needs extra handling of timeouts
@@ -852,7 +852,7 @@ func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 		pMibUlFsm := oo.pMibUploadFsm
 		if pMibUlFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvResetMib)
+				_ = oo.pMibUploadFsm.pFsm.Event(ulEvStop)
 			}(pMibUlFsm)
 		}
 		return
