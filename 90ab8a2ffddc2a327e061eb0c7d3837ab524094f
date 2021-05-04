@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "55512898_282da9b1",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-04T09:32:31Z",
+      "side": 1,
+      "message": "Timeouts for:\n\tSelfTestResponseWaitTimeout \u003d 3\n\tSelfTestResultWaitTimeout   \u003d 3",
+      "parentUuid": "f7ae255f_c9e66b75",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4c19833e_7d7b4657",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -141,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "333d1606_568fdb2b",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-04T09:32:31Z",
+      "side": 1,
+      "message": "Ok, I see. The only advantage I see with this approach is that the (slim) NewSelfTestMsgHandlerCb() does not need to be invoked on every new ANI-G test request, which I suppose will be really done multiple times if this functionality is used. As stated I don\u0027t suppose a different self test will be required.",
+      "parentUuid": "7c8aae5a_7dbf9358",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1985cfa3_722af1c0",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -176,6 +212,24 @@
     },
     {
       "key": {
+        "uuid": "7d604bb1_ff41b180",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-04T09:32:31Z",
+      "side": 1,
+      "message": "Not needed with your explanation above, according to your code selfTestCb.deviceID is tsill valid.",
+      "parentUuid": "05dd86a0_34005ecc",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "32d0f060_868af8d7",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 3
@@ -205,6 +259,24 @@
       "side": 1,
       "message": "This API although seems more logical to use rather than Single_get_value_request, the request and response message in this API did not seem to have any support to achieve the Optical Line Supervision test. However the Single_get_value_request/response seemed to have full support for this - hence used that.",
       "parentUuid": "32d0f060_868af8d7",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6ca79eb4_74b05608",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-04T09:32:31Z",
+      "side": 1,
+      "message": "Ack - and if so, it could as well be considered to remove this rpc ocassionally.",
+      "parentUuid": "fe821787_86caf103",
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true

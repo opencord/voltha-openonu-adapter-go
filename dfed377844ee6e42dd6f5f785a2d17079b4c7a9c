@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "03893d02_27d9e3ac",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-04T09:32:31Z",
+      "side": 1,
+      "message": "I was referring to the continued parsing here -\u003e nextLayer/msgLayer - to evaluate the Result field of the message. As stated I don\u0027t regard that as related to the OMCI_CC to parse that far (and once again then in the FSM processing).",
+      "parentUuid": "08382822_bcc73264",
+      "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dd15319d_77d8e6f4",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 6
