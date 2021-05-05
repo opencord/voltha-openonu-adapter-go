@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "b3664be3_4b3f1fda",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-05T00:28:34Z",
+      "side": 1,
+      "message": "Ack. Addressed in latest patch.",
+      "parentUuid": "03893d02_27d9e3ac",
+      "revId": "dfed377844ee6e42dd6f5f785a2d17079b4c7a9c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dd15319d_77d8e6f4",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 6

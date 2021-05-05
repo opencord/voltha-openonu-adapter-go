@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "bb7fa74e_32f9d0e5",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-05T00:28:34Z",
+      "side": 1,
+      "message": "I am sorry - I do not understand. Can you please point me to line in the code ?",
+      "parentUuid": "55512898_282da9b1",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4c19833e_7d7b4657",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -89,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "ea636b7f_6d2caf4d",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-05T00:28:34Z",
+      "side": 1,
+      "message": "I think I have addressed this in the latest patches.",
+      "parentUuid": "2b74b782_d31eb027",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4eee8ffc_bc07dd1a",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -100,6 +136,24 @@
       "writtenOn": "2021-04-29T09:16:02Z",
       "side": 1,
       "message": "In our state machines we also used the \u0027lastTxMe...\u0027 to verify if what we receive here is really what we expect. This avoids the evaluation of some wrongly assigned or dangling messages - or even inconsistent messages [e.g using the TID but a different message type]. Not that important, but sometimes useful to avoid unneeded error/warning logs.",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "351affcc_d2c8f902",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-05T00:28:34Z",
+      "side": 1,
+      "message": "I do not expect this will happen with the approach I have chosen. The ephemeral state machines is per ME ID and it allows only one concurrent self test per ME ID.",
+      "parentUuid": "4eee8ffc_bc07dd1a",
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -171,6 +225,24 @@
       "side": 1,
       "message": "Ok, I see. The only advantage I see with this approach is that the (slim) NewSelfTestMsgHandlerCb() does not need to be invoked on every new ANI-G test request, which I suppose will be really done multiple times if this functionality is used. As stated I don\u0027t suppose a different self test will be required.",
       "parentUuid": "7c8aae5a_7dbf9358",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f77599e_97715d89",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-05T00:28:34Z",
+      "side": 1,
+      "message": "I think we will soon need self test for PPTP UNI, ONU-G MEs. At the self test for PPTP UNI is coming for sure shortly. \nWe will use self test on PPTP UNI to query the requested parameters per this sheet from DT -  https://docs.google.com/spreadsheets/d/1krczW1WNd-OKIUW6lHTvnhYG41G3zCiC/edit?ts\u003d607ed6f7#gid\u003d804801950 - refer item at row 32.",
+      "parentUuid": "333d1606_568fdb2b",
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
