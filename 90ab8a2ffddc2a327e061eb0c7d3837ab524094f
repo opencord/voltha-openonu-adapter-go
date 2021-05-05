@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "3ddabbb3_8c0bf8fc",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-05T07:26:37Z",
+      "side": 1,
+      "message": "Seems to be solved in the meantime, patch #9 seems to be ok in this respect. Here only SelfTestResponseWaitTimeout is still used and timer abort is realized using pFsmCb.stopOmciChan - so ok.",
+      "parentUuid": "bb7fa74e_32f9d0e5",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4c19833e_7d7b4657",
         "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
         "patchSetId": 3
@@ -243,6 +261,24 @@
       "side": 1,
       "message": "I think we will soon need self test for PPTP UNI, ONU-G MEs. At the self test for PPTP UNI is coming for sure shortly. \nWe will use self test on PPTP UNI to query the requested parameters per this sheet from DT -  https://docs.google.com/spreadsheets/d/1krczW1WNd-OKIUW6lHTvnhYG41G3zCiC/edit?ts\u003d607ed6f7#gid\u003d804801950 - refer item at row 32.",
       "parentUuid": "333d1606_568fdb2b",
+      "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de920f94_f6dc4d36",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-05T07:26:37Z",
+      "side": 1,
+      "message": "I don\u0027t know what you are referring to. There is no self test for PPTP Ethernet Uni and I don\u0027t see why ONU-G should be required. Parameters in line 32 are already delivered in the metrics data, I think that should be sufficient.",
+      "parentUuid": "7f77599e_97715d89",
       "revId": "90ab8a2ffddc2a327e061eb0c7d3837ab524094f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
