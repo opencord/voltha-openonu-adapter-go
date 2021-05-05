@@ -81,7 +81,7 @@ func (oo *omciTestRequest) performOmciTest(ctx context.Context, execChannel chan
 		logger.Debugw(ctx, "performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID})
 		// send with default timeout and normal prio
 		// Note: No reference to fetch the OMCI timeout value from configuration, so hardcode it to 10s
-		go oo.pDevOmciCC.send(ctx, onu2gBaseGet, 10, 0, false, omciRxCallbackPair)
+		go oo.pDevOmciCC.send(ctx, onu2gBaseGet, 10, cDefaultRetries, false, omciRxCallbackPair)
 
 	} else {
 		logger.Errorw(ctx, "performOmciTest: Device does not exist", log.Fields{"for device-id": oo.deviceID})
@@ -137,6 +137,13 @@ func (oo *omciTestRequest) receiveOmciVerifyResponse(ctx context.Context, omciMs
 	}
 
 	//TODO!!! further tests on the payload should be done here ...
+
+	if _, exist := oo.pDevOmciCC.monitoredRequests[omciMsg.TransactionID]; exist {
+		oo.pDevOmciCC.monitoredRequests[omciMsg.TransactionID].chSuccess <- true
+	} else {
+		logger.Infow(ctx, "reqMon: map entry does not exist!",
+			log.Fields{"tid": omciMsg.TransactionID, "device-id": oo.deviceID})
+	}
 
 	oo.result = true
 	oo.verifyDone <- true
