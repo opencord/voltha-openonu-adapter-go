@@ -684,7 +684,7 @@ loop:
 			select {
 			case meAttributes = <-mm.opticalMetricsChan:
 				logger.Debugw(ctx, "received optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+			case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics will be empty in this case
 				break loop
@@ -767,7 +767,7 @@ loop1:
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
 				logger.Debugw(ctx, "received uni-g metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+			case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics could be empty in this case
 				break loop1
@@ -823,7 +823,7 @@ loop2:
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
 				logger.Debugw(ctx, "received pptp metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+			case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics could be empty in this case
 				break loop2
@@ -888,7 +888,7 @@ loop3:
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
 				logger.Debugw(ctx, "received veip metrics", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
-			case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+			case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 				// The metrics could be empty in this case
 				break loop3
@@ -1677,7 +1677,7 @@ func (mm *onuMetricsManager) syncTime(ctx context.Context) error {
 	}
 
 	select {
-	case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+	case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 		logger.Errorw(ctx, "timed out waiting for sync time response from onu", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 		return fmt.Errorf("timed-out-waiting-for-sync-time-response-%v", mm.pDeviceHandler.deviceID)
 	case syncTimeRes := <-mm.syncTimeResponseChan:
@@ -1850,7 +1850,7 @@ func (mm *onuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received ethernet pm history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "upstream": upstream, "entityID": entityID})
-		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+		case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for ethernet pm history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "upstream": upstream, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -1952,7 +1952,7 @@ func (mm *onuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received ethernet uni history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
-		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+		case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for ethernet uni history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -2054,7 +2054,7 @@ func (mm *onuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received fec history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
-		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+		case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for fec history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -2120,7 +2120,7 @@ func (mm *onuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 		case meAttributes = <-mm.l2PmChan:
 			logger.Debugw(ctx, "received gem port history data metrics",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
-		case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+		case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 			logger.Errorw(ctx, "timeout waiting for omci-get response for gem port history data",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
@@ -2371,7 +2371,7 @@ func (mm *onuMetricsManager) waitForResponseOrTimeout(ctx context.Context, creat
 		logger.Debugw(ctx, "received l2 pm me response",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "create": create, "meClassName": meClassName, "instID": instID})
 		return resp
-	case <-time.After(time.Duration(mm.pDeviceHandler.pOpenOnuAc.omciTimeout) * time.Second):
+	case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 		logger.Errorw(ctx, "timeout waiting for l2 pm me response",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": false, "create": create, "meClassName": meClassName, "instID": instID})
 	}
