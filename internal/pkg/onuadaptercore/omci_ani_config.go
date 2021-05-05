@@ -787,23 +787,29 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 		logger.Debug(ctx, "flushed waitFlowDeleteChannel")
 	default:
 	}
-	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending(oFsm.waitFlowDeleteChannel) {
-		oFsm.pUniTechProf.mutexTPState.Unlock()
-		logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
-			log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
-		// if flow remove is pending then wait for flow remove to finish first before proceeding with gem port delete
-		pConfigAniStateAFsm := oFsm.pAdaptFsm
-		if pConfigAniStateAFsm != nil {
-			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-			go func(aPAFsm *AdapterFsm) {
-				if aPAFsm != nil && aPAFsm.pFsm != nil {
-					_ = aPAFsm.pFsm.Event(aniEvWaitFlowRem)
-				}
-			}(pConfigAniStateAFsm)
-		} else {
-			logger.Errorw(ctx, "pConfigAniStateAFsm is nil", log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+
+	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID] != nil {
+		if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending(oFsm.waitFlowDeleteChannel) {
+			oFsm.pUniTechProf.mutexTPState.Unlock()
+			logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
+				log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+			// if flow remove is pending then wait for flow remove to finish first before proceeding with gem port delete
+			pConfigAniStateAFsm := oFsm.pAdaptFsm
+			if pConfigAniStateAFsm != nil {
+				// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+				go func(aPAFsm *AdapterFsm) {
+					if aPAFsm != nil && aPAFsm.pFsm != nil {
+						_ = aPAFsm.pFsm.Event(aniEvWaitFlowRem)
+					}
+				}(pConfigAniStateAFsm)
+			} else {
+				logger.Errorw(ctx, "pConfigAniStateAFsm is nil", log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
+			}
+			return
 		}
-		return
+	} else {
+		logger.Debugw(ctx, "uni vlan config doesn't exist - no flow remove could be pending",
+			log.Fields{"device-id": oFsm.deviceID, "techProfile-id": oFsm.techProfileID})
 	}
 
 	// get the related GemPort entity Id from pUniTechProf, OMCI Gem* entityID is set to be equal to GemPortId!
@@ -845,7 +851,7 @@ func (oFsm *uniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
-	case <-time.After(10 * time.Second): //give flow processing enough time to finish (but try to be less than rwCore flow timeouts)
+	case <-time.After(2 * oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //give flow processing enough time to finish (but try to be less than rwCore flow timeouts)
 		logger.Warnw(ctx, "uniPonAniConfigFsm WaitingFlowRem timeout", log.Fields{
 			"for device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
 		oFsm.mutexIsAwaitingResponse.Lock()
@@ -1607,7 +1613,7 @@ func (oFsm *uniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow("LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
-	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+	case <-time.After(oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw(ctx, "UniPonAniConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.deviceID})
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false

@@ -1468,7 +1468,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	after Timeout start and try MibUpload FSM anyway
 	(to prevent stopping on just not supported OMCI verification from ONU) */
 	select {
-	case <-time.After(2 * time.Second):
+	case <-time.After(pDevEntry.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 		logger.Warn(ctx, "omci start-verification timed out (continue normal)")
 	case testresult := <-verifyExec:
 		logger.Infow(ctx, "Omci start verification done", log.Fields{"result": testresult})
@@ -1669,6 +1669,8 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
+	dh.pOnuOmciDevice.PDevOmciCC.CancelRequestMonitoring()
+
 	if includingMibSyncFsm {
 		pDevEntry.CancelProcessing(ctx)
 	}

@@ -450,7 +450,7 @@ func (oFsm *lockStateFsm) waitforOmciResponse(ctx context.Context, apMeInstance 
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow(ctx,"LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
-	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+	case <-time.After(oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw(ctx, "LockStateFSM uni-set timeout", log.Fields{"for device-id": oFsm.deviceID})
 		return fmt.Errorf("lockStateFsm uni-set timeout for device-id %s", oFsm.deviceID)
 	case success := <-oFsm.omciLockResponseReceived:

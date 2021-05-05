@@ -36,7 +36,6 @@ import (
 
 const (
 	// internal predefined values
-	cWaitForCookieDeletion = 3 //seconds
 	cDefaultDownstreamMode = 0
 	cDefaultTpid           = 0x8100
 	cVtfdTableSize         = 12             //as per G.988
@@ -627,7 +626,7 @@ func (oFsm *UniVlanConfigFsm) suspendNewRule(ctx context.Context) {
 	case <-oFsm.chCookieDeleted:
 		logger.Infow(ctx, "resume adding this rule after having deleted cookie in some other rule", log.Fields{
 			"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
-	case <-time.After(time.Duration(cWaitForCookieDeletion) * time.Second):
+	case <-time.After(oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 		logger.Errorw(ctx, "timeout waiting for deletion of cookie in some other rule, just try to continue", log.Fields{
 			"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
 	}
@@ -2289,7 +2288,7 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse(ctx context.Context) error {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Infow(ctx,"LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
-	case <-time.After(30 * time.Second): //AS FOR THE OTHER OMCI FSM's
+	case <-time.After(oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //AS FOR THE OTHER OMCI FSM's
 		logger.Warnw(ctx, "UniVlanConfigFsm multi entity timeout", log.Fields{"for device-id": oFsm.deviceID})
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false
