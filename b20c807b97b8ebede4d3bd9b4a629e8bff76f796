@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "164857c5_b17292f3",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 340,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-05T07:09:38Z",
+      "side": 1,
+      "message": "This one is now defined in onu_metrics_manager and here. I\u0027d propose to make it a (utility) method of the device handler and use it from there in both \u0027modules\u0027",
+      "revId": "b20c807b97b8ebede4d3bd9b4a629e8bff76f796",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
