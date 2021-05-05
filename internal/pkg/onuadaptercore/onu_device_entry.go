@@ -541,7 +541,7 @@ func (oo *OnuDeviceEntry) reboot(ctx context.Context) error {
 
 func (oo *OnuDeviceEntry) waitForRebootResponse(ctx context.Context, responseChannel chan Message) error {
 	select {
-	case <-time.After(3 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+	case <-time.After(oo.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw(ctx, "Reboot timeout", log.Fields{"for device-id": oo.deviceID})
 		return fmt.Errorf("rebootTimeout")
 	case data := <-responseChannel:

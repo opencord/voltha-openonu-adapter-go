@@ -332,7 +332,7 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, a
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
 	// 		logger.Info("MibDownload-bridge-init message reception canceled", log.Fields{"for device-id": onuDeviceEntry.deviceID})
-	case <-time.After(30 * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+	case <-time.After(onuDeviceEntry.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
 		logger.Warnw(ctx, "MibDownload-bridge-init timeout", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 		return fmt.Errorf("mibDownloadBridgeInit timeout %s", onuDeviceEntry.deviceID)
 	case success := <-onuDeviceEntry.omciMessageReceived:
