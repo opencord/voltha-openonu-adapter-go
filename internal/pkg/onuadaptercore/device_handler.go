@@ -408,8 +408,10 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		logger.Errorw(ctx, "error-parsing-tpid-from-tppath", log.Fields{"err": err, "tp-path": techProfMsg.Path})
 		return err
 	}
+	logger.Debugw(ctx, "unmarshal-techprof-msg-body", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
 
 	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.Path); bTpModify {
+		logger.Debugw(ctx, "OnuUniTpPath modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
 		//	if there has been some change for some uni TechProfilePath
 		//in order to allow concurrent calls to other dh instances we do not wait for execution here
 		//but doing so we can not indicate problems to the caller (who does what with that then?)
@@ -435,6 +437,7 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
 	}
 	// no change, nothing really to do - return success
+	logger.Debugw(ctx, "OnuUniTpPath not modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
 	return nil
 }
 
