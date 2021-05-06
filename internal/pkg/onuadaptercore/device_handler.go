@@ -408,8 +408,10 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		logger.Errorw(ctx, "error-parsing-tpid-from-tppath", log.Fields{"err": err, "tp-path": techProfMsg.Path})
 		return err
 	}
+	logger.Debugw(ctx, "unmarshal-techprof-msg-body", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
 
 	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.Path); bTpModify {
+		logger.Debugw(ctx, "OnuUniTpPath modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
 		//	if there has been some change for some uni TechProfilePath
 		//in order to allow concurrent calls to other dh instances we do not wait for execution here
 		//but doing so we can not indicate problems to the caller (who does what with that then?)
@@ -423,18 +425,30 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
-		pDevEntry.resetKvProcessingErrorIndication()
 
 		var wg sync.WaitGroup
-		wg.Add(2) // for the 2 go routines to finish
+		wg.Add(1) // for the 1 go routine to finish
 		// attention: deadline completion check and wg.Done is to be done in both routines
 		go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.Path, &wg)
-		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
 		dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
+		if tpErr := dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
+			logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.deviceID, "err": tpErr, "tp-path": techProfMsg.Path})
+			return tpErr
+		}
 
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
+		dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+		pDevEntry.resetKvProcessingErrorIndication()
+		wg.Add(1) // for the 1 go routine to finish
+		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg)
+		dh.waitForCompletion(ctx, cancel2, &wg, "TechProfDwld") //wait for background process to finish
+		if kvErr := pDevEntry.getKvProcessingErrorIndication(); kvErr != nil {
+			logger.Errorw(ctx, "error-updating-KV", log.Fields{"device-id": dh.deviceID, "err": kvErr, "tp-path": techProfMsg.Path})
+			return kvErr
+		}
+		return nil
 	}
 	// no change, nothing really to do - return success
+	logger.Debugw(ctx, "OnuUniTpPath not modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
 	return nil
 }
 
@@ -544,17 +558,27 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 		dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
-		pDevEntry.resetKvProcessingErrorIndication()
 
 		var wg sync.WaitGroup
-		wg.Add(2) // for the 2 go routines to finish
+		wg.Add(1) // for the 1 go routine to finish
 		go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delTcontMsg.TpPath,
 			cResourceTcont, delTcontMsg.AllocId, &wg)
-		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
-		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
 		dh.waitForCompletion(ctx, cancel, &wg, "TContDelete") //wait for background process to finish
-
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
+		if tpErr := dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
+			logger.Errorw(ctx, "error-processing-tp-delete", log.Fields{"device-id": dh.deviceID, "err": tpErr, "tp-path": delTcontMsg.TpPath})
+			return tpErr
+		}
+		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
+		//Also removal of  the tcont instance in persistent storage
+		dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+		pDevEntry.resetKvProcessingErrorIndication()
+		wg.Add(1) // for the 1 go routine to finish
+		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg)
+		dh.waitForCompletion(ctx, cancel2, &wg, "TContDelete") //wait for background process to finish
+		if kvErr := pDevEntry.getKvProcessingErrorIndication(); kvErr != nil {
+			logger.Errorw(ctx, "error-updating-kv", log.Fields{"device-id": dh.deviceID, "err": kvErr, "tp-path": delTcontMsg.TpPath})
+			return kvErr
+		}
 	}
 	return nil
 }
@@ -3081,6 +3105,7 @@ func (dh *deviceHandler) storePersistentData(ctx context.Context) error {
 	return dh.startWritingOnuDataToKvStore(ctx, pDevEntry)
 }
 
+/*
 func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
 	var errStr string = ""
 	for _, err := range errS {
@@ -3092,7 +3117,7 @@ func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
 		return fmt.Errorf("%s: %s", errStr, dh.deviceID)
 	}
 	return nil
-}
+}*/
 
 // getUniPortMEEntityID takes uniPortNo as the input and returns the Entity ID corresponding to this UNI-G ME Instance
 func (dh *deviceHandler) getUniPortMEEntityID(uniPortNo uint32) (uint16, error) {
