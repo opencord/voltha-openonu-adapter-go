@@ -185,7 +185,6 @@ type deviceHandler struct {
 	pOnuTP            *onuUniTechProf
 	pOnuMetricsMgr    *onuMetricsManager
 	pAlarmMgr         *onuAlarmManager
-	pSelfTestHdlr     *selfTestControlBlock
 	exitChannel       chan int
 	lockDevice        sync.RWMutex
 	pOnuIndication    *oop.OnuIndication
@@ -1097,6 +1096,182 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 	return err
 }
 
+//onuSwUpgradeAfterDownload initiates the SW download transfer to the ONU with activate and commit options
+// after the OnuImage has been downloaded to the adapter, called in background
+func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageRequest *voltha.DeviceImageDownloadRequest,
+	apDownloadManager *fileDownloadManager, aImageIdentifier string) {
+
+	var err error
+	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "start Onu SW upgrade rejected: no valid OnuDevice", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+
+	var inactiveImageID uint16
+	if inactiveImageID, err = pDevEntry.GetInactiveImageMeID(ctx); err == nil {
+		logger.Debugw(ctx, "onuSwUpgrade requested", log.Fields{
+			"device-id": dh.deviceID, "image-version": apImageRequest.Image.Version, "to onu-image": inactiveImageID})
+		dh.lockUpgradeFsm.Lock()
+		defer dh.lockUpgradeFsm.Unlock()
+		if dh.pOnuUpradeFsm == nil {
+			//OmciOnuSwUpgradeDone could be used to create some Kafka event with information on upgrade completion,
+			//  but none yet defined
+			err = dh.createOnuUpgradeFsm(ctx, pDevEntry, OmciOnuSwUpgradeDone)
+			if err == nil {
+				if err = dh.pOnuUpradeFsm.SetDownloadParamsAfterDownload(ctx, inactiveImageID,
+					apImageRequest, apDownloadManager, aImageIdentifier); err != nil {
+					logger.Errorw(ctx, "onu upgrade fsm could not set parameters", log.Fields{
+						"device-id": dh.deviceID, "error": err})
+					return
+				}
+			} else {
+				logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
+					"device-id": dh.deviceID, "error": err})
+			}
+			return
+		}
+		//OnuSw upgrade already running - restart (with possible abort of running)
+		logger.Debugw(ctx, "Onu SW upgrade already running - abort", log.Fields{"device-id": dh.deviceID})
+		pUpgradeStatemachine := dh.pOnuUpradeFsm.pAdaptFsm.pFsm
+		if pUpgradeStatemachine != nil {
+			if err = pUpgradeStatemachine.Event(upgradeEvAbort); err != nil {
+				logger.Errorw(ctx, "onu upgrade fsm could not abort a running processing", log.Fields{
+					"device-id": dh.deviceID, "error": err})
+				return
+			}
+			//TODO!!!: wait for 'ready' to start and configure - see above SetDownloadParams()
+			// for now a second start of download should work again - must still be initiated by user
+		} else { //should never occur
+			logger.Errorw(ctx, "onu upgrade fsm inconsistent setup", log.Fields{
+				"device-id": dh.deviceID})
+		}
+		return
+	}
+	logger.Errorw(ctx, "start Onu SW upgrade rejected: no inactive image", log.Fields{
+		"device-id": dh.deviceID, "error": err})
+}
+
+//onuSwActivateRequest ensures activation of the requested image with commit options
+func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context, aVersion string, aCommitRequest bool) {
+	var err error
+	//SW activation for the ONU omage may have two use cases, one of them is selected here according to following priorization:
+	//  1.) activation of the image for a started upgrade process (in case it equals the requested image)
+	//  2.) activation of the inactive image
+
+	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "Onu image activation rejected: no valid OnuDevice", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	dh.lockUpgradeFsm.RLock()
+	if dh.pOnuUpradeFsm != nil {
+		dh.lockUpgradeFsm.RUnlock()
+		onuVolthaDevice, getErr := dh.coreProxy.GetDevice(log.WithSpanFromContext(context.TODO(), ctx),
+			dh.deviceID, dh.deviceID)
+		if getErr != nil || onuVolthaDevice == nil {
+			logger.Errorw(ctx, "Failed to fetch Onu device for image activation", log.Fields{"device-id": dh.deviceID, "err": getErr})
+			return
+		}
+		//  use the OnuVendor identification from this device for the internal unique name
+		imageIdentifier := onuVolthaDevice.VendorId + aVersion //head on vendor ID of the ONU
+		// 1.) check a started upgrade process and rely the activation request to it
+		if err = dh.pOnuUpradeFsm.SetActivationParamsRunning(ctx, imageIdentifier, aCommitRequest); err != nil {
+			logger.Errorw(ctx, "onu upgrade fsm did not accept activation while running", log.Fields{
+				"device-id": dh.deviceID, "error": err})
+		} else {
+			logger.Debugw(ctx, "image activation acknowledged by onu upgrade processing", log.Fields{
+				"device-id": dh.deviceID, "image-id": imageIdentifier})
+		}
+		//if some ONU upgrade is ongoing we do not accept some explicit ONU image-version related activation
+		//   (even though parameter setting is not accepted)
+		return
+	} //else
+	dh.lockUpgradeFsm.RUnlock()
+
+	// 2.) check if requested image-version equals the inactive one and start its activation
+	//   (image version is not [yet] checked - would be possible, but with increased effort ...)
+	var inactiveImageID uint16
+	if inactiveImageID, err = pDevEntry.GetInactiveImageMeID(ctx); err != nil || inactiveImageID > 1 {
+		logger.Errorw(ctx, "get inactive image failed", log.Fields{
+			"device-id": dh.deviceID, "err": err, "image-id": inactiveImageID})
+		return
+	}
+	err = dh.createOnuUpgradeFsm(ctx, pDevEntry, OmciOnuSwUpgradeDone)
+	if err == nil {
+		if err = dh.pOnuUpradeFsm.SetActivationParamsStart(ctx, aVersion,
+			inactiveImageID, aCommitRequest); err != nil {
+			logger.Errorw(ctx, "onu upgrade fsm did not accept activation to start", log.Fields{
+				"device-id": dh.deviceID, "error": err})
+			return
+		}
+		logger.Debugw(ctx, "inactive image activation acknowledged by onu upgrade", log.Fields{
+			"device-id": dh.deviceID, "image-version": aVersion})
+		return
+	} //else
+	logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
+		"device-id": dh.deviceID, "error": err})
+}
+
+//onuSwCommitRequest ensures commitment of the requested image
+func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context, aVersion string) {
+	var err error
+	//SW commitment for the ONU image may have two use cases, one of them is selected here according to following priorization:
+	//  1.) commitment of the image for a started upgrade process (in case it equals the requested image)
+	//  2.) commitment of the active image
+
+	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "Onu image commitment rejected: no valid OnuDevice", log.Fields{"device-id": dh.deviceID})
+		return
+	}
+	dh.lockUpgradeFsm.RLock()
+	if dh.pOnuUpradeFsm != nil {
+		dh.lockUpgradeFsm.RUnlock()
+		onuVolthaDevice, getErr := dh.coreProxy.GetDevice(log.WithSpanFromContext(context.TODO(), ctx),
+			dh.deviceID, dh.deviceID)
+		if getErr != nil || onuVolthaDevice == nil {
+			logger.Errorw(ctx, "Failed to fetch Onu device for image commitment", log.Fields{"device-id": dh.deviceID, "err": getErr})
+			return
+		}
+		//  use the OnuVendor identification from this device for the internal unique name
+		imageIdentifier := onuVolthaDevice.VendorId + aVersion //head on vendor ID of the ONU
+		// 1.) check a started upgrade process and rely the commitment request to it
+		if err = dh.pOnuUpradeFsm.SetCommitmentParamsRunning(ctx, imageIdentifier); err != nil {
+			logger.Errorw(ctx, "onu upgrade fsm did not accept commitment while running", log.Fields{
+				"device-id": dh.deviceID, "error": err})
+		} else {
+			logger.Debugw(ctx, "image commitment acknowledged by onu upgrade processing", log.Fields{
+				"device-id": dh.deviceID, "image-id": imageIdentifier})
+		}
+		//if some ONU upgrade is ongoing we do not accept some explicit ONU image-version related commitment
+		//   (even though parameter setting is not accepted)
+		return
+	} //else
+	dh.lockUpgradeFsm.RUnlock()
+
+	// 2.) check if requested image-version equals the inactive one and start its commitment
+	var activeImageID uint16
+	if activeImageID, err = pDevEntry.GetActiveImageMeID(ctx); err != nil || activeImageID > 1 {
+		logger.Errorw(ctx, "get active image failed", log.Fields{
+			"device-id": dh.deviceID, "err": err, "image-id": activeImageID})
+		return
+	}
+	err = dh.createOnuUpgradeFsm(ctx, pDevEntry, OmciOnuSwUpgradeDone)
+	if err == nil {
+		if err = dh.pOnuUpradeFsm.SetCommitmentParamsStart(ctx, aVersion, activeImageID); err != nil {
+			logger.Errorw(ctx, "onu upgrade fsm did not accept commitment to start", log.Fields{
+				"device-id": dh.deviceID, "error": err})
+			return
+		}
+		logger.Debugw(ctx, "active image commitment acknowledged by onu upgrade", log.Fields{
+			"device-id": dh.deviceID, "image-version": aVersion})
+		return
+	} //else
+	logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
+		"device-id": dh.deviceID, "error": err})
+}
+
 //  deviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
@@ -1370,14 +1545,13 @@ func (dh *deviceHandler) getOnuDeviceEntry(ctx context.Context, aWait bool) *Onu
 
 //setOnuDeviceEntry sets the ONU device entry within the handler
 func (dh *deviceHandler) setOnuDeviceEntry(
-	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuMetricsMgr *onuMetricsManager, apOnuAlarmMgr *onuAlarmManager, apSelfTestHdlr *selfTestControlBlock) {
+	apDeviceEntry *OnuDeviceEntry, apOnuTp *onuUniTechProf, apOnuMetricsMgr *onuMetricsManager, apOnuAlarmMgr *onuAlarmManager) {
 	dh.lockDevice.Lock()
 	defer dh.lockDevice.Unlock()
 	dh.pOnuOmciDevice = apDeviceEntry
 	dh.pOnuTP = apOnuTp
 	dh.pOnuMetricsMgr = apOnuMetricsMgr
 	dh.pAlarmMgr = apOnuAlarmMgr
-	dh.pSelfTestHdlr = apSelfTestHdlr
 }
 
 //addOnuDeviceEntry creates a new ONU device or returns the existing
@@ -1394,9 +1568,8 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		onuTechProfProc := newOnuUniTechProf(ctx, dh)
 		onuMetricsMgr := newonuMetricsManager(ctx, dh)
 		onuAlarmManager := newAlarmManager(ctx, dh)
-		selfTestHdlr := newSelfTestMsgHandlerCb(ctx, dh)
 		//error treatment possible //TODO!!!
-		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuMetricsMgr, onuAlarmManager, selfTestHdlr)
+		dh.setOnuDeviceEntry(deviceEntry, onuTechProfProc, onuMetricsMgr, onuAlarmManager)
 		// fire deviceEntry ready event to spread to possibly waiting processing
 		dh.deviceEntrySet <- true
 		logger.Debugw(ctx, "onuDeviceEntry-added", log.Fields{"device-id": dh.deviceID})
@@ -1471,7 +1644,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	after Timeout start and try MibUpload FSM anyway
 	(to prevent stopping on just not supported OMCI verification from ONU) */
 	select {
-	case <-time.After(pDevEntry.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
+	case <-time.After(2 * time.Second):
 		logger.Warn(ctx, "omci start-verification timed out (continue normal)")
 	case testresult := <-verifyExec:
 		logger.Infow(ctx, "Omci start verification done", log.Fields{"result": testresult})
@@ -1672,8 +1845,6 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
-	dh.pOnuOmciDevice.PDevOmciCC.CancelRequestMonitoring()
-
 	if includingMibSyncFsm {
 		pDevEntry.CancelProcessing(ctx)
 	}
@@ -1723,18 +1894,10 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	}
 
 	//reset a possibly running upgrade FSM
-	// specific here: If the FSM is in upgradeStWaitForCommit, it is left there for possibly later commit
-	// this possibly also refers later to (not yet existing) upgradeStWaitForActivate (with ctl API changes)
+	//  (note the Upgrade FSM may stay alive e.g. in state upgradeStWaitForCommit to endure the ONU reboot)
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
-		pUpgradeStatemachine := dh.pOnuUpradeFsm.pAdaptFsm.pFsm
-		if pUpgradeStatemachine != nil {
-			if pUpgradeStatemachine.Is(upgradeStWaitEndDL) {
-				dh.pOnuUpradeFsm.chReceiveExpectedResponse <- false //which aborts the FSM (activate was not yet sent)
-			}
-			_ = pUpgradeStatemachine.Event(upgradeEvReset) //anyway and for all other states
-		}
-		//else the FSM seems already to be in some released state
+		dh.pOnuUpradeFsm.CancelProcessing(ctx)
 	}
 	dh.lockUpgradeFsm.RUnlock()
 
