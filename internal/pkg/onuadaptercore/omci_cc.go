@@ -492,13 +492,15 @@ func (oo *omciCC) ReleaseTid(ctx context.Context, tid uint16) {
 func (oo *omciCC) send(ctx context.Context, txFrame []byte, timeout int, retry int, highPrio bool,
 	receiveCallbackPair callbackPair) error {
 
-	logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.cbKey})
-	// it could be checked, if the callback keay is already registered - but simply overwrite may be acceptable ...
-	oo.mutexRxSchedMap.Lock()
-	oo.rxSchedulerMap[receiveCallbackPair.cbKey] = receiveCallbackPair.cbEntry
-	printFrame := receiveCallbackPair.cbEntry.framePrint //printFrame true means debug print of frame is requested
-	oo.mutexRxSchedMap.Unlock()
+	if timeout != 0 {
+		logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.cbKey})
+		oo.mutexRxSchedMap.Lock()
+		// it could be checked, if the callback key is already registered - but simply overwrite may be acceptable ...
+		oo.rxSchedulerMap[receiveCallbackPair.cbKey] = receiveCallbackPair.cbEntry
+		oo.mutexRxSchedMap.Unlock()
+	} //else timeout 0 indicates that no response is expected - fire and forget
 
+	printFrame := receiveCallbackPair.cbEntry.framePrint //printFrame true means debug print of frame is requested
 	//just use a simple list for starting - might need some more effort, especially for multi source write access
 	omciTxRequest := omciTransferStructure{
 		txFrame,
@@ -585,15 +587,6 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 			proxy_device_id=self._proxy_address.device_id
 		)
 		*/
-		device, err := oo.coreProxy.GetDevice(ctx,
-			oo.pBaseDeviceHandler.deviceID, oo.deviceID) //parent, child
-		if err != nil || device == nil {
-			/*TODO: needs to handle error scenarios */
-			logger.Errorw(ctx, "Failed to fetch device", log.Fields{"err": err, "ParentId": oo.pBaseDeviceHandler.deviceID,
-				"ChildId": oo.deviceID})
-			return fmt.Errorf("failed to fetch device %s", oo.deviceID)
-		}
-
 		if omciTxRequest.withFramePrint {
 			logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
 				"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame),
@@ -2706,7 +2699,7 @@ func (oo *omciCC) sendStartSoftwareDownload(ctx context.Context, timeout int, hi
 	return nil
 }
 
-func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio bool,
+func (oo *omciCC) sendDownloadSection(ctx context.Context, aTimeout int, highPrio bool,
 	rxChan chan Message, aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte, aPrint bool) error {
 	tid := oo.getNextTid(highPrio)
 	logger.Debugw(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
@@ -2716,8 +2709,10 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio
 	//TODO!!!: don't know by now on how to generate the possibly needed AR (or enforce it to 0) with current omci-lib
 	//    by now just try to send it as defined by omci-lib
 	msgType := omci.DownloadSectionRequestType
+	var timeout int = 0 //default value for no response expected
 	if aAckRequest > 0 {
 		msgType = omci.DownloadSectionRequestWithResponseType
+		timeout = aTimeout
 	}
 	omciLayer := &omci.OMCI{
 		TransactionID: tid,
@@ -2754,6 +2749,8 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, timeout int, highPrio
 	}
 
 	omciRxCallbackPair := callbackPair{cbKey: tid,
+		// the callback is set even though no response might be required here, the tid (key) setting is needed here anyway
+		//   (used to avoid retransmission of frames with the same TID)
 		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, printFrame /*aPrint*/},
 	}
 	err = oo.send(ctx, outgoingPacket, timeout, cDefaultRetries, highPrio, omciRxCallbackPair)
@@ -2999,52 +2996,58 @@ func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) 
 
 func (oo *omciCC) processRequestMonitoring(ctx context.Context, aOmciTxRequest omciTransferStructure) {
 
-	chSuccess := make(chan bool)
-	aOmciTxRequest.chSuccess = chSuccess
-
-	tid := aOmciTxRequest.cbPair.cbKey
 	timeout := aOmciTxRequest.timeout
-	retries := aOmciTxRequest.retries
-
-	oo.mutexMonReq.Lock()
-	oo.monitoredRequests[tid] = aOmciTxRequest
-	oo.mutexMonReq.Unlock()
-
-	retryCounter := 0
-loop:
-	for retryCounter <= retries {
-
+	if timeout == 0 {
+		//timeout 0 indicates that no response is expected - fire and forget
 		oo.mutexTxQueue.Lock()
 		oo.txQueue.PushBack(aOmciTxRequest) // enqueue
 		oo.mutexTxQueue.Unlock()
-
 		go oo.sendNextRequest(ctx)
+	} else {
+		chSuccess := make(chan bool)
+		aOmciTxRequest.chSuccess = chSuccess
+		tid := aOmciTxRequest.cbPair.cbKey
+		retries := aOmciTxRequest.retries
 
-		select {
-		case success := <-chSuccess:
-			if success {
-				logger.Debugw(ctx, "reqMon: response received in time",
-					log.Fields{"tid": tid, "device-id": oo.deviceID})
-			} else {
-				logger.Debugw(ctx, "reqMon: wait for response aborted",
-					log.Fields{"tid": tid, "device-id": oo.deviceID})
-			}
-			break loop
-		case <-time.After(time.Duration(timeout) * time.Second):
-			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
-					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+		oo.mutexMonReq.Lock()
+		oo.monitoredRequests[tid] = aOmciTxRequest
+		oo.mutexMonReq.Unlock()
+
+		retryCounter := 0
+	loop:
+		for retryCounter <= retries {
+
+			oo.mutexTxQueue.Lock()
+			oo.txQueue.PushBack(aOmciTxRequest) // enqueue
+			oo.mutexTxQueue.Unlock()
+			go oo.sendNextRequest(ctx)
+
+			select {
+			case success := <-chSuccess:
+				if success {
+					logger.Debugw(ctx, "reqMon: response received in time",
+						log.Fields{"tid": tid, "device-id": oo.deviceID})
+				} else {
+					logger.Debugw(ctx, "reqMon: wait for response aborted",
+						log.Fields{"tid": tid, "device-id": oo.deviceID})
+				}
 				break loop
-			} else {
-				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
-					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+			case <-time.After(time.Duration(timeout) * time.Second):
+				if retryCounter == retries {
+					logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+					break loop
+				} else {
+					logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
+						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				}
 			}
+			retryCounter++
 		}
-		retryCounter++
+		oo.mutexMonReq.Lock()
+		delete(oo.monitoredRequests, tid)
+		oo.mutexMonReq.Unlock()
 	}
-	oo.mutexMonReq.Lock()
-	delete(oo.monitoredRequests, tid)
-	oo.mutexMonReq.Unlock()
 }
 
 //CancelRequestMonitoring terminates monitoring of outstanding omci requests

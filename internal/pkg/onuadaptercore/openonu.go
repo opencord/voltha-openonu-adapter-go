@@ -68,10 +68,12 @@ type OpenONUAC struct {
 	maxTimeoutInterAdapterComm time.Duration
 	maxTimeoutReconciling      time.Duration
 	pDownloadManager           *adapterDownloadManager
+	pFileManager               *fileDownloadManager //let coexist 'old and new' DownloadManager as long as 'old' does not get obsolete
 	metricsEnabled             bool
 	mibAuditInterval           time.Duration
 	omciTimeout                int // in seconds
 	alarmAuditInterval         time.Duration
+	dlToOnuTimeout4M           time.Duration
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -107,6 +109,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	// since consumers of OMCI timeout value everywhere in code is in "int seconds", do this useful conversion
 	openOnuAc.omciTimeout = int(cfg.OmciTimeout.Seconds())
 	openOnuAc.alarmAuditInterval = cfg.AlarmAuditInterval
+	openOnuAc.dlToOnuTimeout4M = cfg.DownloadToOnuTimeout4MB
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {
@@ -126,6 +129,8 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	}
 
 	openOnuAc.pDownloadManager = newAdapterDownloadManager(ctx)
+	openOnuAc.pFileManager = newFileDownloadManager(ctx)
+	openOnuAc.pFileManager.SetDownloadTimeout(ctx, cfg.DownloadToAdapterTimeout)
 
 	return &openOnuAc
 }
@@ -606,11 +611,87 @@ func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request exten
 }
 
 //if update >= 4.3.0
+// Note: already with the implementation of the 'old' download interface problems were detected when the argument name used here is not the same
+//   as defined in the adapter interface file. That sounds strange and the effects were strange as well.
+//   The reason for that was never finally investigated.
+//   To be on the safe side argument names are left here always as defined in iAdapter.go .
 
 // Download_onu_image downloads (and optionally activates and commits) the indicated ONU image to the requested ONU(s)
 //   if the image is not yet present on the adapter it has to be automatically downloaded
 func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.DeviceImageDownloadRequest) (*voltha.DeviceImageResponse, error) {
-	return nil, errors.New("unImplemented")
+	if request != nil && len((*request).DeviceId) > 0 && (*request).Image.Version != "" {
+		loResponse := voltha.DeviceImageResponse{}
+		imageIdentifier := (*request).Image.Version
+		//inform the deviceHandler about (possibly new) requested ONU download requests
+		firstDevice := true
+		var vendorID string
+		for _, pCommonID := range (*request).DeviceId {
+			loDeviceID := (*pCommonID).Id
+			onuVolthaDevice, err := oo.coreProxy.GetDevice(log.WithSpanFromContext(context.TODO(), ctx),
+				loDeviceID, loDeviceID)
+			if err != nil || onuVolthaDevice == nil {
+				logger.Warnw(ctx, "Failed to fetch Onu device for image download",
+					log.Fields{"device-id": loDeviceID, "err": err})
+				continue //try the work with next deviceId
+			}
+			if firstDevice {
+				//start/verify download of the image to the adapter based on first found device only
+				//  use the OnuVendor identification from first given device
+				firstDevice = false
+				vendorID = onuVolthaDevice.VendorId
+				imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
+				logger.Debugw(ctx, "download request for file", log.Fields{"image-id": imageIdentifier})
+
+				if !oo.pFileManager.ImageExists(ctx, imageIdentifier) {
+					logger.Debugw(ctx, "start image download", log.Fields{"image-description": request})
+					// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
+					// the download itself is later done in background
+					if err := oo.pFileManager.StartDownload(ctx, imageIdentifier, (*request).Image.Url); err != nil {
+						return nil, err
+					}
+				}
+				// image already exists
+				logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": imageIdentifier})
+			} else {
+				//for all following devices verify the matching vendorID
+				if onuVolthaDevice.VendorId != vendorID {
+					logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
+						log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
+					continue //try the work with next deviceId
+				}
+			}
+			// start the ONU download activity for each possible device
+			// assumption here is, that the concerned device was already created (automatic start after device creation not supported)
+			if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
+				logger.Debugw(ctx, "image download on omci requested", log.Fields{
+					"image-id": imageIdentifier, "device-id": loDeviceID})
+				//onu upgrade handling called in background without immediate error evaluation here
+				//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
+				//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
+				go handler.onuSwUpgradeAfterDownload(ctx, request, oo.pFileManager, imageIdentifier)
+				loDeviceImageState := voltha.DeviceImageState{}
+				loDeviceImageState.DeviceId = loDeviceID
+				loDeviceImageState.ImageState.Version = (*request).Image.Version
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_STARTED
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+				loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
+			} else {
+				//cannot start ONU download for requested device
+				logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": loDeviceID})
+				loDeviceImageState := voltha.DeviceImageState{}
+				loDeviceImageState.DeviceId = loDeviceID
+				loDeviceImageState.ImageState.Version = (*request).Image.Version
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
+				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+				loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
+			}
+		}
+		pImageResp := &loResponse
+		return pImageResp, nil
+	}
+	return nil, errors.New("invalid image download parameters")
 }
 
 // Get_onu_image_status delivers the adapter-related information about the download/activation/commitment
@@ -630,15 +711,93 @@ func (oo *OpenONUAC) Get_onu_images(ctx context.Context, deviceID string) (*volt
 }
 
 // Activate_onu_image initiates the activation of the image for the requested ONU(s)
-//  precondition: image downloaded and not yet activated
+//  precondition: image downloaded and not yet activated or image refers to current inactive image
 func (oo *OpenONUAC) Activate_onu_image(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
-	return nil, errors.New("unImplemented")
+	if in != nil && len((*in).DeviceId) > 0 && (*in).Version != "" {
+		loResponse := voltha.DeviceImageResponse{}
+		imageIdentifier := (*in).Version
+		//let the deviceHandler find the adequate way of requesting the image activation
+		for _, pCommonID := range (*in).DeviceId {
+			loDeviceID := (*pCommonID).Id
+			//compared to download procedure the vendorID (from device) is secondary here
+			//   and only needed in case the upgrade process is based on some ongoing download process (and can be retrieved in deviceHandler if needed)
+			// start image activation activity for each possible device
+			// assumption here is, that the concerned device was already created (automatic start after device creation not supported)
+			if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
+				logger.Debugw(ctx, "onu image activation requested", log.Fields{
+					"image-id": imageIdentifier, "device-id": loDeviceID})
+				//onu activation handling called in background without immediate error evaluation here
+				//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
+				//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
+				go handler.onuSwActivateRequest(ctx, imageIdentifier, (*in).CommitOnSuccess)
+				loDeviceImageState := voltha.DeviceImageState{}
+				loDeviceImageState.DeviceId = loDeviceID
+				loDeviceImageState.ImageState.Version = imageIdentifier
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_ACTIVATING
+				loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
+			} else {
+				//cannot start SW activation for requested device
+				logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": loDeviceID})
+				loDeviceImageState := voltha.DeviceImageState{}
+				loDeviceImageState.DeviceId = loDeviceID
+				loDeviceImageState.ImageState.Version = imageIdentifier
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
+				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_ACTIVATION_ABORTED
+				loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
+			}
+		}
+		pImageResp := &loResponse
+		return pImageResp, nil
+	}
+	return nil, errors.New("invalid image activation parameters")
 }
 
 // Commit_onu_image enforces the commitment of the image for the requested ONU(s)
 //  precondition: image activated and not yet committed
 func (oo *OpenONUAC) Commit_onu_image(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
-	return nil, errors.New("unImplemented")
+	if in != nil && len((*in).DeviceId) > 0 && (*in).Version != "" {
+		loResponse := voltha.DeviceImageResponse{}
+		imageIdentifier := (*in).Version
+		//let the deviceHandler find the adequate way of requesting the image activation
+		for _, pCommonID := range (*in).DeviceId {
+			loDeviceID := (*pCommonID).Id
+			//compared to download procedure the vendorID (from device) is secondary here
+			//   and only needed in case the upgrade process is based on some ongoing download process (and can be retrieved in deviceHandler if needed)
+			// start image activation activity for each possible device
+			// assumption here is, that the concerned device was already created (automatic start after device creation not supported)
+			if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
+				logger.Debugw(ctx, "onu image commitment requested", log.Fields{
+					"image-id": imageIdentifier, "device-id": loDeviceID})
+				//onu commitment handling called in background without immediate error evaluation here
+				//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
+				//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
+				go handler.onuSwCommitRequest(ctx, imageIdentifier)
+				loDeviceImageState := voltha.DeviceImageState{}
+				loDeviceImageState.DeviceId = loDeviceID
+				loDeviceImageState.ImageState.Version = imageIdentifier
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_COMMITTING
+				loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
+			} else {
+				//cannot start SW commitment for requested device
+				logger.Warnw(ctx, "no handler found for image commitment", log.Fields{"device-id": loDeviceID})
+				loDeviceImageState := voltha.DeviceImageState{}
+				loDeviceImageState.DeviceId = loDeviceID
+				loDeviceImageState.ImageState.Version = imageIdentifier
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
+				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_COMMIT_ABORTED
+				loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
+			}
+		}
+		pImageResp := &loResponse
+		return pImageResp, nil
+	}
+	return nil, errors.New("invalid image commitment parameters")
 }
 
 // Adapter interface required methods ################ end #########
