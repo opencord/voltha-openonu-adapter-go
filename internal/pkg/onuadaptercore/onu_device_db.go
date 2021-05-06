@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"sync"
 
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
@@ -34,6 +35,7 @@ type onuDeviceDB struct {
 	ctx             context.Context
 	pOnuDeviceEntry *OnuDeviceEntry
 	meDb            meDbMap
+	meDbLock        sync.RWMutex
 }
 
 //newOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
@@ -47,8 +49,62 @@ func newOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *onuD
 	return &onuDeviceDB
 }
 
-func (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
+// AllocateMeInstance returns the  ME instanceID if it is allocated before or allocates a new one if not.
+// return values are instanceID, allreadyExist flag and error.
+func (onuDeviceDB *onuDeviceDB) AllocateMeInstance(ctx context.Context, meClassID me.ClassID, allocatedAttributes me.AttributeValueMap, condKeyForFreeAttr string, condValuesForFreeAttr ...interface{}) (uint16, bool, error) {
+	onuDeviceDB.meDbLock.Lock()
+	defer onuDeviceDB.meDbLock.Unlock()
 
+	meInstMap := onuDeviceDB.meDb[meClassID]
+
+	// FIXME: Ideally the ME configurations on the ONU should constantly be MIB Synced back to the ONU DB
+	// So, as soon as we use up a TCONT Entity on the ONU, the DB at ONU adapter should know that the TCONT
+	// entity is used up via MIB Sync procedure and it will not use it for subsequent TCONT on that ONU.
+	// But, it seems, due to the absence of the constant mib-sync procedure, we feed the DB here an each TCONT allocation.
+	//The lock here also ensures the concurent use of function by seperate FSMs of the UNIs.
+	var freeEntityInstanceID uint16
+	foundFreeMeInstID := false
+	for instanceID, attributeMap := range meInstMap {
+		logger.Debugw(ctx, "checking-for-me-instance", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "classID": meClassID})
+		//check if all requested attributes are equal to the attributes of current instance in DB.
+		meFound := true
+		for k, v := range allocatedAttributes {
+			if attributeMap[k] != v {
+				meFound = false
+			}
+		}
+		if meFound {
+			logger.Debugw(ctx, "found-me-in-db-entiries", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "instance-id": instanceID, "classID": meClassID})
+			return instanceID, true, nil
+		}
+		// If the attribute of the current ME instance matches with one of the free  attribute conditions
+		if foundFreeMeInstID == false {
+			for cond := range condValuesForFreeAttr {
+				if attributeMap[condKeyForFreeAttr] == cond {
+					foundFreeMeInstID = true
+					freeEntityInstanceID = instanceID
+				}
+			}
+
+		}
+	}
+	if !foundFreeMeInstID {
+		logger.Errorw(ctx, "error-finding-free-entity-for-me", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "classID": meClassID})
+		return freeEntityInstanceID, false, fmt.Errorf(fmt.Sprintf("no-free-me-left-for-device-%s-meClass-%s", onuDeviceDB.pOnuDeviceEntry.deviceID, meClassID))
+	}
+	//Set the attributes of found free.
+	if attributesinDb, present := onuDeviceDB.meDb[meClassID][freeEntityInstanceID]; present {
+		for k, v := range allocatedAttributes {
+			attributesinDb[k] = v
+		}
+	}
+	logger.Debugw(ctx, "me-allocated-first-time", log.Fields{"device-id": onuDeviceDB.pOnuDeviceEntry.deviceID, "classID": meClassID, "instance-ID": freeEntityInstanceID})
+	return freeEntityInstanceID, false, nil
+}
+
+func (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
+	onuDeviceDB.meDbLock.Lock()
+	defer onuDeviceDB.meDbLock.Unlock()
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassID {
 		return
@@ -84,7 +140,8 @@ func (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID,
 }
 
 func (onuDeviceDB *onuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
-
+	onuDeviceDB.meDbLock.RLock()
+	defer onuDeviceDB.meDbLock.RUnlock()
 	if meAttributes, present := onuDeviceDB.meDb[meClassID][meEntityID]; present {
 		/* verbose logging, avoid in >= debug level
 		logger.Debugw(ctx,"ME found:", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttributes": meAttributes,
@@ -123,7 +180,8 @@ func (onuDeviceDB *onuDeviceDB) getUint16Attrib(meAttribute interface{}) (uint16
 func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
-
+	onuDeviceDB.meDbLock.RLock()
+	defer onuDeviceDB.meDbLock.RUnlock()
 	meInstMap := onuDeviceDB.meDb[meClassID]
 
 	for k := range meInstMap {
