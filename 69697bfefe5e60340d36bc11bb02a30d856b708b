@@ -69,6 +69,30 @@
       "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "64a277cf_83954882",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-06T18:34:12Z",
+      "side": 1,
+      "message": "I have gone through the code and it seems like doStateConnected and doStateUp is never used in the code . so I planned to update device state from inside the func startReconciling where it is waiting for the response over channel chReconcilingFinished to make it work with current code.\nWhat would you guys suggest ?",
+      "parentUuid": "6dc3a434_c667bdfd",
+      "range": {
+        "startLine": 332,
+        "startChar": 2,
+        "endLine": 332,
+        "endChar": 3
+      },
+      "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
