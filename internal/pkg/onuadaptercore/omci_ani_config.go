@@ -85,10 +85,6 @@ const (
 )
 const cAniFsmIdleState = aniStConfigDone
 
-const (
-	tpIDOffset = 64
-)
-
 type ponAniGemPortAttribs struct {
 	gemPortID      uint16
 	upQueueID      uint16
@@ -132,6 +128,7 @@ type uniPonAniConfigFsm struct {
 	requestEventOffset       uint8 //used to indicate ConfigDone or Removed using successor (enum)
 	isWaitingForFlowDelete   bool
 	waitFlowDeleteChannel    chan bool
+	tcontSetBefore           bool
 }
 
 //newUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
@@ -148,6 +145,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 		techProfileID:  aTechProfileID,
 		requestEvent:   aRequestEvent,
 		chanSet:        false,
+		tcontSetBefore: false,
 	}
 	instFsm.uniTpKey = uniTP{uniID: apUniPort.uniID, tpID: aTechProfileID}
 	instFsm.waitFlowDeleteChannel = make(chan bool)
@@ -299,71 +297,27 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 		//index 0 in naming refers to possible usage of multiple instances (later)
 		oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + uint16(oFsm.techProfileID)
 		oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityID) + uint16(oFsm.techProfileID)
+		requestedAttributes := me.AttributeValueMap{"AllocId": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID}
+		masks := make([]ordered_map.KVPair, 2)
+		masks[0] = ordered_map.KVPair{Key: "AllocId", Value: uint16(0xFF)}
+		masks[1] = ordered_map.KVPair{Key: "AllocId", Value: uint16(0xFFFF)}
 
-		/*
-			// Find a free TCONT Instance ID and use it
-			foundFreeTcontInstID := false
-		*/
-		if tcontInstKeys := oFsm.pOnuDB.getSortedInstKeys(ctx, me.TContClassID); len(tcontInstKeys) > 0 {
-
-			// FIXME: Ideally the ME configurations on the ONU should constantly be MIB Synced back to the ONU DB
-			// So, as soon as we use up a TCONT Entity on the ONU, the DB at ONU adapter should know that the TCONT
-			// entity is used up via MIB Sync procedure and it will not use it for subsequent TCONT on that ONU.
-			// But, it seems, due to the absence of the constant mib-sync procedure, the TCONT Entities show up as
-			// free even though they are already reserved on the ONU. It seems the mib is synced only once, initially
-			// when the ONU is discovered.
-			/*
-				for _, tcontInstID := range tcontInstKeys {
-					tconInst := oFsm.pOnuDB.GetMe(me.TContClassID, tcontInstID)
-					returnVal := tconInst["AllocId"]
-					if returnVal != nil {
-						if allocID, err := oFsm.pOnuDB.getUint16Attrib(returnVal); err == nil {
-							// If the TCONT Instance ID is set to 0xff or 0xffff, it means it is free to use.
-							if allocID == 0xff || allocID == 0xffff {
-								foundFreeTcontInstID = true
-								oFsm.tcont0ID = uint16(tcontInstID)
-								logger.Debugw("Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
-									"device-id": oFsm.deviceID})
-								break
-							}
-						} else {
-							logger.Errorw("error-converting-alloc-id-to-uint16", log.Fields{"device-id": oFsm.deviceID, "tcont-inst": tcontInstID})
-						}
-					} else {
-						logger.Errorw("error-extracting-alloc-id-attribute", log.Fields{"device-id": oFsm.deviceID, "tcont-inst": tcontInstID})
-					}
-				}
-			*/
-
-			// Ensure that the techProfileID is in a valid range so that we can allocate a free Tcont for it.
-			if oFsm.techProfileID >= tpIDOffset && oFsm.techProfileID < uint8(tpIDOffset+len(tcontInstKeys)) {
-				// For now, as a dirty workaround, use the tpIDOffset to index the TcontEntityID to be used.
-				// The first TP ID for the ONU will get the first TcontEntityID, the next will get second and so on.
-				// Here the assumption is TP ID will always start from 64 (this is also true to Technology Profile Specification) and the
-				// TP ID will increment in single digit
-				oFsm.tcont0ID = tcontInstKeys[oFsm.techProfileID-tpIDOffset]
-				logger.Debugw(ctx, "Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
-					"device-id": oFsm.deviceID})
-			} else {
-				logger.Errorw(ctx, "tech profile id not in valid range", log.Fields{"device-id": oFsm.deviceID, "tp-id": oFsm.techProfileID, "num-tcont": len(tcontInstKeys)})
-				if oFsm.chanSet {
-					// indicate processing error/abort to the caller
-					oFsm.chSuccess <- 0
-					oFsm.chanSet = false //reset the internal channel state
-				}
-				//reset the state machine to enable usage on subsequent requests
-				_ = aPAFsm.pFsm.Event(aniEvReset)
-				return
+		tcontInstID, tcontAlreadyExist, err := oFsm.pOnuDB.AllocateMeInstance(ctx, me.TContClassID, requestedAttributes, masks)
+		if err != nil {
+			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID, "err": err})
+			if oFsm.chanSet {
+				// indicate processing error/abort to the caller
+				oFsm.chSuccess <- 0
+				oFsm.chanSet = false //reset the internal channel state
 			}
-		} else {
-			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID})
+			//reset the state machine to enable usage on subsequent requests
+			_ = aPAFsm.pFsm.Event(aniEvReset)
 			return
 		}
-		/*
-			if !foundFreeTcontInstID {
-				// This should never happen. If it does, the behavior is unpredictable.
-				logger.Warnw("No free TCONT instances found", log.Fields{"device-id": oFsm.deviceID})
-			}*/
+		oFsm.tcont0ID = tcontInstID
+		oFsm.tcontSetBefore = tcontAlreadyExist
+		logger.Debugw(ctx, "Used TcontId:", log.Fields{"TcontId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
+			"device-id": oFsm.deviceID})
 
 		// Access critical state with lock
 		oFsm.pUniTechProf.mutexTPState.Lock()
@@ -578,7 +532,13 @@ func (oFsm *uniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 	logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::Tcont", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 		"AllocId":   strconv.FormatInt(int64(oFsm.alloc0ID), 16),
-		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
+		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
+		"tcontExist": oFsm.tcontSetBefore})
+	//If tcont was set before, then no need to set it again. Let state machine to proceed.
+	if oFsm.tcontSetBefore {
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxTcontsResp)
+		return
+	}
 	meParams := me.ParamData{
 		EntityID: oFsm.tcont0ID,
 		Attributes: me.AttributeValueMap{
@@ -1201,6 +1161,11 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+
+		//FIXME: If setting TCONT fails we need to revert the DB back. Because of the concurency,
+		//doing it here may cause a data inconsistency. To fix this problem we need to think on running
+		//the FSMs of different UNIs sequentially instead of running them concurrently.
+
 		return
 	}
 	oFsm.mutexPLastTxMeInstance.RLock()
@@ -1505,6 +1470,15 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 }
 
 func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
+	//If upstream PQs were set before, then no need to set them again. Let state machine to proceed.
+	if oFsm.tcontSetBefore {
+		logger.Debugw(ctx, "No need to set PQs again.", log.Fields{
+			"device-id": oFsm.deviceID, "tcont": oFsm.alloc0ID,
+			"uni-id":         oFsm.pOnuUniPort.uniID,
+			"techProfile-id": oFsm.techProfileID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxPrioqsResp)
+		return
+	}
 	const cu16StrictPrioWeight uint16 = 0xFFFF
 	//find all upstream PrioQueues related to this T-Cont
 	loQueueMap := ordered_map.NewOrderedMap()
