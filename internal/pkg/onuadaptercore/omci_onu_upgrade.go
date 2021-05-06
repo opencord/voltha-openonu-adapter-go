@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/boguslaw-wojcik/crc32a"
@@ -48,6 +49,7 @@ const (
 const (
 	// events of config PON ANI port FSM
 	upgradeEvStart              = "upgradeEvStart"
+	upgradeEvAdapterDownload    = "upgradeEvAdapterDownload"
 	upgradeEvPrepareSwDownload  = "upgradeEvPrepareSwDownload"
 	upgradeEvRxStartSwDownload  = "upgradeEvRxStartSwDownload"
 	upgradeEvWaitWindowAck      = "upgradeEvWaitWindowAck"
@@ -71,6 +73,7 @@ const (
 	// states of config PON ANI port FSM
 	upgradeStDisabled           = "upgradeStDisabled"
 	upgradeStStarting           = "upgradeStStarting"
+	upgradeStWaitingAdapterDL   = "upgradeStWaitingAdapterDL"
 	upgradeStPreparingDL        = "upgradeStPreparingDL"
 	upgradeStDLSection          = "upgradeStDLSection"
 	upgradeStVerifyWindow       = "upgradeStVerifyWindow"
@@ -90,6 +93,7 @@ const cOnuUpgradeFsmIdleState = upgradeStWaitForCommit
 type OnuUpgradeFsm struct {
 	pDeviceHandler   *deviceHandler
 	pDownloadManager *adapterDownloadManager
+	pFileManager     *fileDownloadManager //used from R2.8 with new API version
 	deviceID         string
 	pOnuOmciDevice   *OnuDeviceEntry
 	pOmciCC          *omciCC
@@ -98,6 +102,7 @@ type OnuUpgradeFsm struct {
 	//omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	pAdaptFsm                    *AdapterFsm
 	pImageDsc                    *voltha.ImageDownload
+	pDeviceImageDsc              *voltha.DeviceImageDownloadRequest
 	imageBuffer                  []byte
 	origImageLength              uint32        //as also limited by OMCI
 	imageCRC                     uint32        //as per OMCI - ITU I.363.5 crc
@@ -116,6 +121,13 @@ type OnuUpgradeFsm struct {
 	waitCountEndSwDl             uint8         //number, how often is waited for EndSwDl at maximum
 	waitDelayEndSwDl             time.Duration //duration, how long is waited before next request on EndSwDl
 	chReceiveExpectedResponse    chan bool
+	useNewAPIVersion             bool   //flag for indication on which API version is used (and accordingly which specific methods)
+	imageIdentifier              string //name of the image as used in the adapter
+	mutexIsAwaitingResponse      sync.RWMutex
+	chAdapterDlReady             chan bool
+	isWaitingForResponse         bool
+	activateImage                bool
+	commitImage                  bool
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -136,6 +148,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 		waitDelayEndSwDl:            cWaitDelayEndSwDlSeconds,
 	}
 	instFsm.chReceiveExpectedResponse = make(chan bool)
+	instFsm.chAdapterDlReady = make(chan bool)
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
@@ -147,7 +160,8 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 		upgradeStDisabled,
 		fsm.Events{
 			{Name: upgradeEvStart, Src: []string{upgradeStDisabled}, Dst: upgradeStStarting},
-			{Name: upgradeEvPrepareSwDownload, Src: []string{upgradeStStarting}, Dst: upgradeStPreparingDL},
+			{Name: upgradeEvAdapterDownload, Src: []string{upgradeStStarting}, Dst: upgradeStWaitingAdapterDL},
+			{Name: upgradeEvPrepareSwDownload, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL}, Dst: upgradeStPreparingDL},
 			{Name: upgradeEvRxStartSwDownload, Src: []string{upgradeStPreparingDL}, Dst: upgradeStDLSection},
 			{Name: upgradeEvWaitWindowAck, Src: []string{upgradeStDLSection}, Dst: upgradeStVerifyWindow},
 			{Name: upgradeEvContinueNextWindow, Src: []string{upgradeStVerifyWindow}, Dst: upgradeStDLSection},
@@ -167,11 +181,11 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 					upgradeStCreatingGemNCTPs, upgradeStCreatingGemIWs, upgradeStSettingPQs}, Dst: upgradeStStarting},
 			*/
 			// exceptional treatments
-			{Name: upgradeEvReset, Src: []string{upgradeStStarting, upgradeStPreparingDL, upgradeStDLSection,
+			{Name: upgradeEvReset, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStRequestingActivate,
 				upgradeStCommitSw, upgradeStCheckCommitted}, //upgradeStWaitForCommit is not reset (later perhaps also not upgradeStWaitActivate)
 				Dst: upgradeStResetting},
-			{Name: upgradeEvAbort, Src: []string{upgradeStStarting, upgradeStPreparingDL, upgradeStDLSection,
+			{Name: upgradeEvAbort, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStRequestingActivate,
 				upgradeStWaitForCommit, upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
@@ -180,6 +194,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 		fsm.Callbacks{
 			"enter_state":                          func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(ctx, e) },
 			"enter_" + upgradeStStarting:           func(e *fsm.Event) { instFsm.enterStarting(ctx, e) },
+			"enter_" + upgradeStWaitingAdapterDL:   func(e *fsm.Event) { instFsm.enterWaitingAdapterDL(ctx, e) },
 			"enter_" + upgradeStPreparingDL:        func(e *fsm.Event) { instFsm.enterPreparingDL(ctx, e) },
 			"enter_" + upgradeStDLSection:          func(e *fsm.Event) { instFsm.enterDownloadSection(ctx, e) },
 			"enter_" + upgradeStVerifyWindow:       func(e *fsm.Event) { instFsm.enterVerifyWindow(ctx, e) },
@@ -214,7 +229,7 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 		oFsm.pDownloadManager = apDownloadManager
 
 		go func(aPBaseFsm *fsm.FSM) {
-			// let the upgrade FSm proceed to PreparinDL
+			// let the upgrade FSM proceed to PreparingDL
 			_ = aPBaseFsm.Event(upgradeEvPrepareSwDownload)
 		}(pBaseFsm)
 		return nil
@@ -222,6 +237,68 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer or state", log.Fields{
 		"device-id": oFsm.deviceID})
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
+}
+
+//SetDownloadParamsAfterDownload configures the needed parameters for a specific download to the ONU according to
+//  updated API interface with R2.8: start download to ONU if the image is downloaded to the adapter
+func (oFsm *OnuUpgradeFsm) SetDownloadParamsAfterDownload(ctx context.Context, aInactiveImageID uint16,
+	apImageRequest *voltha.DeviceImageDownloadRequest, apDownloadManager *fileDownloadManager,
+	aImageIdentifier string) error {
+
+	var pBaseFsm *fsm.FSM = nil
+	if oFsm.pAdaptFsm != nil {
+		pBaseFsm = oFsm.pAdaptFsm.pFsm
+	}
+	if pBaseFsm != nil && pBaseFsm.Is(upgradeStStarting) {
+		logger.Debugw(ctx, "OnuUpgradeFsm Parameter setting", log.Fields{
+			"device-id": oFsm.deviceID, "image-description": apImageRequest})
+		oFsm.useNewAPIVersion = true
+		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
+		oFsm.imageIdentifier = aImageIdentifier
+		oFsm.pDeviceImageDsc = apImageRequest
+		oFsm.pFileManager = apDownloadManager
+		oFsm.activateImage = apImageRequest.ActivateOnSuccess
+		oFsm.commitImage = apImageRequest.CommitOnSuccess
+		//TODO: currently straightforward options activate and commit are expected to be set and (unconditionally) done
+		//  for separate handling of these options the FSM must accordingly branch from the concerned states - later
+
+		_ = pBaseFsm.Event(upgradeEvAdapterDownload) //no need to call the FSM event in background here
+		return nil
+	}
+	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer or state", log.Fields{
+		"device-id": oFsm.deviceID})
+	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
+}
+
+//CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
+func (oFsm *OnuUpgradeFsm) CancelProcessing(ctx context.Context) {
+	//mutex protection is required for possible concurrent access to FSM members
+	oFsm.mutexIsAwaitingResponse.Lock()
+	if oFsm.isWaitingForResponse {
+		//attention: for an unbuffered channel the sender is blocked until the value is received (processed)!
+		// accordingly the mutex must be released before sending to channel here (mutex acquired in receiver)
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		//use channel to indicate that the download response waiting shall be aborted for this device (channel)
+		oFsm.chAdapterDlReady <- false
+	} else {
+		oFsm.mutexIsAwaitingResponse.Unlock()
+	}
+
+	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
+	// specific here: If the FSM is in upgradeStWaitForCommit, it is left there for possibly later commit
+	// this possibly also refers later to (not yet existing) upgradeStWaitForActivate (with ctl API changes)
+	pAdaptFsm := oFsm.pAdaptFsm
+	if pAdaptFsm != nil {
+		// calling FSM events in background to avoid blocking of the caller
+		go func(aPAFsm *AdapterFsm) {
+			if aPAFsm.pFsm != nil {
+				if aPAFsm.pFsm.Is(upgradeStWaitEndDL) {
+					oFsm.chReceiveExpectedResponse <- false //which aborts the FSM (activate was not yet sent)
+				}
+				_ = aPAFsm.pFsm.Event(upgradeEvReset) //anyway and for all other states
+			} //else the FSM seems already to be in some released state
+		}(pAdaptFsm)
+	}
 }
 
 func (oFsm *OnuUpgradeFsm) enterStarting(ctx context.Context, e *fsm.Event) {
@@ -232,11 +309,25 @@ func (oFsm *OnuUpgradeFsm) enterStarting(ctx context.Context, e *fsm.Event) {
 	go oFsm.processOmciUpgradeMessages(ctx)
 }
 
+func (oFsm *OnuUpgradeFsm) enterWaitingAdapterDL(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "OnuUpgradeFsm waiting for adapter download", log.Fields{"in state": e.FSM.Current(),
+		"device-id": oFsm.deviceID})
+	go oFsm.waitOnDownloadReady(ctx, oFsm.chAdapterDlReady)
+	go oFsm.pFileManager.RequestDownloadReady(ctx, oFsm.imageIdentifier, oFsm.chAdapterDlReady)
+}
+
 func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm prepare Download to Onu", log.Fields{"in state": e.FSM.Current(),
 		"device-id": oFsm.deviceID})
 
-	fileLen, err := oFsm.pDownloadManager.getImageBufferLen(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
+	var fileLen int64
+	var err error
+	if oFsm.useNewAPIVersion {
+		//with the new API structure download to adapter is implicit and we have to wait until the image is available
+		fileLen, err = oFsm.pFileManager.GetImageBufferLen(ctx, oFsm.imageIdentifier)
+	} else {
+		fileLen, err = oFsm.pDownloadManager.getImageBufferLen(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
+	}
 	if err != nil || fileLen > int64(cMaxUint32) {
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: problems getting image buffer length", log.Fields{
 			"device-id": oFsm.deviceID, "error": err, "length": fileLen})
@@ -249,7 +340,11 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 
 	oFsm.imageBuffer = make([]byte, fileLen)
-	oFsm.imageBuffer, err = oFsm.pDownloadManager.getDownloadImageBuffer(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
+	if oFsm.useNewAPIVersion {
+		oFsm.imageBuffer, err = oFsm.pFileManager.GetDownloadImageBuffer(ctx, oFsm.imageIdentifier)
+	} else {
+		oFsm.imageBuffer, err = oFsm.pDownloadManager.getDownloadImageBuffer(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
+	}
 	if err != nil {
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: can't get image buffer", log.Fields{
 			"device-id": oFsm.deviceID, "error": err})
@@ -949,23 +1044,58 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 	}
 }
 
-/*
-func (oFsm *OnuUpgradeFsm) waitforOmciResponse(ctx context.Context) error {
+func (oFsm *OnuUpgradeFsm) waitOnDownloadReady(ctx context.Context, aWaitChannel chan bool) {
+	oFsm.mutexIsAwaitingResponse.Lock()
+	oFsm.isWaitingForResponse = true
+	oFsm.mutexIsAwaitingResponse.Unlock()
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
-	// 		logger.Infow(ctx,"LockState-bridge-init message reception canceled", log.Fields{"for device-id": oFsm.deviceID})
-	case <-time.After(30 * time.Second): //AS FOR THE OTHER OMCI FSM's
-		logger.Warnw(ctx, "OnuUpgradeFsm multi entity timeout", log.Fields{"for device-id": oFsm.deviceID})
-		return fmt.Errorf("OnuUpgradeFsm multi entity timeout %s", oFsm.deviceID)
-	case success := <-oFsm.omciMIdsResponseReceived:
-		if success {
-			logger.Debug(ctx, "OnuUpgradeFsm multi entity response received")
-			return nil
+	// 		logger.Infow("OnuUpgradeFsm-waitOnDownloadReady canceled", log.Fields{"for device-id": oFsm.deviceID})
+	case <-time.After(10 * time.Second): //10s should be enough for downloading some image to the adapter
+		logger.Warnw(ctx, "OnuUpgradeFsm Waiting-adapter-download timeout", log.Fields{
+			"for device-id": oFsm.deviceID, "image-id": oFsm.imageIdentifier})
+		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, aWaitChannel)
+		oFsm.mutexIsAwaitingResponse.Lock()
+		oFsm.isWaitingForResponse = false
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		//the upgrade process has to be aborted
+		pUpgradeFsm := oFsm.pAdaptFsm
+		if pUpgradeFsm != nil {
+			_ = pUpgradeFsm.pFsm.Event(upgradeEvReset)
+		} else {
+			logger.Errorw(ctx, "pUpgradeFsm is nil", log.Fields{"device-id": oFsm.deviceID})
 		}
-		// should not happen so far
-		logger.Warnw(ctx, "OnuUpgradeFsm multi entity response error", log.Fields{"for device-id": oFsm.deviceID})
-		return fmt.Errorf("OnuUpgradeFsm multi entity responseError %s", oFsm.deviceID)
+		return
+
+	case success := <-aWaitChannel:
+		if success {
+			logger.Debugw(ctx, "OnuUpgradeFsm image-downloaded received", log.Fields{"device-id": oFsm.deviceID})
+			oFsm.mutexIsAwaitingResponse.Lock()
+			oFsm.isWaitingForResponse = false
+			oFsm.mutexIsAwaitingResponse.Unlock()
+			//let the upgrade process proceed
+			pUpgradeFsm := oFsm.pAdaptFsm
+			if pUpgradeFsm != nil {
+				_ = pUpgradeFsm.pFsm.Event(upgradeEvPrepareSwDownload)
+			} else {
+				logger.Errorw(ctx, "pUpgradeFsm is nil", log.Fields{"device-id": oFsm.deviceID})
+			}
+			return
+		}
+		// waiting was aborted (probably on external request)
+		logger.Debugw(ctx, "OnuUpgradeFsm Waiting-adapter-download aborted", log.Fields{"device-id": oFsm.deviceID})
+		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, aWaitChannel)
+		oFsm.mutexIsAwaitingResponse.Lock()
+		oFsm.isWaitingForResponse = false
+		oFsm.mutexIsAwaitingResponse.Unlock()
+		//the upgrade process has to be aborted
+		pUpgradeFsm := oFsm.pAdaptFsm
+		if pUpgradeFsm != nil {
+			_ = pUpgradeFsm.pFsm.Event(upgradeEvReset)
+		} else {
+			logger.Errorw(ctx, "pUpgradeFsm is nil", log.Fields{"device-id": oFsm.deviceID})
+		}
+		return
 	}
 }
-*/
