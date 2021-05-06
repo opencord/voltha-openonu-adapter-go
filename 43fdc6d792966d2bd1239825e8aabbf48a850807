@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f04f864d_0c7c4ae6",
+        "filename": "internal/pkg/onuadaptercore/omci_self_test_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 269,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-06T06:55:01Z",
+      "side": 1,
+      "message": "Hmm - You can\u0027t assume that the OMCI spec is wrong here - it is what is required (even if it might not have been what was possibly intended). I don\u0027t think you can just re-interprete the definition here. According to the OMCI values you delivered for your test-ONU (what was it) I agree - this values seem to be in dBm. But this is not what you can expect generally. \nPaul Wagner pointed to me yesterday to some G988 snippet, where he obviously really has found this test result interpretation with dBm. But I don\u0027t know that description. Maybe he already has some newer issue of the spec (hope he still answers my question). So if that is true it may well turn out that we have to take into consideration the (ONU delivered) OMCI standard issue here - what would make it a bit more complicated. For now I would assume here that in most cases you have to substract 30 from the delivered value for the power levels.\nPerhaps you could re-test this using some different type of ONU?",
+      "revId": "43fdc6d792966d2bd1239825e8aabbf48a850807",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
