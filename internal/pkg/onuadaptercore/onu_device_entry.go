@@ -241,22 +241,23 @@ type uniPersConfig struct {
 }
 
 type onuPersistentData struct {
-	PersOnuID              uint32          `json:"onu_id"`
-	PersIntfID             uint32          `json:"intf_id"`
-	PersSerialNumber       string          `json:"serial_number"`
-	PersMacAddress         string          `json:"mac_address"`
-	PersVendorID           string          `json:"vendor_id"`
-	PersEquipmentID        string          `json:"equipment_id"`
-	PersActiveSwVersion    string          `json:"active_sw_version"`
-	PersAdminState         string          `json:"admin_state"`
-	PersOperState          string          `json:"oper_state"`
-	PersUniUnlockDone      bool            `json:"uni_unlock_done"`
-	PersUniDisableDone     bool            `json:"uni_disable_done"`
-	PersMibAuditInterval   time.Duration   `json:"mib_audit_interval"`
-	PersMibLastDbSync      uint32          `json:"mib_last_db_sync"`
-	PersMibDataSyncAdpt    uint8           `json:"mib_data_sync_adpt"`
-	PersUniConfig          []uniPersConfig `json:"uni_config"`
-	PersAlarmAuditInterval time.Duration   `json:"alarm_audit_interval"`
+	PersOnuID              uint32            `json:"onu_id"`
+	PersIntfID             uint32            `json:"intf_id"`
+	PersSerialNumber       string            `json:"serial_number"`
+	PersMacAddress         string            `json:"mac_address"`
+	PersVendorID           string            `json:"vendor_id"`
+	PersEquipmentID        string            `json:"equipment_id"`
+	PersActiveSwVersion    string            `json:"active_sw_version"`
+	PersAdminState         string            `json:"admin_state"`
+	PersOperState          string            `json:"oper_state"`
+	PersUniUnlockDone      bool              `json:"uni_unlock_done"`
+	PersUniDisableDone     bool              `json:"uni_disable_done"`
+	PersMibAuditInterval   time.Duration     `json:"mib_audit_interval"`
+	PersMibLastDbSync      uint32            `json:"mib_last_db_sync"`
+	PersMibDataSyncAdpt    uint8             `json:"mib_data_sync_adpt"`
+	PersUniConfig          []uniPersConfig   `json:"uni_config"`
+	PersAlarmAuditInterval time.Duration     `json:"alarm_audit_interval"`
+	PersTcontMap           map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
 }
 
 // OnuDeviceEntry - ONU device info and FSM events.
@@ -299,6 +300,8 @@ type OnuDeviceEntry struct {
 	//  within the FSM event procedures
 	omciMessageReceived              chan bool    //seperate channel needed by DownloadFsm
 	omciRebootMessageReceivedChannel chan Message // channel needed by Reboot request
+
+	mutexTcontMap sync.RWMutex
 }
 
 //newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -313,6 +316,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	onuDeviceEntry.adapterProxy = dh.AdapterProxy
 	onuDeviceEntry.devState = DeviceStatusInit
 	onuDeviceEntry.sOnuPersistentData.PersUniConfig = make([]uniPersConfig, 0)
+	onuDeviceEntry.sOnuPersistentData.PersTcontMap = make(map[uint16]uint16)
 	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan Message, 2048)
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
@@ -606,7 +610,7 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 	oo.mutexPersOnuConfig.Lock()
 	defer oo.mutexPersOnuConfig.Unlock()
 	oo.sOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval}
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
 	oo.mutexOnuKVStore.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.mutexOnuKVStore.RUnlock()
@@ -660,7 +664,7 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 
 	oo.sOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.sOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval}
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.mutexOnuKVStore.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
@@ -750,8 +754,9 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
-			logger.Debugw(ctx, "PersUniConfig-entry exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
 			existingPath, ok := oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID]
+			logger.Debugw(ctx, "PersUniConfig-entry exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID,
+				"tpID": aTpID, "path": aPathString, "existingPath": existingPath, "ok": ok})
 			if !ok {
 				logger.Debugw(ctx, "tp-does-not-exist", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
 			}
@@ -885,4 +890,43 @@ func (oo *OnuDeviceEntry) buildMibTemplatePath() string {
 	oo.mutexPersOnuConfig.RLock()
 	defer oo.mutexPersOnuConfig.RUnlock()
 	return fmt.Sprintf(cSuffixMibTemplateKvStore, oo.sOnuPersistentData.PersVendorID, oo.sOnuPersistentData.PersEquipmentID, oo.sOnuPersistentData.PersActiveSwVersion)
+}
+
+func (oo *OnuDeviceEntry) allocateFreeTcont(ctx context.Context, allocID uint16) (uint16, bool, error) {
+	logger.Debugw(ctx, "allocate-free-tcont", log.Fields{"device-id": oo.deviceID, "allocID": allocID,
+		"allocated-instances": oo.sOnuPersistentData.PersTcontMap})
+
+	oo.mutexTcontMap.Lock()
+	defer oo.mutexTcontMap.Unlock()
+	if entityID, ok := oo.sOnuPersistentData.PersTcontMap[allocID]; ok {
+		//tcont already allocated before, return the used instance-id
+		return entityID, true, nil
+	}
+	//First allocation of tcont. Find a free instance
+	if tcontInstKeys := oo.pOnuDB.getSortedInstKeys(ctx, me.TContClassID); len(tcontInstKeys) > 0 {
+		logger.Debugw(ctx, "allocate-free-tcont-db-keys", log.Fields{"device-id": oo.deviceID, "keys": tcontInstKeys})
+		for _, instID := range tcontInstKeys {
+			instExist := false
+			//If this instance exist in map, it means it is not  empty. It is allocated before
+			for _, v := range oo.sOnuPersistentData.PersTcontMap {
+				if v == instID {
+					instExist = true
+					break
+				}
+			}
+			if !instExist {
+				oo.sOnuPersistentData.PersTcontMap[allocID] = instID
+				return instID, false, nil
+			}
+		}
+	}
+	return 0, false, fmt.Errorf(fmt.Sprintf("no-free-tcont-left-for-device-%s", oo.deviceID))
+
+}
+
+func (oo *OnuDeviceEntry) freeTcont(ctx context.Context, allocID uint16) {
+	logger.Debugw(ctx, "free-tcont", log.Fields{"device-id": oo.deviceID, "alloc": allocID})
+	oo.mutexTcontMap.Lock()
+	defer oo.mutexTcontMap.Unlock()
+	delete(oo.sOnuPersistentData.PersTcontMap, allocID)
 }
