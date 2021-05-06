@@ -750,8 +750,9 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 
 	for k, v := range oo.sOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
-			logger.Debugw(ctx, "PersUniConfig-entry exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID})
 			existingPath, ok := oo.sOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID]
+			logger.Debugw(ctx, "PersUniConfig-entry exists", log.Fields{"device-id": oo.deviceID, "uniID": aUniID,
+				"tpID": aTpID, "path": aPathString, "existingPath": existingPath, "ok": ok})
 			if !ok {
 				logger.Debugw(ctx, "tp-does-not-exist", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString})
 			}
