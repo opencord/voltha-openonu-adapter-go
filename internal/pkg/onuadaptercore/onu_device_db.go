@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"sync"
 
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
@@ -34,6 +35,7 @@ type onuDeviceDB struct {
 	ctx             context.Context
 	pOnuDeviceEntry *OnuDeviceEntry
 	meDb            meDbMap
+	meDbLock        sync.RWMutex
 }
 
 //newOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
@@ -48,7 +50,8 @@ func newOnuDeviceDB(ctx context.Context, aPOnuDeviceEntry *OnuDeviceEntry) *onuD
 }
 
 func (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
-
+	onuDeviceDB.meDbLock.Lock()
+	defer onuDeviceDB.meDbLock.Unlock()
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassID {
 		return
@@ -84,7 +87,8 @@ func (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID,
 }
 
 func (onuDeviceDB *onuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
-
+	onuDeviceDB.meDbLock.RLock()
+	defer onuDeviceDB.meDbLock.RUnlock()
 	if meAttributes, present := onuDeviceDB.meDb[meClassID][meEntityID]; present {
 		/* verbose logging, avoid in >= debug level
 		logger.Debugw(ctx,"ME found:", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttributes": meAttributes,
@@ -123,7 +127,8 @@ func (onuDeviceDB *onuDeviceDB) getUint16Attrib(meAttribute interface{}) (uint16
 func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
-
+	onuDeviceDB.meDbLock.RLock()
+	defer onuDeviceDB.meDbLock.RUnlock()
 	meInstMap := onuDeviceDB.meDb[meClassID]
 
 	for k := range meInstMap {
