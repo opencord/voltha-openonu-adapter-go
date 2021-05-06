@@ -66,7 +66,9 @@ const (
 	defaultMibAuditInterval   = 0
 	defaultAlarmAuditInterval = 300 * time.Second
 
-	defaultOmciTimeout = 3 * time.Second
+	defaultOmciTimeout          = 3 * time.Second
+	defaultDlToAdapterTimeout   = 10 * time.Second
+	defaultDlToOnuTimeoutPer4MB = 60 * time.Minute //assumed for 4 MB of the image
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -105,6 +107,8 @@ type AdapterFlags struct {
 	MibAuditInterval            time.Duration
 	OmciTimeout                 time.Duration
 	AlarmAuditInterval          time.Duration
+	DownloadToAdapterTimeout    time.Duration
+	DownloadToOnuTimeout4MB     time.Duration
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -143,6 +147,8 @@ func NewAdapterFlags() *AdapterFlags {
 		MibAuditInterval:            defaultMibAuditInterval,
 		AlarmAuditInterval:          defaultAlarmAuditInterval,
 		OmciTimeout:                 defaultOmciTimeout,
+		DownloadToAdapterTimeout:    defaultDlToAdapterTimeout,
+		DownloadToOnuTimeout4MB:     defaultDlToOnuTimeoutPer4MB,
 	}
 	return &adapterFlags
 }
@@ -150,103 +156,109 @@ func NewAdapterFlags() *AdapterFlags {
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
 func (so *AdapterFlags) ParseCommandArguments() {
 
-	help := fmt.Sprintf("Kafka - Adapter messaging address")
+	help := "Kafka - Adapter messaging address"
 	flag.StringVar(&(so.KafkaAdapterAddress), "kafka_adapter_address", defaultKafkaadapteraddress, help)
 
-	help = fmt.Sprintf("Kafka - Cluster messaging address")
+	help = "Kafka - Cluster messaging address"
 	flag.StringVar(&(so.KafkaClusterAddress), "kafka_cluster_address", defaultKafkaclusteraddress, help)
 
-	help = fmt.Sprintf("Open ONU topic")
+	help = "Open ONU topic"
 	baseAdapterTopic := flag.String("adapter_topic", defaultTopic, help)
 
-	help = fmt.Sprintf("Core topic")
+	help = "Core topic"
 	flag.StringVar(&(so.CoreTopic), "core_topic", defaultCoreTopic, help)
 
-	help = fmt.Sprintf("Event topic")
+	help = "Event topic"
 	flag.StringVar(&(so.EventTopic), "event_topic", defaultEventTopic, help)
 
-	help = fmt.Sprintf("KV store type")
+	help = "KV store type"
 	flag.StringVar(&(so.KVStoreType), "kv_store_type", defaultKvstoretype, help)
 
-	help = fmt.Sprintf("The default timeout when making a kv store request")
+	help = "The default timeout when making a kv store request"
 	flag.DurationVar(&(so.KVStoreTimeout), "kv_store_request_timeout", defaultKvstoretimeout, help)
 
-	help = fmt.Sprintf("KV store address")
+	help = "KV store address"
 	flag.StringVar(&(so.KVStoreAddress), "kv_store_address", defaultKvstoreaddress, help)
 
-	help = fmt.Sprintf("Log level")
+	help = "Log level"
 	flag.StringVar(&(so.LogLevel), "log_level", defaultLoglevel, help)
 
-	help = fmt.Sprintf("Number of ONUs")
+	help = "Number of ONUs"
 	flag.IntVar(&(so.OnuNumber), "onu_number", defaultOnunumber, help)
 
-	help = fmt.Sprintf("Show startup banner log lines")
+	help = "Show startup banner log lines"
 	flag.BoolVar(&(so.Banner), "banner", defaultBanner, help)
 
-	help = fmt.Sprintf("Show version information and exit")
+	help = "Show version information and exit"
 	flag.BoolVar(&(so.DisplayVersionOnly), "version", defaultDisplayVersionOnly, help)
 
-	help = fmt.Sprintf("Acceptance of incremental EVTOCD configuration")
+	help = "Acceptance of incremental EVTOCD configuration"
 	flag.BoolVar(&(so.AccIncrEvto), "accept_incr_evto", defaultAccIncrEvto, help)
 
-	help = fmt.Sprintf("The address on which to listen to answer liveness and readiness probe queries over HTTP.")
+	help = "The address on which to listen to answer liveness and readiness probe queries over HTTP"
 	flag.StringVar(&(so.ProbeHost), "probe_host", defaultProbeHost, help)
 
-	help = fmt.Sprintf("The port on which to listen to answer liveness and readiness probe queries over HTTP.")
+	help = "The port on which to listen to answer liveness and readiness probe queries over HTTP"
 	flag.IntVar(&(so.ProbePort), "probe_port", defaultProbePort, help)
 
-	help = fmt.Sprintf("Number of seconds for the default liveliness check")
+	help = "Number of seconds for the default liveliness check"
 	flag.DurationVar(&(so.LiveProbeInterval), "live_probe_interval", defaultLiveProbeInterval, help)
 
-	help = fmt.Sprintf("Number of seconds for liveliness check if probe is not running")
+	help = "Number of seconds for liveliness check if probe is not running"
 	flag.DurationVar(&(so.NotLiveProbeInterval), "not_live_probe_interval", defaultNotLiveProbeInterval, help)
 
-	help = fmt.Sprintf("Number of seconds for heartbeat check interval.")
+	help = "Number of seconds for heartbeat check interval"
 	flag.DurationVar(&(so.HeartbeatCheckInterval), "hearbeat_check_interval", defaultHearbeatCheckInterval, help)
 
-	help = fmt.Sprintf("Number of seconds adapter has to wait before reporting core on the hearbeat check failure.")
+	help = "Number of seconds adapter has to wait before reporting core on the hearbeat check failure"
 	flag.DurationVar(&(so.HeartbeatFailReportInterval), "hearbeat_fail_interval", defaultHearbeatFailReportInterval, help)
 
-	help = fmt.Sprintf("Number of retries to connect to Kafka.")
+	help = "Number of retries to connect to Kafka"
 	flag.IntVar(&(so.KafkaReconnectRetries), "kafka_reconnect_retries", defaultKafkaReconnectRetries, help)
 
-	help = "Replica number of this particular instance (default: %s)"
+	help = "Replica number of this particular instance"
 	flag.IntVar(&(so.CurrentReplica), "current_replica", defaultCurrentReplica, help)
 
 	help = "Total number of instances for this adapter"
 	flag.IntVar(&(so.TotalReplicas), "total_replica", defaultTotalReplicas, help)
 
-	help = fmt.Sprintf("Maximum Number of seconds for the default interadapter communication timeout")
+	help = "Maximum Number of seconds for the default interadapter communication timeout"
 	flag.DurationVar(&(so.MaxTimeoutInterAdapterComm), "max_timeout_interadapter_comm",
 		defaultMaxTimeoutInterAdapterComm, help)
 
-	help = fmt.Sprintf("Maximum Number of seconds for the default ONU reconciling timeout")
+	help = "Maximum Number of seconds for the default ONU reconciling timeout"
 	flag.DurationVar(&(so.MaxTimeoutReconciling), "max_timeout_reconciling",
 		defaultMaxTimeoutReconciling, help)
 
-	help = fmt.Sprintf("Whether to send logs to tracing agent?")
+	help = "Whether to send logs to tracing agent"
 	flag.BoolVar(&(so.TraceEnabled), "trace_enabled", defaultTraceEnabled, help)
 
-	help = fmt.Sprintf("The address of tracing agent to which span info should be sent.")
+	help = "The address of tracing agent to which span info should be sent"
 	flag.StringVar(&(so.TraceAgentAddress), "trace_agent_address", defaultTraceAgentAddress, help)
 
-	help = fmt.Sprintf("Whether to enrich log statements with fields denoting operation being executed for achieving correlation?")
+	help = "Whether to enrich log statements with fields denoting operation being executed for achieving correlation"
 	flag.BoolVar(&(so.LogCorrelationEnabled), "log_correlation_enabled", defaultLogCorrelationEnabled, help)
 
-	help = fmt.Sprintf("List of Allowed ONU Vendor Ids")
+	help = "List of Allowed ONU Vendor Ids"
 	flag.StringVar(&(so.OnuVendorIds), "allowed_onu_vendors", defaultOnuVendorIds, help)
 
-	help = fmt.Sprintf("Whether to enable metrics collection")
+	help = "Whether to enable metrics collection"
 	flag.BoolVar(&(so.MetricsEnabled), "metrics_enabled", defaultMetricsEnabled, help)
 
-	help = fmt.Sprintf("Mib Audit Interval in seconds - the value zero will disable Mib Audit")
+	help = "Mib Audit Interval in seconds - the value zero will disable Mib Audit"
 	flag.DurationVar(&(so.MibAuditInterval), "mib_audit_interval", defaultMibAuditInterval, help)
 
-	help = fmt.Sprintf("OMCI timeout duration - this timeout value is used on the OMCI channel for waiting on response from ONU")
+	help = "OMCI timeout duration - this timeout value is used on the OMCI channel for waiting on response from ONU"
 	flag.DurationVar(&(so.OmciTimeout), "omci_timeout", defaultOmciTimeout, help)
 
-	help = fmt.Sprintf("Alarm Audit Interval in seconds - the value zero will disable alarm audit")
+	help = "Alarm Audit Interval in seconds - the value zero will disable alarm audit"
 	flag.DurationVar(&(so.AlarmAuditInterval), "alarm_audit_interval", defaultAlarmAuditInterval, help)
+
+	help = "File download to adapter timeout in seconds"
+	flag.DurationVar(&(so.DownloadToAdapterTimeout), "download_to_adapter_timeout", defaultDlToAdapterTimeout, help)
+
+	help = "File download to ONU timeout in minutes for a block of 4MB"
+	flag.DurationVar(&(so.DownloadToOnuTimeout4MB), "download_to_onu_timeout_4MB", defaultDlToOnuTimeoutPer4MB, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
