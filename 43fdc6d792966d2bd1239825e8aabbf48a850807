@@ -16,6 +16,23 @@
       "revId": "43fdc6d792966d2bd1239825e8aabbf48a850807",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "056d4271_c3667f6e",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 402,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-06T09:01:27Z",
+      "side": 1,
+      "message": "Might be problematic - perhaps also for the other stop signals above? If there is no-one waiting for this channel this send routine will block (on the unbuffered channel) for ever and the device delete will never run to completion.\nSend the channel value only if there is someone waiting or use a buffered channel or ...",
+      "revId": "43fdc6d792966d2bd1239825e8aabbf48a850807",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
