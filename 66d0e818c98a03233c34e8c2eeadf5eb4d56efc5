@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ef59b2e4_e9b62def",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-07T11:39:12Z",
+      "side": 1,
+      "message": "Some definitions that migth be used later in some extended implementation (while localImgPath is now real obsolete). Commented here to not conflict with sca.",
+      "parentUuid": "ddb01536_a7e2e881",
+      "range": {
+        "startLine": 36,
+        "startChar": 2,
+        "endLine": 36,
+        "endChar": 32
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e6f4e8ef_0d47087c",
         "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2021-05-07T10:52:32Z",
       "side": 1,
       "message": "Shouldn\u0027t this be configurable via helm charts? (Could be done with a new story ... ;-)",
+      "range": {
+        "startLine": 272,
+        "startChar": 58,
+        "endLine": 272,
+        "endChar": 60
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fca0a2fd_a8b06a57",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-07T11:39:12Z",
+      "side": 1,
+      "message": "I don\u0027t want to overload the helm charts. But yes, if anyone thinks it might be needed ...",
+      "parentUuid": "e6f4e8ef_0d47087c",
       "range": {
         "startLine": 272,
         "startChar": 58,
@@ -82,6 +130,30 @@
       "writtenOn": "2021-05-07T10:52:32Z",
       "side": 1,
       "message": "does",
+      "range": {
+        "startLine": 71,
+        "startChar": 110,
+        "endLine": 71,
+        "endChar": 115
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ea0e3bd0_52ae7c9d",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-07T11:39:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5fe06a40_95a9c43f",
       "range": {
         "startLine": 71,
         "startChar": 110,
