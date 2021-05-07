@@ -93,6 +93,30 @@
       "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2f71cb30_7ed23775",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-07T13:26:39Z",
+      "side": 1,
+      "message": "Yes, this is the right position.\nFurthermore ONU state data stored in etcd before adapter restart should be used to determine which Connect- and OperStatus need to be set (refer to OnuDeviceEntry::sOnuPersistentData.PersUniUnlockDone and .PersUniDisableDone).\nIn the event of a reconciling timeout we would need an additional state, e.g. OperStatus_RECONCILING_FAILED, which would inform rw-core about the failed reconcilement. As a reaction the rw-core may reset the corresponding ONU.",
+      "parentUuid": "64a277cf_83954882",
+      "range": {
+        "startLine": 332,
+        "startChar": 2,
+        "endLine": 332,
+        "endChar": 3
+      },
+      "revId": "69697bfefe5e60340d36bc11bb02a30d856b708b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
