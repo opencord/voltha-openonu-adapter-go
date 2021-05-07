@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ddb01536_a7e2e881",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-07T10:52:32Z",
+      "side": 1,
+      "message": "What is this comment supposed to mean? SCA obviously works.",
+      "range": {
+        "startLine": 36,
+        "startChar": 2,
+        "endLine": 36,
+        "endChar": 32
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e6f4e8ef_0d47087c",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-07T10:52:32Z",
+      "side": 1,
+      "message": "Shouldn\u0027t this be configurable via helm charts? (Could be done with a new story ... ;-)",
+      "range": {
+        "startLine": 272,
+        "startChar": 58,
+        "endLine": 272,
+        "endChar": 60
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a7a8d842_ef890b92",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1055,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-07T10:52:32Z",
+      "side": 1,
+      "message": "See previous comment.",
+      "range": {
+        "startLine": 1055,
+        "startChar": 19,
+        "endLine": 1055,
+        "endChar": 22
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5fe06a40_95a9c43f",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-07T10:52:32Z",
+      "side": 1,
+      "message": "does",
+      "range": {
+        "startLine": 71,
+        "startChar": 110,
+        "endLine": 71,
+        "endChar": 115
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
