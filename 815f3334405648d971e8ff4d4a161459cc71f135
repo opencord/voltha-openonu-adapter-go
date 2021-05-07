@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3738d47e_82d81c18",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 396,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-07T07:08:36Z",
+      "side": 1,
+      "message": "Well - some different approach again compared to what is used so far in the adapter in according situations ... Might work, but I would worry if that channel resources will really be released on device deletion? Looks like some lingering unused memory ...",
+      "revId": "815f3334405648d971e8ff4d4a161459cc71f135",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
