@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "b4e2640b_b7b7e72c",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-10T21:19:34Z",
+      "side": 1,
+      "message": "An example DB for TCONT class is as follow:\n  \"262\": {\n    \"class_id\": 262,\n    \"32768\": {\n      \"instance_id\": 32768,\n      \"attributes\": {\n        \"alloc_id\": 1024,\n        \"mode_indicator\": 1,\n        \"policy\": 1\n      }\n    },\n    \"32769\": {\n      \"instance_id\": 32769,\n      \"attributes\": {\n        \"alloc_id\": 1025,\n        \"mode_indicator\": 1,\n        \"policy\": 1\n      }\n    },\n    \"32770\": {\n      \"instance_id\": 32770,\n      \"attributes\": {\n        \"alloc_id\": 65535,\n        \"mode_indicator\": 1,\n        \"policy\": 1\n      }\n    },\n    \"32771\": {\n      \"instance_id\": 32771,\n      \"attributes\": {\n        \"alloc_id\": 65535,\n        \"mode_indicator\": 1,\n        \"policy\": 1\n      }\n    },\n    \"32772\": {\n      \"instance_id\": 32772,\n      \"attributes\": {\n        \"alloc_id\": 65535,\n        \"mode_indicator\": 1,\n        \"policy\": 1\n      }\n    },\n.\nHere above I had two services defined before, with Alloc 1024 and 1025. The remaining TCONTs are empty. Think that I currently received a new config for a second UNI with first service which has Alloc 1024. Here I need to find the correct instance(32768) in db with \"alloc-id\" 1024. If not I need to find a new instance which has \"alloc-id\" 255 or 65535(which means unused instance). So imho I need to ask DB to find an entry for class\u003dx(here it is 262-TCONTClass) which has an attribute k(here it is \"AllocId\") with attribute_value v. \nI think any class can use this method in DB to ask a specific attribute of a class.",
+      "parentUuid": "943b79ad_02cef6c5",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9a3058d5_a7521b03",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 5
@@ -53,6 +71,24 @@
     },
     {
       "key": {
+        "uuid": "46092bec_fffe5744",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-10T21:19:34Z",
+      "side": 1,
+      "message": "I guess we may have some other problems if we do this via an internal counter/id(meInstUsed). First we need to save this id. Secondly in case we provisioned 3 services to a subscriber with different TCONTs(for ex TT case), and later we removed the second subscription in the list. The tcont list will be \"tcont1, empty, tcont3\" and meInstUsed will be 2 which will cause to use the tcont3 again for the next subscription on this ONU. I think it is safer to iterate over list and find if it has an empty slot.",
+      "parentUuid": "d95b46cf_792d628b",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6e68c5b0_c5859a17",
         "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
         "patchSetId": 5
@@ -70,6 +106,24 @@
     },
     {
       "key": {
+        "uuid": "09887830_c6f87870",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-10T21:19:34Z",
+      "side": 1,
+      "message": "It is not attributeMap[0], it is attributeMap[\"AllocId\"](k\u003d\"AllocId\", v\u003dn)). Intention here is to check all attributes(for a generic approach) that are required for a full match. e.g user may want to select the ME with attributes \n\"alloc_id\": 1024,\n\"mode_indicator\": 1,\nin this case we have two entries in map(\"\"AllocId\":1024\" and \"\"mode_indicator:1\")and we try to find the TCONT instance in DB that has the both attributes matched. It is \"AND\" ing the map entries with db entries.",
+      "parentUuid": "6e68c5b0_c5859a17",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1223fbbb_7953c603",
         "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
         "patchSetId": 5
@@ -81,6 +135,24 @@
       "writtenOn": "2021-05-10T09:04:22Z",
       "side": 1,
       "message": "I would doubt that this code really writes to the DB, what I assume you wanted to do here.",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0a99d1d1_807a41a7",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-10T21:19:34Z",
+      "side": 1,
+      "message": "Yes, that is the intention. I\u0027ll check it during the tests and fix if required.",
+      "parentUuid": "1223fbbb_7953c603",
       "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
