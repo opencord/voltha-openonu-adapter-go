@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "943b79ad_02cef6c5",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-10T09:04:22Z",
+      "side": 1,
+      "message": "As already noted in slack, I would not attach the \u0027allocation\u0027 on a separate attribute, but an extra flag within the onuDB (can be possible re-used for other classes)",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a3058d5_a7521b03",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1473,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-10T09:04:22Z",
+      "side": 1,
+      "message": "Don\u0027t you think, that a different UNI ports may as well use different queues (maybe while still using the same T-Cont)? Well, maybe it is not yet required?",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d95b46cf_792d628b",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-10T09:04:22Z",
+      "side": 1,
+      "message": "See comments below, looks all a bit complicated. Even though with this way or with small modifications it may work as well.\nI made a different proposal in slack, which might be a bit easier and re-usable also for other ME classes. But well, I am still not sure if that would be sufficient. Basically it would look like this: \nfunc (onuDeviceDB *onuDeviceDB) AllocateMeInstance(ctx context.Context, meClassID me.ClassID, allocatedAttributes me.AttributeValueMap) (uint16, bool, error){\n...//check existence of ME instance based on internal MeInstance counter MeInstUsed\n...//if MeInstUsed: MeInstUsed++, return Id, true, nil\n...//else meInstUsed++ (\u003d1), PutMe(..., meInstUsed) //to store usage to DB\n} //while I\u0027m still unsure if it would not be sufficient to pass max one meAttributeValueMap entry (with the pair of string and interface) - but maybe that is even more complicated.\nsimilar also this one:\nfunc (onuDeviceDB *onuDeviceDB) FreeMeInstance(ctx context.Context, meClassID me.ClassID, meInstId, me.InstID, allocatedAttributes me.AttributeValueMap) (error){ ...}\nand modification of existing functions to:\nfunc (onuDeviceDB *onuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap, instanceUsage uint16 ) {...}\nfunc (onuDeviceDB *onuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap, instanceUsage uint16 {..}  (while here it coudl be discussed, if instanceUsage is really required - now just for symmetry.\nOf course that would mean that all existing calles to PutMe have to be changed to PutMe(..., 0)",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6e68c5b0_c5859a17",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-10T09:04:22Z",
+      "side": 1,
+      "message": "I don\u0027t fully understand the intention here, perhaps you add some comments.\nSpecifically here you pass allocatedAttributes as a map of one entries, so in your case k\u003d0, v\u003d\"\"AllocId\": n\". But attributeMap[0] could be anything from the ME attributeMap, e.g. \"\"Deprecated\":  1\". In this case the meFound would be set to false, even though the element you search is still present?\nIt looks a bit complicated, and I\u0027m still not sure what your intention is.",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1223fbbb_7953c603",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-10T09:04:22Z",
+      "side": 1,
+      "message": "I would doubt that this code really writes to the DB, what I assume you wanted to do here.",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
