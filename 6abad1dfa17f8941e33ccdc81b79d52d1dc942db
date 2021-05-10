@@ -156,6 +156,24 @@
       "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4e1325e_2ffdb166",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-10T21:20:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0a99d1d1_807a41a7",
+      "revId": "6abad1dfa17f8941e33ccdc81b79d52d1dc942db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
