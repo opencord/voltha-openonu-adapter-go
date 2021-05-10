@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "b77a91b5_3c26be78",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-10T12:41:05Z",
+      "side": 1,
+      "message": "let\u0027s add it, there is the risk that a slow connection to the outside world could yield to higher than 10s. for now you can add it in here and in the helm charts later.",
+      "parentUuid": "fca0a2fd_a8b06a57",
+      "range": {
+        "startLine": 272,
+        "startChar": 58,
+        "endLine": 272,
+        "endChar": 60
+      },
+      "revId": "66d0e818c98a03233c34e8c2eeadf5eb4d56efc5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a7a8d842_ef890b92",
         "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
         "patchSetId": 2
