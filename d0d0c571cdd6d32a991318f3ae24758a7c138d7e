@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "de2e5bd7_46a8cfb1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1158,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "image",
+      "range": {
+        "startLine": 1158,
+        "startChar": 29,
+        "endLine": 1158,
+        "endChar": 35
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a58a54dc_7ae7eba4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1158,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "prioritization",
+      "range": {
+        "startLine": 1158,
+        "startChar": 111,
+        "endLine": 1158,
+        "endChar": 123
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f8a8fd97_d39822ad",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1159,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "Proposal: in case it corresponds to the requested image",
+      "range": {
+        "startLine": 1159,
+        "startChar": 64,
+        "endLine": 1159,
+        "endChar": 101
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ddbbfb63_bd4597d9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1219,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "see above",
+      "range": {
+        "startLine": 1219,
+        "startChar": 111,
+        "endLine": 1219,
+        "endChar": 123
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6347bda5_6ae035a8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1220,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "see above",
+      "range": {
+        "startLine": 1220,
+        "startChar": 64,
+        "endLine": 1220,
+        "endChar": 101
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71e3931b_d3cddbb0",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "gets",
+      "range": {
+        "startLine": 84,
+        "startChar": 21,
+        "endLine": 84,
+        "endChar": 32
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f9da5a0_b67a36bf",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-11T11:08:38Z",
+      "side": 1,
+      "message": "Is it a good idea to code an api version in a variable name?",
+      "range": {
+        "startLine": 125,
+        "startChar": 1,
+        "endLine": 125,
+        "endChar": 30
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
