@@ -48,6 +48,54 @@
     },
     {
       "key": {
+        "uuid": "cceefeab_2b919433",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1158,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "de2e5bd7_46a8cfb1",
+      "range": {
+        "startLine": 1158,
+        "startChar": 29,
+        "endLine": 1158,
+        "endChar": 35
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "965bdbb9_4d0392e7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1158,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a58a54dc_7ae7eba4",
+      "range": {
+        "startLine": 1158,
+        "startChar": 111,
+        "endLine": 1158,
+        "endChar": 123
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f8a8fd97_d39822ad",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -68,6 +116,30 @@
       "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "affaf248_b8f34d26",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1159,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "slightly changed.",
+      "parentUuid": "f8a8fd97_d39822ad",
+      "range": {
+        "startLine": 1159,
+        "startChar": 64,
+        "endLine": 1159,
+        "endChar": 101
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "bf89d1a2_39269bd4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1219,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ddbbfb63_bd4597d9",
+      "range": {
+        "startLine": 1219,
+        "startChar": 111,
+        "endLine": 1219,
+        "endChar": 123
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6347bda5_6ae035a8",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 3
@@ -114,6 +210,30 @@
       "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ebaf9b29_0242d5f2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1220,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "slightly modified",
+      "parentUuid": "6347bda5_6ae035a8",
+      "range": {
+        "startLine": 1220,
+        "startChar": 64,
+        "endLine": 1220,
+        "endChar": 101
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -140,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "61e50493_4f707c9f",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "slightly modified",
+      "parentUuid": "71e3931b_d3cddbb0",
+      "range": {
+        "startLine": 84,
+        "startChar": 21,
+        "endLine": 84,
+        "endChar": 32
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1f9da5a0_b67a36bf",
         "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
         "patchSetId": 3
@@ -151,6 +295,30 @@
       "writtenOn": "2021-05-11T11:08:38Z",
       "side": 1,
       "message": "Is it a good idea to code an api version in a variable name?",
+      "range": {
+        "startLine": 125,
+        "startChar": 1,
+        "endLine": 125,
+        "endChar": 30
+      },
+      "revId": "d0d0c571cdd6d32a991318f3ae24758a7c138d7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6e347685_ca35de4f",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-11T14:28:01Z",
+      "side": 1,
+      "message": "Yes it is ;-). I already played around with this and already avoided \u0027newApi\u0027 ;-). Must just be a unique identifier.",
+      "parentUuid": "1f9da5a0_b67a36bf",
       "range": {
         "startLine": 125,
         "startChar": 1,
