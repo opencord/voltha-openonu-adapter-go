@@ -138,12 +138,14 @@ func (oo *omciTestRequest) receiveOmciVerifyResponse(ctx context.Context, omciMs
 
 	//TODO!!! further tests on the payload should be done here ...
 
+	oo.pDevOmciCC.mutexMonReq.RLock()
 	if _, exist := oo.pDevOmciCC.monitoredRequests[omciMsg.TransactionID]; exist {
 		oo.pDevOmciCC.monitoredRequests[omciMsg.TransactionID].chSuccess <- true
 	} else {
 		logger.Infow(ctx, "reqMon: map entry does not exist!",
 			log.Fields{"tid": omciMsg.TransactionID, "device-id": oo.deviceID})
 	}
+	oo.pDevOmciCC.mutexMonReq.RUnlock()
 
 	oo.result = true
 	oo.verifyDone <- true

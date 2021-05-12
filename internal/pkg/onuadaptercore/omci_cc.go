@@ -119,13 +119,14 @@ type omciCC struct {
 	uploadSequNo   uint16
 	uploadNoOfCmds uint16
 
-	mutexTxQueue      sync.Mutex
-	txQueue           *list.List
-	mutexRxSchedMap   sync.Mutex
-	rxSchedulerMap    map[uint16]callbackPairEntry
-	mutexMonReq       sync.RWMutex
-	monitoredRequests map[uint16]omciTransferStructure
-	pLastTxMeInstance *me.ManagedEntity
+	mutexTxQueue           sync.Mutex
+	txQueue                *list.List
+	mutexRxSchedMap        sync.Mutex
+	rxSchedulerMap         map[uint16]callbackPairEntry
+	mutexMonReq            sync.RWMutex
+	monitoredRequests      map[uint16]omciTransferStructure
+	mutexPLastTxMeInstance sync.RWMutex
+	pLastTxMeInstance      *me.ManagedEntity
 }
 
 var responsesWithMibDataSync = []omci.MessageType{
@@ -824,8 +825,7 @@ func (oo *omciCC) sendGetAllAlarm(ctx context.Context, alarmRetreivalMode uint8,
 			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
-	oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadSeqNo = 0
-	oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadNoOfCmds = 0
+	oo.pBaseDeviceHandler.pAlarmMgr.ResetAlarmUploadCounters()
 
 	omciRxCallbackPair := callbackPair{
 		cbKey: tid,
@@ -836,7 +836,7 @@ func (oo *omciCC) sendGetAllAlarm(ctx context.Context, alarmRetreivalMode uint8,
 }
 
 func (oo *omciCC) sendGetAllAlarmNext(ctx context.Context, timeout int, highPrio bool) error {
-	alarmUploadSeqNo := oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadSeqNo
+	alarmUploadSeqNo := oo.pBaseDeviceHandler.pAlarmMgr.GetAlarmUploadSeqNo()
 	logger.Debugw(ctx, "send sendGetAllAlarmNext-msg to:", log.Fields{"device-id": oo.deviceID,
 		"alarmUploadSeqNo": alarmUploadSeqNo})
 	request := &omci.GetAllAlarmsNextRequest{
@@ -852,7 +852,7 @@ func (oo *omciCC) sendGetAllAlarmNext(ctx context.Context, timeout int, highPrio
 			"Err": err, "device-id": oo.deviceID})
 		return err
 	}
-	oo.pBaseDeviceHandler.pAlarmMgr.alarmUploadSeqNo++
+	oo.pBaseDeviceHandler.pAlarmMgr.IncrementAlarmUploadSeqNo()
 
 	omciRxCallbackPair := callbackPair{
 		cbKey:   tid,
