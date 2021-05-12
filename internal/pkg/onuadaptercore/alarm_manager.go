@@ -21,15 +21,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"sync"
+	"time"
+
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
-	"reflect"
-	"sync"
-	"time"
 )
 
 const (
@@ -92,7 +93,9 @@ type onuAlarmManager struct {
 	oltDbCopy                  alarmBitMapDB
 	onuDBCopy                  alarmBitMapDB
 	bufferedNotifications      []*omci.AlarmNotificationMsg
+	mutexAlarmUploadSeqNo      sync.RWMutex
 	alarmUploadSeqNo           uint16
+	mutexAlarmUploadNoOfCmds   sync.RWMutex
 	alarmUploadNoOfCmds        uint16
 	stopAlarmAuditTimer        chan struct{}
 }
@@ -356,8 +359,8 @@ func (am *onuAlarmManager) processAlarmSyncMessages(ctx context.Context) {
 			am.processMessage = false
 			am.activeAlarms = nil
 			am.alarmBitMapDB = nil
-			am.alarmUploadNoOfCmds = 0
-			am.alarmUploadSeqNo = 0
+			am.resetAlarmUploadNoOfCmds()
+			am.resetAlarmUploadSeqNo()
 			am.onuAlarmManagerLock.Unlock()
 			return
 
@@ -395,13 +398,13 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		logger.Debugw(ctx, "alarm-sync-fsm-is-disabled-ignoring-response-message", log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
 		return
 	}
-	am.alarmUploadNoOfCmds = msgObj.NumberOfCommands
+	am.setAlarmUploadNoOfCmds(msgObj.NumberOfCommands)
 	failureTransition := func() {
 		if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
 		}
 	}
-	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmds {
+	if am.getAlarmUploadSeqNo() < am.getAlarmUploadNoOfCmds() {
 		// Reset Onu Alarm Sequence
 		am.onuAlarmManagerLock.Lock()
 		am.resetAlarmSequence()
@@ -415,7 +418,7 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 			// Transition to failure
 			go failureTransition()
 		}
-	} else if am.alarmUploadNoOfCmds == 0 {
+	} else if am.getAlarmUploadNoOfCmds() == 0 {
 		// Reset Onu Alarm Sequence
 		am.onuAlarmManagerLock.Lock()
 		am.resetAlarmSequence()
@@ -441,7 +444,7 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		}
 	} else {
 		logger.Errorw(ctx, "invalid-number-of-commands-received", log.Fields{"device-id": am.pDeviceHandler.deviceID,
-			"upload-no-of-cmds": am.alarmUploadNoOfCmds, "upload-seq-no": am.alarmUploadSeqNo})
+			"upload-no-of-cmds": am.getAlarmUploadNoOfCmds(), "upload-seq-no": am.getAlarmUploadSeqNo()})
 		go failureTransition()
 	}
 }
@@ -475,7 +478,7 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
 		}
 	}
-	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmds {
+	if am.getAlarmUploadSeqNo() < am.getAlarmUploadNoOfCmds() {
 		if err := am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetAllAlarmNext(
 			log.WithSpanFromContext(context.TODO(), ctx), am.pDeviceHandler.pOpenOnuAc.omciTimeout, true); err != nil {
 			// Transition to failure
@@ -686,7 +689,9 @@ func (am *onuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 	context := make(map[string]string)
 	intfID := am.getIntfIDAlarm(ctx, classID, instanceID)
 	onuID := am.pDeviceHandler.deviceID
+	am.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RLock()
 	serialNo := am.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersSerialNumber
+	am.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RUnlock()
 	if intfID == nil {
 		logger.Warn(ctx, "intf-id-for-alarm-not-found", log.Fields{"alarm-no": alarm, "class-id": classID})
 		return
@@ -754,4 +759,38 @@ func (am *onuAlarmManager) getDeviceEventData(ctx context.Context, classID me.Cl
 		return onuEventDetails, nil
 	}
 	return onuDeviceEvent{}, errors.New("onu Event Detail not found")
+}
+
+func (am *onuAlarmManager) resetAlarmUploadSeqNo() {
+	am.mutexAlarmUploadSeqNo.Lock()
+	am.alarmUploadSeqNo = 0
+	am.mutexAlarmUploadSeqNo.Unlock()
+}
+func (am *onuAlarmManager) incAlarmUploadSeqNo() {
+	am.mutexAlarmUploadSeqNo.Lock()
+	am.alarmUploadSeqNo++
+	am.mutexAlarmUploadSeqNo.Unlock()
+}
+func (am *onuAlarmManager) getAlarmUploadSeqNo() uint16 {
+	am.mutexAlarmUploadSeqNo.RLock()
+	value := am.alarmUploadSeqNo
+	am.mutexAlarmUploadSeqNo.RUnlock()
+	return value
+}
+
+func (am *onuAlarmManager) resetAlarmUploadNoOfCmds() {
+	am.mutexAlarmUploadNoOfCmds.Lock()
+	am.alarmUploadNoOfCmds = 0
+	am.mutexAlarmUploadNoOfCmds.Unlock()
+}
+func (am *onuAlarmManager) setAlarmUploadNoOfCmds(value uint16) {
+	am.mutexAlarmUploadNoOfCmds.Lock()
+	am.alarmUploadNoOfCmds = value
+	am.mutexAlarmUploadNoOfCmds.Unlock()
+}
+func (am *onuAlarmManager) getAlarmUploadNoOfCmds() uint16 {
+	am.mutexAlarmUploadNoOfCmds.RLock()
+	value := am.alarmUploadNoOfCmds
+	am.mutexAlarmUploadNoOfCmds.RUnlock()
+	return value
 }

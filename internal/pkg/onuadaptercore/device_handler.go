@@ -220,7 +220,8 @@ type deviceHandler struct {
 	reconcilingFlows            bool
 	mutexReconcilingFlowsFlag   sync.RWMutex
 	chReconcilingFlowsFinished  chan bool //channel to indicate that reconciling of flows has been finished
-	ReadyForSpecificOmciConfig  bool
+	mutexReadyForOmciConfig     sync.RWMutex
+	readyForOmciConfig          bool
 	deletionInProgress          bool
 	mutexDeletionInProgressFlag sync.RWMutex
 }
@@ -255,7 +256,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcilingFlows = false
 	dh.chReconcilingFlowsFinished = make(chan bool)
-	dh.ReadyForSpecificOmciConfig = false
+	dh.readyForOmciConfig = false
 	dh.deletionInProgress = false
 
 	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
@@ -373,7 +374,7 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 			log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("techProfile DLMsg request while onuTechProf instance not setup: %s", dh.deviceID)
 	}
-	if !dh.ReadyForSpecificOmciConfig {
+	if !dh.isReadyForOmciConfig() {
 		logger.Errorw(ctx, "TechProf-set rejected: improper device state", log.Fields{"device-id": dh.deviceID,
 			"device-state": dh.getDeviceReasonString()})
 		return fmt.Errorf("improper device state %s on device %s", dh.getDeviceReasonString(), dh.deviceID)
@@ -694,7 +695,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				//   after the device gets active automatically (and still with its dependency to the TechProfile)
 				// for state checking compare also code here: processInterAdapterTechProfileDownloadReqMessage
 				// also abort for the other still possible flows here
-				if !dh.ReadyForSpecificOmciConfig {
+				if !dh.isReadyForOmciConfig() {
 					logger.Errorw(ctx, "flow-add rejected: improper device state", log.Fields{"device-id": dh.deviceID,
 						"last device-reason": dh.getDeviceReasonString()})
 					return fmt.Errorf("improper device state on device %s", dh.deviceID)
@@ -736,7 +737,7 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 		//disable-device shall be just a UNi/ONU-G related admin state setting
 		//all other configurations/FSM's shall not be impacted and shall execute as required by the system
 
-		if dh.ReadyForSpecificOmciConfig {
+		if dh.isReadyForOmciConfig() {
 			// disable UNI ports/ONU
 			// *** should generate UniDisableStateDone event - used to disable the port(s) on success
 			if dh.pLockStateFsm == nil {
@@ -773,7 +774,7 @@ func (dh *deviceHandler) reEnableDevice(ctx context.Context, device *voltha.Devi
 	//		OnuIndication-Dw (or not active at all) (- disable) - enable: here already the LockFsm may run into timeout (no OmciResponse)
 	//      but that anyway is hopefully resolved by some OnuIndication-Up event (maybe to be tested)
 	//      one could also argue, that a device-enable should also enable attempts for specific omci configuration
-	dh.ReadyForSpecificOmciConfig = true //needed to allow subsequent flow/techProf config (on BBSIM)
+	dh.setReadyForOmciConfig(true) //needed to allow subsequent flow/techProf config (on BBSIM)
 
 	// enable ONU/UNI ports
 	// *** should generate UniEnableStateDone event - used to disable the port(s) on success
@@ -803,10 +804,12 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 		return
 	}
 	var onuIndication oop.OnuIndication
+	pDevEntry.mutexPersOnuConfig.RLock()
 	onuIndication.IntfId = pDevEntry.sOnuPersistentData.PersIntfID
 	onuIndication.OnuId = pDevEntry.sOnuPersistentData.PersOnuID
 	onuIndication.OperState = pDevEntry.sOnuPersistentData.PersOperState
 	onuIndication.AdminState = pDevEntry.sOnuPersistentData.PersAdminState
+	pDevEntry.mutexPersOnuConfig.RUnlock()
 	_ = dh.createInterface(ctx, &onuIndication)
 }
 
@@ -823,8 +826,8 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	}
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
-	pDevEntry.persUniConfigMutex.RLock()
-	defer pDevEntry.persUniConfigMutex.RUnlock()
+	pDevEntry.mutexPersOnuConfig.RLock()
+	defer pDevEntry.mutexPersOnuConfig.RUnlock()
 
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
@@ -894,8 +897,8 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		}
 		return
 	}
-	pDevEntry.persUniConfigMutex.RLock()
-	defer pDevEntry.persUniConfigMutex.RUnlock()
+	pDevEntry.mutexPersOnuConfig.RLock()
+	defer pDevEntry.mutexPersOnuConfig.RUnlock()
 
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
@@ -1033,7 +1036,7 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 	if err := dh.deviceReasonUpdate(ctx, drRebooting, true); err != nil {
 		return
 	}
-	dh.ReadyForSpecificOmciConfig = false
+	dh.setReadyForOmciConfig(false)
 	//no specific activity to synchronize any internal FSM to the 'rebooted' state is explicitly done here
 	//  the expectation ids for a real device, that it will be synced with the expected following 'down' indication
 	//  as BBSIM does not support this testing requires explicite disable/enable device calls in which sequence also
@@ -1053,7 +1056,7 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 		return fmt.Errorf("start Onu SW upgrade rejected: no valid OnuDevice for device-id: %s", dh.deviceID)
 	}
 
-	if dh.ReadyForSpecificOmciConfig {
+	if dh.isReadyForOmciConfig() {
 		var inactiveImageID uint16
 		if inactiveImageID, err = pDevEntry.GetInactiveImageMeID(ctx); err == nil {
 			dh.lockUpgradeFsm.Lock()
@@ -1434,10 +1437,14 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Debugw(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVATING",
 			log.Fields{"device-id": dh.deviceID})
 
+		pDevEntry.mutexPersOnuConfig.RLock()
 		if !pDevEntry.sOnuPersistentData.PersUniUnlockDone {
+			pDevEntry.mutexPersOnuConfig.RUnlock()
 			logger.Debugw(ctx, "reconciling - uni-ports were not unlocked before adapter restart - resume with a normal start-up",
 				log.Fields{"device-id": dh.deviceID})
 			dh.stopReconciling(ctx)
+		} else {
+			pDevEntry.mutexPersOnuConfig.RUnlock()
 		}
 	}
 	// It does not look to me as if makes sense to work with the real core device here, (not the stored clone)?
@@ -1639,7 +1646,7 @@ func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuInd
 
 		dh.disableUniPortStateUpdate(ctx)
 
-		dh.ReadyForSpecificOmciConfig = false
+		dh.setReadyForOmciConfig(false)
 
 		if err := dh.deviceReasonUpdate(ctx, drStoppingOpenomci, true); err != nil {
 			// abort: system behavior is just unstable ...
@@ -1848,19 +1855,22 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		logger.Errorw(ctx, "error starting l2 pm fsm", log.Fields{"device-id": dh.device.Id, "err": err})
 	}
 
-	dh.ReadyForSpecificOmciConfig = true
+	dh.setReadyForOmciConfig(true)
 
 	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
+	pDevEntry.mutexPersOnuConfig.RLock()
 	if dh.isReconciling() && pDevEntry.sOnuPersistentData.PersUniDisableDone {
+		pDevEntry.mutexPersOnuConfig.RUnlock()
 		logger.Debugw(ctx, "reconciling - uni-ports were disabled by admin before adapter restart - keep the ports locked",
 			log.Fields{"device-id": dh.deviceID})
 		go dh.reconcileDeviceTechProf(ctx)
 		// reconcilement will be continued after ani config is done
 	} else {
+		pDevEntry.mutexPersOnuConfig.RUnlock()
 		// *** should generate UniUnlockStateDone event *****
 		if dh.pUnlockStateFsm == nil {
 			dh.createUniLockFsm(ctx, false, UniUnlockStateDone)
@@ -1883,7 +1893,9 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 			logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 			return
 		}
+		pDevEntry.mutexPersOnuConfig.Lock()
 		pDevEntry.sOnuPersistentData.PersUniUnlockDone = true
+		pDevEntry.mutexPersOnuConfig.Unlock()
 		if err := dh.storePersistentData(ctx); err != nil {
 			logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
 				log.Fields{"device-id": dh.deviceID, "err": err})
@@ -1917,7 +1929,9 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, de
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
+	pDevEntry.mutexPersOnuConfig.Lock()
 	pDevEntry.sOnuPersistentData.PersUniDisableDone = true
+	pDevEntry.mutexPersOnuConfig.Unlock()
 	if err := dh.storePersistentData(ctx); err != nil {
 		logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
 			log.Fields{"device-id": dh.deviceID, "err": err})
@@ -1946,7 +1960,9 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, dev
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
 		return
 	}
+	pDevEntry.mutexPersOnuConfig.Lock()
 	pDevEntry.sOnuPersistentData.PersUniDisableDone = false
+	pDevEntry.mutexPersOnuConfig.Unlock()
 	if err := dh.storePersistentData(ctx); err != nil {
 		logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
 			log.Fields{"device-id": dh.deviceID, "err": err})
@@ -3273,4 +3289,17 @@ func (dh *deviceHandler) isReconcilingFlows() bool {
 	value := dh.reconcilingFlows
 	dh.mutexReconcilingFlowsFlag.RUnlock()
 	return value
+}
+
+func (dh *deviceHandler) setReadyForOmciConfig(flagValue bool) {
+	dh.mutexReadyForOmciConfig.Lock()
+	dh.readyForOmciConfig = flagValue
+	dh.mutexReadyForOmciConfig.Unlock()
+}
+
+func (dh *deviceHandler) isReadyForOmciConfig() bool {
+	dh.mutexReadyForOmciConfig.RLock()
+	flagValue := dh.readyForOmciConfig
+	dh.mutexReadyForOmciConfig.RUnlock()
+	return flagValue
 }
