@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "06916b27_3b65a599",
+        "filename": "VERSION",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-12T14:49:09Z",
+      "side": 1,
+      "message": "I thin this should just be 1.3.1, given that we need to release it and update the helm charts accordingly",
+      "revId": "e1bf55524950a958cc5d35e70826037e505b2d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ce4b90a_9f0d2bfe",
+        "filename": "internal/pkg/config/config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-12T14:49:09Z",
+      "side": 1,
+      "message": "given the existing numbers that DT/Radisys is providing, I\u0027m wondering if the default for this should be 120.",
+      "revId": "e1bf55524950a958cc5d35e70826037e505b2d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
