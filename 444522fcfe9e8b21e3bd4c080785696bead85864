@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c5c8f75d_841d875b",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-12T21:34:01Z",
+      "side": 1,
+      "message": "Is this version correct?",
+      "range": {
+        "startLine": 1,
+        "startChar": 5,
+        "endLine": 1,
+        "endChar": 12
+      },
+      "revId": "444522fcfe9e8b21e3bd4c080785696bead85864",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
