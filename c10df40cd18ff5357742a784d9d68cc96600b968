@@ -16,6 +16,24 @@
       "revId": "c10df40cd18ff5357742a784d9d68cc96600b968",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c952f845_fab6c1a9",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T16:07:51Z",
+      "side": 1,
+      "message": "As discussed in the Telco - you might be right, k is no \u0027index\u0027 but the the string-key. Sorry for my confusion. That way the code should be working. \nPerhaps then already this would be working - but it really does not matter that much:\n\tif _, present :\u003d onuDeviceDB.meDb[meClassID][freeEntityInstanceID]; present {\n\t\tfor k, v :\u003d range allocatedAttributes {\n\t\t\t(onuDeviceDB.meDb[meClassID][freeEntityInstanceID])[k] \u003d v\n\t\t}\n\t\t\n\t}",
+      "parentUuid": "4861e798_3b92f15d",
+      "revId": "c10df40cd18ff5357742a784d9d68cc96600b968",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
