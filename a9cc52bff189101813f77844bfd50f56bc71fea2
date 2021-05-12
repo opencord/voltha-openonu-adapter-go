@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ef569853_5abf150c",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "Don\u0027t know why. The code is already in some locked section ...",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3b3005ae_a550e350",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "New seperate Mutexes defined, ok, should of course work, but simple re-use of onuAlarmManagerLock should also be possible to be re-used, allowing for direct access to members in case the lock is already taken ...",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6dc975d_8d4a74cc",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "Perhaps later: The real target should be to define mib_download as a separate FSM (with ist own LastTxMeInstance), not included into onuDeviceEntry. Segregation of the FSM is a bit more effort then.",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4bdc7ef_8b4d5806",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 829,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "could be done in one fuction call",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8b04f461_7a9a3dff",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1604,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "you could return here and collect the other branch unlock statements into a single statement at the end (a bit more clear).",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ba203db_0e78f3eb",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1675,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "same as above: you could return here and collect the other unlocks in the end of the block",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "acd11393_42a55b47",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1725,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "and oncemore: return here and collect unlock in the end",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

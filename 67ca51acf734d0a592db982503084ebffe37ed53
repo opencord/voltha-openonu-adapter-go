@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f25ea81d_ec6b7d78",
+        "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T14:18:55Z",
+      "side": 1,
+      "message": "Maybe it\u0027s working (have not checked in detail), but I would not prefer to hold the mutex all the time while sending and waiting for the response. Would not be sure that there can\u0027t get some activities in between.",
+      "revId": "67ca51acf734d0a592db982503084ebffe37ed53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
