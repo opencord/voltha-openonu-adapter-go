@@ -121,6 +121,7 @@ type uniPonAniConfigFsm struct {
 	pAdaptFsm                *AdapterFsm
 	chSuccess                chan<- uint8
 	procStep                 uint8
+	mutexChanSet             sync.RWMutex
 	chanSet                  bool
 	mapperSP0ID              uint16
 	macBPCD0ID               uint16
@@ -243,7 +244,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 func (oFsm *uniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, aProcStep uint8) {
 	oFsm.chSuccess = aChSuccess
 	oFsm.procStep = aProcStep
-	oFsm.chanSet = true
+	oFsm.setChanSet(true)
 }
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
@@ -346,10 +347,10 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 					"device-id": oFsm.deviceID})
 			} else {
 				logger.Errorw(ctx, "tech profile id not in valid range", log.Fields{"device-id": oFsm.deviceID, "tp-id": oFsm.techProfileID, "num-tcont": len(tcontInstKeys)})
-				if oFsm.chanSet {
+				if oFsm.isChanSet() {
 					// indicate processing error/abort to the caller
 					oFsm.chSuccess <- 0
-					oFsm.chanSet = false //reset the internal channel state
+					oFsm.setChanSet(false) //reset the internal channel state
 				}
 				//reset the state machine to enable usage on subsequent requests
 				_ = aPAFsm.pFsm.Event(aniEvReset)
@@ -768,12 +769,12 @@ func (oFsm *uniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 	} else {
 		logger.Debugw(ctx, "reconciling - skip AniConfigDone processing", log.Fields{"device-id": oFsm.deviceID})
 	}
-	if oFsm.chanSet {
+	if oFsm.isChanSet() {
 		// indicate processing done to the caller
 		logger.Debugw(ctx, "uniPonAniConfigFsm processingDone on channel", log.Fields{
 			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.deviceID})
 		oFsm.chSuccess <- oFsm.procStep
-		oFsm.chanSet = false //reset the internal channel state
+		oFsm.setChanSet(false) //reset the internal channel state
 	}
 
 	//the FSM is left active in this state as long as no specific reset or remove is requested from outside
@@ -1041,12 +1042,12 @@ func (oFsm *uniPonAniConfigFsm) enterAniRemoveDone(ctx context.Context, e *fsm.E
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 	//use DeviceHandler event notification directly
 	oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
-	if oFsm.chanSet {
+	if oFsm.isChanSet() {
 		// indicate processing done to the caller
 		logger.Debugw(ctx, "uniPonAniConfigFsm processingDone on channel", log.Fields{
 			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.deviceID})
 		oFsm.chSuccess <- oFsm.procStep
-		oFsm.chanSet = false //reset the internal channel state
+		oFsm.setChanSet(false) //reset the internal channel state
 	}
 
 	//let's reset the state machine in order to release all resources now
@@ -1634,4 +1635,17 @@ func (oFsm *uniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
 		oFsm.mutexIsAwaitingResponse.Unlock()
 		return fmt.Errorf(cErrWaitAborted)
 	}
+}
+
+func (oFsm *uniPonAniConfigFsm) setChanSet(flagValue bool) {
+	oFsm.mutexChanSet.Lock()
+	oFsm.chanSet = flagValue
+	oFsm.mutexChanSet.Unlock()
+}
+
+func (oFsm *uniPonAniConfigFsm) isChanSet() bool {
+	oFsm.mutexChanSet.RLock()
+	flagValue := oFsm.chanSet
+	oFsm.mutexChanSet.RUnlock()
+	return flagValue
 }
