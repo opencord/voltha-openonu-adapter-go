@@ -45,10 +45,12 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDLStartingState(ctx context.Context, 
 
 func (onuDeviceEntry *OnuDeviceEntry) enterCreatingGalState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM", log.Fields{"Tx create::GAL Ethernet Profile in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
+	onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Lock()
 	meInstance, err := onuDeviceEntry.PDevOmciCC.sendCreateGalEthernetProfile(log.WithSpanFromContext(context.TODO(), ctx), onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "GalEthernetProfile create failed, aborting MibDownload FSM!",
 			log.Fields{"device-id": onuDeviceEntry.deviceID})
 		pMibDlFsm := onuDeviceEntry.pMibDownloadFsm
@@ -60,15 +62,18 @@ func (onuDeviceEntry *OnuDeviceEntry) enterCreatingGalState(ctx context.Context,
 		return
 	}
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
+	onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterSettingOnu2gState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM", log.Fields{"Tx Set::ONU2-G in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
+	onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Lock()
 	meInstance, err := onuDeviceEntry.PDevOmciCC.sendSetOnu2g(log.WithSpanFromContext(context.TODO(), ctx),
 		onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "ONU2-G set failed, aborting MibDownload FSM!",
 			log.Fields{"device-id": onuDeviceEntry.deviceID})
 		pMibDlFsm := onuDeviceEntry.pMibDownloadFsm
@@ -80,6 +85,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterSettingOnu2gState(ctx context.Context
 		return
 	}
 	onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
+	onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterBridgeInitState(ctx context.Context, e *fsm.Event) {
@@ -163,94 +169,131 @@ loop:
 	logger.Debugw(ctx, "End MibDownload Msg processing", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 }
 
+func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadCreateResponseMessage(ctx context.Context, msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "Omci Msg layer could not be detected for CreateResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.CreateResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "Omci Msg layer could not be assigned for CreateResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		return
+	}
+	logger.Debugw(ctx, "CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
+	if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
+		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
+		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		return
+	}
+	// maybe there is a way of pushing the specific create response type generally to the FSM
+	//   and let the FSM verify, if the response was according to current state
+	//   and possibly store the element to DB and progress - maybe some future option ...
+	// but as that is not straightforward to me I insert the type checkes manually here
+	//   and feed the FSM with only 'pre-defined' events ...
+
+	onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RLock()
+	if onuDeviceEntry.PDevOmciCC.pLastTxMeInstance != nil {
+		if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() &&
+			msgObj.EntityInstance == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID() {
+			//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
+			// if, then something like:
+			//onuDeviceEntry.pOnuDB.StoreMe(msgObj)
+
+			// maybe we can use just the same eventName for different state transitions like "forward"
+			//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
+			switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
+			case "GalEthernetProfile":
+				{ // let the FSM proceed ...
+					onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+					_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxGalResp)
+				}
+			case "MacBridgeServiceProfile",
+				"MacBridgePortConfigurationData",
+				"ExtendedVlanTaggingOperationConfigurationData":
+				{ // let bridge init proceed by stopping the wait function
+					onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+					onuDeviceEntry.omciMessageReceived <- true
+				}
+			default:
+				{
+					logger.Warnw(ctx, "Unsupported ME name received!",
+						log.Fields{"ME name": onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName(), "device-id": onuDeviceEntry.deviceID})
+					onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+				}
+			}
+		} else {
+			onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+		}
+	} else {
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+		logger.Warnw(ctx, "Pointer to last Tx MeInstance is nil!", log.Fields{"device-id": onuDeviceEntry.deviceID})
+	}
+}
+
+func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadSetResponseMessage(ctx context.Context, msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "Omci Msg layer could not be detected for SetResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.SetResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "Omci Msg layer could not be assigned for SetResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		return
+	}
+	logger.Debugw(ctx, "SetResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
+	if msgObj.Result != me.Success {
+		logger.Errorw(ctx, "Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID,
+			"Error": msgObj.Result})
+		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		return
+	}
+	// compare comments above for CreateResponse (apply also here ...)
+
+	onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RLock()
+	if onuDeviceEntry.PDevOmciCC.pLastTxMeInstance != nil {
+		if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() &&
+			msgObj.EntityInstance == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID() {
+			//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
+			// if, then something like:
+			//onuDeviceEntry.pOnuDB.StoreMe(msgObj)
+
+			switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
+			case "Onu2G":
+				{ // let the FSM proceed ...
+					onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+					_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxOnu2gResp)
+				}
+				//so far that was the only MibDownlad Set Element ...
+			default:
+				{
+					logger.Warnw(ctx, "Unsupported ME name received!",
+						log.Fields{"ME name": onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName(), "device-id": onuDeviceEntry.deviceID})
+					onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+				}
+
+			}
+		} else {
+			onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+		}
+	} else {
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.RUnlock()
+		logger.Warnw(ctx, "Pointer to last Tx MeInstance is nil!", log.Fields{"device-id": onuDeviceEntry.deviceID})
+	}
+}
+
 func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadMessage(ctx context.Context, msg OmciMessage) {
 	logger.Debugw(ctx, "Rx OMCI MibDownload Msg", log.Fields{"device-id": onuDeviceEntry.deviceID,
 		"msgType": msg.OmciMsg.MessageType})
 
 	switch msg.OmciMsg.MessageType {
 	case omci.CreateResponseType:
-		{
-			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeCreateResponse)
-			if msgLayer == nil {
-				logger.Errorw(ctx, "Omci Msg layer could not be detected for CreateResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
-				return
-			}
-			msgObj, msgOk := msgLayer.(*omci.CreateResponse)
-			if !msgOk {
-				logger.Errorw(ctx, "Omci Msg layer could not be assigned for CreateResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
-				return
-			}
-			logger.Debugw(ctx, "CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
-			if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
-				logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-				return
-			}
-			// maybe there is a way of pushing the specific create response type generally to the FSM
-			//   and let the FSM verify, if the response was according to current state
-			//   and possibly store the element to DB and progress - maybe some future option ...
-			// but as that is not straightforward to me I insert the type checkes manually here
-			//   and feed the FSM with only 'pre-defined' events ...
-			if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() &&
-				msgObj.EntityInstance == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID() {
-				//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
-				// if, then something like:
-				//onuDeviceEntry.pOnuDB.StoreMe(msgObj)
-
-				// maybe we can use just the same eventName for different state transitions like "forward"
-				//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
-				switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
-				case "GalEthernetProfile":
-					{ // let the FSM proceed ...
-						_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxGalResp)
-					}
-				case "MacBridgeServiceProfile",
-					"MacBridgePortConfigurationData",
-					"ExtendedVlanTaggingOperationConfigurationData":
-					{ // let bridge init proceed by stopping the wait function
-						onuDeviceEntry.omciMessageReceived <- true
-					}
-				}
-			}
-		} //CreateResponseType
+		onuDeviceEntry.handleOmciMibDownloadCreateResponseMessage(ctx, msg)
 	//TODO
 	//	onuDeviceEntry.pMibDownloadFsm.pFsm.Event("rx_evtocd_resp")
-
 	case omci.SetResponseType:
-		{
-			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
-			if msgLayer == nil {
-				logger.Errorw(ctx, "Omci Msg layer could not be detected for SetResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
-				return
-			}
-			msgObj, msgOk := msgLayer.(*omci.SetResponse)
-			if !msgOk {
-				logger.Errorw(ctx, "Omci Msg layer could not be assigned for SetResponse", log.Fields{"device-id": onuDeviceEntry.deviceID})
-				return
-			}
-			logger.Debugw(ctx, "SetResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
-			if msgObj.Result != me.Success {
-				logger.Errorw(ctx, "Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID,
-					"Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-				return
-			}
-			// compare comments above for CreateResponse (apply also here ...)
-			if msgObj.EntityClass == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetClassID() &&
-				msgObj.EntityInstance == onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetEntityID() {
-				//store the created ME into DB //TODO??? obviously the Python code does not store the config ...
-				// if, then something like:
-				//onuDeviceEntry.pOnuDB.StoreMe(msgObj)
-
-				switch onuDeviceEntry.PDevOmciCC.pLastTxMeInstance.GetName() {
-				case "Onu2G":
-					{ // let the FSM proceed ...
-						_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvRxOnu2gResp)
-					}
-					//so far that was the only MibDownlad Set Element ...
-				}
-			}
-		} //SetResponseType
+		onuDeviceEntry.handleOmciMibDownloadSetResponseMessage(ctx, msg)
 	default:
 		{
 			logger.Errorw(ctx, "Rx OMCI MibDownload unhandled MsgType", log.Fields{"device-id": onuDeviceEntry.deviceID,
@@ -266,14 +309,17 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 			"device-id": onuDeviceEntry.deviceID, "for PortNo": uniNo})
 
 		//create MBSP
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Lock()
 		meInstance, err := onuDeviceEntry.PDevOmciCC.sendCreateMBServiceProfile(
 			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		if err != nil {
+			onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 			logger.Errorw(ctx, "MBServiceProfile create failed, aborting MibDownload FSM!", log.Fields{"device-id": onuDeviceEntry.deviceID})
 			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
 		if err != nil {
@@ -284,15 +330,18 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		}
 
 		//create MBPCD
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Lock()
 		meInstance, err = onuDeviceEntry.PDevOmciCC.sendCreateMBPConfigData(
 			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		if err != nil {
+			onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 			logger.Errorw(ctx, "MBPConfigData create failed, aborting MibDownload FSM!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
 			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
 		if err != nil {
@@ -303,15 +352,18 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		}
 
 		//create EVTOCD
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Lock()
 		meInstance, err = onuDeviceEntry.PDevOmciCC.sendCreateEVTOConfigData(
 			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		if err != nil {
+			onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 			logger.Errorw(ctx, "EVTOConfigData create failed, aborting MibDownload FSM!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
 			_ = onuDeviceEntry.pMibDownloadFsm.pFsm.Event(dlEvReset)
 			return
 		}
 		onuDeviceEntry.PDevOmciCC.pLastTxMeInstance = meInstance
+		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
 		//verify response
 		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
 		if err != nil {
