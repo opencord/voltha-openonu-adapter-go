@@ -265,14 +265,12 @@ func (selfTestCb *selfTestControlBlock) handleOmciTestResult(ctx context.Context
 				OnuOpticalInfo: &extension.GetOnuPonOpticalInfoResponse{
 					// OMCI representation is Volts, 2s compliment, 20mV resolution
 					PowerFeedVoltage: float32(TwosComplementToSignedInt16(msgObj.PowerFeedVoltage)) * 0.02,
+					// OMCI representation is Decibel-microwatts, 2s compliment, 0.002dB resolution.
+					// Subtract 30 to convert the unit from dBu to dBm (as expected by proto interface)
+					ReceivedOpticalPower: float32(TwosComplementToSignedInt16(msgObj.ReceivedOpticalPower))*0.002 - 30,
 					// OMCI representation is Decibel-microwatts, 2s compliment, 0.002dB resolution
-					// Note: The OMCI table A.3.39.5 seems to be wrong about resolution. While it says the units are
-					// in Decibel-microwatts, 2s complement, 0.002 dB resolution, it actually seems to be
-					// Decibel-milliwatts, 2s complement, 0.002 dB resolution after analyzing the results from the ONUs
-					ReceivedOpticalPower: float32(TwosComplementToSignedInt16(msgObj.ReceivedOpticalPower)) * 0.002,
-					// OMCI representation is Decibel-microwatts, 2s compliment, 0.002dB resolution
-					// Same comments as in the case of ReceivedOpticalPower about resolution.
-					MeanOpticalLaunchPower: float32(TwosComplementToSignedInt16(msgObj.MeanOpticalLaunch)) * 0.002,
+					// Subtract 30 to convert the unit from dBu to dBm (as expected by proto interface)
+					MeanOpticalLaunchPower: float32(TwosComplementToSignedInt16(msgObj.MeanOpticalLaunch))*0.002 - 30,
 					// OMCI representation is unsigned int, 2uA resolution
 					// units of gRPC interface is mA.
 					LaserBiasCurrent: float32(msgObj.LaserBiasCurrent) * 0.000002 * 1000, // multiply by 1000 to get units in mA
