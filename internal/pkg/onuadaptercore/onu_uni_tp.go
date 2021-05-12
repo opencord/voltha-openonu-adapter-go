@@ -630,7 +630,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			*/
 			return
 		}
-		if onuTP.baseDeviceHandler.ReadyForSpecificOmciConfig {
+		if onuTP.baseDeviceHandler.isReadyForOmciConfig() {
 			// check that the TpConfigRequest was done before
 			//   -> that is implicitly done using the AniConfigFsm,
 			//      which must be in the according state to remove something
@@ -771,7 +771,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 			return
 		}
-		if onuTP.baseDeviceHandler.ReadyForSpecificOmciConfig {
+		if onuTP.baseDeviceHandler.isReadyForOmciConfig() {
 			// check that the TpConfigRequest was done before
 			//   -> that is implicitly done using the AniConfigFsm,
 			//      which must be in the according state to remove something

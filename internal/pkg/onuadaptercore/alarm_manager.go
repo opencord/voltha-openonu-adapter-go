@@ -21,15 +21,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"sync"
+	"time"
+
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
-	"reflect"
-	"sync"
-	"time"
 )
 
 const (
@@ -395,15 +396,17 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		logger.Debugw(ctx, "alarm-sync-fsm-is-disabled-ignoring-response-message", log.Fields{"device-id": am.pDeviceHandler.deviceID, "data-fields": msgObj})
 		return
 	}
+	am.onuAlarmManagerLock.Lock()
 	am.alarmUploadNoOfCmds = msgObj.NumberOfCommands
+	am.onuAlarmManagerLock.Unlock()
 	failureTransition := func() {
 		if err := am.alarmSyncFsm.pFsm.Event(asEvFailure); err != nil {
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
 		}
 	}
+	am.onuAlarmManagerLock.Lock()
 	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmds {
 		// Reset Onu Alarm Sequence
-		am.onuAlarmManagerLock.Lock()
 		am.resetAlarmSequence()
 		// Get a copy of the alarm bit map db.
 		for alarms, bitmap := range am.alarmBitMapDB {
@@ -417,7 +420,6 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		}
 	} else if am.alarmUploadNoOfCmds == 0 {
 		// Reset Onu Alarm Sequence
-		am.onuAlarmManagerLock.Lock()
 		am.resetAlarmSequence()
 		// Get a copy of the alarm bit map db.
 		for alarms, bitmap := range am.alarmBitMapDB {
@@ -442,6 +444,7 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 	} else {
 		logger.Errorw(ctx, "invalid-number-of-commands-received", log.Fields{"device-id": am.pDeviceHandler.deviceID,
 			"upload-no-of-cmds": am.alarmUploadNoOfCmds, "upload-seq-no": am.alarmUploadSeqNo})
+		am.onuAlarmManagerLock.Unlock()
 		go failureTransition()
 	}
 }
@@ -475,13 +478,16 @@ func (am *onuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.pDeviceHandler.deviceID, "err": err})
 		}
 	}
+	am.onuAlarmManagerLock.RLock()
 	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmds {
+		am.onuAlarmManagerLock.RUnlock()
 		if err := am.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetAllAlarmNext(
 			log.WithSpanFromContext(context.TODO(), ctx), am.pDeviceHandler.pOpenOnuAc.omciTimeout, true); err != nil {
 			// Transition to failure
 			go failureTransition()
 		} //TODO: needs to handle timeouts
 	} else {
+		am.onuAlarmManagerLock.RUnlock()
 		if am.isAlarmDBDiffPresent(ctx) {
 			// transition to resync state
 			go func() {
@@ -686,7 +692,9 @@ func (am *onuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 	context := make(map[string]string)
 	intfID := am.getIntfIDAlarm(ctx, classID, instanceID)
 	onuID := am.pDeviceHandler.deviceID
+	am.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RLock()
 	serialNo := am.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersSerialNumber
+	am.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RUnlock()
 	if intfID == nil {
 		logger.Warn(ctx, "intf-id-for-alarm-not-found", log.Fields{"alarm-no": alarm, "class-id": classID})
 		return
@@ -754,4 +762,27 @@ func (am *onuAlarmManager) getDeviceEventData(ctx context.Context, classID me.Cl
 		return onuEventDetails, nil
 	}
 	return onuDeviceEvent{}, errors.New("onu Event Detail not found")
+}
+
+//ResetAlarmUploadCounters resets alarm upload sequence number and number of commands
+func (am *onuAlarmManager) ResetAlarmUploadCounters() {
+	am.onuAlarmManagerLock.Lock()
+	am.alarmUploadSeqNo = 0
+	am.alarmUploadNoOfCmds = 0
+	am.onuAlarmManagerLock.Unlock()
+}
+
+//IncrementAlarmUploadSeqNo increments alarm upload sequence number
+func (am *onuAlarmManager) IncrementAlarmUploadSeqNo() {
+	am.onuAlarmManagerLock.Lock()
+	am.alarmUploadSeqNo++
+	am.onuAlarmManagerLock.Unlock()
+}
+
+//GetAlarmUploadSeqNo gets alarm upload sequence number
+func (am *onuAlarmManager) GetAlarmUploadSeqNo() uint16 {
+	am.onuAlarmManagerLock.RLock()
+	value := am.alarmUploadSeqNo
+	am.onuAlarmManagerLock.RUnlock()
+	return value
 }
