@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4861e798_3b92f15d",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-12T10:44:45Z",
+      "side": 1,
+      "message": "I\u0027m still not sure this is working (safely).\nIn your example you pass in a map of 1 entry for allocatedAttributes from:\nrequestedAttributes :\u003d me.AttributeValueMap{\"AllocId\": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID}\nThis way you will just have k\u003d0 (where you want to set the AllocId). But in my point of view the attribute map from onuDeviceDB.meDb[][] is some unordered map, so the AllocId content may be on any of the existing multiple keys. I think you have to compare the key to find the entry that you want to overwrite (and if so, then it should be also possible to write directly to onuDeviceDB.meDb without using the way around with attributesinDb.",
+      "revId": "c10df40cd18ff5357742a784d9d68cc96600b968",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
