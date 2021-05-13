@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "44c3aae5_002fac8e",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-05-13T10:23:43Z",
+      "side": 1,
+      "message": "lock is for alarmBitMapDb, activeAlarms and processMessage, I guess we can reuse onuAlarmManagerLock",
+      "parentUuid": "ef569853_5abf150c",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3b3005ae_a550e350",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2021-05-12T14:18:55Z",
       "side": 1,
       "message": "New seperate Mutexes defined, ok, should of course work, but simple re-use of onuAlarmManagerLock should also be possible to be re-used, allowing for direct access to members in case the lock is already taken ...",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c48b72fd_f48df020",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-05-13T10:23:43Z",
+      "side": 1,
+      "message": "Agree, separate mutex work but we could simply reuse onuAlarmManagerLock, possibly have read lock wherever required to fetch these values. Currently also wherever alarmbitmap , active alarms and processmessage is being protected with onuAlarmManagerLock",
+      "parentUuid": "3b3005ae_a550e350",
       "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
