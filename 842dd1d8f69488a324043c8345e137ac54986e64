@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "146077db_e9666c1b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3230,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-14T17:31:52Z",
+      "side": 1,
+      "message": "There would be segfault here if we try to access onuDevEntry if it is already nil in the \"if\" condition. So, we should safely return in the \"if\" condition if the \"onuDevEntry\" is nil (of course after successfully completing any exit procedures like freeing up locks and such..).",
+      "range": {
+        "startLine": 3227,
+        "startChar": 0,
+        "endLine": 3230,
+        "endChar": 74
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2ee4f98d_26268cfa",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 12
