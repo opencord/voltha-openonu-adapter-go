@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2ee4f98d_26268cfa",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3232,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-14T11:04:42Z",
+      "side": 1,
+      "message": "this is probably more of an error, Holger any comment ?",
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
