@@ -1315,7 +1315,7 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 			for _, direction := range boolForDirection {
 				for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
 					// Attach the EthernetFramePerformanceMonitoringHistoryData ME to MacBridgePortConfigData on the UNI port
-					entityID := macBridgePortAniEID + uniPort.entityID
+					entityID := macBridgePortAniBaseEID + uniPort.entityID
 					_ = mm.updatePmData(ctx, n, entityID, cPmAdd) // TODO: ignore error for now
 				inner1:
 					// retry L2PmCreateAttempts times to create the instance of PM

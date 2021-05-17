@@ -44,15 +44,11 @@ import (
 
 // ### OMCI related definitions - retrieved from Python adapter code/trace ####
 
-const galEthernetEID = uint16(1)
 const maxGemPayloadSize = uint16(48)
 const connectivityModeValue = uint8(5)
 
 //const defaultTPID = uint16(0x8100)
 //const broadComDefaultVID = uint16(4091)
-const macBridgeServiceProfileEID = uint16(0x201) // TODO: most all these need better definition or tuning
-const ieeeMapperServiceProfileEID = uint16(0x8001)
-const macBridgePortAniEID = uint16(0x2102)
 
 const unusedTcontAllocID = uint16(0xFFFF) //common unused AllocId for G.984 and G.987 systems
 
@@ -1000,12 +996,17 @@ func (oo *omciCC) sendCreateMBServiceProfile(ctx context.Context,
 	return nil, omciErr.GetError()
 }
 
-func (oo *omciCC) sendCreateMBPConfigData(ctx context.Context,
+func (oo *omciCC) sendCreateMBPConfigDataUniSide(ctx context.Context,
 	aPUniPort *onuUniPort, timeout int, highPrio bool) (*me.ManagedEntity, error) {
 	tid := oo.getNextTid(highPrio)
-	instID := macBridgePortAniEID + aPUniPort.entityID
-	logger.Debugw(ctx, "send MBPCD-Create-msg:", log.Fields{"device-id": oo.deviceID,
-		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16)})
+	instID, idErr := generateUNISideMBPCDEID(uint16(aPUniPort.macBpNo))
+	if idErr != nil {
+		logger.Errorw(ctx, "Cannot generate MBPCD entity id", log.Fields{
+			"Err": idErr, "device-id": oo.deviceID})
+		return nil, idErr
+	}
+	logger.Debugw(ctx, "send MBPCD-Create-msg  for uni side:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(instID), 16), "macBpNo": aPUniPort.macBpNo})
 
 	meParams := me.ParamData{
 		EntityID: instID,
