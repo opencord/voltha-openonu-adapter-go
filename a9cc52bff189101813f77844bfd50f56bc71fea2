@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "bf7946d9_f402122d",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "There was an issue reported by data race detection because these flags were accessed not only from inside the alarm_manager, but also from outside by omci_cc. To provide access methods with specific mutexes - especially for access from outside the alarm manager - appeared to be a better way than using the global alarm manager lock from outside.",
+      "parentUuid": "ef569853_5abf150c",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3b3005ae_a550e350",
         "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
         "patchSetId": 1
@@ -72,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "3205efa4_a27308a1",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 765,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "I don\u0027t know whether a common mutex to be checked inside the access methods would work for this code:\n\"if am.getAlarmUploadSeqNo() \u003c am.getAlarmUploadNoOfCmds() ...\"",
+      "parentUuid": "3b3005ae_a550e350",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a6dc975d_8d4a74cc",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 1
@@ -83,6 +119,24 @@
       "writtenOn": "2021-05-12T14:18:55Z",
       "side": 1,
       "message": "Perhaps later: The real target should be to define mib_download as a separate FSM (with ist own LastTxMeInstance), not included into onuDeviceEntry. Segregation of the FSM is a bit more effort then.",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cbc2c1a_886c0aa0",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "Yes, actually omciCC::pLastTxMeInstance is already used only by mib_download FSM. To shift this definition (and others) into the machine itself could be part of a separate refactoring.",
+      "parentUuid": "a6dc975d_8d4a74cc",
       "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -106,6 +160,24 @@
     },
     {
       "key": {
+        "uuid": "e23a54ae_a35604a1",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 829,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f4bdc7ef_8b4d5806",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8b04f461_7a9a3dff",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -120,6 +192,24 @@
       "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "852c997f_325a3240",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1604,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8b04f461_7a9a3dff",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -140,6 +230,24 @@
     },
     {
       "key": {
+        "uuid": "fa8a4e32_57180295",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1675,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8ba203db_0e78f3eb",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "acd11393_42a55b47",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -154,6 +262,24 @@
       "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d1512752_ca0580a4",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1725,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-17T15:44:32Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "acd11393_42a55b47",
+      "revId": "a9cc52bff189101813f77844bfd50f56bc71fea2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
