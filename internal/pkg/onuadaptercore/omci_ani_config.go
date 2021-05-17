@@ -297,13 +297,18 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 	if aPAFsm != nil && aPAFsm.pFsm != nil {
 		//stick to pythonAdapter numbering scheme
 		//index 0 in naming refers to possible usage of multiple instances (later)
-		oFsm.mapperSP0ID = ieeeMapperServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo) + uint16(oFsm.techProfileID)
-		oFsm.macBPCD0ID = macBridgePortAniEID + uint16(oFsm.pOnuUniPort.entityID) + uint16(oFsm.techProfileID)
-
-		/*
-			// Find a free TCONT Instance ID and use it
-			foundFreeTcontInstID := false
-		*/
+		//var err error
+		oFsm.mapperSP0ID, _ = generateIeeMaperServiceProfileEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(oFsm.techProfileID))
+		/*if err != nil {
+			logger.Errorw(ctx, "error generating maper id", log.Fields{"error": err})
+			return
+		}*/
+		oFsm.macBPCD0ID, _ = generateANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(oFsm.techProfileID))
+		/*if err != nil {
+			logger.Errorw(ctx, "error generating mbpcd id", log.Fields{"error": err})
+			return
+		}*/
+		logger.Debugw(ctx, "generated ids for ani config", log.Fields{"mapperSP0ID": oFsm.mapperSP0ID, "macBPCD0ID": oFsm.macBPCD0ID})
 		if tcontInstKeys := oFsm.pOnuDB.getSortedInstKeys(ctx, me.TContClassID); len(tcontInstKeys) > 0 {
 
 			// FIXME: Ideally the ME configurations on the ONU should constantly be MIB Synced back to the ONU DB

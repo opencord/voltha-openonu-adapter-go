@@ -284,7 +284,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		}
 
 		//create MBPCD
-		meInstance, err = onuDeviceEntry.PDevOmciCC.sendCreateMBPConfigData(
+		meInstance, err = onuDeviceEntry.PDevOmciCC.sendCreateMBPConfigDataUniSide(
 			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		if err != nil {
 			logger.Errorw(ctx, "MBPConfigData create failed, aborting MibDownload FSM!",

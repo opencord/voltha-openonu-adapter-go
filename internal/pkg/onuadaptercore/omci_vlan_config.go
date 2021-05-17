@@ -944,7 +944,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 	} else {
 		// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
 		// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
-		vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + uint16(oFsm.actualUniVlanConfigRule.TpID)
+		vtfdID, _ := generateANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(oFsm.actualUniVlanConfigRule.TpID))
 		logger.Debugw(ctx, "UniVlanConfigFsm create VTFD", log.Fields{
 			"EntitytId": strconv.FormatInt(int64(vtfdID), 16),
 			"in state":  e.FSM.Current(), "device-id": oFsm.deviceID})
@@ -1125,7 +1125,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 		if oFsm.numVlanFilterEntries == 0 {
 			// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
 			// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
-			vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + uint16(oFsm.actualUniVlanConfigRule.TpID)
+			vtfdID, _ := generateANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(oFsm.actualUniVlanConfigRule.TpID))
 			//no VTFD yet created
 			logger.Debugw(ctx, "UniVlanConfigFsm create VTFD", log.Fields{
 				"EntitytId": strconv.FormatInt(int64(vtfdID), 16),
@@ -1166,8 +1166,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 		} else {
 			// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
 			// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
-			vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID +
-				uint16(oFsm.actualUniVlanConfigRule.TpID)
+			vtfdID, _ := generateANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(oFsm.actualUniVlanConfigRule.TpID))
 
 			logger.Debugw(ctx, "UniVlanConfigFsm set VTFD", log.Fields{
 				"EntitytId": strconv.FormatInt(int64(vtfdID), 16),
@@ -1276,11 +1275,11 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 	} else {
 		vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization and 're-copy'
 		if oFsm.numVlanFilterEntries == 1 {
-			vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + uint16(loRuleParams.TpID)
+			vtfdID, _ := generateANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(loRuleParams.TpID))
 			//only one active VLAN entry (hopefully the SetVID we want to remove - should be, but not verified ..)
 			//  so we can just delete the VTFD entry
 			logger.Debugw(ctx, "UniVlanConfigFsm: VTFD delete (no more vlan filters)",
-				log.Fields{"current vlan list": oFsm.vlanFilterList,
+				log.Fields{"current vlan list": oFsm.vlanFilterList, "EntitytId": strconv.FormatInt(int64(vtfdID), 16),
 					"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 			loVlanEntryClear = 1           //full VlanFilter clear request
 			if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
@@ -1310,7 +1309,7 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 				}
 			}
 			if loVlanEntryRmPos < cVtfdTableSize {
-				vtfdID := macBridgePortAniEID + oFsm.pOnuUniPort.entityID + uint16(loRuleParams.TpID)
+				vtfdID, _ := generateANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo), uint16(loRuleParams.TpID))
 				//valid entry was found - to be eclipsed
 				loVlanEntryClear = 2 //VlanFilter remove request for a specific entry
 				for i := uint8(0); i < oFsm.numVlanFilterEntries; i++ {
@@ -2337,9 +2336,19 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 		_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 		return fmt.Errorf("creatingMulticastSubscriberConfigInfo responseError %s, error %s", oFsm.deviceID, errCreateMSCI)
 	}
+	macBpCdEID, errMacBpCdEID := generateMcastANISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo))
+	if errMacBpCdEID != nil {
+		logger.Errorw(ctx, "MulticastMacBridgePortConfigData entity id generation failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+		return fmt.Errorf("generateMcastANISideMBPCDEID responseError %s, error %s", oFsm.deviceID, errMacBpCdEID)
 
+	}
+	logger.Debugw(ctx, "UniVlanConfigFsm set macBpCdEID for mcast", log.Fields{
+		"EntitytId": strconv.FormatInt(int64(macBpCdEID), 16), "macBpNo": oFsm.pOnuUniPort.macBpNo,
+		"in state": oFsm.pAdaptFsm.pFsm.Current(), "device-id": oFsm.deviceID})
 	meParams := me.ParamData{
-		EntityID: macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo),
+		EntityID: macBpCdEID,
 		Attributes: me.AttributeValueMap{
 			"BridgeIdPointer": macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo),
 			"PortNum":         0xf0, //fixed unique ANI side indication
@@ -2370,7 +2379,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 
 	// This attribute uniquely identifies each instance of this managed entity. Through an identical ID,
 	// this managed entity is implicitly linked to an instance of the MAC bridge port configuration data ME.
-	mcastVtfdID := macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
+	mcastVtfdID := macBpCdEID
 
 	logger.Debugw(ctx, "UniVlanConfigFsm set VTFD for mcast", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(mcastVtfdID), 16), "mcastVlanID": vlanID,
@@ -2411,13 +2420,14 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 }
 
 func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx context.Context) error {
-	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
+	instID, err := generateUNISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo))
 	if err != nil {
-		logger.Errorw(ctx, "error fetching uni port me instance",
-			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
+		logger.Errorw(ctx, "error generrating me instance id",
+			log.Fields{"device-id": oFsm.deviceID, "error": err})
 		return err
 	}
-	instID += macBridgePortAniEID
+	logger.Debugw(ctx, "UniVlanConfigFsm create MulticastSubscriberConfigInfo",
+		log.Fields{"device-id": oFsm.deviceID, "EntityId": instID})
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
@@ -2457,7 +2467,9 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
 		return err
 	}
-	instID += macBridgePortAniEID
+	instID += macBridgePortAniBaseEID
+	logger.Debugw(ctx, "UniVlanConfigFsm create MulticastOperationProfile",
+		log.Fields{"device-id": oFsm.deviceID, "EntityId": instID})
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
@@ -2503,7 +2515,9 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
 		return err
 	}
-	instID += macBridgePortAniEID
+	instID += macBridgePortAniBaseEID
+	logger.Debugw(ctx, "UniVlanConfigFsm set MulticastOperationProfile",
+		log.Fields{"device-id": oFsm.deviceID, "EntityId": instID})
 	//TODO check that this is correct
 	// Table control
 	//setCtrl = 1
