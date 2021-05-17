@@ -331,7 +331,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 
 		//create MBPCD
 		onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Lock()
-		meInstance, err = onuDeviceEntry.PDevOmciCC.sendCreateMBPConfigData(
+		meInstance, err = onuDeviceEntry.PDevOmciCC.sendCreateMBPConfigDataUniSide(
 			log.WithSpanFromContext(context.TODO(), ctx), uniPort, onuDeviceEntry.pOpenOnuAc.omciTimeout, true)
 		if err != nil {
 			onuDeviceEntry.PDevOmciCC.mutexPLastTxMeInstance.Unlock()
