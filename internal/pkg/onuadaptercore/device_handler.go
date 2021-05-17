@@ -1672,8 +1672,9 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
-	dh.pOnuOmciDevice.PDevOmciCC.CancelRequestMonitoring()
-
+	if pDevEntry.PDevOmciCC != nil {
+		pDevEntry.PDevOmciCC.CancelRequestMonitoring()
+	}
 	if includingMibSyncFsm {
 		pDevEntry.CancelProcessing(ctx)
 	}
