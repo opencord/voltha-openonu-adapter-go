@@ -2,6 +2,74 @@
   "comments": [
     {
       "key": {
+        "uuid": "6a5ef49d_3c14bf56",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 777,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-17T05:48:04Z",
+      "side": 1,
+      "message": "Why don\u0027t we protect with mutex this line?",
+      "revId": "67ca51acf734d0a592db982503084ebffe37ed53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "46c597e0_5b84e266",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1039,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-17T05:48:04Z",
+      "side": 1,
+      "message": "Why don\u0027t we protect with mutex this line?",
+      "revId": "67ca51acf734d0a592db982503084ebffe37ed53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "98499c56_30d8f088",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1649,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-17T05:48:04Z",
+      "side": 1,
+      "message": "Why don\u0027t we protect with mutex this line?",
+      "revId": "67ca51acf734d0a592db982503084ebffe37ed53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d34a282_c9dd3299",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1858,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-17T05:48:04Z",
+      "side": 1,
+      "message": "Why don\u0027t we protect with mutex this line?",
+      "revId": "67ca51acf734d0a592db982503084ebffe37ed53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f25ea81d_ec6b7d78",
         "filename": "internal/pkg/onuadaptercore/uniportadmin.go",
         "patchSetId": 2
