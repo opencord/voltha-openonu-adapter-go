@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "c9d76fe0_a095c70f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3206,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-17T21:54:01Z",
+      "side": 1,
+      "message": "I think it would be a good idea to make changes corresponding to RECONCILING_FAILED in another gerrit along with its handling in rw_core as there are already big change over rw_core side. \nWhat do you think ?",
+      "parentUuid": "5eaf1646_7099e59f",
+      "range": {
+        "startLine": 3206,
+        "startChar": 42,
+        "endLine": 3206,
+        "endChar": 44
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "598f173e_53f035bd",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 12
@@ -59,6 +83,30 @@
       "writtenOn": "2021-05-14T17:31:52Z",
       "side": 1,
       "message": "There would be segfault here if we try to access onuDevEntry if it is already nil in the \"if\" condition. So, we should safely return in the \"if\" condition if the \"onuDevEntry\" is nil (of course after successfully completing any exit procedures like freeing up locks and such..).",
+      "range": {
+        "startLine": 3227,
+        "startChar": 0,
+        "endLine": 3230,
+        "endChar": 74
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "99434d4c_a3dd8664",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3230,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-17T21:54:01Z",
+      "side": 1,
+      "message": "Yes, I used those additional fields for debugging the code will remove those fields.",
+      "parentUuid": "146077db_e9666c1b",
       "range": {
         "startLine": 3227,
         "startChar": 0,
@@ -117,6 +165,30 @@
       "writtenOn": "2021-05-17T10:51:30Z",
       "side": 1,
       "message": "What would be the current behaviour of rw-core - how long is the timeout for the reconciling process and what is the reaction in case of a timeout at the time beeing?",
+      "range": {
+        "startLine": 3236,
+        "startChar": 6,
+        "endLine": 3236,
+        "endChar": 10
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2479d50_79389c8b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3236,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-17T21:54:01Z",
+      "side": 1,
+      "message": "Yes this case is under discussion as rw_core reacts when adapter change the device operational state from Reconciling to something else !! If operation state will not be changed by adapter device will get stuck in reconciling. I think it will be better to set operstate to UNKNOWN for now and along with support of RECONCILE_FAILED we can later set oper state to RECONCILE_FAILED.",
+      "parentUuid": "3605ab99_f255428a",
       "range": {
         "startLine": 3236,
         "startChar": 6,
