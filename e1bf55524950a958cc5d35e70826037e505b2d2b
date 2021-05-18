@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "7d193d7d_eefcb155",
+        "filename": "VERSION",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-18T09:26:29Z",
+      "side": 1,
+      "message": "let\u0027s leave like this for now untile verification si completed with new rw_core",
+      "parentUuid": "e6bc8a6b_b2146da7",
+      "revId": "e1bf55524950a958cc5d35e70826037e505b2d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9ce4b90a_9f0d2bfe",
         "filename": "internal/pkg/config/config.go",
         "patchSetId": 5
