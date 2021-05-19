@@ -561,15 +561,6 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 			proxy_device_id=self._proxy_address.device_id
 		)
 		*/
-		device, err := oo.coreProxy.GetDevice(ctx,
-			oo.pBaseDeviceHandler.deviceID, oo.deviceID) //parent, child
-		if err != nil || device == nil {
-			/*TODO: needs to handle error scenarios */
-			logger.Errorw(ctx, "Failed to fetch device", log.Fields{"err": err, "ParentId": oo.pBaseDeviceHandler.deviceID,
-				"ChildId": oo.deviceID})
-			return fmt.Errorf("failed to fetch device %s", oo.deviceID)
-		}
-
 		if omciTxRequest.withFramePrint {
 			logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
 				"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame),

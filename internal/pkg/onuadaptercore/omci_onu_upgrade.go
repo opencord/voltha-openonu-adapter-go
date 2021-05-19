@@ -19,6 +19,7 @@ package adaptercoreonu
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"time"
@@ -38,10 +39,11 @@ const (
 	cOmciDownloadSectionSize     = 31 //in bytes
 	cOmciDownloadWindowSizeLimit = 31 //in sections for window offset (windowSize(32)-1)
 	//cOmciDownloadWindowRetryMax  = 2    // max attempts for a specific window
-	cOmciSectionInterleaveMilliseconds = 100 //DownloadSection interleave time in milliseconds
-	cOmciEndSwDlDelaySeconds           = 1   //End Software Download delay after last section (may be also configurable?)
-	cWaitCountEndSwDl                  = 6   //maximum number of EndSwDl requests
-	cWaitDelayEndSwDlSeconds           = 10  //duration, how long is waited before next request on EndSwDl
+	//cOmciSectionInterleaveMilliseconds = 100 //DownloadSection interleave time in milliseconds
+	cOmciSectionInterleaveMilliseconds = 0  //DownloadSection interleave time in milliseconds
+	cOmciEndSwDlDelaySeconds           = 1  //End Software Download delay after last section (may be also configurable?)
+	cWaitCountEndSwDl                  = 6  //maximum number of EndSwDl requests
+	cWaitDelayEndSwDlSeconds           = 10 //duration, how long is waited before next request on EndSwDl
 	//cOmciDownloadCompleteTimeout = 5400 //in s for the complete timeout (may be better scale to image size/ noOfWindows)
 )
 
@@ -721,8 +723,13 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 						_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 						return
 					}
-					oFsm.delayEndSwDl = true                                                      //ensure a delay for the EndSwDl message
-					oFsm.imageCRC = crc32a.Checksum(oFsm.imageBuffer[:int(oFsm.origImageLength)]) //store internal for multiple usage
+					oFsm.delayEndSwDl = true                                                  //ensure a delay for the EndSwDl message
+					imageCRC := crc32a.Checksum(oFsm.imageBuffer[:int(oFsm.origImageLength)]) //store internal for multiple usage
+					//revert the retrieved CRC Byte Order (seems not to deliver NetworkByteOrder)
+					var byteSlice []byte = make([]byte, 4)
+					binary.LittleEndian.PutUint32(byteSlice, uint32(imageCRC))
+					oFsm.imageCRC = binary.BigEndian.Uint32(byteSlice)
+
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvEndSwDownload)
 					return
 				}
