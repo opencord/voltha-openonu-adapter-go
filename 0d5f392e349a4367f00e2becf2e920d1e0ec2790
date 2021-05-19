@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0d0ebbf6_bf0caeed",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T11:28:28Z",
+      "side": 1,
+      "message": "Changed to error. But as we already have the error log entry, where should the error be returned to? At the latest it would get lost in the calling function.",
+      "parentUuid": "3bbadacf_630ba912",
+      "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8fa17cf0_855457a4",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 4
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "4af76cdc_aef6ebc7",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T11:28:28Z",
+      "side": 1,
+      "message": "As we already have the error log entry, where should the error be returned to? At the latest it would get lost in the calling function.",
+      "parentUuid": "8fa17cf0_855457a4",
+      "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2c9d318e_3fc4ca5c",
         "filename": "internal/pkg/onuadaptercore/mib_download.go",
         "patchSetId": 4
@@ -47,6 +83,24 @@
       "writtenOn": "2021-05-19T09:25:11Z",
       "side": 1,
       "message": "same, is this acceptable ?",
+      "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c419f50_b5f019c3",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T11:28:28Z",
+      "side": 1,
+      "message": "Changed to error. But as we already have the error log entry, where should the error be returned to? At the latest it would get lost in the calling function.",
+      "parentUuid": "2c9d318e_3fc4ca5c",
       "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
