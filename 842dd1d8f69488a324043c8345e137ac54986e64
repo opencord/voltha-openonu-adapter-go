@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "b26760f5_2ad1aa8f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3206,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T07:50:17Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "c9d76fe0_a095c70f",
+      "range": {
+        "startLine": 3206,
+        "startChar": 42,
+        "endLine": 3206,
+        "endChar": 44
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "598f173e_53f035bd",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 12
@@ -189,6 +213,30 @@
       "side": 1,
       "message": "Yes this case is under discussion as rw_core reacts when adapter change the device operational state from Reconciling to something else !! If operation state will not be changed by adapter device will get stuck in reconciling. I think it will be better to set operstate to UNKNOWN for now and along with support of RECONCILE_FAILED we can later set oper state to RECONCILE_FAILED.",
       "parentUuid": "3605ab99_f255428a",
+      "range": {
+        "startLine": 3236,
+        "startChar": 6,
+        "endLine": 3236,
+        "endChar": 10
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b51a7812_6be1463f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3236,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T07:50:17Z",
+      "side": 1,
+      "message": "Would setting operstate to UNKNOWN do any difference with regard to rw-core handling?",
+      "parentUuid": "e2479d50_79389c8b",
       "range": {
         "startLine": 3236,
         "startChar": 6,
