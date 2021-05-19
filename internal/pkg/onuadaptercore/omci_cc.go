@@ -2964,32 +2964,46 @@ func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) 
 			msgLayer := (*packet).Layer(nextLayer)
 			switch nextLayer {
 			case omci.LayerTypeCreateResponse:
-				if msgLayer.(*omci.CreateResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.CreateResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			case omci.LayerTypeDeleteResponse:
-				if msgLayer.(*omci.DeleteResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.DeleteResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			case omci.LayerTypeSetResponse:
-				if msgLayer.(*omci.SetResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.SetResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			case omci.LayerTypeStartSoftwareDownloadResponse:
-				if msgLayer.(*omci.StartSoftwareDownloadResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.StartSoftwareDownloadResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			case omci.LayerTypeEndSoftwareDownloadResponse:
-				if msgLayer.(*omci.EndSoftwareDownloadResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.EndSoftwareDownloadResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			case omci.LayerTypeActivateSoftwareResponse:
-				if msgLayer.(*omci.ActivateSoftwareResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.ActivateSoftwareResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			case omci.LayerTypeCommitSoftwareResponse:
-				if msgLayer.(*omci.CommitSoftwareResponse).Result == me.Success {
-					return true
+				if resp := msgLayer.(*omci.CommitSoftwareResponse); resp != nil {
+					if resp.Result == me.Success {
+						return true
+					}
 				}
 			}
 		}
