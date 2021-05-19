@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3bbadacf_630ba912",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-19T09:25:11Z",
+      "side": 1,
+      "message": "is this acceptable or should we mark it as error and return it ?",
+      "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8fa17cf0_855457a4",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-19T09:25:11Z",
+      "side": 1,
+      "message": "same return error comment and then line 238, 243, 249",
+      "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c9d318e_3fc4ca5c",
+        "filename": "internal/pkg/onuadaptercore/mib_download.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-19T09:25:11Z",
+      "side": 1,
+      "message": "same, is this acceptable ?",
+      "revId": "0d5f392e349a4367f00e2becf2e920d1e0ec2790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
