@@ -270,6 +270,30 @@
       "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0cd79fd3_8da36586",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3236,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T07:57:56Z",
+      "side": 1,
+      "message": "Ok, I see.",
+      "parentUuid": "0ee174b8_92b4e796",
+      "range": {
+        "startLine": 3236,
+        "startChar": 6,
+        "endLine": 3236,
+        "endChar": 10
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
