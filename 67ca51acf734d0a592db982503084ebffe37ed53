@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "dbc329bb_1ae2a495",
+        "filename": "internal/pkg/onuadaptercore/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 764,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-19T08:20:28Z",
+      "side": 1,
+      "message": "Good idea - I have created a global refactoring story for that: https://jira.opencord.org/browse/VOL-4116",
+      "parentUuid": "70cf2e18_cbaf24c5",
+      "revId": "67ca51acf734d0a592db982503084ebffe37ed53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6a5ef49d_3c14bf56",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 2
