@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c00b7ceb_a1975b46",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 986,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-19T07:48:59Z",
+      "side": 1,
+      "message": "you are not removing the last char here. what was the fix for the CRC then ?",
+      "revId": "236a920024606004e5663497fcf5bb62815e1ae1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
