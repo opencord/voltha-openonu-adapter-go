@@ -16,6 +16,24 @@
       "revId": "236a920024606004e5663497fcf5bb62815e1ae1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5550db3e_61715e47",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 986,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-05-19T15:59:48Z",
+      "side": 1,
+      "message": "Last char discussion was only some mislead reflection on possible errors. There is no such \u0027EOF\u0027 flag in binary files.\nThe solution was simply to revert the order of the CRC bytes.",
+      "parentUuid": "c00b7ceb_a1975b46",
+      "revId": "236a920024606004e5663497fcf5bb62815e1ae1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
