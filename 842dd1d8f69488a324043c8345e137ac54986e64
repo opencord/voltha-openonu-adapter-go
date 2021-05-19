@@ -246,6 +246,30 @@
       "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0ee174b8_92b4e796",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3236,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-19T07:55:32Z",
+      "side": 1,
+      "message": "Changing operstate to anything from RECONCILING will make device to go out from RECONCILING loop at core side so that other operation could be possible on that device as RECONCILING would be a blocking operation and no other operation is allowed (except force delete) if it is in progress.",
+      "parentUuid": "b51a7812_6be1463f",
+      "range": {
+        "startLine": 3236,
+        "startChar": 6,
+        "endLine": 3236,
+        "endChar": 10
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
