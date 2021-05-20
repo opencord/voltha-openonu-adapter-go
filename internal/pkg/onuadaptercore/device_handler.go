@@ -2161,6 +2161,7 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 	if err != nil || parentDevice == nil {
 		logger.Errorw(ctx, "Failed to fetch parent device for OnuEvent",
 			log.Fields{"parentID": dh.parentID, "err": err})
+		return //TODO with VOL-3045: rw-core is unresponsive: report error and/or perform self-initiated onu-reset?)
 	}
 	oltSerialNumber := parentDevice.SerialNumber
 
