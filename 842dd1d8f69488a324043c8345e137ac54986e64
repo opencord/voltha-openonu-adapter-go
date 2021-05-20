@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "2b4e6921_99504de6",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3206,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-20T08:53:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b26760f5_2ad1aa8f",
+      "range": {
+        "startLine": 3206,
+        "startChar": 42,
+        "endLine": 3206,
+        "endChar": 44
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "598f173e_53f035bd",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 12
@@ -93,6 +117,30 @@
       "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9d3a330c_33008b51",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3214,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-20T08:53:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "598f173e_53f035bd",
+      "range": {
+        "startLine": 3214,
+        "startChar": 7,
+        "endLine": 3214,
+        "endChar": 8
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -143,6 +191,30 @@
     },
     {
       "key": {
+        "uuid": "a2be58bd_34ca7ecd",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3230,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-20T08:53:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "99434d4c_a3dd8664",
+      "range": {
+        "startLine": 3227,
+        "startChar": 0,
+        "endLine": 3230,
+        "endChar": 74
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2ee4f98d_26268cfa",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 12
@@ -175,6 +247,24 @@
       "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "47a1e782_9af5be9a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3232,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-20T08:53:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "55995d4e_38ec1e7a",
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -294,6 +384,30 @@
       "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0816b71a_4e6560ed",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3236,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-05-20T08:53:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0cd79fd3_8da36586",
+      "range": {
+        "startLine": 3236,
+        "startChar": 6,
+        "endLine": 3236,
+        "endChar": 10
+      },
+      "revId": "842dd1d8f69488a324043c8345e137ac54986e64",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
