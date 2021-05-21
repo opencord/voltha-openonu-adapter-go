@@ -34,6 +34,24 @@
       "revId": "8bfcf14f0bd76ff35c569ca26e1c8f21ed7ce91c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e71396b3_842bc07d",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-21T08:56:04Z",
+      "side": 1,
+      "message": "you can leave them in and prefix the method with `//nolint: gocyclo` that should avoid the failure and you can refactor later.",
+      "parentUuid": "b8a701b6_74b37c27",
+      "revId": "8bfcf14f0bd76ff35c569ca26e1c8f21ed7ce91c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
