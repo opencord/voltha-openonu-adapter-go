@@ -93,6 +93,8 @@ type ponAniGemPortAttribs struct {
 	gemPortID      uint16
 	upQueueID      uint16
 	downQueueID    uint16
+	usTDID         uint16
+	dsTDID         uint16
 	direction      uint8
 	qosPolicy      string
 	weight         uint8
@@ -432,6 +434,7 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
 			loGemPortAttribs.weight = gemEntry.queueWeight
 			loGemPortAttribs.pbitString = gemEntry.pbitString
+
 			if gemEntry.isMulticast {
 				//TODO this might effectively ignore the for loop starting at line 316
 				loGemPortAttribs.gemPortID = gemEntry.multicastGemPortID

@@ -37,6 +37,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	_ "github.com/opencord/voltha-lib-go/v4/pkg/meters"
 	"github.com/opencord/voltha-lib-go/v4/pkg/probe"
 	"github.com/opencord/voltha-lib-go/v4/pkg/version"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"

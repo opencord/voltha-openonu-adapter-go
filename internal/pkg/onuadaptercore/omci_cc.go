@@ -1482,6 +1482,48 @@ func (oo *omciCC) sendCreateGemNCTPVar(ctx context.Context, timeout int, highPri
 	return nil, omciErr.GetError()
 }
 
+func (oo *omciCC) sendSetGemNCTPVar(ctx context.Context, timeout int, highPrio bool, rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send GemNCTP-Set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewGemPortNetworkCtp(params[0])
+	if omciErr.GetError() == nil {
+		//obviously we have to set all 'untouched' parameters to default by some additional option parameter!!
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType,
+			omci.TransactionID(tid), omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode GemNCTP for set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize GemNCTP set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, pkt, timeout, cDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send GemNCTP set", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil
+		}
+		logger.Debug(ctx, "send GemNCTP-Set-msg done")
+		return meInstance
+	}
+	logger.Errorw(ctx, "Cannot generate GemNCTP Instance", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil
+}
+
 func (oo *omciCC) sendCreateGemIWTPVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.getNextTid(highPrio)
@@ -1909,9 +1951,7 @@ func (oo *omciCC) sendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 	return nil, omciErr.GetError()
 }
 
-// nolint: unused
-func (oo *omciCC) sendCreateTDVar(ctx context.Context, timeout int, highPrio bool,
-	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+func (oo *omciCC) sendCreateTDVar(ctx context.Context, timeout int, highPrio bool, rxChan chan Message, params ...me.ParamData) *me.ManagedEntity {
 	tid := oo.getNextTid(highPrio)
 	logger.Debugw(ctx, "send TD-Create-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
@@ -1921,12 +1961,12 @@ func (oo *omciCC) sendCreateTDVar(ctx context.Context, timeout int, highPrio boo
 		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TD for create", log.Fields{"Err": err, "device-id": oo.deviceID})
-			return nil, err
+			return nil
 		}
 		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TD create", log.Fields{"Err": err, "device-id": oo.deviceID})
-			return nil, err
+			return nil
 		}
 		omciRxCallbackPair := callbackPair{
 			cbKey:   tid,
@@ -1935,13 +1975,13 @@ func (oo *omciCC) sendCreateTDVar(ctx context.Context, timeout int, highPrio boo
 		err = oo.send(ctx, pkt, timeout, cDefaultRetries, highPrio, omciRxCallbackPair)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot send TD create", log.Fields{"Err": err, "device-id": oo.deviceID})
-			return nil, err
+			return nil
 		}
 		logger.Debug(ctx, "send TD-Create-msg done")
-		return meInstance, nil
+		return meInstance
 	}
 	logger.Errorw(ctx, "Cannot generate TD Instance", log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID})
-	return nil, omciErr.GetError()
+	return nil
 }
 
 // nolint: unused
