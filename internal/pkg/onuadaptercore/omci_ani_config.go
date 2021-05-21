@@ -443,6 +443,7 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			loGemPortAttribs.qosPolicy = gemEntry.queueSchedPolicy
 			loGemPortAttribs.weight = gemEntry.queueWeight
 			loGemPortAttribs.pbitString = gemEntry.pbitString
+
 			if gemEntry.isMulticast {
 				//TODO this might effectively ignore the for loop starting at line 316
 				loGemPortAttribs.gemPortID = gemEntry.multicastGemPortID
