@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
 const cDefaultLocalDir = "/tmp" //this is the default local dir to download to
@@ -347,4 +348,49 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		//TODO:!!! further extension could be provided here, e.g. already computing and possibly comparing the CRC, vendor check
 	}()
 	return nil
+}
+
+func (dm *fileDownloadManager) RequestDownloadState(ctx context.Context, aImageName string,
+	apDlToAdapterImageState *voltha.ImageState) {
+	logger.Debugw(ctx, "request download state for image to Adapter", log.Fields{"image-name": aImageName})
+	dm.mutexDownloadImageDsc.RLock()
+	defer dm.mutexDownloadImageDsc.RUnlock()
+
+	for _, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name)
+			apDlToAdapterImageState.DownloadState = voltha.ImageState_DOWNLOAD_REQUESTED
+			apDlToAdapterImageState.Reason = voltha.ImageState_NO_ERROR
+			return
+		}
+	}
+	//image not found (by name)
+	apDlToAdapterImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+	apDlToAdapterImageState.Reason = voltha.ImageState_NO_ERROR
+}
+
+func (dm *fileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
+	logger.Debugw(ctx, "Cancel the download to Adapter", log.Fields{"image-name": aImageName})
+	// for the moment that would only support to wait for the download end and remove the image then
+	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)
+	dm.mutexDownloadImageDsc.RLock()
+	defer dm.mutexDownloadImageDsc.RUnlock()
+
+	tmpSlice := dm.downloadImageDscSlice[:0]
+	for _, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - remove the image from filesystem
+			logger.Debugw(ctx, "removing image", log.Fields{"image-name": aImageName})
+			aLocalPathName := cDefaultLocalDir + "/" + aImageName
+			if err := os.Remove(aLocalPathName); err != nil {
+				logger.Debugw(ctx, "image not removed from filesystem", log.Fields{
+					"image-name": aImageName, "error": err})
+			}
+			// and in the imageDsc slice by just not appending
+		} else {
+			tmpSlice = append(tmpSlice, dnldImgDsc)
+		}
+	}
+	dm.downloadImageDscSlice = tmpSlice
+	//image not found (by name)
 }
