@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a4cd8acf_95ec379c",
+        "filename": "internal/pkg/onuadaptercore/me_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-21T18:36:30Z",
+      "side": 1,
+      "message": "I hope we do not end of cross the uint16 limits (which is the limit for entityID) anyway in this calculation. Do you need a validation on the range or you are confident that limits are not exceeded. In particular I am interested why you choose maxUni to be 318 which seems pretty large number.",
+      "range": {
+        "startLine": 44,
+        "startChar": 9,
+        "endLine": 44,
+        "endChar": 82
+      },
+      "revId": "015591178cfc92e2b8fae76522f052a6526d597b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d06a5cbd_d587f893",
+        "filename": "internal/pkg/onuadaptercore/me_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-21T18:36:30Z",
+      "side": 1,
+      "message": "replace with tpRange?",
+      "range": {
+        "startLine": 44,
+        "startChar": 66,
+        "endLine": 44,
+        "endChar": 82
+      },
+      "revId": "015591178cfc92e2b8fae76522f052a6526d597b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "916ccefa_0ef7175b",
+        "filename": "internal/pkg/onuadaptercore/me_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-21T18:36:30Z",
+      "side": 1,
+      "message": "Same set of comments here.",
+      "range": {
+        "startLine": 54,
+        "startChar": 9,
+        "endLine": 54,
+        "endChar": 76
+      },
+      "revId": "015591178cfc92e2b8fae76522f052a6526d597b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
