@@ -227,6 +227,12 @@ const omciMacAddressLen = 6
 const cEmptyMacAddrString = "000000000000"
 const cEmptySerialNumberString = "0000000000000000"
 
+// TdParams included Traffic Descriptor ME Info
+type TdParams struct {
+	direction uint8
+	gemPortID uint16
+}
+
 type sEntrySwImageIndication struct {
 	valid       bool
 	entityID    uint16
@@ -262,6 +268,7 @@ type onuPersistentData struct {
 	PersUniConfig          []uniPersConfig   `json:"uni_config"`
 	PersAlarmAuditInterval time.Duration     `json:"alarm_audit_interval"`
 	PersTcontMap           map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
+	PersTdCounter          uint16            `json:"td_counter"`
 }
 
 // OnuDeviceEntry - ONU device info and FSM events.
@@ -308,7 +315,9 @@ type OnuDeviceEntry struct {
 	omciMessageReceived              chan bool    //seperate channel needed by DownloadFsm
 	omciRebootMessageReceivedChannel chan Message // channel needed by Reboot request
 
-	mutexTcontMap sync.RWMutex
+	mutexTcontMap            sync.RWMutex
+	mutexTrafficDescriptorID sync.RWMutex
+	tdParams                 []TdParams
 }
 
 //newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -326,6 +335,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	onuDeviceEntry.sOnuPersistentData.PersTcontMap = make(map[uint16]uint16)
 	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan Message, 2048)
+	onuDeviceEntry.sOnuPersistentData.PersTdCounter = 0
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
 	//OMCI related databases are on a per-agent basis. State machines and tasks
 	//are per ONU Vendor
@@ -617,7 +627,7 @@ func (oo *OnuDeviceEntry) restoreDataFromOnuKvStore(ctx context.Context) error {
 	oo.mutexPersOnuConfig.Lock()
 	defer oo.mutexPersOnuConfig.Unlock()
 	oo.sOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16), 0}
 	oo.mutexOnuKVStore.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.mutexOnuKVStore.RUnlock()
@@ -671,7 +681,7 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 
 	oo.sOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.sOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16), 0}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.mutexOnuKVStore.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
@@ -960,4 +970,13 @@ func (oo *OnuDeviceEntry) freeTcont(ctx context.Context, allocID uint16) {
 	oo.mutexTcontMap.Lock()
 	defer oo.mutexTcontMap.Unlock()
 	delete(oo.sOnuPersistentData.PersTcontMap, allocID)
+}
+
+func (oo *OnuDeviceEntry) createFreeTrafficDescriptorID(ctx context.Context) uint16 {
+	logger.Debugw(ctx, "Create TrafficDescriptorID", log.Fields{"device-id": oo.deviceID, "old-trafficDescriptorID": oo.sOnuPersistentData.PersTdCounter})
+	oo.mutexTrafficDescriptorID.Lock()
+	counter := oo.sOnuPersistentData.PersTdCounter + 1
+	oo.sOnuPersistentData.PersTdCounter = counter
+	oo.mutexTrafficDescriptorID.Unlock()
+	return counter
 }
