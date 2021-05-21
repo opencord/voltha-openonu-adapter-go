@@ -21,6 +21,8 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	meters "github.com/opencord/voltha-lib-go/v4/pkg/meters"
+	"github.com/opencord/voltha-protos/v4/go/voltha"
 	"net"
 	"strconv"
 	"sync"
@@ -185,7 +187,9 @@ type UniVlanConfigFsm struct {
 	delayNewRuleCookie uint64
 	// Used to indicate if the FSM is for a reconciling flow and if it's the last flow to be reconciled
 	// thus notification needs to be sent on chan.
-	lastFlowToReconcile bool
+	lastFlowToReconcile     bool
+	flowMetaData            *voltha.FlowMetadata
+	flowDirectionDownstream bool
 }
 
 //NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -193,7 +197,8 @@ type UniVlanConfigFsm struct {
 func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, apUniPort *onuUniPort,
 	apUniTechProf *onuUniTechProf, apOnuDB *onuDeviceDB, aTechProfileID uint8,
 	aRequestEvent OnuDeviceEvent, aName string, aCommChannel chan Message, aAcceptIncrementalEvto bool,
-	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToRec bool) *UniVlanConfigFsm {
+	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToRec bool,
+	flowMetadata *voltha.FlowMetadata, flowDirectionDownstream bool) *UniVlanConfigFsm {
 	instFsm := &UniVlanConfigFsm{
 		pDeviceHandler:              apDeviceHandler,
 		deviceID:                    apDeviceHandler.deviceID,
@@ -208,6 +213,8 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler *deviceHandler, ap
 		numRemoveFlows:              0,
 		clearPersistency:            true,
 		lastFlowToReconcile:         lastFlowToRec,
+		flowMetaData:                flowMetadata,
+		flowDirectionDownstream:     flowDirectionDownstream,
 	}
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
@@ -390,7 +397,7 @@ func (oFsm *UniVlanConfigFsm) RequestClearPersistency(aClear bool) {
 // ignore complexity by now
 // nolint: gocyclo
 func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool, apFlowMetaData *voltha.FlowMetadata, flowDsDirection bool) error {
 	loRuleParams := uniVlanRuleParams{
 		TpID:     aTpID,
 		MatchVid: uint32(aMatchVlan),
@@ -400,7 +407,8 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	// some automatic adjustments on the filter/treat parameters as not specifically configured/ensured by flow configuration parameters
 	loRuleParams.TagsToRemove = 1            //one tag to remove as default setting
 	loRuleParams.MatchPcp = cPrioDoNotFilter // do not Filter on prio as default
-
+	oFsm.flowMetaData = apFlowMetaData
+	oFsm.flowDirectionDownstream = flowDsDirection
 	if loRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
 		//then matchVlan is don't care and should be overwritten to 'transparent' here to avoid unneeded multiple flow entries
 		loRuleParams.MatchVid = uint32(of.OfpVlanId_OFPVID_PRESENT)
@@ -1401,6 +1409,17 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 				}
 			}
+
+			for _, gemPort := range oFsm.pUniTechProf.getBidirectionalGemPortIDsForTP(ctx, oFsm.pOnuUniPort.uniID, tpID) {
+				logger.Debugw(ctx, "Get Bidirectional Gem Ports", log.Fields{"device-id": oFsm.deviceID})
+				errCreateTrafficDescriptor := oFsm.CreateTrafficDescriptor(ctx, oFsm.flowMetaData, tpID,
+					oFsm.pOnuUniPort.uniID, oFsm.flowDirectionDownstream, gemPort)
+				if errCreateTrafficDescriptor != nil {
+					logger.Errorw(ctx, "Create Traffic Descriptor create failed, aborting Ani Config FSM!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
+				}
+			}
 			_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvRxConfigEvtocd)
 		}
 	}()
@@ -1773,7 +1792,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(ctx context.Context, m
 				if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
 					msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 					switch oFsm.pLastTxMeInstance.GetName() {
-					case "VlanTaggingFilterData", "ExtendedVlanTaggingOperationConfigurationData", "MulticastOperationsProfile":
+					case "VlanTaggingFilterData", "ExtendedVlanTaggingOperationConfigurationData", "MulticastOperationsProfile", "TrafficDescriptor", "GemPortNetworkCtp":
 						{ // let the MultiEntity config proceed by stopping the wait function
 							oFsm.mutexPLastTxMeInstance.RUnlock()
 							oFsm.omciMIdsResponseReceived <- true
@@ -1838,7 +1857,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciCreateResponseMessage(ctx context.Contex
 			switch oFsm.pLastTxMeInstance.GetName() {
 			case "VlanTaggingFilterData", "MulticastOperationsProfile",
 				"MulticastSubscriberConfigInfo", "MacBridgePortConfigurationData",
-				"ExtendedVlanTaggingOperationConfigurationData":
+				"ExtendedVlanTaggingOperationConfigurationData", "TrafficDescriptor":
 				{
 					oFsm.mutexPLastTxMeInstance.RUnlock()
 					if oFsm.pAdaptFsm.pFsm.Current() == vlanStConfigVtfd {
@@ -1891,7 +1910,7 @@ func (oFsm *UniVlanConfigFsm) handleOmciDeleteResponseMessage(ctx context.Contex
 		if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
 			msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
 			switch oFsm.pLastTxMeInstance.GetName() {
-			case "VlanTaggingFilterData", "ExtendedVlanTaggingOperationConfigurationData":
+			case "VlanTaggingFilterData", "ExtendedVlanTaggingOperationConfigurationData", "TrafficDescriptor":
 				{ // let the MultiEntity config proceed by stopping the wait function
 					oFsm.mutexPLastTxMeInstance.RUnlock()
 					oFsm.omciMIdsResponseReceived <- true
@@ -2857,6 +2876,108 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 		logger.Errorw(ctx, "CreateMulticastOperationProfile create failed, aborting AniConfig FSM!",
 			log.Fields{"device-id": oFsm.deviceID, "MulticastOperationProfileID": instID})
 		return fmt.Errorf("createMulticastOperationProfile responseError %s, error %s", oFsm.deviceID, err)
+	}
+	return nil
+}
+
+// CreateTrafficDescriptor method create Traffic Descriptor ME with CIR, PIR,CBS,PBS
+func (oFsm *UniVlanConfigFsm) CreateTrafficDescriptor(ctx context.Context, apFlowMetaData *voltha.FlowMetadata,
+	tpID uint8, uniID uint8, isDsFlow bool, gemPortID uint16) error {
+	logger.Infow(ctx, "Starting create traffic descriptor", log.Fields{"device-id": oFsm.deviceID,
+		"flow-direction-downstream": isDsFlow, "uniID": uniID, "tpID": tpID})
+	// uniTPKey  generate id to Traffic Descriptor ME. We need to create two of them. They should be unique. Because of that
+	// I created unique TD ID by flow direction.
+	deviceEntry := oFsm.pDeviceHandler.getOnuDeviceEntry(ctx, false)
+	// TODO! Traffic descriptor ME ID will check
+	trafficDescriptorID := deviceEntry.createFreeTrafficDescriptorID(ctx)
+	trafficShapingInfo, err := meters.GetTrafficShapingInfo(ctx, apFlowMetaData.Meters[0])
+	cir := trafficShapingInfo.Cir + trafficShapingInfo.Gir
+	cbs := trafficShapingInfo.Cbs
+	pir := trafficShapingInfo.Pir
+	pbs := trafficShapingInfo.Pbs
+
+	if err != nil {
+		logger.Errorw(ctx, "Traffic Shaping Info get failed", log.Fields{"device-id": oFsm.deviceID})
+		return err
+	}
+	logger.Infow(ctx, "cir-pir-cbs-pbs", log.Fields{"device-id": oFsm.deviceID, "cir": cir, "pir": pir, "cbs": cbs, "pbs": pbs})
+	meParams := me.ParamData{
+		EntityID: trafficDescriptorID,
+		Attributes: me.AttributeValueMap{
+			"Cir":                  cir,
+			"Pir":                  pir,
+			"Cbs":                  cbs,
+			"Pbs":                  pbs,
+			"ColourMode":           1,
+			"IngressColourMarking": 3,
+			"EgressColourMarking":  3,
+			"MeterType":            1,
+		},
+	}
+	meInstance, errCreateTD := oFsm.pOmciCC.sendCreateTDVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
+		true, oFsm.pAdaptFsm.commChan, meParams)
+	if errCreateTD != nil {
+		logger.Errorw(ctx, "Traffic Descriptor create failed", log.Fields{"device-id": oFsm.deviceID})
+		return err
+	}
+	oFsm.pLastTxMeInstance = meInstance
+	err = oFsm.waitforOmciResponse(ctx)
+	if err != nil {
+		logger.Errorw(ctx, "Traffic Descriptor create failed, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
+		return err
+	}
+
+	err = oFsm.SetTrafficDescriptorToGemPortNWCTP(ctx, gemPortID, isDsFlow)
+	if err != nil {
+		logger.Errorw(ctx, "Traffic Descriptor set failed to Gem Port Network CTP, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
+		return err
+	}
+	logger.Infow(ctx, "Set TD Info to GemPortNWCTP successfully", log.Fields{"device-id": oFsm.deviceID, "gem-port-id": gemPortID, "td-id": trafficDescriptorID})
+
+	return nil
+}
+
+// SetTrafficDescriptorToGemPortNWCTP set Traffic Descriptor ME info to GEM Port Network CTP
+func (oFsm *UniVlanConfigFsm) SetTrafficDescriptorToGemPortNWCTP(ctx context.Context, gemPortID uint16, isDsFlow bool) error {
+	logger.Debugw(ctx, "Starting Set Traffic Descriptor to GemPortNWCTP", log.Fields{"device-id": oFsm.deviceID, "gem-port-id": gemPortID})
+	if !isDsFlow {
+		meParams := me.ParamData{
+			EntityID: gemPortID,
+			Attributes: me.AttributeValueMap{
+				"TrafficManagementPointerForUpstream": gemPortID,
+			},
+		}
+		meInstance, err := oFsm.pOmciCC.sendSetGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx),
+			oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meParams)
+		if err != nil {
+			logger.Errorw(ctx, "GemNCTP set failed", log.Fields{"device-id": oFsm.deviceID})
+			return err
+		}
+		oFsm.pLastTxMeInstance = meInstance
+		err = oFsm.waitforOmciResponse(ctx)
+		if err != nil {
+			logger.Errorw(ctx, "Upstream Traffic Descriptor set failed, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
+			return err
+		}
+	} else {
+		meParams := me.ParamData{
+			EntityID: gemPortID,
+			Attributes: me.AttributeValueMap{
+				"TrafficDescriptorProfilePointerForDownstream": gemPortID,
+			},
+		}
+		meInstance, err := oFsm.pOmciCC.sendSetGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx),
+			oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meParams)
+		if err != nil {
+			logger.Errorw(ctx, "GemNCTP set failed", log.Fields{"device-id": oFsm.deviceID})
+			return err
+		}
+		oFsm.pLastTxMeInstance = meInstance
+		err = oFsm.waitforOmciResponse(ctx)
+		if err != nil {
+			logger.Errorw(ctx, "Downstream Traffic Descriptor set failed, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
+			return err
+		}
 	}
 	return nil
 }
