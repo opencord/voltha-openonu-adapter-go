@@ -224,6 +224,7 @@ type deviceHandler struct {
 	readyForOmciConfig          bool
 	deletionInProgress          bool
 	mutexDeletionInProgressFlag sync.RWMutex
+	upgradeSuccess              bool
 }
 
 //newDeviceHandler creates a new device handler
@@ -766,7 +767,7 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 func (dh *deviceHandler) reEnableDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "reenable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
-	//setting ReadyForSpecificOmciConfig here is just a workaround for BBSIM testing in the sequence
+	//setting readyForOmciConfig here is just a workaround for BBSIM testing in the sequence
 	//  OnuSoftReboot-disable-enable, because BBSIM does not generate a new OnuIndication-Up event after SoftReboot
 	//  which is the assumption for real ONU's, where the ready-state is then set according to the following MibUpload/Download
 	//  for real ONU's that should have nearly no influence
@@ -1274,6 +1275,57 @@ func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context, aVersion string
 	} //else
 	logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
 		"device-id": dh.deviceID, "error": err})
+}
+
+func (dh *deviceHandler) requestOnuSwUpgradeState(ctx context.Context, aImageIdentifier string,
+	aVersion string, pDeviceImageState *voltha.DeviceImageState) {
+	pDeviceImageState.DeviceId = dh.deviceID
+	pDeviceImageState.ImageState.Version = aImageIdentifier
+	dh.lockUpgradeFsm.RLock()
+	if dh.pOnuUpradeFsm != nil {
+		dh.lockUpgradeFsm.RUnlock()
+		if pImageStates, err := dh.pOnuUpradeFsm.GetImageStates(ctx, aImageIdentifier, aVersion); err != nil {
+			pDeviceImageState.ImageState.DownloadState = pImageStates.DownloadState
+			pDeviceImageState.ImageState.Reason = pImageStates.Reason
+			pDeviceImageState.ImageState.ImageState = pImageStates.ImageState
+		} else {
+			pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+			pDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+			pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+		}
+	} else {
+		dh.lockUpgradeFsm.RUnlock()
+		pDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+		if dh.upgradeSuccess {
+			pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_SUCCEEDED
+			pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_COMMITTED
+		} else {
+			pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+			pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+		}
+	}
+}
+
+func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifier string,
+	aVersion string, pDeviceImageState *voltha.DeviceImageState) {
+	pDeviceImageState.DeviceId = dh.deviceID
+	pDeviceImageState.ImageState.Version = aImageIdentifier
+	pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+	dh.lockUpgradeFsm.RLock()
+	if dh.pOnuUpradeFsm != nil {
+		dh.lockUpgradeFsm.RUnlock()
+		//option: it could be also checked if the upgrade FSM is running on the given imageIdentifier or version
+		//  by now just straightforward assume this to be true
+		dh.pOnuUpradeFsm.CancelProcessing(ctx)
+		//nolint:misspell
+		pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_CANCELLED
+		//nolint:misspell
+		pDeviceImageState.ImageState.Reason = voltha.ImageState_CANCELLED_ON_REQUEST
+	} else {
+		dh.lockUpgradeFsm.RUnlock()
+		pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+		pDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+	}
 }
 
 //  deviceHandler methods that implement the adapters interface requests## end #########
@@ -1858,6 +1910,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	if pDevEntry.PDevOmciCC != nil {
 		pDevEntry.PDevOmciCC.CancelRequestMonitoring()
 	}
+
 	if includingMibSyncFsm {
 		pDevEntry.CancelProcessing(ctx)
 	}
@@ -2230,6 +2283,10 @@ func (dh *deviceHandler) deviceProcStatusUpdate(ctx context.Context, devEvent On
 		{
 			dh.processOmciVlanFilterDoneEvent(ctx, devEvent)
 		}
+	case OmciOnuSwUpgradeDone:
+		{
+			dh.upgradeSuccess = true
+		}
 	default:
 		{
 			logger.Debugw(ctx, "unhandled-device-event", log.Fields{"device-id": dh.deviceID, "event": devEvent})
@@ -2475,6 +2532,7 @@ func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *On
 		pUpgradeStatemachine := dh.pOnuUpradeFsm.pAdaptFsm.pFsm
 		if pUpgradeStatemachine != nil {
 			if pUpgradeStatemachine.Is(upgradeStDisabled) {
+				dh.upgradeSuccess = false //for start of upgrade processing reset the last indication
 				if err := pUpgradeStatemachine.Event(upgradeEvStart); err != nil {
 					logger.Errorw(ctx, "OnuSwUpgradeFSM: can't start", log.Fields{"err": err})
 					// maybe try a FSM reset and then again ... - TODO!!!
@@ -3465,7 +3523,6 @@ func (dh *deviceHandler) setReadyForOmciConfig(flagValue bool) {
 	dh.readyForOmciConfig = flagValue
 	dh.mutexReadyForOmciConfig.Unlock()
 }
-
 func (dh *deviceHandler) isReadyForOmciConfig() bool {
 	dh.mutexReadyForOmciConfig.RLock()
 	flagValue := dh.readyForOmciConfig

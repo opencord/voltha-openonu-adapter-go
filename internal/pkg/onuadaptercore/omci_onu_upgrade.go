@@ -124,10 +124,10 @@ type OnuUpgradeFsm struct {
 	waitCountEndSwDl                 uint8         //number, how often is waited for EndSwDl at maximum
 	waitDelayEndSwDl                 time.Duration //duration, how long is waited before next request on EndSwDl
 	chReceiveExpectedResponse        chan bool
-	useAPIVersion43                  bool //flag for indication on which API version is used (and accordingly which specific methods)
-	mutexUpgradeParams               sync.RWMutex
-	imageVersion                     string //name of the image as used within OMCI (and on extrenal API interface)
-	imageIdentifier                  string //name of the image as used in the adapter
+	useAPIVersion43                  bool         //flag for indication on which API version is used (and accordingly which specific methods)
+	mutexUpgradeParams               sync.RWMutex //mutex to protect members for parallel function requests and omci response processing
+	imageVersion                     string       //name of the image as used within OMCI (and on extrenal API interface)
+	imageIdentifier                  string       //name of the image as used in the adapter
 	mutexIsAwaitingAdapterDlResponse sync.RWMutex
 	chAdapterDlReady                 chan bool
 	isWaitingForAdapterDlResponse    bool
@@ -136,6 +136,9 @@ type OnuUpgradeFsm struct {
 	isWaitingForOnuDlResponse        bool
 	activateImage                    bool
 	commitImage                      bool
+	volthaDownloadState              voltha.ImageState_ImageDownloadState
+	volthaDownloadReason             voltha.ImageState_ImageFailureReason
+	volthaImageState                 voltha.ImageState_ImageActivationState
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -154,6 +157,9 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 		omciSectionInterleaveDelay:  cOmciSectionInterleaveMilliseconds,
 		waitCountEndSwDl:            cWaitCountEndSwDl,
 		waitDelayEndSwDl:            cWaitDelayEndSwDlSeconds,
+		volthaDownloadState:         voltha.ImageState_DOWNLOAD_STARTED, //if FSM created we can assume that the download (to adapter) really started
+		volthaDownloadReason:        voltha.ImageState_NO_ERROR,
+		volthaImageState:            voltha.ImageState_IMAGE_UNKNOWN,
 	}
 	instFsm.chReceiveExpectedResponse = make(chan bool)
 	instFsm.chAdapterDlReady = make(chan bool)
@@ -234,11 +240,13 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 	apImageDsc *voltha.ImageDownload, apDownloadManager *adapterDownloadManager) error {
 	pBaseFsm := oFsm.pAdaptFsm.pFsm
 	if pBaseFsm != nil && pBaseFsm.Is(upgradeStStarting) {
+		oFsm.mutexUpgradeParams.Lock()
 		logger.Debugw(ctx, "OnuUpgradeFsm Parameter setting", log.Fields{
 			"device-id": oFsm.deviceID, "image-description": apImageDsc})
 		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
 		oFsm.pImageDsc = apImageDsc
 		oFsm.pDownloadManager = apDownloadManager
+		oFsm.mutexUpgradeParams.Unlock()
 
 		go func(aPBaseFsm *fsm.FSM) {
 			// let the upgrade FSM proceed to PreparingDL
@@ -406,6 +414,25 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsStart(ctx context.Context, aImageV
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
 }
 
+//GetImageStates delivers the download states as per device proto buf or error indication
+func (oFsm *OnuUpgradeFsm) GetImageStates(ctx context.Context,
+	aImageIdentifier string, aVersion string) (*voltha.ImageState, error) {
+	pImageState := &voltha.ImageState{}
+	// check if the request refers to some active image/version of the processing
+	oFsm.mutexUpgradeParams.RLock()
+	if (aImageIdentifier == oFsm.imageIdentifier) || (aVersion == oFsm.imageVersion) {
+		pImageState.DownloadState = oFsm.volthaDownloadState
+		pImageState.Reason = oFsm.volthaDownloadReason
+		pImageState.ImageState = oFsm.volthaImageState
+	} else {
+		pImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+		pImageState.Reason = voltha.ImageState_NO_ERROR
+		pImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+	}
+	oFsm.mutexUpgradeParams.RUnlock()
+	return pImageState, nil
+}
+
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *OnuUpgradeFsm) CancelProcessing(ctx context.Context) {
 	//mutex protection is required for possible concurrent access to FSM members
@@ -460,6 +487,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 
 	var fileLen int64
 	var err error
+	oFsm.mutexUpgradeParams.Lock()
 	if oFsm.useAPIVersion43 {
 		//with the new API structure download to adapter is implicit and we have to wait until the image is available
 		fileLen, err = oFsm.pFileManager.GetImageBufferLen(ctx, oFsm.imageIdentifier)
@@ -467,6 +495,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		fileLen, err = oFsm.pDownloadManager.getImageBufferLen(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
 	}
 	if err != nil || fileLen > int64(cMaxUint32) {
+		oFsm.mutexUpgradeParams.Unlock()
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: problems getting image buffer length", log.Fields{
 			"device-id": oFsm.deviceID, "error": err, "length": fileLen})
 		pBaseFsm := oFsm.pAdaptFsm
@@ -485,6 +514,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		oFsm.imageBuffer, err = oFsm.pDownloadManager.getDownloadImageBuffer(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
 	}
 	if err != nil {
+		oFsm.mutexUpgradeParams.Unlock()
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: can't get image buffer", log.Fields{
 			"device-id": oFsm.deviceID, "error": err})
 		pBaseFsm := oFsm.pAdaptFsm
@@ -504,13 +534,14 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 	oFsm.origImageLength = uint32(fileLen)
 	oFsm.imageLength = uint32(len(oFsm.imageBuffer))
-
-	go oFsm.waitOnDownloadToOnuReady(ctx, oFsm.chOnuDlReady) // start supervision of the complete download-to-ONU procedure
-
 	logger.Infow(ctx, "OnuUpgradeFsm starts with StartSwDl values", log.Fields{
 		"MeId": oFsm.inactiveImageMeID, "windowSizeLimit": oFsm.omciDownloadWindowSizeLimit,
 		"ImageSize": oFsm.imageLength, "original file size": fileLen})
 	//"NumberOfCircuitPacks": oFsm.numberCircuitPacks, "CircuitPacks MeId": 0}) //parallel circuit packs download not supported
+
+	oFsm.mutexUpgradeParams.Unlock()
+	go oFsm.waitOnDownloadToOnuReady(ctx, oFsm.chOnuDlReady) // start supervision of the complete download-to-ONU procedure
+
 	err = oFsm.pOmciCC.sendStartSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.omciDownloadWindowSizeLimit, oFsm.origImageLength)
 	if err != nil {
@@ -535,9 +566,11 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 	var bufferEndOffset uint32
 	var downloadSection []byte
 	framePrint := false //default no printing of downloadSection frames
+	oFsm.mutexUpgradeParams.Lock()
 	if oFsm.nextDownloadSectionsAbsolute == 0 {
 		//debug print of first section frame
 		framePrint = true
+		oFsm.volthaImageState = voltha.ImageState_IMAGE_DOWNLOADING
 	}
 
 	for {
@@ -551,6 +584,7 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 			logger.Errorw(ctx, "OnuUpgradeFsm buffer error: exceeded length", log.Fields{
 				"device-id": oFsm.deviceID, "bufferStartOffset": bufferStartOffset,
 				"bufferEndOffset": bufferEndOffset, "imageLength": oFsm.imageLength})
+			oFsm.mutexUpgradeParams.Unlock()
 			//logical error -- reset the FSM
 			pBaseFsm := oFsm.pAdaptFsm
 			// Can't call FSM Event directly, decoupling it
@@ -572,6 +606,7 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 			logger.Infow(ctx, "DlSection expect Response for last window (section)", log.Fields{
 				"device-id": oFsm.deviceID, "DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute})
 		}
+		oFsm.mutexUpgradeParams.Unlock() //unlock here to give other functions some chance to process during/after the send request
 		err := oFsm.pOmciCC.sendDownloadSection(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 			oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, framePrint)
 		if err != nil {
@@ -585,10 +620,12 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 			}(pBaseFsm)
 			return
 		}
+		oFsm.mutexUpgradeParams.Lock()
 		oFsm.nextDownloadSectionsAbsolute++ //always increase the absolute section counter after having sent one
 		if windowAckRequest == 1 {
 			pBaseFsm := oFsm.pAdaptFsm
 			// Can't call FSM Event directly, decoupling it
+			oFsm.mutexUpgradeParams.Unlock()
 			go func(a_pAFsm *AdapterFsm) {
 				_ = a_pAFsm.pFsm.Event(upgradeEvWaitWindowAck) //state transition to upgradeStVerifyWindow
 			}(pBaseFsm)
@@ -598,7 +635,9 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 		oFsm.nextDownloadSectionsWindow++ //increase the window related section counter only if not in the last section
 		if oFsm.omciSectionInterleaveDelay > 0 {
 			//ensure a defined intersection-time-gap to leave space for further processing, other ONU's ...
+			oFsm.mutexUpgradeParams.Unlock() //unlock here to give other functions some chance to process during/after the send request
 			time.Sleep(oFsm.omciSectionInterleaveDelay * time.Millisecond)
+			oFsm.mutexUpgradeParams.Lock()
 		}
 	}
 }
@@ -612,10 +651,14 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm finalize DL", log.Fields{
 		"device-id": oFsm.deviceID, "crc": strconv.FormatInt(int64(oFsm.imageCRC), 16), "delay": oFsm.delayEndSwDl})
 
+	oFsm.mutexUpgradeParams.RLock()
 	if oFsm.delayEndSwDl {
+		oFsm.mutexUpgradeParams.RUnlock()
 		//give the ONU some time for image evaluation (hoping it does not base that on first EndSwDl itself)
 		// should not be set in case this state is used for real download abort (not yet implemented)
 		time.Sleep(cOmciEndSwDlDelaySeconds * time.Second)
+	} else {
+		oFsm.mutexUpgradeParams.RUnlock()
 	}
 
 	pBaseFsm := oFsm.pAdaptFsm
@@ -677,7 +720,9 @@ func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
 			return
 		}
 		//retry End SW DL
+		oFsm.mutexUpgradeParams.Lock()
 		oFsm.delayEndSwDl = false //no more extra delay for the request
+		oFsm.mutexUpgradeParams.Unlock()
 		go func(a_pAFsm *AdapterFsm) {
 			_ = a_pAFsm.pFsm.Event(upgradeEvContinueFinalize)
 		}(pBaseFsm)
@@ -718,6 +763,10 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm activate SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 
+	oFsm.mutexUpgradeParams.Lock()
+	oFsm.volthaImageState = voltha.ImageState_IMAGE_ACTIVATING
+	oFsm.mutexUpgradeParams.Unlock()
+
 	err := oFsm.pOmciCC.sendActivateSoftware(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID)
 	if err != nil {
@@ -737,11 +786,15 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 	if activeImageID, err := oFsm.pOnuOmciDevice.GetActiveImageMeID(ctx); err == nil {
 		//TODO!!: as long as testing with BBSIM and BBSIM not support upgrade tests following check needs to be deactivated
 		imageFit := true //TODO!!: test workaround as long as BBSIM does not fully support upgrade
+		oFsm.mutexUpgradeParams.Lock()
 		if imageFit || activeImageID == oFsm.inactiveImageMeID {
+			inactiveImageID := oFsm.inactiveImageMeID
 			logger.Infow(ctx, "OnuUpgradeFsm commit SW", log.Fields{
-				"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID}) //more efficient activeImageID with above check
+				"device-id": oFsm.deviceID, "me-id": inactiveImageID}) //more efficient activeImageID with above check
+			oFsm.volthaImageState = voltha.ImageState_IMAGE_COMMITTING
+			oFsm.mutexUpgradeParams.Unlock()
 			err := oFsm.pOmciCC.sendCommitSoftware(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
-				oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID) //more efficient activeImageID with above check
+				oFsm.pAdaptFsm.commChan, inactiveImageID) //more efficient activeImageID with above check
 			if err != nil {
 				logger.Errorw(ctx, "CommitSw abort: can't send commit sw frame", log.Fields{
 					"device-id": oFsm.deviceID, "error": err})
@@ -758,6 +811,8 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 		}
 		logger.Errorw(ctx, "OnuUpgradeFsm active ImageId <> IdToCommit", log.Fields{
 			"device-id": oFsm.deviceID, "active ID": activeImageID, "to commit ID": oFsm.inactiveImageMeID})
+		oFsm.mutexUpgradeParams.Unlock()
+
 		//TODO!!!: possibly send event information for aborted upgrade (not activated)??
 		pBaseFsm := oFsm.pAdaptFsm
 		// Can't call FSM Event directly, decoupling it
@@ -910,6 +965,8 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
+
+			oFsm.mutexUpgradeParams.Lock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				logger.Debugw(ctx, "Expected StartSwDlResponse received", log.Fields{"device-id": oFsm.deviceID})
 				if msgObj.WindowSize != oFsm.omciDownloadWindowSizeLimit {
@@ -929,9 +986,11 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				oFsm.nextDownloadSectionsWindow = 0
 				oFsm.nextDownloadWindow = 0
 
+				oFsm.mutexUpgradeParams.Unlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvRxStartSwDownload)
 				return
 			}
+			oFsm.mutexUpgradeParams.Unlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: possibly repeat the start request (once)?
@@ -966,6 +1025,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
+			oFsm.mutexUpgradeParams.Lock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
 				sectionNumber := msgObj.SectionNumber
 				logger.Infow(ctx, "DlSectionResponse received", log.Fields{
@@ -978,6 +1038,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 							log.Fields{"device-id": oFsm.deviceID, "actual section": sectionNumber,
 								"expected section": oFsm.omciDownloadWindowSizeLast})
 						//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+						oFsm.mutexUpgradeParams.Unlock()
 						_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 						return
 					}
@@ -988,6 +1049,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 					var byteSlice []byte = make([]byte, 4)
 					binary.LittleEndian.PutUint32(byteSlice, uint32(imageCRC))
 					oFsm.imageCRC = binary.BigEndian.Uint32(byteSlice)
+					oFsm.mutexUpgradeParams.Unlock()
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvEndSwDownload)
 					return
 				}
@@ -995,14 +1057,17 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 					logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse section error - later: repeat window once?", //TODO!!!
 						log.Fields{"device-id": oFsm.deviceID, "actual-section": sectionNumber,
 							"expected section": oFsm.omciDownloadWindowSizeLimit})
+					oFsm.mutexUpgradeParams.Unlock()
 					//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
 					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 					return
 				}
 				oFsm.nextDownloadSectionsWindow = 0
+				oFsm.mutexUpgradeParams.Unlock()
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvContinueNextWindow)
 				return
 			}
+			oFsm.mutexUpgradeParams.Unlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm Omci StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: possibly repeat the download (section) (once)?
@@ -1044,7 +1109,9 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
+			oFsm.mutexUpgradeParams.RLock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
+				oFsm.mutexUpgradeParams.RUnlock()
 				logger.Debugw(ctx, "Expected EndSwDlResponse received", log.Fields{"device-id": oFsm.deviceID})
 				oFsm.mutexIsAwaitingOnuDlResponse.RLock()
 				if oFsm.isWaitingForOnuDlResponse {
@@ -1057,6 +1124,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				oFsm.chReceiveExpectedResponse <- true //let the FSM proceed from the waitState
 				return
 			}
+			oFsm.mutexUpgradeParams.RUnlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: possibly repeat the end request (once)? or verify ONU upgrade state?
@@ -1092,11 +1160,14 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
+			oFsm.mutexUpgradeParams.RLock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
+				oFsm.mutexUpgradeParams.RUnlock()
 				logger.Infow(ctx, "Expected ActivateSwResponse received", log.Fields{"device-id": oFsm.deviceID})
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForCommit)
 				return
 			}
+			oFsm.mutexUpgradeParams.RUnlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm ActivateSwResponse wrong ME instance: abort",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: error treatment?
@@ -1128,12 +1199,15 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				// TODO!!!: error treatment?, perhaps in the end reset the FSM
 				return
 			}
+			oFsm.mutexUpgradeParams.RLock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
+				oFsm.mutexUpgradeParams.RUnlock()
 				logger.Debugw(ctx, "OnuUpgradeFsm Expected SwImage CommitResponse received", log.Fields{"device-id": oFsm.deviceID})
 				//verifying committed image
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvCheckCommitted)
 				return
 			}
+			oFsm.mutexUpgradeParams.RUnlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm SwImage CommitResponse  wrong ME instance: abort",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: error treatment?
@@ -1184,8 +1258,9 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			logger.Debugw(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
 				log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
 					"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})
-			if msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive &&
-				imageIsCommitted == swIsCommitted {
+
+			oFsm.mutexUpgradeParams.Lock()
+			if msgObj.EntityInstance == oFsm.inactiveImageMeID && imageIsActive == swIsActive {
 				//a check on the delivered image version is not done, the ONU delivered version might be different from what might have been
 				//  indicated in the download image version string (version must be part of the image content itself)
 				//  so checking that might be quite unreliable
@@ -1197,6 +1272,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 						logger.Errorw(ctx, "OnuUpgradeFsm SwImage GetResponse indications not matching requested upgrade",
 							log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance,
 								"onu-version": imageVersion, "expected-version": oFsm.imageVersion})
+						oFsm.mutexUpgradeParams.Unlock()
 						// TODO!!!: error treatment?
 						//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
 						_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
@@ -1205,11 +1281,21 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 					logger.Debugw(ctx, "OnuUpgradeFsm - expected ONU image version indicated by the ONU",
 						log.Fields{"device-id": oFsm.deviceID})
 				}
-				logger.Infow(ctx, "requested SW image committed, releasing OnuUpgrade", log.Fields{"device-id": oFsm.deviceID})
-				//releasing the upgrade FSM
-				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
-				return
+				oFsm.volthaImageState = voltha.ImageState_IMAGE_ACTIVE
+				if imageIsCommitted == swIsCommitted {
+					oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_SUCCEEDED
+					oFsm.volthaImageState = voltha.ImageState_IMAGE_COMMITTED
+					logger.Infow(ctx, "requested SW image committed, releasing OnuUpgrade", log.Fields{"device-id": oFsm.deviceID})
+					oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, OnuDeviceEvent(oFsm.requestEvent)) //to let the handler now about success
+					oFsm.mutexUpgradeParams.Unlock()
+					//releasing the upgrade FSM
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+					return
+				}
+				oFsm.mutexUpgradeParams.Unlock()
+				return //if the imageId is active but not committed let upgrade persist, maybe ONU reboot or manual commit may resolve the situation
 			}
+			oFsm.mutexUpgradeParams.Unlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm SwImage GetResponse indications not matching requested upgrade",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: error treatment?
