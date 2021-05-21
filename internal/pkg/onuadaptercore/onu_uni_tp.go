@@ -989,6 +989,28 @@ func (onuTP *onuUniTechProf) getMulticastGemPorts(ctx context.Context, aUniID ui
 	return gemPortIds
 }
 
+func (onuTP *onuUniTechProf) getBidirectionalGemPortIDsForTP(ctx context.Context, aUniID uint8, aTpID uint8) []uint16 {
+	uniTpKey := uniTP{uniID: aUniID, tpID: aTpID}
+	onuTP.mutexTPState.RLock()
+	defer onuTP.mutexTPState.RUnlock()
+	gemPortIds := make([]uint16, 0)
+	if techProfile, existTP := onuTP.mapPonAniConfig[uniTpKey]; existTP {
+		logger.Debugw(ctx, "TechProfile exist", log.Fields{"device-id": onuTP.deviceID})
+		for _, gemPortParam := range techProfile.mapGemPortParams {
+			if !gemPortParam.isMulticast {
+				logger.Debugw(ctx, "Detected unicast gemPort", log.Fields{"device-id": onuTP.deviceID,
+					"aUniID": aUniID, "aTPID": aTpID, "uniTPKey": uniTpKey,
+					"GemId": gemPortParam.multicastGemPortID})
+				gemPortIds = append(gemPortIds, gemPortParam.gemPortID)
+			}
+		}
+	} else {
+		logger.Debugw(ctx, "TechProfile doesn't exist", log.Fields{"device-id": onuTP.deviceID})
+	} //else: the state is just ignored (does not exist)
+	logger.Debugw(ctx, "Gem PortID list", log.Fields{"device-id": onuTP.deviceID, "gemportList": gemPortIds})
+	return gemPortIds
+}
+
 func (onuTP *onuUniTechProf) GetAllBidirectionalGemPortIDsForOnu() []uint16 {
 	var gemPortInstIDs []uint16
 	onuTP.mutexTPState.RLock()
