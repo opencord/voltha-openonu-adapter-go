@@ -620,8 +620,8 @@ func (dh *deviceHandler) processInterAdapterMessage(ctx context.Context, msg *ic
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *openflow_13.FlowChanges,
 	apOfGroupChanges *openflow_13.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
-	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID})
-
+	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID, "metadata": apFlowMetaData})
+	isDsFlow := false
 	var retError error = nil
 	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
 	if apOfFlowChanges.ToRemove != nil {
@@ -689,6 +689,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
 				//this is some downstream flow
+				isDsFlow = true
 				logger.Debugw(ctx, "flow-add for downstream: ignore and continuing on checking further flows", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort})
 				continue
@@ -721,7 +722,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				logger.Debugw(ctx, "flow-add port indications", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
 					"uniPortName": loUniPort.name})
-				err := dh.addFlowItemToUniPort(ctx, flowItem, loUniPort)
+				err := dh.addFlowItemToUniPort(ctx, flowItem, loUniPort, apFlowMetaData, isDsFlow)
 				//try next flow after processing error
 				if err != nil {
 					logger.Warnw(ctx, "flow-add processing error: continuing on checking further flows",
@@ -965,7 +966,8 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
 				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
 					flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile); err != nil {
+					uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile, flowData.VlanRuleParams.FlowMetadata,
+					flowData.VlanRuleParams.Direction); err != nil {
 					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 				dh.lockVlanConfig.RUnlock()
@@ -2842,7 +2844,8 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *ofp.Ofp
 }
 
 //addFlowItemToUniPort parses the actual flow item to add it to the UniPort
-func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *ofp.OfpFlowStats, apUniPort *onuUniPort) error {
+func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *ofp.OfpFlowStats, apUniPort *onuUniPort,
+	apFlowMetaData *voltha.FlowMetadata, isDsFlow bool) error {
 	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
 	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
 	var loAddPcp, loSetPcp uint8
@@ -2904,10 +2907,10 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 
 	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
 	dh.lockVlanConfig.RLock()
-	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID})
+	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID, "tpID": loTpID, "uniID": apUniPort.uniID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		err := dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
-			loMatchVlan, loSetVlan, loSetPcp, false)
+			loMatchVlan, loSetVlan, loSetPcp, false, apFlowMetaData, isDsFlow)
 		dh.lockVlanConfig.RUnlock()
 		return err
 	}
