@@ -242,6 +242,7 @@ type uniPersConfig struct {
 	PersUniID      uint8               `json:"uni_id"`
 	PersTpPathMap  map[uint8]string    `json:"PersTpPathMap"` // tp-id to tp-path map
 	PersFlowParams []uniVlanFlowParams `json:"flow_params"`   //as defined in omci_ani_config.go
+	PersTdParams   []TdParams          `json:"td_params"`     //as defined in omci_ani_config.go
 }
 
 type onuPersistentData struct {
@@ -815,7 +816,7 @@ func (oo *OnuDeviceEntry) updateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 	perSubTpPathMap := make(map[uint8]string)
 	perSubTpPathMap[aTpID] = aPathString
 	oo.sOnuPersistentData.PersUniConfig =
-		append(oo.sOnuPersistentData.PersUniConfig, uniPersConfig{PersUniID: aUniID, PersTpPathMap: perSubTpPathMap, PersFlowParams: make([]uniVlanFlowParams, 0)})
+		append(oo.sOnuPersistentData.PersUniConfig, uniPersConfig{PersUniID: aUniID, PersTpPathMap: perSubTpPathMap, PersFlowParams: make([]uniVlanFlowParams, 0), PersTdParams: make([]TdParams, 0)})
 	return true
 }
 
