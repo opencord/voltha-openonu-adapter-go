@@ -48,6 +48,54 @@
     },
     {
       "key": {
+        "uuid": "9d34e5d2_084ce728",
+        "filename": "internal/pkg/onuadaptercore/me_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-21T19:03:49Z",
+      "side": 1,
+      "message": "tpRange is the difference between end and start values indicating the tp-id range which is 192, but here we want to find the difference between actual tp-id receiving from tech-profile-download and tpStart. For ex if we are configuring a service with tpID\u003d 65 then this diff is 65-64 \u003d1.",
+      "parentUuid": "d06a5cbd_d587f893",
+      "range": {
+        "startLine": 44,
+        "startChar": 66,
+        "endLine": 44,
+        "endChar": 82
+      },
+      "revId": "015591178cfc92e2b8fae76522f052a6526d597b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c43edf2_93987ebc",
+        "filename": "internal/pkg/onuadaptercore/me_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-05-21T19:03:49Z",
+      "side": 1,
+      "message": "maxUNI and tpID checks above are for validating the limit of EntityId as you mentioned. With max tpID\u003d256 we can reach up to 318 UNIs. These are the variables in the formula. The rest are constants. Thinking that we have 4 bits assigned to uni_id for logical port id generation on platform and we are planing to increase it to 8 bits, I might better to limit the maxUNI to 256.",
+      "parentUuid": "a4cd8acf_95ec379c",
+      "range": {
+        "startLine": 44,
+        "startChar": 9,
+        "endLine": 44,
+        "endChar": 82
+      },
+      "revId": "015591178cfc92e2b8fae76522f052a6526d597b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "916ccefa_0ef7175b",
         "filename": "internal/pkg/onuadaptercore/me_config.go",
         "patchSetId": 7
