@@ -22,6 +22,30 @@
       "revId": "82863754a40fb5c0b0a6f4889150fa50a6594790",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f151767a_a5713a95",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T16:53:55Z",
+      "side": 1,
+      "message": "I\u0027m not sure about this, it\u0027s only used if the flows are not already there, so I don\u0027t think we need it outside of the if/else.",
+      "parentUuid": "530e9ce2_896e544e",
+      "range": {
+        "startLine": 945,
+        "startChar": 0,
+        "endLine": 950,
+        "endChar": 31
+      },
+      "revId": "82863754a40fb5c0b0a6f4889150fa50a6594790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
