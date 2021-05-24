@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c525d9c8_e6abd0b0",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1301,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T07:55:48Z",
+      "side": 1,
+      "message": "this is still for the one shot straight upgrade, correct ? meaning that there activation and commit in the same process",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "13554305_f3a6b153",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T07:55:48Z",
+      "side": 1,
+      "message": "this log is probably a refuse, should be something like \"Getting download state of the image\"",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "52bedcd7_e7ef8326",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 715,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T07:55:48Z",
+      "side": 1,
+      "message": "I don\u0027t get why this distinction has to be made.",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "13fc47b7_ad2f9306",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 777,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T07:55:48Z",
+      "side": 1,
+      "message": "same",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
