@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "530e9ce2_896e544e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-24T15:47:48Z",
+      "side": 1,
+      "message": "This is more of query and I am not really sure if it is an issue.\nWhat if the uniData.PersUniID key exists in the dh.UniVlanConfigFsmMap should you also have check here  \"flowsProcessed \u003d\u003d len(uniData.PersFlowParams)-1\".\nOr rather should the \"flowsProcessed \u003d\u003d len(uniData.PersFlowParams)-1\" check move outside the if/else block.",
+      "range": {
+        "startLine": 945,
+        "startChar": 0,
+        "endLine": 950,
+        "endChar": 31
+      },
+      "revId": "82863754a40fb5c0b0a6f4889150fa50a6594790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
