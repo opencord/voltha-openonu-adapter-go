@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "816c971a_11ac7ba7",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-24T18:29:06Z",
+      "side": 1,
+      "message": "I deleted it.",
+      "parentUuid": "c25283e3_a29d0489",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e44321f3_b79f345a",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 4
@@ -30,6 +48,24 @@
       "writtenOn": "2021-05-24T11:00:16Z",
       "side": 1,
       "message": "can you also return an err here ? and use it instead of nil in error scenarios",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "49776b1b_9effa539",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1478,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-24T18:29:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e44321f3_b79f345a",
       "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "c0b5de5c_72abfc1c",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1512,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-24T18:29:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "50f63600_9310fa5e",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "61b55809_5deb834d",
         "filename": "internal/pkg/onuadaptercore/omci_cc.go",
         "patchSetId": 4
@@ -64,6 +118,24 @@
       "writtenOn": "2021-05-24T11:00:16Z",
       "side": 1,
       "message": "why did you remove the error ?",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2db07e9e_898c62a4",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1947,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-24T18:29:06Z",
+      "side": 1,
+      "message": "I returned error again to this method.",
+      "parentUuid": "61b55809_5deb834d",
       "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "e4197af1_801a86b1",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-24T18:29:06Z",
+      "side": 1,
+      "message": "I renamed it as \"meter\".",
+      "parentUuid": "385b98b9_aa0034b5",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "35e5c355_2d81d086",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 4
@@ -98,6 +188,24 @@
       "writtenOn": "2021-05-24T11:00:16Z",
       "side": 1,
       "message": "can you put a comment describing this, otherwise it\u0027s hard to understand why you are adding 1 here and then the tpId",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a688a81_4b7dcf92",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2673,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-24T18:29:06Z",
+      "side": 1,
+      "message": "Sure, I added comments.",
+      "parentUuid": "35e5c355_2d81d086",
       "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
