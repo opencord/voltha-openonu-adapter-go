@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a50fb7f7_97c7afbb",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3390,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-05-24T15:08:04Z",
+      "side": 1,
+      "message": "nit, given, i think, that onuDevEntry is only used in the if/else clause you could combine this as \"if onuDevEntry :\u003d dh.getOnuDeviceEntry(ctx, true); onuDevEntry \u003d\u003d nil {\". again, a nit.",
+      "range": {
+        "startLine": 3388,
+        "startChar": 0,
+        "endLine": 3390,
+        "endChar": 0
+      },
+      "revId": "13b40b982bc89ba432fb530bb985b31155a7eaf9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
