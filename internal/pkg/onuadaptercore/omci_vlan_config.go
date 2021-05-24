@@ -179,6 +179,9 @@ type UniVlanConfigFsm struct {
 	flowDeleteChannel           chan<- bool
 	//cookie value that indicates that a rule to add is delayed by waiting for deletion of some other existing rule with the same cookie
 	delayNewRuleCookie uint64
+	// Used to indicate if the FSM is for a reconciling flow and if it's the last flow to be reconciled
+	// thus notification needs to be sent on chan.
+	lastFlowToReconcile bool
 }
 
 //NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -186,7 +189,7 @@ type UniVlanConfigFsm struct {
 func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler *deviceHandler, apDevOmciCC *omciCC, apUniPort *onuUniPort,
 	apUniTechProf *onuUniTechProf, apOnuDB *onuDeviceDB, aTechProfileID uint8,
 	aRequestEvent OnuDeviceEvent, aName string, aCommChannel chan Message, aAcceptIncrementalEvto bool,
-	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8) *UniVlanConfigFsm {
+	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToRec bool) *UniVlanConfigFsm {
 	instFsm := &UniVlanConfigFsm{
 		pDeviceHandler:              apDeviceHandler,
 		deviceID:                    apDeviceHandler.deviceID,
@@ -200,6 +203,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler *deviceHandler, ap
 		configuredUniFlow:           0,
 		numRemoveFlows:              0,
 		clearPersistency:            true,
+		lastFlowToReconcile:         lastFlowToRec,
 	}
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
@@ -380,7 +384,7 @@ func (oFsm *UniVlanConfigFsm) RequestClearPersistency(aClear bool) {
 // ignore complexity by now
 // nolint: gocyclo
 func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool) error {
 	loRuleParams := uniVlanRuleParams{
 		TpID:     aTpID,
 		MatchVid: uint32(aMatchVlan),
@@ -418,6 +422,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	flowEntryMatch := false
 	flowCookieModify := false
 	requestAppendRule := false
+	oFsm.lastFlowToReconcile = lastFlowToReconcile
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
 	for flow, storedUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
@@ -1049,8 +1054,9 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 	}
 	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
 		oFsm.configuredUniFlow = oFsm.numUniFlows
-		if !oFsm.pDeviceHandler.isReconcilingFlows() {
+		if oFsm.lastFlowToReconcile {
 			logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{"device-id": oFsm.deviceID})
+			oFsm.pDeviceHandler.setReconcilingFlows(false)
 			oFsm.pDeviceHandler.chReconcilingFlowsFinished <- true
 		}
 		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
