@@ -934,6 +934,7 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 			return
 		}
 		flowsFound = true
+		lastFlowToReconcile := false
 		flowsProcessed := 0
 		dh.setReconcilingFlows(true)
 		for _, flowData := range uniData.PersFlowParams {
@@ -949,9 +950,14 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 				dh.lockVlanConfig.RUnlock()
 			} else {
 				dh.lockVlanConfig.RUnlock()
+				// If this is the last flow for the device we need to announce it the waiting
+				// chReconcilingFlowsFinished channel
+				if flowsProcessed == len(uniData.PersFlowParams)-1 {
+					lastFlowToReconcile = true
+				}
 				if err := dh.createVlanFilterFsm(ctx, uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
 					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterAddDone); err != nil {
+					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterAddDone, lastFlowToReconcile); err != nil {
 					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			}
@@ -960,7 +966,10 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{"device-id": dh.deviceID, "flowsProcessed": flowsProcessed,
 			"numUniFlows":       dh.UniVlanConfigFsmMap[uniData.PersUniID].numUniFlows,
 			"configuredUniFlow": dh.UniVlanConfigFsmMap[uniData.PersUniID].configuredUniFlow})
-		dh.setReconcilingFlows(false)
+		// this can't be used as global finished reconciling flag because
+		// assumes is getting called before the state machines for the last flow is completed,
+		// while this is not guaranteed.
+		//dh.setReconcilingFlows(false)
 	}
 	if !flowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
@@ -2755,7 +2764,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	}
 	dh.lockVlanConfig.RUnlock()
 	return dh.createVlanFilterFsm(ctx, apUniPort, loTpID, loCookieSlice,
-		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone)
+		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone, false)
 }
 
 //removeFlowItemFromUniPort parses the actual flow item to remove it from the UniPort
@@ -2805,7 +2814,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 // createVlanFilterFsm initializes and runs the VlanFilter FSM to transfer OMCI related VLAN config
 // if this function is called from possibly concurrent processes it must be mutex-protected from the caller!
 func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onuUniPort, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent, lastFlowToReconcile bool) error {
 	chVlanFilterFsm := make(chan Message, 2048)
 
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
@@ -2816,7 +2825,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 
 	pVlanFilterFsm := NewUniVlanConfigFsm(ctx, dh, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
 		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
-		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp)
+		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, lastFlowToReconcile)
 	if pVlanFilterFsm != nil {
 		dh.lockVlanConfig.Lock()
 		//ensure the mutex is locked throughout the state transition to 'starting' to prevent unintended (ignored) events to be sent there
