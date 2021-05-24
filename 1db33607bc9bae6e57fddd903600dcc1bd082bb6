@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c25283e3_a29d0489",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "why is this imported and then ignored ?",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e44321f3_b79f345a",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1478,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "can you also return an err here ? and use it instead of nil in error scenarios",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "50f63600_9310fa5e",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1512,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "add device id here please.",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "61b55809_5deb834d",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1947,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "why did you remove the error ?",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "385b98b9_aa0034b5",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "why not just meters ?",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "35e5c355_2d81d086",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2673,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "can you put a comment describing this, otherwise it\u0027s hard to understand why you are adding 1 here and then the tpId",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bb92e2de_09a83c9f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2690,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-24T11:00:16Z",
+      "side": 1,
+      "message": "are these 3 attributes configurable or they will always be hardcode ?",
+      "revId": "1db33607bc9bae6e57fddd903600dcc1bd082bb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
