@@ -46,6 +46,30 @@
       "revId": "82863754a40fb5c0b0a6f4889150fa50a6594790",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b193943d_c581b117",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-05-25T09:23:32Z",
+      "side": 1,
+      "message": "I think Girish is right - lastFlowToReconcile would only be set for the first iteration (flow) of the loop when dh.UniVlanConfigFsmMap does not yet exist. I.e. it has to be set before the check and to be considered in SetUniFlowParams() too.",
+      "parentUuid": "f151767a_a5713a95",
+      "range": {
+        "startLine": 945,
+        "startChar": 0,
+        "endLine": 950,
+        "endChar": 31
+      },
+      "revId": "82863754a40fb5c0b0a6f4889150fa50a6594790",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
