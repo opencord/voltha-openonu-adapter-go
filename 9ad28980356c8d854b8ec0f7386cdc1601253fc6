@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3834d22a_eb86f5cc",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1301,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "confirmed",
+      "parentUuid": "c525d9c8_e6abd0b0",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "13554305_f3a6b153",
         "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
         "patchSetId": 2
@@ -30,6 +48,23 @@
       "writtenOn": "2021-05-24T07:55:48Z",
       "side": 1,
       "message": "this log is probably a refuse, should be something like \"Getting download state of the image\"",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7213e954_7421747e",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 711,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "same",
       "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -53,6 +88,92 @@
     },
     {
       "key": {
+        "uuid": "4779f454_0be8470e",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 715,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "after spending some more time on the code I understood the purpose of this, you actually need to check the status of the image only on the first device of the call, the same image for the rest of them will be in identical state.",
+      "parentUuid": "52bedcd7_e7ef8326",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f0f1cb1_b3e3ead7",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 721,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "same",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "56540b9f_806b0ee7",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 737,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "here you are not actually aborting the image, I think the log and the comment are refuses of a copy/paste",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6627436e_e4ae9687",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 745,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "same",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "55a6aede_e7ee09de",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 757,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "same",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "13fc47b7_ad2f9306",
         "filename": "internal/pkg/onuadaptercore/openonu.go",
         "patchSetId": 2
@@ -64,6 +185,24 @@
       "writtenOn": "2021-05-24T07:55:48Z",
       "side": 1,
       "message": "same",
+      "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3c91bb29_a9aaa62d",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 777,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-25T13:00:15Z",
+      "side": 1,
+      "message": "same reply as before.",
+      "parentUuid": "13fc47b7_ad2f9306",
       "revId": "9ad28980356c8d854b8ec0f7386cdc1601253fc6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
