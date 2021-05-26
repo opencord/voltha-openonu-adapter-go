@@ -110,6 +110,18 @@ type onuUniTechProf struct {
 	mapRemoveGemEntry        map[uniTP]*gemPortParamStruct //per UNI: pointer to GemEntry to be removed
 }
 
+func (onuTP *onuUniTechProf) multicastConfiguredForOtherUnis(ctx context.Context, uniID uint8) bool {
+	for _, aniFsm := range onuTP.pAniConfigFsm {
+		if aniFsm.uniTpKey.uniID == uniID {
+			continue
+		}
+		if aniFsm.hasMulticastGem(ctx) {
+			return true
+		}
+	}
+	return false
+}
+
 //newOnuUniTechProf returns the instance of a OnuUniTechProf
 //(one instance per ONU/deviceHandler for all possible UNI's)
 func newOnuUniTechProf(ctx context.Context, aDeviceHandler *deviceHandler) *onuUniTechProf {

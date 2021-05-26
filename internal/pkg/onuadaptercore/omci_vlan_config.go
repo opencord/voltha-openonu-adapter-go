@@ -2747,13 +2747,12 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx c
 }
 
 func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx context.Context) error {
-	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
+	instID, err := generateUNISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo))
 	if err != nil {
-		logger.Errorw(ctx, "error fetching uni port me instance",
-			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
+		logger.Errorw(ctx, "error generating me instance id",
+			log.Fields{"device-id": oFsm.deviceID, "error": err})
 		return err
 	}
-	instID += macBridgePortAniBaseEID
 	logger.Debugw(ctx, "UniVlanConfigFsm create MulticastOperationProfile",
 		log.Fields{"device-id": oFsm.deviceID, "EntityId": instID})
 	meParams := me.ParamData{
@@ -2798,13 +2797,12 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 }
 
 func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx context.Context, multicastGemPortID uint16, vlanID uint32) error {
-	instID, err := oFsm.pDeviceHandler.getUniPortMEEntityID(oFsm.pOnuUniPort.portNo)
+	instID, err := generateUNISideMBPCDEID(uint16(oFsm.pOnuUniPort.macBpNo))
 	if err != nil {
-		logger.Errorw(ctx, "error fetching uni port me instance",
-			log.Fields{"device-id": oFsm.deviceID, "portNo": oFsm.pOnuUniPort.portNo})
+		logger.Errorw(ctx, "error generating me instance id",
+			log.Fields{"device-id": oFsm.deviceID, "error": err})
 		return err
 	}
-	instID += macBridgePortAniBaseEID
 	logger.Debugw(ctx, "UniVlanConfigFsm set MulticastOperationProfile",
 		log.Fields{"device-id": oFsm.deviceID, "EntityId": instID})
 	//TODO check that this is correct
