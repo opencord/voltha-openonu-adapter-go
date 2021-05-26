@@ -18,7 +18,6 @@
 package adaptercoreonu
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -601,7 +600,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			case "OnuG":
 				oo.mutexLastTxParamStruct.RUnlock()
 				oo.mutexPersOnuConfig.Lock()
-				oo.sOnuPersistentData.PersVendorID = trimStringFromInterface(meAttributes["VendorId"])
+				oo.sOnuPersistentData.PersVendorID = TrimStringFromMeOctet(meAttributes["VendorId"])
 				snBytes, _ := me.InterfaceToOctets(meAttributes["SerialNumber"])
 				if onugSerialNumberLen == len(snBytes) {
 					snVendorPart := fmt.Sprintf("%s", snBytes[:4])
@@ -620,7 +619,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			case "Onu2G":
 				oo.mutexLastTxParamStruct.RUnlock()
 				oo.mutexPersOnuConfig.Lock()
-				oo.sOnuPersistentData.PersEquipmentID = trimStringFromInterface(meAttributes["EquipmentId"])
+				oo.sOnuPersistentData.PersEquipmentID = TrimStringFromMeOctet(meAttributes["EquipmentId"])
 				logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu2-G - EquipmentId", log.Fields{"device-id": oo.deviceID,
 					"onuDeviceEntry.equipmentID": oo.sOnuPersistentData.PersEquipmentID})
 				oo.mutexPersOnuConfig.Unlock()
@@ -682,7 +681,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) {
 	imageIsCommitted := meAttributes["IsCommitted"].(uint8)
 	imageIsActive := meAttributes["IsActive"].(uint8)
-	imageVersion := trimStringFromInterface(meAttributes["Version"])
+	imageVersion := TrimStringFromMeOctet(meAttributes["Version"])
 	oo.mutexPersOnuConfig.RLock()
 	logger.Infow(ctx, "MibSync FSM - GetResponse Data for SoftwareImage",
 		log.Fields{"device-id": oo.deviceID, "entityID": entityID,
@@ -827,11 +826,6 @@ func isSupportedClassID(meClassID me.ClassID) bool {
 		}
 	}
 	return false
-}
-
-func trimStringFromInterface(input interface{}) string {
-	ifBytes, _ := me.InterfaceToOctets(input)
-	return fmt.Sprintf("%s", bytes.Trim(ifBytes, "\x00"))
 }
 
 func (oo *OnuDeviceEntry) mibDbVolatileDict(ctx context.Context) error {

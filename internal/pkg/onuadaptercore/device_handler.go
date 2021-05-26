@@ -1337,6 +1337,28 @@ func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifie
 	}
 }
 
+func (dh *deviceHandler) getOnuImages(ctx context.Context) (*voltha.OnuImages, error) {
+
+	var onuImageStatus *OnuImageStatus
+
+	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
+	if pDevEntry != nil {
+		onuImageStatus = NewOnuImageStatus(pDevEntry)
+		pDevEntry.mutexOnuImageStatus.Lock()
+		pDevEntry.pOnuImageStatus = onuImageStatus
+		pDevEntry.mutexOnuImageStatus.Unlock()
+
+	} else {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return nil, fmt.Errorf("no-valid-OnuDevice-aborting")
+	}
+	images, err := onuImageStatus.getOnuImageStatus(ctx)
+	pDevEntry.mutexOnuImageStatus.Lock()
+	pDevEntry.pOnuImageStatus = nil
+	pDevEntry.mutexOnuImageStatus.Unlock()
+	return images, err
+}
+
 //  deviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
@@ -1919,6 +1941,11 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	if pDevEntry.PDevOmciCC != nil {
 		pDevEntry.PDevOmciCC.CancelRequestMonitoring()
 	}
+	pDevEntry.mutexOnuImageStatus.RLock()
+	if pDevEntry.pOnuImageStatus != nil {
+		pDevEntry.pOnuImageStatus.CancelProcessing(ctx)
+	}
+	pDevEntry.mutexOnuImageStatus.RUnlock()
 
 	if includingMibSyncFsm {
 		pDevEntry.CancelProcessing(ctx)
