@@ -1254,7 +1254,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 			meAttributes := msgObj.Attributes
 			imageIsCommitted := meAttributes["IsCommitted"].(uint8)
 			imageIsActive := meAttributes["IsActive"].(uint8)
-			imageVersion := trimStringFromInterface(meAttributes["Version"])
+			imageVersion := TrimStringFromMeOctet(meAttributes["Version"])
 			logger.Debugw(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
 				log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
 					"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})

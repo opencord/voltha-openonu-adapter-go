@@ -18,12 +18,16 @@
 package adaptercoreonu
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 	"regexp"
 	"strconv"
 	"strings"
+
+	me "github.com/opencord/omci-lib-go/generated"
 )
 
 // GetTpIDFromTpPath extracts TpID from the TpPath.
@@ -80,4 +84,10 @@ func TwosComplementToSignedInt16(val uint16) int16 {
 	}
 
 	return int16(val)
+}
+
+// TrimStringFromMeOctet trim string out of Me octet
+func TrimStringFromMeOctet(input interface{}) string {
+	ifBytes, _ := me.InterfaceToOctets(input)
+	return fmt.Sprintf("%s", bytes.Trim(ifBytes, "\x00"))
 }
