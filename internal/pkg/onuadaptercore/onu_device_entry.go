@@ -213,6 +213,10 @@ const ( //definitions as per G.988 softwareImage::IsActive
 	//swIsInactive = 0  not yet used
 	swIsActive = 1
 )
+const ( //definitions as per G.988 softwareImage::IsValid
+	//swIsInvalid = 0  not yet used
+	swIsValid = 1
+)
 const onuDataMeID = 0
 const onugMeID = 0
 const onu2gMeID = 0

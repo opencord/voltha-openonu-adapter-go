@@ -1337,6 +1337,20 @@ func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifie
 	}
 }
 
+func (dh *deviceHandler) getOnuImages(ctx context.Context) (*voltha.OnuImages, error) {
+
+	var onuImageStatus *OnuImageStatus
+
+	pDevEntry := dh.getOnuDeviceEntry(ctx, false)
+	if pDevEntry != nil {
+		onuImageStatus = NewOnuImageStatus(pDevEntry)
+	} else {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return nil, fmt.Errorf("no-valid-OnuDevice-aborting")
+	}
+	return onuImageStatus.getOnuImageStatus(ctx)
+}
+
 //  deviceHandler methods that implement the adapters interface requests## end #########
 // #####################################################################################
 
