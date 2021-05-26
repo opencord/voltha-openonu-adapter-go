@@ -1323,7 +1323,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigMessage(ctx context.Context, 
 		{
 			oFsm.handleOmciAniConfigDeleteResponseMessage(ctx, msg)
 
-		} //SetResponseType
+		} //DeleteResponseType
 	default:
 		{
 			logger.Errorw(ctx, "uniPonAniConfigFsm - Rx OMCI unhandled MsgType",
@@ -1384,6 +1384,15 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 	logger.Debugw(ctx, "GemNWCtp create loop finished", log.Fields{"device-id": oFsm.deviceID})
 	_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxGemntcpsResp)
 }
+func (oFsm *uniPonAniConfigFsm) hasMulticastGem(ctx context.Context) bool {
+	for _, gemPortAttribs := range oFsm.gemPortAttribsSlice {
+		if gemPortAttribs.isMulticast {
+			logger.Debugw(ctx, "Found multicast gem", log.Fields{"device-id": oFsm.deviceID})
+			return true
+		}
+	}
+	return false
+}
 
 func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
@@ -1404,6 +1413,10 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"ServiceProfilePointer":                0, // Don't Care
 					"GalProfilePointer":                    galEthernetEID,
 				},
+			}
+			if oFsm.pUniTechProf.multicastConfiguredForOtherUnis(ctx, oFsm.uniTpKey.uniID) {
+				logger.Debugw(ctx, "MulticastGemInterworkingTP already exist", log.Fields{"device-id": oFsm.deviceID, "multicast-gem-id": gemPortAttribs.multicastGemID})
+				continue
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
 			meInstance, err := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
