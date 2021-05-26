@@ -1304,6 +1304,58 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 	}
 }
 
+func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigGetResponseMessage(ctx context.Context, msg OmciMessage) {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "Omci Msg layer could not be detected for GetResponse",
+			log.Fields{"device-id": oFsm.deviceID})
+		return
+	}
+	msgObj, msgOk := msgLayer.(*omci.GetResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "Omci Msg layer could not be assigned for GetResponse",
+			log.Fields{"device-id": oFsm.deviceID})
+		return
+	}
+	logger.Debugw(ctx, "GetResponse Data", log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj})
+	if msgObj.Result == me.Success {
+		//if the result is ok or Instance already exists (latest needed at least as long as we do not clear the OMCI techProfile data)
+		oFsm.mutexPLastTxMeInstance.RLock()
+		if oFsm.pLastTxMeInstance != nil {
+			if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
+				msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
+				// maybe we can use just the same eventName for different state transitions like "forward"
+				//   - might be checked, but so far I go for sure and have to inspect the concrete state events ...
+				switch oFsm.pLastTxMeInstance.GetName() {
+				case "MulticastGemInterworkingTerminationPoint":
+					{ // let aniConfig Multi-Id processing proceed by stopping the wait function
+						logger.Debugw(ctx, "found multicast gem", log.Fields{"device-id": oFsm.deviceID})
+						oFsm.mutexPLastTxMeInstance.RUnlock()
+						oFsm.omciMIdsResponseReceived <- true
+					}
+				default:
+					{
+						oFsm.mutexPLastTxMeInstance.RUnlock()
+						logger.Warnw(ctx, "Unsupported ME name received!",
+							log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "device-id": oFsm.deviceID})
+					}
+				}
+			} else {
+				oFsm.mutexPLastTxMeInstance.RUnlock()
+			}
+		} else {
+			oFsm.mutexPLastTxMeInstance.RUnlock()
+			logger.Warnw(ctx, "Pointer to last Tx MeInstance is nil!", log.Fields{"device-id": oFsm.deviceID})
+		}
+	} else {
+		oFsm.omciMIdsResponseReceived <- false
+		logger.Debugw(ctx, "Omci GetResponse other then success or instance exist",
+			log.Fields{"result": msgObj.Result, "device-id": oFsm.deviceID})
+		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		return
+	}
+}
+
 func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigMessage(ctx context.Context, msg OmciMessage) {
 	logger.Debugw(ctx, "Rx OMCI UniPonAniConfigFsm Msg", log.Fields{"device-id": oFsm.deviceID,
 		"msgType": msg.OmciMsg.MessageType})
@@ -1323,7 +1375,12 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigMessage(ctx context.Context, 
 		{
 			oFsm.handleOmciAniConfigDeleteResponseMessage(ctx, msg)
 
-		} //SetResponseType
+		} //DeleteResponseType
+	case omci.GetResponseType:
+		{
+			oFsm.handleOmciAniConfigGetResponseMessage(ctx, msg)
+
+		} //GetResponseType
 	default:
 		{
 			logger.Errorw(ctx, "uniPonAniConfigFsm - Rx OMCI unhandled MsgType",
@@ -1406,7 +1463,25 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
-			meInstance, err := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
+			meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.MulticastGemInterworkingTerminationPointClassID, gemPortAttribs.multicastGemID,
+				meParams.Attributes, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan)
+			if err != nil {
+				oFsm.mutexPLastTxMeInstance.Unlock()
+				logger.Errorw(ctx, "MulticastGemInterworkingTP failed, failure uniPonAniConfigFsm FSM!", log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
+			oFsm.pLastTxMeInstance = meInstance
+			oFsm.mutexPLastTxMeInstance.Unlock()
+			//verify response
+			err = oFsm.waitforOmciResponse(ctx)
+			if err == nil {
+				logger.Debugw(ctx, "MulticastGemInterworkingTP already exist", log.Fields{"device-id": oFsm.deviceID, "multicast-gem-id": gemPortAttribs.multicastGemID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemGemiwResp)
+				return
+			}
+			oFsm.mutexPLastTxMeInstance.Lock()
+			meInstance, err = oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			if err != nil {
 				oFsm.mutexPLastTxMeInstance.Unlock()
@@ -1627,7 +1702,7 @@ func (oFsm *uniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
 			return nil
 		}
 		// waiting was aborted (probably on external request)
-		logger.Debugw(ctx, "uniPonAniConfigFsm wait-for-multi-entity-response aborted", log.Fields{"for device-id": oFsm.deviceID})
+		logger.Debugw(ctx, "uniPonAniConfigFsm wait-for-multi-entity-response aborted or get response received with error", log.Fields{"for device-id": oFsm.deviceID})
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
