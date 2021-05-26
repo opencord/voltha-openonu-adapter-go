@@ -213,6 +213,10 @@ const ( //definitions as per G.988 softwareImage::IsActive
 	//swIsInactive = 0  not yet used
 	swIsActive = 1
 )
+const ( //definitions as per G.988 softwareImage::IsValid
+	//swIsInvalid = 0  not yet used
+	swIsValid = 1
+)
 const onuDataMeID = 0
 const onugMeID = 0
 const onu2gMeID = 0
@@ -279,6 +283,8 @@ type OnuDeviceEntry struct {
 	onuKVStoreProcResult      error //error indication of processing
 	chOnuKvProcessingStep     chan uint8
 	onuSwImageIndications     sSwImageIndications
+	mutexOnuImageStatus       sync.RWMutex
+	pOnuImageStatus           *OnuImageStatus
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func(context.Context) error
 	supportedFsms OmciDeviceFsms

@@ -825,7 +825,16 @@ func (oo *OpenONUAC) Abort_onu_image_upgrade(ctx context.Context, in *voltha.Dev
 
 // Get_onu_images retrieves the ONU SW image status information via OMCI
 func (oo *OpenONUAC) Get_onu_images(ctx context.Context, deviceID string) (*voltha.OnuImages, error) {
-	return nil, errors.New("unImplemented")
+	logger.Infow(ctx, "Get_onu_images", log.Fields{"device-id": deviceID})
+	if handler := oo.getDeviceHandler(ctx, deviceID, false); handler != nil {
+		var err error
+		if images, err := handler.getOnuImages(ctx); err == nil {
+			return images, nil
+		}
+		return nil, fmt.Errorf(fmt.Sprintf("%s-%s", err, deviceID))
+	}
+	logger.Warnw(ctx, "no handler found for Get_onu_images", log.Fields{"device-id": deviceID})
+	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", deviceID))
 }
 
 // Activate_onu_image initiates the activation of the image for the requested ONU(s)
