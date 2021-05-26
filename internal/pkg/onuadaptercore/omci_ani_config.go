@@ -1431,8 +1431,20 @@ func (oFsm *uniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 					"GalProfilePointer":                    galEthernetEID,
 				},
 			}
+
+			meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.MulticastGemInterworkingTerminationPointClassID, gemPortAttribs.multicastGemID,
+				meParams.Attributes, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan)
+			if err != nil {
+				logger.Errorw(ctx, "MulticastGemInterworkingTP failed, failure uniPonAniConfigFsm FSM!", log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
+			if meInstance != nil {
+				logger.Warn(ctx, "MulticastGemInterworkingTP already exist", log.Fields{"device-id": oFsm.deviceID, "multicast-gem-id": gemPortAttribs.multicastGemID})
+				return
+			}
 			oFsm.mutexPLastTxMeInstance.Lock()
-			meInstance, err := oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
+			meInstance, err = oFsm.pOmciCC.sendCreateMulticastGemIWTPVar(context.TODO(), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 				true, oFsm.pAdaptFsm.commChan, meParams)
 			if err != nil {
 				oFsm.mutexPLastTxMeInstance.Unlock()
