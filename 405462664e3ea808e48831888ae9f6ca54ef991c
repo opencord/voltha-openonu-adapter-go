@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8517b4c7_aa7b82e0",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2571,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-27T10:05:44Z",
+      "side": 1,
+      "message": "Multicast Operation Profile entity id generate from UNISideMBPCDEID because of that I make this changes.",
+      "parentUuid": "98b9c7b1_2db0f83e",
+      "revId": "405462664e3ea808e48831888ae9f6ca54ef991c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "01798f03_9eca7994",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2021-05-27T06:34:57Z",
       "side": 1,
       "message": "are you sure that this should be attached to the UNISideMBPCDEID and no ANI Side?\nIt was AniSide earlier.",
+      "revId": "405462664e3ea808e48831888ae9f6ca54ef991c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8b52e92_edd9dfbb",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2621,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-05-27T10:05:44Z",
+      "side": 1,
+      "message": "Multicast Operation Profile entity id generate from UNISideMBPCDEID because of that I make this changes.",
+      "parentUuid": "01798f03_9eca7994",
       "revId": "405462664e3ea808e48831888ae9f6ca54ef991c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
