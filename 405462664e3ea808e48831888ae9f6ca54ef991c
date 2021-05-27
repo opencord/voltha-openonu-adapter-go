@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "98b9c7b1_2db0f83e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2571,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-27T06:34:57Z",
+      "side": 1,
+      "message": "are you sure that this should be attached to the UNISideMBPCDEID and no ANI Side?\nIt was AniSide earlier.",
+      "revId": "405462664e3ea808e48831888ae9f6ca54ef991c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "01798f03_9eca7994",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2621,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-05-27T06:34:57Z",
+      "side": 1,
+      "message": "are you sure that this should be attached to the UNISideMBPCDEID and no ANI Side?\nIt was AniSide earlier.",
+      "revId": "405462664e3ea808e48831888ae9f6ca54ef991c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
