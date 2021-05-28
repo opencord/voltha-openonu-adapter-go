@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a3c122fb_f7ea5d59",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1353,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-28T12:37:54Z",
+      "side": 1,
+      "message": "please include the device id in this error with %s",
+      "revId": "0c78b4e3d42f43f394979a61dd48ca5c8ecc3552",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "09e69d57_af9a09b9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1357,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-28T12:37:54Z",
+      "side": 1,
+      "message": "why is this nil ?",
+      "revId": "0c78b4e3d42f43f394979a61dd48ca5c8ecc3552",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
