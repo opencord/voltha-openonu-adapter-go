@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c6ac223f_82c58960",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2422,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-28T15:25:18Z",
+      "side": 1,
+      "message": "what yields the rw-core to been-responsive ?",
+      "revId": "7ec14c4ba9a33ed577310f94d8671b0f711d1c65",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
