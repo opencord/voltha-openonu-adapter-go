@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -225,13 +226,16 @@ func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 	aLocalPath string) (int64, error) {
 	//maybe we can also use FileSize from dm.downloadImageDscSlice - future option?
 
-	//nolint:gosec
-	file, err := os.Open(aLocalPath + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))
 	if err != nil {
 		return 0, err
 	}
-	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
@@ -245,12 +249,17 @@ func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 func (dm *adapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aFileName string,
 	aLocalPath string) ([]byte, error) {
 	//nolint:gosec
-	file, err := os.Open(aLocalPath + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))
 	if err != nil {
 		return nil, err
 	}
 	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Debugw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
