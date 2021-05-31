@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -141,15 +142,20 @@ func (dm *adapterDownloadManager) downloadFile(ctx context.Context, aURLName str
 	defer cancelExist()
 	_ = reqExist.WithContext(ctxExist)
 	respExist, errExist3 := http.DefaultClient.Do(reqExist)
-	if errExist3 != nil || respExist.StatusCode != http.StatusOK {
-		logger.Infow(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
-			"error": errExist3, "status": respExist.StatusCode})
-		//if head is not supported by server we cannot use this test and just try to continue
-		if respExist.StatusCode != http.StatusMethodNotAllowed {
-			logger.Errorw(ctx, "http head from url: file does not exist here, aborting", log.Fields{"url": urlBase.String(),
+	if errExist3 != nil || (respExist != nil && respExist.StatusCode != http.StatusOK) {
+		if respExist != nil {
+			logger.Errorw(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
 				"error": errExist3, "status": respExist.StatusCode})
-			return fmt.Errorf("http head from url: file does not exist here, aborting: %s, error: %s, status: %d",
-				aURLName, errExist2, respExist.StatusCode)
+			//if head is not supported by server we cannot use this test and just try to continue
+			if respExist.StatusCode != http.StatusMethodNotAllowed {
+				logger.Errorw(ctx, "http head from url: file does not exist here, aborting", log.Fields{"url": urlBase.String(),
+					"error": errExist3, "status": respExist.StatusCode})
+				return fmt.Errorf("http head from url: file does not exist here, aborting: %s, error: %s, status: %d",
+					aURLName, errExist2, respExist.StatusCode)
+			}
+		} else {
+			logger.Errorw(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
+				"error": errExist3})
 		}
 	}
 	defer func() {
@@ -160,64 +166,72 @@ func (dm *adapterDownloadManager) downloadFile(ctx context.Context, aURLName str
 	}()
 
 	//trying to download - do it in background as it may take some time ...
-	go func() {
-		req, err2 := http.NewRequest("GET", urlBase.String(), nil)
-		if err2 != nil {
-			logger.Errorw(ctx, "could not generate http request", log.Fields{"url": urlBase.String(), "error": err2})
-			return
-		}
-		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(10*time.Second)) //long timeout for remote server and big file
-		defer cancel()
-		_ = req.WithContext(ctx)
-		resp, err3 := http.DefaultClient.Do(req)
-		if err3 != nil || respExist.StatusCode != http.StatusOK {
-			logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(),
-				"error": err3, "status": respExist.StatusCode})
-			return
-		}
-		defer func() {
-			deferredErr := resp.Body.Close()
-			if deferredErr != nil {
-				logger.Errorw(ctx, "error at closing http get response body", log.Fields{"url": urlBase.String(), "error": deferredErr})
-			}
-		}()
+	go dm.requestDownload(ctx, urlBase, aFilePath, aFileName)
+	return nil
+}
 
-		// Create the file
-		aLocalPathName := aFilePath + "/" + aFileName
-		file, err := os.Create(aLocalPathName)
-		if err != nil {
-			logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})
-			return
-		}
-		defer func() {
-			deferredErr := file.Close()
-			if deferredErr != nil {
-				logger.Errorw(ctx, "error at closing new file", log.Fields{"path_file": aLocalPathName, "error": deferredErr})
-			}
-		}()
-
-		// Write the body to file
-		_, err = io.Copy(file, resp.Body)
-		if err != nil {
-			logger.Errorw(ctx, "could not copy file content", log.Fields{"url": urlBase.String(), "file": aLocalPathName, "error": err})
-			return
-		}
-
-		fileStats, statsErr := file.Stat()
-		if err != nil {
-			logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
-		}
-		logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileStats.Size()})
-
-		for _, pDnldImgDsc := range dm.downloadImageDscSlice {
-			if (*pDnldImgDsc).Name == aFileName {
-				//image found (by name)
-				(*pDnldImgDsc).DownloadState = voltha.ImageDownload_DOWNLOAD_SUCCEEDED
-				return //can leave directly
-			}
+func (dm *adapterDownloadManager) requestDownload(ctx context.Context, urlBase *url.URL, aFilePath, aFileName string) {
+	req, err2 := http.NewRequest("GET", urlBase.String(), nil)
+	if err2 != nil {
+		logger.Errorw(ctx, "could not generate http request", log.Fields{"url": urlBase.String(), "error": err2})
+		return
+	}
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(10*time.Second)) //long timeout for remote server and big file
+	defer cancel()
+	_ = req.WithContext(ctx)
+	resp, err3 := http.DefaultClient.Do(req)
+	if err3 != nil {
+		logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(), "error": err3})
+		return
+	}
+	defer func() {
+		deferredErr := resp.Body.Close()
+		if deferredErr != nil {
+			logger.Errorw(ctx, "error at closing http get response body", log.Fields{"url": urlBase.String(), "error": deferredErr})
 		}
 	}()
-	return nil
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(), "status": resp.StatusCode})
+		return
+	}
+
+	// Create the file
+	aLocalPathName := aFilePath + "/" + aFileName
+	file, err := os.Create(aLocalPathName)
+	if err != nil {
+		logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})
+		return
+	}
+	defer func() {
+		deferredErr := file.Close()
+		if deferredErr != nil {
+			logger.Errorw(ctx, "error at closing new file", log.Fields{"path_file": aLocalPathName, "error": deferredErr})
+		}
+	}()
+
+	// Write the body to file
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		logger.Errorw(ctx, "could not copy file content", log.Fields{"url": urlBase.String(), "file": aLocalPathName, "error": err})
+		return
+	}
+
+	fileStats, statsErr := file.Stat()
+	if statsErr != nil {
+		logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
+	}
+	if fileStats != nil {
+		logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileStats.Size()})
+	}
+
+	for _, pDnldImgDsc := range dm.downloadImageDscSlice {
+		if (*pDnldImgDsc).Name == aFileName {
+			//image found (by name)
+			(*pDnldImgDsc).DownloadState = voltha.ImageDownload_DOWNLOAD_SUCCEEDED
+			return //can leave directly
+		}
+	}
 }
 
 //getImageBufferLen returns the length of the specified file in bytes (file size)
@@ -225,13 +239,16 @@ func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 	aLocalPath string) (int64, error) {
 	//maybe we can also use FileSize from dm.downloadImageDscSlice - future option?
 
-	//nolint:gosec
-	file, err := os.Open(aLocalPath + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))
 	if err != nil {
 		return 0, err
 	}
-	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
@@ -244,13 +261,16 @@ func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 //getDownloadImageBuffer returns the content of the requested file as byte slice
 func (dm *adapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aFileName string,
 	aLocalPath string) ([]byte, error) {
-	//nolint:gosec
-	file, err := os.Open(aLocalPath + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))
 	if err != nil {
 		return nil, err
 	}
-	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
