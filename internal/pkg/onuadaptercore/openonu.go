@@ -379,7 +379,7 @@ func (oo *OpenONUAC) Reboot_device(ctx context.Context, device *voltha.Device) e
 		return nil
 	}
 	logger.Warnw(ctx, "no handler found for device-reboot", log.Fields{"device-id": device.Id})
-	return fmt.Errorf(fmt.Sprintf("handler-not-found-#{device.Id}"))
+	return errors.New("handler-not-found-#{device.Id}")
 }
 
 //Self_test_device unimplemented
