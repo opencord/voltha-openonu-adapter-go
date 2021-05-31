@@ -703,7 +703,7 @@ func (am *onuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 	context["onu-id"] = onuID
 	context["onu-serial-number"] = serialNo
 
-	raisedTimestamp := time.Now().UnixNano()
+	raisedTimestamp := time.Now().Unix()
 	eventDetails, err := am.getDeviceEventData(ctx, classID, alarm)
 	if err != nil {
 		logger.Warn(ctx, "event-details-for-alarm-not-found", log.Fields{"alarm-no": alarm, "class-id": classID})

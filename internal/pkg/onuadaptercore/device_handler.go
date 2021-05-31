@@ -2144,7 +2144,7 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 
 	if !dh.isReconciling() {
 		logger.Infow(ctx, "UniUnlockStateDone event: Sending OnuUp event", log.Fields{"device-id": dh.deviceID})
-		raisedTs := time.Now().UnixNano()
+		raisedTs := time.Now().Unix()
 		go dh.sendOnuOperStateEvent(ctx, voltha.OperStatus_ACTIVE, dh.deviceID, raisedTs) //cmp python onu_active_event
 		pDevEntry := dh.getOnuDeviceEntry(ctx, false)
 		if pDevEntry == nil {
