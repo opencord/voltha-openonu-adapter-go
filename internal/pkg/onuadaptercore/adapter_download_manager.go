@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -142,10 +143,16 @@ func (dm *adapterDownloadManager) downloadFile(ctx context.Context, aURLName str
 	_ = reqExist.WithContext(ctxExist)
 	respExist, errExist3 := http.DefaultClient.Do(reqExist)
 	if errExist3 != nil || respExist.StatusCode != http.StatusOK {
-		logger.Infow(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
-			"error": errExist3, "status": respExist.StatusCode})
+		if respExist != nil {
+			logger.Errorw(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
+				"error": errExist3, "status": respExist.StatusCode})
+		} else {
+			logger.Errorw(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
+				"error": errExist3})
+		}
+
 		//if head is not supported by server we cannot use this test and just try to continue
-		if respExist.StatusCode != http.StatusMethodNotAllowed {
+		if respExist != nil && respExist.StatusCode != http.StatusMethodNotAllowed {
 			logger.Errorw(ctx, "http head from url: file does not exist here, aborting", log.Fields{"url": urlBase.String(),
 				"error": errExist3, "status": respExist.StatusCode})
 			return fmt.Errorf("http head from url: file does not exist here, aborting: %s, error: %s, status: %d",
@@ -204,10 +211,12 @@ func (dm *adapterDownloadManager) downloadFile(ctx context.Context, aURLName str
 		}
 
 		fileStats, statsErr := file.Stat()
-		if err != nil {
+		if statsErr != nil {
 			logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
 		}
-		logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileStats.Size()})
+		if fileStats != nil {
+			logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileStats.Size()})
+		}
 
 		for _, pDnldImgDsc := range dm.downloadImageDscSlice {
 			if (*pDnldImgDsc).Name == aFileName {
@@ -225,13 +234,16 @@ func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 	aLocalPath string) (int64, error) {
 	//maybe we can also use FileSize from dm.downloadImageDscSlice - future option?
 
-	//nolint:gosec
-	file, err := os.Open(aLocalPath + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))
 	if err != nil {
 		return 0, err
 	}
-	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
@@ -244,13 +256,16 @@ func (dm *adapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 //getDownloadImageBuffer returns the content of the requested file as byte slice
 func (dm *adapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aFileName string,
 	aLocalPath string) ([]byte, error) {
-	//nolint:gosec
-	file, err := os.Open(aLocalPath + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))
 	if err != nil {
 		return nil, err
 	}
-	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
