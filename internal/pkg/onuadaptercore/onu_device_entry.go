@@ -892,6 +892,22 @@ func (oo *OnuDeviceEntry) incrementMibDataSync(ctx context.Context) {
 	logger.Debugf(ctx, "mibDataSync updated - mds: %d - device-id: %s", oo.sOnuPersistentData.PersMibDataSyncAdpt, oo.deviceID)
 }
 
+func (oo *OnuDeviceEntry) getActiveImageVersion(ctx context.Context) string {
+	if oo.onuSwImageIndications.activeEntityEntry.valid {
+		return oo.onuSwImageIndications.activeEntityEntry.version
+	}
+	logger.Debugw(ctx, "Active Image is not valid", log.Fields{"device-id": oo.deviceID})
+	return ""
+}
+
+func (oo *OnuDeviceEntry) getInactiveImageVersion(ctx context.Context) string {
+	if oo.onuSwImageIndications.inactiveEntityEntry.valid {
+		return oo.onuSwImageIndications.inactiveEntityEntry.version
+	}
+	logger.Debugw(ctx, "Inactive Image is not valid", log.Fields{"device-id": oo.deviceID})
+	return ""
+}
+
 func (oo *OnuDeviceEntry) buildMibTemplatePath() string {
 	oo.mutexPersOnuConfig.RLock()
 	defer oo.mutexPersOnuConfig.RUnlock()
