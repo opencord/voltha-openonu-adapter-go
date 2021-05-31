@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -136,13 +137,16 @@ func (dm *fileDownloadManager) GetImageBufferLen(ctx context.Context, aFileName 
 
 //GetDownloadImageBuffer returns the content of the requested file as byte slice
 func (dm *fileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFileName string) ([]byte, error) {
-	//nolint:gosec
-	file, err := os.Open(cDefaultLocalDir + "/" + aFileName)
+	file, err := os.Open(filepath.Clean(cDefaultLocalDir + "/" + aFileName))
 	if err != nil {
 		return nil, err
 	}
-	//nolint:errcheck
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
+		}
+	}()
 
 	stats, statsErr := file.Stat()
 	if statsErr != nil {
