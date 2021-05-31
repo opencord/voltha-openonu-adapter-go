@@ -2501,8 +2501,24 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 	eventContext["olt-serial-number"] = oltSerialNumber
 	eventContext["device-id"] = aDeviceID
 	eventContext["registration-id"] = aDeviceID //py: string(device_id)??
-	logger.Debugw(ctx, "prepare ONU_ACTIVATED event",
-		log.Fields{"device-id": aDeviceID, "EventContext": eventContext})
+	eventContext["num-of-unis"] = strconv.Itoa(len(dh.uniEntityMap))
+	eventContext["registration_id"] = aDeviceID //py: string(device_id)??
+	if deviceEntry := dh.getOnuDeviceEntry(ctx, false); deviceEntry != nil {
+		deviceEntry.mutexPersOnuConfig.RLock()
+		eventContext["equipment-id"] = deviceEntry.sOnuPersistentData.PersEquipmentID
+		deviceEntry.mutexPersOnuConfig.RUnlock()
+		eventContext["software-version"] = deviceEntry.getActiveImageVersion(ctx)
+		deviceEntry.mutexPersOnuConfig.RLock()
+		eventContext["vendor"] = deviceEntry.sOnuPersistentData.PersVendorID
+		deviceEntry.mutexPersOnuConfig.RUnlock()
+		eventContext["inactive-software-version"] = deviceEntry.getInactiveImageVersion(ctx)
+		logger.Debugw(ctx, "prepare ONU_ACTIVATED event",
+			log.Fields{"device-id": aDeviceID, "EventContext": eventContext})
+	} else {
+		logger.Errorw(ctx, "Failed to fetch device-entry. ONU_ACTIVATED event is not sent",
+			log.Fields{"device-id": aDeviceID})
+		return
+	}
 
 	/* Populating device event body */
 	de.Context = eventContext
