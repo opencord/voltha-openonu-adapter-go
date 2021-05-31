@@ -2456,6 +2456,13 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 	eventContext["olt-serial-number"] = oltSerialNumber
 	eventContext["device-id"] = aDeviceID
 	eventContext["registration-id"] = aDeviceID //py: string(device_id)??
+	eventContext["num-of-unis"] = strconv.Itoa(len(dh.uniEntityMap))
+	eventContext["device-id"] = aDeviceID
+	eventContext["registration_id"] = aDeviceID //py: string(device_id)??
+	eventContext["equipment-id"] = dh.getOnuDeviceEntry(ctx, false).sOnuPersistentData.PersEquipmentID
+	eventContext["software-version"] = dh.getOnuDeviceEntry(ctx, false).onuSwImageIndications.activeEntityEntry.version
+	eventContext["vendor"] = dh.getOnuDeviceEntry(ctx, false).sOnuPersistentData.PersVendorID
+	eventContext["inactive-software-version"] = dh.getOnuDeviceEntry(ctx, false).onuSwImageIndications.inactiveEntityEntry.version
 	logger.Debugw(ctx, "prepare ONU_ACTIVATED event",
 		log.Fields{"device-id": aDeviceID, "EventContext": eventContext})
 
