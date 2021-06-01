@@ -18,6 +18,7 @@ package common
 import (
 	"context"
 	"github.com/opencord/voltha-lib-go/v4/pkg/db"
+	"google.golang.org/grpc/status"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -102,4 +103,63 @@ func (ap *AdapterProxy) SendInterAdapterMessage(ctx context.Context,
 	success, result := ap.kafkaICProxy.InvokeRPC(ctx, rpc, &topic, &replyToTopic, true, proxyDeviceId, args...)
 	logger.Debugw(ctx, "inter-adapter-msg-response", log.Fields{"replyTopic": replyToTopic, "success": success})
 	return unPackResponse(ctx, rpc, "", success, result)
+}
+
+func (ap *AdapterProxy) TechProfileInstanceRequest(ctx context.Context,
+	tpPath string,
+	parentPonPort uint32,
+	onuID uint32,
+	uniID uint32,
+	fromAdapter string,
+	toAdapter string,
+	toDeviceId string,
+	proxyDeviceId string) (*ic.InterAdapterTechProfileDownloadMessage, error) {
+	logger.Debugw(ctx, "sending-tech-profile-instance-request-message", log.Fields{"from": fromAdapter,
+		"to": toAdapter, "toDevice": toDeviceId, "proxyDevice": proxyDeviceId})
+
+	// Set up the required rpc arguments
+	endpoint, err := ap.endpointMgr.GetEndpoint(ctx, toDeviceId, toAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	//Build the inter adapter message
+	tpReqMsg := &ic.InterAdapterTechProfileInstanceRequestMessage{
+		TpPath: tpPath,
+		ParentDeviceId: toDeviceId,
+		ParentPonPort:parentPonPort,
+		OnuId:onuID,
+		UniId:uniID,
+	}
+
+	args := make([]*kafka.KVArg, 1)
+	args[0] = &kafka.KVArg{
+		Key:   "msg",
+		Value: tpReqMsg,
+	}
+
+	topic := kafka.Topic{Name: string(endpoint)}
+	replyToTopic := kafka.Topic{Name: fromAdapter}
+	rpc := "process_tech_profile_instance_request"
+
+	ctx = context.WithValue(ctx, "inter-adapter-tp-req-msg", tpPath)
+	success, result := ap.kafkaICProxy.InvokeRPC(ctx, rpc, &topic, &replyToTopic, true, proxyDeviceId, args...)
+	logger.Debugw(ctx, "inter-adapter-msg-response", log.Fields{"replyTopic": replyToTopic, "success": success})
+	if success {
+		tpDwnldMsg := &ic.InterAdapterTechProfileDownloadMessage{}
+		if err := ptypes.UnmarshalAny(result, tpDwnldMsg); err != nil {
+			logger.Warnw(ctx, "cannot-unmarshal-response", log.Fields{"error": err})
+			return nil, err
+		}
+		return tpDwnldMsg, nil
+	} else {
+		unpackResult := &ic.Error{}
+		var err error
+		if err = ptypes.UnmarshalAny(result, unpackResult); err != nil {
+			logger.Warnw(ctx, "cannot-unmarshal-response", log.Fields{"error": err})
+		}
+		logger.Debugw(ctx, "TechProfileInstanceRequest-return", log.Fields{"tpPath": tpPath, "success": success, "error": err})
+
+		return nil, status.Error(ICProxyErrorCodeToGrpcErrorCode(ctx, unpackResult.Code), unpackResult.Reason)
+	}
 }

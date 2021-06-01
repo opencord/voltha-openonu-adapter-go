@@ -221,12 +221,17 @@ type IGemPortAttribute struct {
 }
 
 type TechProfileMgr struct {
-	config            *TechProfileFlags
-	resourceMgr       iPonResourceMgr
-	OnuIDMgmtLock     sync.RWMutex
-	GemPortIDMgmtLock sync.RWMutex
-	AllocIDMgmtLock   sync.RWMutex
+	config             *TechProfileFlags
+	resourceMgr        iPonResourceMgr
+	OnuIDMgmtLock      sync.RWMutex
+	GemPortIDMgmtLock  sync.RWMutex
+	AllocIDMgmtLock    sync.RWMutex
+	tpInstance         map[string]*tp_pb.TechProfileInstance // Map of tp path to tp instance
+	tpInstanceLock     sync.RWMutex
+	eponTpInstance     map[string]*tp_pb.EponTechProfileInstance
+	eponTpInstanceLock sync.RWMutex
 }
+
 type DefaultTechProfile struct {
 	Name                           string             `json:"name"`
 	ProfileType                    string             `json:"profile_type"`
@@ -431,6 +436,8 @@ func NewTechProfile(ctx context.Context, resourceMgr iPonResourceMgr, KVStoreTyp
 		return nil, errors.New("KV backend init failed")
 	}
 	techprofileObj.resourceMgr = resourceMgr
+	techprofileObj.tpInstance = make(map[string]*tp_pb.TechProfileInstance)
+	techprofileObj.eponTpInstance = make(map[string]*tp_pb.EponTechProfileInstance)
 	logger.Debug(ctx, "Initializing techprofile object instance success")
 	return &techprofileObj, nil
 }
