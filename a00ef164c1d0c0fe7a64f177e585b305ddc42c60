@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5db008e8_67aad564",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T09:43:33Z",
+      "side": 1,
+      "message": "errorw",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e6f50de5_c82c16ff",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T09:43:33Z",
+      "side": 1,
+      "message": "same",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e7a1f04_44f28cb7",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T09:43:33Z",
+      "side": 1,
+      "message": "same",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6697c638_f80afdcd",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 382,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T09:43:33Z",
+      "side": 1,
+      "message": "does this really include the device id ?",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
