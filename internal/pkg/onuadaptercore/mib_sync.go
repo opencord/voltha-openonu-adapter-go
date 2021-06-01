@@ -31,11 +31,11 @@ import (
 	//"sync"
 	"time"
 
-	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
+	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	//"github.com/opencord/voltha-protos/v4/go/voltha"
@@ -330,7 +330,7 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 				if success {
 					logger.Debugw(ctx, "reconciling flows has been finished in time",
 						log.Fields{"device-id": oo.deviceID})
-					oo.baseDeviceHandler.stopReconciling(ctx)
+					oo.baseDeviceHandler.stopReconciling(ctx, true)
 					_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
 
 				} else {
@@ -1093,7 +1093,7 @@ func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 		oo.baseDeviceHandler.chReconcilingFlowsFinished <- false
 	}
 	if oo.baseDeviceHandler.isReconciling() {
-		oo.baseDeviceHandler.chReconcilingFinished <- false
+		oo.baseDeviceHandler.stopReconciling(ctx, false)
 	}
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
