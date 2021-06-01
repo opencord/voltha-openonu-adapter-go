@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 	"strconv"
 	"sync"
 	"time"
@@ -29,11 +30,11 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/looplab/fsm"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
-	"github.com/opencord/voltha-lib-go/v4/pkg/db"
-	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
-	flow "github.com/opencord/voltha-lib-go/v4/pkg/flows"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v5/pkg/db"
+	"github.com/opencord/voltha-lib-go/v5/pkg/events/eventif"
+	flow "github.com/opencord/voltha-lib-go/v5/pkg/flows"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	vc "github.com/opencord/voltha-protos/v4/go/common"
 	"github.com/opencord/voltha-protos/v4/go/extension"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
@@ -403,52 +404,59 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 			techProfMsg.UniId, dh.deviceID))
 	}
 	uniID := uint8(techProfMsg.UniId)
-	tpID, err := GetTpIDFromTpPath(techProfMsg.Path)
+	tpID, err := GetTpIDFromTpPath(techProfMsg.TpInstancePath)
 	if err != nil {
-		logger.Errorw(ctx, "error-parsing-tpid-from-tppath", log.Fields{"err": err, "tp-path": techProfMsg.Path})
+		logger.Errorw(ctx, "error-parsing-tpid-from-tppath", log.Fields{"err": err, "tp-path": techProfMsg.TpInstancePath})
 		return err
 	}
-	logger.Debugw(ctx, "unmarshal-techprof-msg-body", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
+	logger.Debugw(ctx, "unmarshal-techprof-msg-body", log.Fields{"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 
-	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.Path); bTpModify {
-		logger.Debugw(ctx, "onu-uni-tp-path-modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
-		//	if there has been some change for some uni TechProfilePath
-		//in order to allow concurrent calls to other dh instances we do not wait for execution here
-		//but doing so we can not indicate problems to the caller (who does what with that then?)
-		//by now we just assume straightforward successful execution
-		//TODO!!! Generally: In this scheme it would be good to have some means to indicate
-		//  possible problems to the caller later autonomously
+	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.TpInstancePath); bTpModify {
 
-		// deadline context to ensure completion of background routines waited for
-		//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
-		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-		dctx, cancel := context.WithDeadline(context.Background(), deadline)
+		switch tpInst := techProfMsg.TechTpInstance.(type) {
+		case *ic.InterAdapterTechProfileDownloadMessage_TpInstance:
+			logger.Debugw(ctx, "onu-uni-tp-path-modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
+			//	if there has been some change for some uni TechProfilePath
+			//in order to allow concurrent calls to other dh instances we do not wait for execution here
+			//but doing so we can not indicate problems to the caller (who does what with that then?)
+			//by now we just assume straightforward successful execution
+			//TODO!!! Generally: In this scheme it would be good to have some means to indicate
+			//  possible problems to the caller later autonomously
 
-		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+			// deadline context to ensure completion of background routines waited for
+			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
+			deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+			dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		var wg sync.WaitGroup
-		wg.Add(1) // for the 1 go routine to finish
-		// attention: deadline completion check and wg.Done is to be done in both routines
-		go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.Path, &wg)
-		dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
-		if tpErr := dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
-			logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.deviceID, "err": tpErr, "tp-path": techProfMsg.Path})
-			return tpErr
+			dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+
+			var wg sync.WaitGroup
+			wg.Add(1) // for the 1 go routine to finish
+			// attention: deadline completion check and wg.Done is to be done in both routines
+			go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.TpInstancePath, *tpInst.TpInstance, &wg)
+			dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
+			if tpErr := dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
+				logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.deviceID, "err": tpErr, "tp-path": techProfMsg.TpInstancePath})
+				return tpErr
+			}
+			deadline = time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+			pDevEntry.resetKvProcessingErrorIndication()
+			wg.Add(1) // for the 1 go routine to finish
+			go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg)
+			dh.waitForCompletion(ctx, cancel2, &wg, "TechProfDwld") //wait for background process to finish
+			if kvErr := pDevEntry.getKvProcessingErrorIndication(); kvErr != nil {
+				logger.Errorw(ctx, "error-updating-KV", log.Fields{"device-id": dh.deviceID, "err": kvErr, "tp-path": techProfMsg.TpInstancePath})
+				return kvErr
+			}
+			return nil
+		default:
+			logger.Errorw(ctx, "unsupported-tp-instance-type", log.Fields{"tp-path": techProfMsg.TpInstancePath})
+			return fmt.Errorf("unsupported-tp-instance-type--tp-id-%v", techProfMsg.TpInstancePath)
 		}
-		deadline = time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-		dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
-		pDevEntry.resetKvProcessingErrorIndication()
-		wg.Add(1) // for the 1 go routine to finish
-		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg)
-		dh.waitForCompletion(ctx, cancel2, &wg, "TechProfDwld") //wait for background process to finish
-		if kvErr := pDevEntry.getKvProcessingErrorIndication(); kvErr != nil {
-			logger.Errorw(ctx, "error-updating-KV", log.Fields{"device-id": dh.deviceID, "err": kvErr, "tp-path": techProfMsg.Path})
-			return kvErr
-		}
-		return nil
 	}
 	// no change, nothing really to do - return success
-	logger.Debugw(ctx, "onu-uni-tp-path-not-modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.Path, "tpID": tpID})
+	logger.Debugw(ctx, "onu-uni-tp-path-not-modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 	return nil
 }
 
@@ -487,9 +495,9 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 			delGemPortMsg.UniId, dh.deviceID))
 	}
 	uniID := uint8(delGemPortMsg.UniId)
-	tpID, err := GetTpIDFromTpPath(delGemPortMsg.TpPath)
+	tpID, err := GetTpIDFromTpPath(delGemPortMsg.TpInstancePath)
 	if err != nil {
-		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": delGemPortMsg.TpPath})
+		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": delGemPortMsg.TpInstancePath})
 		return err
 	}
 
@@ -503,7 +511,7 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 
 	var wg sync.WaitGroup
 	wg.Add(1) // for the 1 go routine to finish
-	go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delGemPortMsg.TpPath,
+	go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delGemPortMsg.TpInstancePath,
 		cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 	dh.waitForCompletion(ctx, cancel, &wg, "GemDelete") //wait for background process to finish
 
@@ -545,7 +553,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 			delTcontMsg.UniId, dh.deviceID))
 	}
 	uniID := uint8(delTcontMsg.UniId)
-	tpPath := delTcontMsg.TpPath
+	tpPath := delTcontMsg.TpInstancePath
 	tpID, err := GetTpIDFromTpPath(tpPath)
 	if err != nil {
 		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": tpPath})
@@ -563,7 +571,7 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 
 		var wg sync.WaitGroup
 		wg.Add(2) // for the 2 go routines to finish
-		go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delTcontMsg.TpPath,
+		go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delTcontMsg.TpInstancePath,
 			cResourceTcont, delTcontMsg.AllocId, &wg)
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
@@ -620,7 +628,7 @@ func (dh *deviceHandler) processInterAdapterMessage(ctx context.Context, msg *ic
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *openflow_13.FlowChanges,
 	apOfGroupChanges *openflow_13.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
-	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID})
+	logger.Infow(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID})
 
 	var retError error = nil
 	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
@@ -640,7 +648,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
 				//this is some downstream flow, not regarded as error, just ignored
-				logger.Debugw(ctx, "flow-remove for downstream: ignore and continuing on checking further flows", log.Fields{
+				logger.Infow(ctx, "flow-remove for downstream: ignore and continuing on checking further flows", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort})
 				continue
 			} else {
@@ -656,7 +664,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 					continue
 				}
 				flowOutPort := flow.GetOutPort(flowItem)
-				logger.Debugw(ctx, "flow-remove port indications", log.Fields{
+				logger.Infow(ctx, "flow-remove port indications", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
 					"uniPortName": loUniPort.name})
 				err := dh.removeFlowItemFromUniPort(ctx, flowItem, loUniPort)
@@ -676,7 +684,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	if apOfFlowChanges.ToAdd != nil {
 		for _, flowItem := range apOfFlowChanges.ToAdd.Items {
 			if flowItem.GetCookie() == 0 {
-				logger.Debugw(ctx, "incremental flow-add no cookie: ignore and continuing on checking further flows", log.Fields{
+				logger.Infow(ctx, "incremental flow-add no cookie: ignore and continuing on checking further flows", log.Fields{
 					"device-id": dh.deviceID})
 				retError = fmt.Errorf("flow-add no cookie, device-id %s", dh.deviceID)
 				continue
@@ -689,7 +697,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
 				//this is some downstream flow
-				logger.Debugw(ctx, "flow-add for downstream: ignore and continuing on checking further flows", log.Fields{
+				logger.Infow(ctx, "flow-add for downstream: ignore and continuing on checking further flows", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort})
 				continue
 			} else {
@@ -718,7 +726,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				}
 
 				flowOutPort := flow.GetOutPort(flowItem)
-				logger.Debugw(ctx, "flow-add port indications", log.Fields{
+				logger.Infow(ctx, "flow-add port indications", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
 					"uniPortName": loUniPort.name})
 				err := dh.addFlowItemToUniPort(ctx, flowItem, loUniPort)
@@ -864,6 +872,27 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 		}
 		techProfsFound = true
 		for tpID := range uniData.PersTpPathMap {
+			// Request the TpInstance again from the openolt adapter in case of reconcile
+			iaTechTpInst, err := dh.AdapterProxy.TechProfileInstanceRequest(ctx, uniData.PersTpPathMap[tpID],
+				dh.device.ParentPortNo, dh.device.ProxyAddress.OnuId, uint32(uniData.PersUniID),
+				dh.pOpenOnuAc.config.Topic, dh.ProxyAddressType,
+				dh.parentID, dh.ProxyAddressID)
+			if err != nil || iaTechTpInst == nil {
+				logger.Errorw(ctx, "error fetching tp instance",
+					log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID, "err": err})
+				continue
+			}
+			var tpInst tech_profile.TechProfileInstance
+			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
+			case *ic.InterAdapterTechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
+				tpInst = *techTpInst.TpInstance
+				logger.Debugw(ctx, "received-tp-instance-successfully-after-reconcile", log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+
+			default: // do not support epon or other tech
+				logger.Errorw(ctx, "unsupported-tech", log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+				continue
+			}
+
 			// deadline context to ensure completion of background routines waited for
 			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 			deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
@@ -872,7 +901,7 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 			dh.pOnuTP.resetTpProcessingErrorIndication(uniData.PersUniID, tpID)
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
-			go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], &wg)
+			go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], tpInst, &wg)
 			dh.waitForCompletion(ctx, cancel, &wg, "TechProfReconcile") //wait for background process to finish
 			if err := dh.pOnuTP.getTpProcessingErrorIndication(uniData.PersUniID, tpID); err != nil {
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
@@ -2903,7 +2932,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 
 	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
 	dh.lockVlanConfig.RLock()
-	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID})
+	logger.Infow(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		err := dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
 			loMatchVlan, loSetVlan, loSetPcp, false)
@@ -2988,7 +3017,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 					return fmt.Errorf("can't start UniVlanConfigFsm for device-id %x", dh.deviceID)
 				}
 				/***** UniVlanConfigFsm started */
-				logger.Debugw(ctx, "UniVlanConfigFsm started", log.Fields{
+				logger.Infow(ctx, "UniVlanConfigFsm started", log.Fields{
 					"state": pVlanFilterStatemachine.Current(), "device-id": dh.deviceID,
 					"UniPort": apUniPort.portNo})
 			} else {
