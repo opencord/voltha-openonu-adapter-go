@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 	"strconv"
 	"sync"
 	"time"
@@ -410,29 +411,36 @@ func (dh *deviceHandler) processInterAdapterTechProfileDownloadReqMessage(
 	}
 
 	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.Path); bTpModify {
-		//	if there has been some change for some uni TechProfilePath
-		//in order to allow concurrent calls to other dh instances we do not wait for execution here
-		//but doing so we can not indicate problems to the caller (who does what with that then?)
-		//by now we just assume straightforward successful execution
-		//TODO!!! Generally: In this scheme it would be good to have some means to indicate
-		//  possible problems to the caller later autonomously
 
-		// deadline context to ensure completion of background routines waited for
-		//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
-		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-		dctx, cancel := context.WithDeadline(context.Background(), deadline)
+		switch tpInst := techProfMsg.TechTpInstance.(type) {
+		case *ic.InterAdapterTechProfileDownloadMessage_TpInstance:
+			//	if there has been some change for some uni TechProfilePath
+			//in order to allow concurrent calls to other dh instances we do not wait for execution here
+			//but doing so we can not indicate problems to the caller (who does what with that then?)
+			//by now we just assume straightforward successful execution
+			//TODO!!! Generally: In this scheme it would be good to have some means to indicate
+			//  possible problems to the caller later autonomously
 
-		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
-		pDevEntry.resetKvProcessingErrorIndication()
+			// deadline context to ensure completion of background routines waited for
+			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
+			deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+			dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		var wg sync.WaitGroup
-		wg.Add(2) // for the 2 go routines to finish
-		// attention: deadline completion check and wg.Done is to be done in both routines
-		go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.Path, &wg)
-		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
-		dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
+			dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+			pDevEntry.resetKvProcessingErrorIndication()
 
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
+			var wg sync.WaitGroup
+			wg.Add(2) // for the 2 go routines to finish
+			// attention: deadline completion check and wg.Done is to be done in both routines
+			go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.Path, *tpInst.TpInstance, &wg)
+			go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
+			dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
+
+			return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
+		default:
+			logger.Errorw(ctx, "unsupported-tp-instance-type", log.Fields{"tp-path": techProfMsg.Path})
+			return fmt.Errorf("unsupported-tp-instance-type--tp-id-%v", techProfMsg.Path)
+		}
 	}
 	// no change, nothing really to do - return success
 	return nil
@@ -849,6 +857,27 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 		}
 		techProfsFound = true
 		for tpID := range uniData.PersTpPathMap {
+			// Request the TpInstance again from the openolt adapter in case of reconcile
+			iaTechTpInst, err := dh.AdapterProxy.TechProfileInstanceRequest(ctx, uniData.PersTpPathMap[tpID],
+				dh.device.ParentPortNo, dh.device.ProxyAddress.OnuId, uint32(uniData.PersUniID),
+				dh.pOpenOnuAc.config.Topic, dh.ProxyAddressType,
+				dh.parentID, dh.ProxyAddressID)
+			if err != nil || iaTechTpInst == nil {
+				logger.Errorw(ctx, "error fetching tp instance",
+					log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID, "err": err})
+				continue
+			}
+			var tpInst tech_profile.TechProfileInstance
+			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
+			case *ic.InterAdapterTechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
+				tpInst = *techTpInst.TpInstance
+				logger.Debugw(ctx, "received-tp-instance-successfully-after-reconcile", log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+
+			default: // do not support epon or other tech
+				logger.Errorw(ctx, "unsupported-tech", log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+				continue
+			}
+
 			// deadline context to ensure completion of background routines waited for
 			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 			deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
@@ -857,7 +886,7 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 			dh.pOnuTP.resetTpProcessingErrorIndication(uniData.PersUniID, tpID)
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
-			go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], &wg)
+			go dh.pOnuTP.configureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], tpInst, &wg)
 			dh.waitForCompletion(ctx, cancel, &wg, "TechProfReconcile") //wait for background process to finish
 			if err := dh.pOnuTP.getTpProcessingErrorIndication(uniData.PersUniID, tpID); err != nil {
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})

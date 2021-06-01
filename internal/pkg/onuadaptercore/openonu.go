@@ -305,6 +305,12 @@ func (oo *OpenONUAC) Process_inter_adapter_message(ctx context.Context, msg *ic.
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
 }
 
+//Process_tech_profile_instance_request not implemented
+func (oo *OpenONUAC) Process_tech_profile_instance_request(ctx context.Context, msg *ic.InterAdapterTechProfileInstanceRequestMessage) *ic.InterAdapterTechProfileDownloadMessage {
+	logger.Error(ctx, "unImplemented")
+	return nil
+}
+
 //Adapter_descriptor not implemented
 func (oo *OpenONUAC) Adapter_descriptor(ctx context.Context) error {
 	return errors.New("unImplemented")
