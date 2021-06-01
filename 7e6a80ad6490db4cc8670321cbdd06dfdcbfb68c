@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "6977bb8b_3eb01de8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 414,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-01T15:18:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b1a82920_c7ae1f08",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b65c7f68_324401a2",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 23
@@ -33,6 +51,24 @@
       "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "68baf702_e2602f1f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 451,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-01T15:18:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b65c7f68_324401a2",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "7c59c643_1128f771",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 334,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-01T15:18:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "963782e9_581214da",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1eeb002f_0bed15e9",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 23
@@ -64,6 +118,24 @@
       "writtenOn": "2021-06-01T10:13:13Z",
       "side": 1,
       "message": "given that the DB is strongly consistent, what could cause data inconsistency ?",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ea3f4b8_e058ba1a",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1199,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-01T15:18:44Z",
+      "side": 1,
+      "message": "Think that we received a service with alloc-id 1024 for uni-1. We allocated the free tcont instance 32768 and started to configure ONU on omci channel. Simultaneously we received the same service for uni-2 with same alloc-id. Then we check the DB and see that this alloc is already allocated and configured, so we just use the same instance id in our remaining configurations for uni-2. By the time if the omci messaging fails for uni-1 and we revert the DB and free the instance 32768 this cause inconsistence data for uni-2. To get rid of this problem we need to run the FSMs for uni-1 and uni-2 sequentially.",
+      "parentUuid": "1eeb002f_0bed15e9",
       "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "b5bfc623_fd598bd1",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-01T15:18:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "107b3b0b_079f2e9b",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6bc36982_784b60c5",
         "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
         "patchSetId": 23
@@ -101,6 +191,24 @@
       "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cbdb635d_31bd4c6b",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-01T15:18:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6bc36982_784b60c5",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
