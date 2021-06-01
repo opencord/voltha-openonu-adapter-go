@@ -22,6 +22,30 @@
       "revId": "b2ee9bc16a2e7b9f64645b31d81ce8f78d7ea013",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "295e80af_323e0ccb",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1443,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-01T16:52:41Z",
+      "side": 1,
+      "message": "Right. @ozge. You will need to handle the GetResponseType OMCI message after sending this GetRequestType message. The \"sendGetMe\" will only return the reference to the sent message and does not contain the response.",
+      "parentUuid": "64826d28_28b48ba2",
+      "range": {
+        "startLine": 1443,
+        "startChar": 22,
+        "endLine": 1443,
+        "endChar": 62
+      },
+      "revId": "b2ee9bc16a2e7b9f64645b31d81ce8f78d7ea013",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
