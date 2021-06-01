@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c34b3cac_96356700",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 2698,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-01T09:56:25Z",
+      "side": 1,
+      "message": "Why should this function be globally visible?",
+      "range": {
+        "startLine": 2698,
+        "startChar": 30,
+        "endLine": 2698,
+        "endChar": 53
+      },
+      "revId": "1e9eb0a3a19fc277e069cee636c1d6aa1f14ed05",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2087cfbe_7169c647",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 2762,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-01T09:56:25Z",
+      "side": 1,
+      "message": "Why should this function be globally visible?",
+      "range": {
+        "startLine": 2762,
+        "startChar": 13,
+        "endLine": 2762,
+        "endChar": 47
+      },
+      "revId": "1e9eb0a3a19fc277e069cee636c1d6aa1f14ed05",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "441a8f47_88bc4dfc",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 2773,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-01T09:56:25Z",
+      "side": 1,
+      "message": "Function isn\u0027t unused.",
+      "range": {
+        "startLine": 2773,
+        "startChar": 46,
+        "endLine": 2773,
+        "endChar": 52
+      },
+      "revId": "1e9eb0a3a19fc277e069cee636c1d6aa1f14ed05",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
