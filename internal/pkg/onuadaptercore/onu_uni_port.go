@@ -22,12 +22,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	//"sync"
 	//"time"
 
-	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	vc "github.com/opencord/voltha-protos/v4/go/common"
 	of "github.com/opencord/voltha-protos/v4/go/openflow_13"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
@@ -129,21 +130,29 @@ func (oo *onuUniPort) createVolthaPort(ctx context.Context, apDeviceHandler *dev
 			MaxSpeed:   1000,
 		},
 	}
-	if pUniPort != nil {
-		if err := apDeviceHandler.coreProxy.PortCreated(log.WithSpanFromContext(context.TODO(), ctx),
+	maxRetry := 3
+	retryCnt := 0
+	var err error
+	for retryCnt = 0; retryCnt < maxRetry; retryCnt++ {
+		if err = apDeviceHandler.coreProxy.PortCreated(log.WithSpanFromContext(context.TODO(), ctx),
 			apDeviceHandler.deviceID, pUniPort); err != nil {
-			logger.Fatalf(ctx, "adding-uni-port: create-VOLTHA-Port-failed-%s", err)
-			return err
+			logger.Errorf(ctx, "Device FSM: PortCreated-failed-%s, retrying after a delay", err)
+			// retry after a sleep
+			time.Sleep(2 * time.Second)
+		} else {
+			// success, break from retry loop
+			break
 		}
-		logger.Infow(ctx, "Voltha onuUniPort-added", log.Fields{
-			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
-		oo.pPort = pUniPort
-		oo.operState = vc.OperStatus_DISCOVERED
-	} else {
-		logger.Warnw(ctx, "could not create Voltha UniPort", log.Fields{
-			"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
-		return fmt.Errorf("create Voltha UniPort %d failed on %s", oo.portNo, apDeviceHandler.device.Id)
 	}
+	if retryCnt == maxRetry { // maxed out..
+		logger.Errorf(ctx, "Device FSM: PortCreated-failed-%s", err)
+		return fmt.Errorf("device-fsm-port-create-failed-%s", err)
+	}
+	logger.Infow(ctx, "Voltha onuUniPort-added", log.Fields{
+		"device-id": apDeviceHandler.device.Id, "PortNo": oo.portNo})
+	oo.pPort = pUniPort
+	oo.operState = vc.OperStatus_DISCOVERED
+
 	return nil
 }
 
