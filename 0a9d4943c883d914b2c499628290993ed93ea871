@@ -22,6 +22,30 @@
       "revId": "0a9d4943c883d914b2c499628290993ed93ea871",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e03c1bd1_33483ba9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2464,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-01T06:01:20Z",
+      "side": 1,
+      "message": "Additionally, please store the received pointer and work with it to avoid multiple calls of deviceHandler::getOnuDeviceEntry().",
+      "parentUuid": "c38d4a22_d5fd7adb",
+      "range": {
+        "startLine": 2461,
+        "startChar": 0,
+        "endLine": 2464,
+        "endChar": 94
+      },
+      "revId": "0a9d4943c883d914b2c499628290993ed93ea871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
