@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b1a82920_c7ae1f08",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 414,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T10:13:13Z",
+      "side": 1,
+      "message": "conform to existing logging standards",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b65c7f68_324401a2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 451,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T10:13:13Z",
+      "side": 1,
+      "message": "same",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "963782e9_581214da",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 334,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T10:13:13Z",
+      "side": 1,
+      "message": "debug",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1eeb002f_0bed15e9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1199,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T10:13:13Z",
+      "side": 1,
+      "message": "given that the DB is strongly consistent, what could cause data inconsistency ?",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "107b3b0b_079f2e9b",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T10:13:13Z",
+      "side": 1,
+      "message": "I think that this can be removed",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6bc36982_784b60c5",
+        "filename": "internal/pkg/onuadaptercore/onu_device_db.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-01T10:13:13Z",
+      "side": 1,
+      "message": "same",
+      "revId": "7e6a80ad6490db4cc8670321cbdd06dfdcbfb68c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
