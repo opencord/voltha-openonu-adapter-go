@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "64826d28_28b48ba2",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1443,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-01T10:30:38Z",
+      "side": 1,
+      "message": "You cannot draw this conclusion from meInstance. It only contains a reference to the request sent. You have to check the response somewhere.",
+      "range": {
+        "startLine": 1443,
+        "startChar": 22,
+        "endLine": 1443,
+        "endChar": 62
+      },
+      "revId": "b2ee9bc16a2e7b9f64645b31d81ce8f78d7ea013",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
