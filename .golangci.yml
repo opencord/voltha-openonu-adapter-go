@@ -90,6 +90,7 @@ issues:
     - "don't use underscores in Go names; method Get_onu_images"
     - "don't use underscores in Go names; method Activate_onu_image"
     - "don't use underscores in Go names; method Commit_onu_image"
+    - "don't use underscores in Go names; method Process_tech_profile_instance_request"
     - "Error return value of `dh.coreProxy.PortStateUpdate` is not checked"
     - "Error return value of `rxCallbackEntry.cbFunction` is not checked"
     - "Error return value of `oo.sendNextRequest` is not checked"
