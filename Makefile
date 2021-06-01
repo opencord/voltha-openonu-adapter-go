@@ -73,9 +73,9 @@ endif
 ## Local Development Helpers
 local-lib-go: ## Copies a local version of the voltha-lib-go dependency into the vendor directory
 ifdef LOCAL_LIB_GO
-	rm -rf vendor/github.com/opencord/voltha-lib-go/v4/pkg
-	mkdir -p vendor/github.com/opencord/voltha-lib-go/v4/pkg
-	cp -r ${LOCAL_LIB_GO}/pkg/* vendor/github.com/opencord/voltha-lib-go/v4/pkg/
+	rm -rf vendor/github.com/opencord/voltha-lib-go/v5/pkg
+	mkdir -p vendor/github.com/opencord/voltha-lib-go/v5/pkg
+	cp -r ${LOCAL_LIB_GO}/pkg/* vendor/github.com/opencord/voltha-lib-go/v5/pkg/
 endif
 
 build: docker-build ## Alias for 'docker build'

@@ -33,11 +33,11 @@ import (
 
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif"
 
-	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/common"
+	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	//"github.com/opencord/voltha-protos/v4/go/voltha"

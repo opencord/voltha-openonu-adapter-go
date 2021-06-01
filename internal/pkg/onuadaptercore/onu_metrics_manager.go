@@ -28,9 +28,9 @@ import (
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v4/pkg/db"
-	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-lib-go/v5/pkg/db"
+	"github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
@@ -329,6 +329,13 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		logger.Errorw(ctx, "Can't initialize pmKvStore - no backend connection to PM module",
 			log.Fields{"device-id": dh.deviceID, "service": baseKvStorePath})
 		return nil
+	}
+	// restore data from KV store
+	if err := metricsManager.restorePmData(ctx); err != nil {
+		logger.Errorw(ctx, "error restoring pm data", log.Fields{"err": err})
+		// we continue given that it does not effect the actual services for the ONU,
+		// but there may be some negative effect on PM collection (there may be some mismatch in
+		// the actual PM config and what is present on the device).
 	}
 
 	logger.Info(ctx, "init-onuMetricsManager completed", log.Fields{"device-id": dh.deviceID})
@@ -1116,13 +1123,6 @@ func (mm *onuMetricsManager) flushMetricCollectionChannels(ctx context.Context) 
 // ** L2 PM FSM Handlers start **
 
 func (mm *onuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) {
-	// restore data from KV store
-	if err := mm.restorePmData(ctx); err != nil {
-		logger.Errorw(ctx, "error restoring pm data", log.Fields{"err": err})
-		// we continue given that it does not effect the actual services for the ONU,
-		// but there may be some negative effect on PM collection (there may be some mismatch in
-		// the actual PM config and what is present on the device).
-	}
 
 	// Loop through all the group metrics
 	// If it is a L2 PM Interval metric and it is enabled, then if it is not in the

@@ -24,14 +24,14 @@ import (
 	"sync"
 	"time"
 
-	conf "github.com/opencord/voltha-lib-go/v4/pkg/config"
+	conf "github.com/opencord/voltha-lib-go/v5/pkg/config"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif"
-	"github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore"
-	"github.com/opencord/voltha-lib-go/v4/pkg/events/eventif"
-	"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif"
+	"github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v5/pkg/events/eventif"
+	"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/extension"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	"github.com/opencord/voltha-protos/v4/go/openflow_13"
@@ -303,6 +303,12 @@ func (oo *OpenONUAC) Process_inter_adapter_message(ctx context.Context, msg *ic.
 	logger.Warnw(ctx, "no handler found for received Inter-Proxy-message", log.Fields{
 		"msgToDeviceId": targetDevice})
 	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
+}
+
+//Process_tech_profile_instance_request not implemented
+func (oo *OpenONUAC) Process_tech_profile_instance_request(ctx context.Context, msg *ic.InterAdapterTechProfileInstanceRequestMessage) *ic.InterAdapterTechProfileDownloadMessage {
+	logger.Error(ctx, "unImplemented")
+	return nil
 }
 
 //Adapter_descriptor not implemented
