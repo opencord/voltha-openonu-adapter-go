@@ -65,23 +65,22 @@ github.com/looplab/fsm
 ## explicit
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v4 v4.3.4
+# github.com/opencord/voltha-lib-go/v5 v5.0.0
 ## explicit
-github.com/opencord/voltha-lib-go/v4/pkg/adapters
-github.com/opencord/voltha-lib-go/v4/pkg/adapters/adapterif
-github.com/opencord/voltha-lib-go/v4/pkg/adapters/common
-github.com/opencord/voltha-lib-go/v4/pkg/config
-github.com/opencord/voltha-lib-go/v4/pkg/db
-github.com/opencord/voltha-lib-go/v4/pkg/db/kvstore
-github.com/opencord/voltha-lib-go/v4/pkg/events
-github.com/opencord/voltha-lib-go/v4/pkg/events/eventif
-github.com/opencord/voltha-lib-go/v4/pkg/flows
-github.com/opencord/voltha-lib-go/v4/pkg/kafka
-github.com/opencord/voltha-lib-go/v4/pkg/log
-github.com/opencord/voltha-lib-go/v4/pkg/probe
-github.com/opencord/voltha-lib-go/v4/pkg/techprofile
-github.com/opencord/voltha-lib-go/v4/pkg/version
-# github.com/opencord/voltha-protos/v4 v4.1.10
+github.com/opencord/voltha-lib-go/v5/pkg/adapters
+github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif
+github.com/opencord/voltha-lib-go/v5/pkg/adapters/common
+github.com/opencord/voltha-lib-go/v5/pkg/config
+github.com/opencord/voltha-lib-go/v5/pkg/db
+github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore
+github.com/opencord/voltha-lib-go/v5/pkg/events
+github.com/opencord/voltha-lib-go/v5/pkg/events/eventif
+github.com/opencord/voltha-lib-go/v5/pkg/flows
+github.com/opencord/voltha-lib-go/v5/pkg/kafka
+github.com/opencord/voltha-lib-go/v5/pkg/log
+github.com/opencord/voltha-lib-go/v5/pkg/probe
+github.com/opencord/voltha-lib-go/v5/pkg/version
+# github.com/opencord/voltha-protos/v4 v4.2.0
 ## explicit
 github.com/opencord/voltha-protos/v4/go/common
 github.com/opencord/voltha-protos/v4/go/ext/config
