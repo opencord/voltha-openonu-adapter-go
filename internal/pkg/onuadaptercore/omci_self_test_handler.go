@@ -23,7 +23,7 @@ import (
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	"github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/extension"
 	"sync"
 	"time"
