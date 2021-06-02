@@ -155,6 +155,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 		requestEvent:                aRequestEvent,
 		omciDownloadWindowSizeLimit: cOmciDownloadWindowSizeLimit,
 		omciSectionInterleaveDelay:  cOmciSectionInterleaveMilliseconds,
+		downloadToOnuTimeout4MB:     apDeviceHandler.pOpenOnuAc.dlToOnuTimeout4M,
 		waitCountEndSwDl:            cWaitCountEndSwDl,
 		waitDelayEndSwDl:            cWaitDelayEndSwDlSeconds,
 		volthaDownloadState:         voltha.ImageState_DOWNLOAD_STARTED, //if FSM created we can assume that the download (to adapter) really started
