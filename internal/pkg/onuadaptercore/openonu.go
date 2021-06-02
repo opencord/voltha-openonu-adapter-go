@@ -604,6 +604,8 @@ func (oo *OpenONUAC) Single_get_value_request(ctx context.Context, request exten
 			// The timeout handling is already implemented in omci_self_test_handler module
 			resp := <-respChan
 			return &resp, nil
+		case *extension.GetValueRequest_OnuInfo:
+			return handler.getOnuOMCICounters(ctx, reqType.OnuInfo), nil
 		default:
 			return postUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
 
