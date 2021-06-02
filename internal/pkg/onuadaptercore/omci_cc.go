@@ -50,7 +50,6 @@ const connectivityModeValue = uint8(5)
 
 //const defaultTPID = uint16(0x8100)
 //const broadComDefaultVID = uint16(4091)
-
 const unusedTcontAllocID = uint16(0xFFFF) //common unused AllocId for G.984 and G.987 systems
 
 const cOmciBaseMessageTrailerLen = 40
@@ -1344,6 +1343,39 @@ func (oo *omciCC) sendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 	}
 	logger.Errorw(ctx, "Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil, omciErr.GetError()
+}
+
+func (oo *omciCC) sendGetMeWithAttributeMask(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributesMask uint16,
+	timeout int, highPrio bool, rxChan chan Message) error {
+
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send get-request-msg", log.Fields{"classID": classID, "device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	request := &omci.GetRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityInstance: entityID,
+			EntityClass:    classID,
+		},
+		AttributeMask: requestedAttributesMask,
+	}
+
+	pkt, err := serialize(ctx, omci.GetRequestType, request, tid)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize get-request", log.Fields{"meClassIDName": classID, "Err": err, "device-id": oo.deviceID})
+		return err
+	}
+	omciRxCallbackPair := callbackPair{
+		cbKey:   tid,
+		cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+	err = oo.send(ctx, pkt, timeout, cDefaultRetries, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send get-request-msg", log.Fields{"meClassIDName": classID, "Err": err, "device-id": oo.deviceID})
+		return err
+	}
+	logger.Debugw(ctx, "send get-request-msg done", log.Fields{"meClassIDName": classID, "device-id": oo.deviceID})
+	return nil
 }
 
 func (oo *omciCC) sendCreateDot1PMapper(ctx context.Context, timeout int, highPrio bool,
@@ -2774,7 +2806,8 @@ func (oo *omciCC) sendDownloadSection(ctx context.Context, aTimeout int, highPri
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
-	var localSectionData [31]byte
+	localSectionData := make([]byte, len(aSection))
+
 	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
 	request := &omci.DownloadSectionRequest{
 		MeBasePacket: omci.MeBasePacket{
@@ -3144,4 +3177,63 @@ func (oo *omciCC) CancelRequestMonitoring(ctx context.Context) {
 //time consumed for retry processing of a particular OMCI-request
 func (oo *omciCC) GetMaxOmciTimeoutWithRetries() time.Duration {
 	return time.Duration((cDefaultRetries+1)*oo.pOnuDeviceEntry.pOpenOnuAc.omciTimeout + 1)
+}
+
+func (oo *omciCC) sendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Context, timeout int, highPrio bool,
+	upstream bool, create bool, rxChan chan Message, entityID uint16, classID me.ClassID, controlBlock []uint16) (*me.ManagedEntity, error) {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send-ethernet-frame-extended-pm-me-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(entityID), 16), "create": create, "upstream": upstream})
+
+	meParam := me.ParamData{EntityID: entityID,
+		Attributes: me.AttributeValueMap{"ControlBlock": controlBlock},
+	}
+	var meInstance *me.ManagedEntity
+	var omciErr me.OmciErrors
+	if classID == me.EthernetFrameExtendedPmClassID {
+		meInstance, omciErr = me.NewEthernetFrameExtendedPm(meParam)
+	} else {
+		meInstance, omciErr = me.NewEthernetFrameExtendedPm64Bit(meParam)
+	}
+
+	if omciErr.GetError() == nil {
+		var omciLayer *omci.OMCI
+		var msgLayer gopacket.SerializableLayer
+		var err error
+		if create {
+			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+				omci.AddDefaults(true))
+		} else {
+			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
+				omci.AddDefaults(true))
+		}
+		if err != nil {
+			logger.Errorw(ctx, "cannot-encode-ethernet-frame-extended-pm-me",
+				log.Fields{"err": err, "device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "cannot-serialize-ethernet-frame-extended-pm-me",
+				log.Fields{"err": err, "device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+
+		omciRxCallbackPair := callbackPair{cbKey: tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, pkt, timeout, cDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send ethernet-frame-extended-pm-me",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+		logger.Debugw(ctx, "send-ethernet-frame-extended-pm-me-done",
+			log.Fields{"device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "cannot-generate-ethernet-frame-extended-pm-me-instance",
+		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+	return nil, omciErr.GetError()
 }
