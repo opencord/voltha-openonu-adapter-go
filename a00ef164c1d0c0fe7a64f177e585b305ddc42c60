@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "28fab5de_109b5cb7",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-02T06:45:14Z",
+      "side": 1,
+      "message": "removed this line",
+      "parentUuid": "9dfd70eb_e5c05c1d",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5db008e8_67aad564",
         "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
         "patchSetId": 2
@@ -53,6 +71,42 @@
     },
     {
       "key": {
+        "uuid": "646ce715_ec1236da",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-02T06:45:14Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "5db008e8_67aad564",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "85aff559_b3bf3b39",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-02T06:45:14Z",
+      "side": 1,
+      "message": "you cannot return anything from defer",
+      "parentUuid": "61d67975_d15e4c64",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e6f50de5_c82c16ff",
         "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
         "patchSetId": 2
@@ -81,6 +135,42 @@
       "writtenOn": "2021-06-01T19:15:06Z",
       "side": 1,
       "message": "Please return error here.",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e238f6cc_3b1cfe2c",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-02T06:45:14Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "e6f50de5_c82c16ff",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1ef867a1_3d40ca63",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-02T06:45:14Z",
+      "side": 1,
+      "message": "in won\u0027t work in defer",
+      "parentUuid": "6e7aa89d_d97a0296",
       "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
