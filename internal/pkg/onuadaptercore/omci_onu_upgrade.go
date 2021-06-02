@@ -155,6 +155,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 		requestEvent:                aRequestEvent,
 		omciDownloadWindowSizeLimit: cOmciDownloadWindowSizeLimit,
 		omciSectionInterleaveDelay:  cOmciSectionInterleaveMilliseconds,
+		downloadToOnuTimeout4MB:     apDeviceHandler.pOpenOnuAc.dlToOnuTimeout4M,
 		waitCountEndSwDl:            cWaitCountEndSwDl,
 		waitDelayEndSwDl:            cWaitDelayEndSwDlSeconds,
 		volthaDownloadState:         voltha.ImageState_DOWNLOAD_STARTED, //if FSM created we can assume that the download (to adapter) really started
@@ -264,7 +265,7 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 //  called from 'new' API Download_onu_image
 func (oFsm *OnuUpgradeFsm) SetDownloadParamsAfterDownload(ctx context.Context, aInactiveImageID uint16,
 	apImageRequest *voltha.DeviceImageDownloadRequest, apDownloadManager *fileDownloadManager,
-	aImageIdentifier string, aDownloadTimeout time.Duration) error {
+	aImageIdentifier string) error {
 	oFsm.mutexUpgradeParams.Lock()
 	var pBaseFsm *fsm.FSM = nil
 	if oFsm.pAdaptFsm != nil {
@@ -280,7 +281,6 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParamsAfterDownload(ctx context.Context, a
 		oFsm.imageVersion = apImageRequest.Image.Version
 		oFsm.activateImage = apImageRequest.ActivateOnSuccess
 		oFsm.commitImage = apImageRequest.CommitOnSuccess
-		oFsm.downloadToOnuTimeout4MB = aDownloadTimeout
 		//TODO: currently straightforward options activate and commit are expected to be set and (unconditionally) done
 		//  for separate handling of these options the FSM must accordingly branch from the concerned states - later
 		oFsm.mutexUpgradeParams.Unlock()

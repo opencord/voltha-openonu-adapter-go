@@ -1134,7 +1134,7 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 			err = dh.createOnuUpgradeFsm(ctx, pDevEntry, OmciOnuSwUpgradeDone)
 			if err == nil {
 				if err = dh.pOnuUpradeFsm.SetDownloadParamsAfterDownload(ctx, inactiveImageID,
-					apImageRequest, apDownloadManager, aImageIdentifier, dh.pOpenOnuAc.dlToOnuTimeout4M); err != nil {
+					apImageRequest, apDownloadManager, aImageIdentifier); err != nil {
 					logger.Errorw(ctx, "onu upgrade fsm could not set parameters", log.Fields{
 						"device-id": dh.deviceID, "error": err})
 					return
