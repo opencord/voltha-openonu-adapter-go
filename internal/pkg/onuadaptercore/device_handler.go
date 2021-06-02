@@ -3286,6 +3286,8 @@ func (dh *deviceHandler) startCollector(ctx context.Context) {
 
 	// Start routine to process OMCI GET Responses
 	go dh.pOnuMetricsMgr.processOmciMessages(ctx)
+	// Create Extended Frame PM ME
+	go dh.pOnuMetricsMgr.createEthernetFrameExtendedPMME(ctx)
 	// Initialize the next metric collection time.
 	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
 	// reset like onu rebooted.
@@ -3371,6 +3373,11 @@ func (dh *deviceHandler) getUniPortStatus(ctx context.Context, uniInfo *extensio
 
 	portStatus := NewUniPortStatus(dh.pOnuOmciDevice.PDevOmciCC)
 	return portStatus.getUniPortStatus(ctx, uniInfo.UniIndex)
+}
+
+func (dh *deviceHandler) getOnuOMCICounters(ctx context.Context, onuInfo *extension.GetOmciEthernetFrameExtendedPmRequest) *extension.SingleGetValueResponse {
+	resp := dh.pOnuMetricsMgr.collectEthernetFrameExtendedPMCounters(ctx)
+	return resp
 }
 
 func (dh *deviceHandler) isFsmInOmciIdleState(ctx context.Context, pFsm *fsm.FSM, wantedState string) bool {
