@@ -265,10 +265,77 @@ voltctl -k <kafka-ip:port> event listen --show-body -t 10000 -o json -F
 ```
 Note: For more `event listen` options, check `voltctl event listen --help` command.
 
+## On Demand Counters
+voltha supports following on demand counters:
+- Ethernet frame extended PM
+- Onu Pon Interface stats
+
+### _Ethernet frame extended pm_
+Ethernet frame extended pm me collects PM data at a point where an Ethernet flow can be observed.Currently, only
+Physical path termination point Ethernet UNI and Virtual Ethernet interface point ME are supported as parent ME.
+The protobuf message [protomessage](https://github.com/opencord/voltha-protos/blob/master/protos/voltha_protos/extensions.proto#L259)
+reports the pm with below counters for each direction(upstream as well as downstream):
+
+```
+uint64 drop_events
+uint64 octets
+uint64 frames
+uint64 broadcast_frames
+uint64 multicast_frames
+uint64 crc_errored_frames
+uint64 undersize_frames
+uint64 oversize_frames
+uint64 frames_64_octets
+uint64 frames_65_to_127_octets
+uint64 frames_128_to_255_octets
+uint64 frames_256_to_511_octets
+uint64 frames_512_to_1023_octets
+uint64 frames_1024_to_1518_octets
+```
+Note :For the fields which are not supported by onu, the counter value is equivalent to either
+2^32 -2 for 32 bit Me or 2^64 - 2 for 64bit Me.
+### _Onu Pon Interface stats_
+Onu Pon interface stats are collected from olt. The protobuf message [protomessage](https://github.com/opencord/voltha-protos/blob/master/protos/voltha_protos/extensions.proto#L157) reports the ith pon interface stats on demand.
+
+Note : The fields in onu stats are optional as the some counters may or may not be supported
+by some vendors.
+
+### Useful voltcl commands to fetch on demand stats
+
+#### Get Ethernet frame extended pm
+
+```
+voltctl device getextval ethernet_frame_extended_pm <onu-device-id>
+```
+#### Get Onu stats
+
+```
+voltctl device getextval onu_stats <pon-interface-id> <onu-id>
+```
+Note : The pon interface id and onu id are of type uint32. Hence the input should be respective
+pon interface id and onu id in an integer.
+
+## ANI-G Test report
+
+Use below command to pull the report of ANI-G test report
+
+```
+voltctl device getextval onu_pon_optical_info <onu-device-id>
+```
+
+Below is sample output.
+
+```
+  POWER_FEED_VOLTAGE__VOLTS:      3.26
+  RECEIVED_OPTICAL_POWER__dBm:    -16.02
+  MEAN_OPTICAL_LAUNCH_POWER__dBm: 5.5660005
+  LASER_BIAS_CURRENT__mA:         0.01648
+  TEMPERATURE__Celsius:           59.5
+```
+
 ## Future work
 The following Metrics could be supported in the future.
 
-- ANI-G Test report on demand
 - EthernetBridgeHistory and EthernetUniHistory counters on demand
 - xgPON_TC_History
 - xgPON_Downstream_History

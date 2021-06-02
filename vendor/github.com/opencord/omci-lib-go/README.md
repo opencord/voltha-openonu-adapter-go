@@ -49,6 +49,8 @@ by unit tests, but work still remains for sufficient/better unit test coverage.
  - TestResult
  - TestRequest
  - TestResponse
+ - GetCurrentDataRequest
+ - GetCurrentDataResponse
 
 ## Message Types supported but lacking any unit test
 The following OMCI message types currently have been coded but do not
@@ -57,8 +59,6 @@ have any unit test coverage.
  - StartSoftwareDownloadResponse
  - ActivateSoftwareRequest
  - ActivateSoftwareResponse
- - GetCurrentDataRequest
- - GetCurrentDataResponse
  
 ## Message Types not yet supported
 
@@ -74,17 +74,16 @@ the following Message Types have this support and are covered by unit tests:
 
  - GetRequest
  - GetResponse
+ - DownloadSectionRequest/Response
+ - AlarmNotification
+ - AttributeValueChange
+ - TestResult
 
 ### Upcoming message types that will be supported
 
 The following provides a list of message types that will eventually support the _Extended Message Set_
 in the expected order of implementation.  The priority was chosen based on speed improvement requests
 of operations and ease of implementation.
-
- - DownloadSectionRequest/Response
- - AlarmNotification
- - AttributeValueChange
- - TestResult
 
  - GetCurrentDataRequest/Response
  - MibResetRequest/Response
@@ -93,19 +92,21 @@ of operations and ease of implementation.
  - CreateRequest/Response
  - DeleteRequest/Response
  - SetRequest/Response
-  
+
+ - GetNextRequest/Response
+ - SetTableRequest/Response
+
  - MibUploadRequest/Response
  - MibUploadNextRequest/Response
+
  - GetAllAlarmsRequest/Response
  - GetAllAlarmsNextRequest/Response
- - GetNextRequest/Response
-  
+
  - StartSoftwareDownloadRequest/Response
  - EndSoftwareDownloadRequest/Response
  - CommitSoftwareRequest/Response
  - ActivateSoftwareRequest/Response
   
- - SetTableRequest/Response
  - TestRequest/Response
 
 ## Current user-test coverage

@@ -1673,7 +1673,7 @@ const AlarmBitmapSize = 224
 type AlarmNotificationMsg struct {
 	MeBasePacket
 	AlarmBitmap         [AlarmBitmapSize / 8]byte
-	zeroPadding         [3]byte
+	zeroPadding         [3]byte // Note: This zero padding is not present in the Extended Message Set
 	AlarmSequenceNumber byte
 }
 
@@ -1795,17 +1795,28 @@ func (omci *AlarmNotificationMsg) DecodeFromBytes(data []byte, p gopacket.Packet
 	isUnsupported := classSupport == me.UnsupportedManagedEntity ||
 		classSupport == me.UnsupportedVendorSpecificManagedEntity
 
+	mapOffset := 4
+	if omci.Extended {
+		mapOffset = 6
+		if len(data) < 6+28+1 {
+			p.SetTruncated()
+			return errors.New("frame too small")
+		}
+	}
 	// Look for a non-nil/not empty Alarm Map to determine if this ME supports alarms
 	if alarmMap := meDefinition.GetAlarmMap(); isUnsupported || (alarmMap != nil && len(alarmMap) > 0) {
-		for index, octet := range data[4 : (AlarmBitmapSize/8)-4] {
+		for index, octet := range data[mapOffset : (AlarmBitmapSize/8)-mapOffset] {
 			omci.AlarmBitmap[index] = octet
 		}
-		padOffset := 4 + (AlarmBitmapSize / 8)
-		omci.zeroPadding[0] = data[padOffset]
-		omci.zeroPadding[1] = data[padOffset+1]
-		omci.zeroPadding[2] = data[padOffset+2]
-
-		omci.AlarmSequenceNumber = data[padOffset+3]
+		if omci.Extended {
+			omci.AlarmSequenceNumber = data[mapOffset+(AlarmBitmapSize/8)]
+		} else {
+			padOffset := mapOffset + (AlarmBitmapSize / 8)
+			omci.zeroPadding[0] = data[padOffset]
+			omci.zeroPadding[1] = data[padOffset+1]
+			omci.zeroPadding[2] = data[padOffset+2]
+			omci.AlarmSequenceNumber = data[padOffset+3]
+		}
 		return nil
 	}
 	return me.NewProcessingError("managed entity does not support alarm notifications")
@@ -1817,6 +1828,13 @@ func decodeAlarmNotification(data []byte, p gopacket.PacketBuilder) error {
 	return decodingLayerDecoder(omci, data, p)
 }
 
+func decodeAlarmNotificationExtended(data []byte, p gopacket.PacketBuilder) error {
+	omci := &AlarmNotificationMsg{}
+	omci.MsgLayerType = LayerTypeAlarmNotification
+	omci.Extended = true
+	return decodingLayerDecoder(omci, data, p)
+}
+
 // SerializeTo provides serialization of an Alarm Notification message
 func (omci *AlarmNotificationMsg) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error {
 	// Basic (common) OMCI Header is 8 octets, 10
@@ -1824,29 +1842,40 @@ func (omci *AlarmNotificationMsg) SerializeTo(b gopacket.SerializeBuffer, opts g
 	if err != nil {
 		return err
 	}
-	//var meDefinition me.IManagedEntityDefinition
-	//meDefinition, err = me.LoadManagedEntityDefinition(omci.EntityClass,
+	// TODO: Support of encoding AlarmNotification into supported types not yet supported
+	//meDefinition, omciErr := me.LoadManagedEntityDefinition(omci.EntityClass,
 	//	me.ParamData{EntityID: omci.EntityInstance})
-	//if err != nil {
-	//	return err
+	//if omciErr.StatusCode() != me.Success {
+	//	return omciErr.GetError()
 	//}
-	// ME needs to support Alarms
-	// TODO: Add attribute to ME to specify that alarm is allowed
-	//if !me.SupportsMsgType(meDefinition, me.MibReset) {
-	//	return me.NewProcessingError("managed entity does not support MIB Reset Message-Type")
+	//if !me.SupportsMsgType(meDefinition, me.AlarmNotification) {
+	//	return me.NewProcessingError("managed entity does not support Alarm Notification Message-Type")
 	//}
-	bytes, err := b.AppendBytes((AlarmBitmapSize / 8) + 3 + 1)
-	if err != nil {
-		return err
+	if omci.Extended {
+		bytes, err := b.AppendBytes(2 + (AlarmBitmapSize / 8) + 1)
+		if err != nil {
+			return err
+		}
+		binary.BigEndian.PutUint16(bytes, uint16((AlarmBitmapSize/8)+1))
+
+		for index, octet := range omci.AlarmBitmap {
+			bytes[2+index] = octet
+		}
+		bytes[2+(AlarmBitmapSize/8)] = omci.AlarmSequenceNumber
+	} else {
+		bytes, err := b.AppendBytes((AlarmBitmapSize / 8) + 3 + 1)
+		if err != nil {
+			return err
+		}
+		for index, octet := range omci.AlarmBitmap {
+			bytes[index] = octet
+		}
+		padOffset := AlarmBitmapSize / 8
+		bytes[padOffset] = 0
+		bytes[padOffset+1] = 0
+		bytes[padOffset+2] = 0
+		bytes[padOffset+3] = omci.AlarmSequenceNumber
 	}
-	for index, octet := range omci.AlarmBitmap {
-		bytes[index] = octet
-	}
-	padOffset := AlarmBitmapSize / 8
-	bytes[padOffset] = 0
-	bytes[padOffset+1] = 0
-	bytes[padOffset+2] = 0
-	bytes[padOffset+3] = omci.AlarmSequenceNumber
 	return nil
 }
 
@@ -1875,9 +1904,18 @@ func (omci *AttributeValueChangeMsg) DecodeFromBytes(data []byte, p gopacket.Pac
 	if omciErr.StatusCode() != me.Success {
 		return omciErr.GetError()
 	}
-	omci.AttributeMask = binary.BigEndian.Uint16(data[4:6])
+	// TODO: Support for encoding AVC into message type support not yet supported
+	//if !me.SupportsMsgType(meDefinition, me.AlarmNotification) {
+	//	return me.NewProcessingError("managed entity does not support Alarm Notification Message-Type")
+	//}
+	maskOffset := 4
+	if omci.Extended {
+		maskOffset = 6
+	}
+	omci.AttributeMask = binary.BigEndian.Uint16(data[maskOffset:])
 	// Attribute decode
-	omci.Attributes, err = meDefinition.DecodeAttributes(omci.AttributeMask, data[6:40], p, byte(AttributeValueChangeType))
+	omci.Attributes, err = meDefinition.DecodeAttributes(omci.AttributeMask, data[maskOffset+2:],
+		p, byte(AttributeValueChangeType))
 	// TODO: Add support for attributes that can have an AVC associated with them and then add a check here
 	// Validate all attributes support AVC
 	//for attrName := range omci.attributes {
@@ -1896,6 +1934,13 @@ func (omci *AttributeValueChangeMsg) DecodeFromBytes(data []byte, p gopacket.Pac
 func decodeAttributeValueChange(data []byte, p gopacket.PacketBuilder) error {
 	omci := &AttributeValueChangeMsg{}
 	omci.MsgLayerType = LayerTypeAttributeValueChange
+	return decodingLayerDecoder(omci, data, p)
+}
+
+func decodeAttributeValueChangeExtended(data []byte, p gopacket.PacketBuilder) error {
+	omci := &AttributeValueChangeMsg{}
+	omci.MsgLayerType = LayerTypeAttributeValueChange
+	omci.Extended = true
 	return decodingLayerDecoder(omci, data, p)
 }
 
@@ -1923,18 +1968,36 @@ func (omci *AttributeValueChangeMsg) SerializeTo(b gopacket.SerializeBuffer, opt
 	//		return me.NewProcessingError(msg)
 	//	}
 	//}
-	bytes, err := b.AppendBytes(2)
+	var maskOffset int
+	var bytesAvailable int
+	if omci.Extended {
+		maskOffset = 2
+		bytesAvailable = MaxExtendedLength - 12 - 4
+	} else {
+		maskOffset = 0
+		bytesAvailable = MaxBaselineLength - 10 - 8
+	}
+	bytes, err := b.AppendBytes(maskOffset + 2)
 	if err != nil {
 		return err
 	}
-	binary.BigEndian.PutUint16(bytes, omci.AttributeMask)
+	binary.BigEndian.PutUint16(bytes[maskOffset:], omci.AttributeMask)
 
 	// Attribute serialization
-	// TODO: Only Baseline supported at this time
-	bytesAvailable := MaxBaselineLength - 10 - 8
+	attributeBuffer := gopacket.NewSerializeBuffer()
+	if err, _ = meDefinition.SerializeAttributes(omci.Attributes, omci.AttributeMask,
+		attributeBuffer, byte(GetResponseType), bytesAvailable, false); err != nil {
+		return err
+	}
 
-	err, _ = meDefinition.SerializeAttributes(omci.Attributes, omci.AttributeMask, b,
-		byte(AttributeValueChangeType), bytesAvailable, false)
+	if omci.Extended {
+		binary.BigEndian.PutUint16(bytes, uint16(len(attributeBuffer.Bytes())+2))
+	}
+	bytes, err = b.AppendBytes(len(attributeBuffer.Bytes()))
+	if err != nil {
+		return err
+	}
+	copy(bytes, attributeBuffer.Bytes())
 	return err
 }
 
@@ -1950,13 +2013,13 @@ func decodeTestRequest(data []byte, p gopacket.PacketBuilder) error {
 	switch me.ClassID(classID) {
 	default:
 		omci := &TestRequest{}
-		omci.MsgLayerType = LayerTypeTestResult
+		omci.MsgLayerType = LayerTypeTestRequest
 		return decodingLayerDecoder(omci, data, p)
 
 	case me.AniGClassID, me.ReAniGClassID, me.PhysicalPathTerminationPointReUniClassID,
 		me.ReUpstreamAmplifierClassID, me.ReDownstreamAmplifierClassID:
 		omci := &OpticalLineSupervisionTestRequest{}
-		omci.MsgLayerType = LayerTypeTestResult
+		omci.MsgLayerType = LayerTypeTestRequest
 		return decodingLayerDecoder(omci, data, p)
 	}
 }
@@ -2353,17 +2416,18 @@ func (omci *StartSoftwareDownloadResponse) SerializeTo(b gopacket.SerializeBuffe
 	return nil
 }
 
-/////////////////////////////////////////////////////////////////////////////
-//
+// DownloadSectionRequest data is bound by the message set in use. For the
+// Baseline message set use MaxDownloadSectionLength and for the Extended message
+// set, MaxDownloadSectionExtendedLength is provided
 type DownloadSectionRequest struct {
 	MeBasePacket  // Note: EntityInstance for software download is two specific values
 	SectionNumber byte
-	SectionData   [31]byte // 0 padding if final transfer requires only a partial block
+	SectionData   []byte // 0 padding if final transfer requires only a partial block for baseline set
 }
 
 func (omci *DownloadSectionRequest) String() string {
-	return fmt.Sprintf("%v, Section #: %v",
-		omci.MeBasePacket.String(), omci.SectionNumber)
+	return fmt.Sprintf("%v, Section #: %v, Data Length: %v",
+		omci.MeBasePacket.String(), omci.SectionNumber, len(omci.SectionData))
 }
 
 // DecodeFromBytes decodes the given bytes of a Download Section Request into this layer
@@ -2386,14 +2450,41 @@ func (omci *DownloadSectionRequest) DecodeFromBytes(data []byte, p gopacket.Pack
 	if omci.EntityClass != me.SoftwareImageClassID {
 		return me.NewProcessingError("invalid Entity Class for Download Section request")
 	}
-	omci.SectionNumber = data[4]
-	copy(omci.SectionData[0:], data[5:])
+	if omci.Extended {
+		if len(data) < 7 {
+			p.SetTruncated()
+			return errors.New("frame too small")
+		}
+		if len(data[7:]) > MaxDownloadSectionExtendedLength {
+			return errors.New(fmt.Sprintf("software image data too large. Received %v, Max: %v",
+				len(data[7:]), MaxDownloadSectionExtendedLength))
+		}
+		omci.SectionData = make([]byte, len(data[7:]))
+		omci.SectionNumber = data[6]
+		copy(omci.SectionData, data[7:])
+	} else {
+		if len(data[5:]) != MaxDownloadSectionLength {
+			p.SetTruncated()
+			return errors.New(fmt.Sprintf("software image size invalid. Received %v, Expected: %v",
+				len(data[5:]), MaxDownloadSectionLength))
+		}
+		omci.SectionData = make([]byte, MaxDownloadSectionLength)
+		omci.SectionNumber = data[4]
+		copy(omci.SectionData, data[5:])
+	}
 	return nil
 }
 
 func decodeDownloadSectionRequest(data []byte, p gopacket.PacketBuilder) error {
 	omci := &DownloadSectionRequest{}
 	omci.MsgLayerType = LayerTypeDownloadSectionRequest
+	return decodingLayerDecoder(omci, data, p)
+}
+
+func decodeDownloadSectionRequestExtended(data []byte, p gopacket.PacketBuilder) error {
+	omci := &DownloadSectionRequest{}
+	omci.MsgLayerType = LayerTypeDownloadSectionRequest
+	omci.Extended = true
 	return decodingLayerDecoder(omci, data, p)
 }
 
@@ -2417,12 +2508,40 @@ func (omci *DownloadSectionRequest) SerializeTo(b gopacket.SerializeBuffer, opts
 	if omci.EntityClass != me.SoftwareImageClassID {
 		return me.NewProcessingError("invalid Entity Class for Download Section response")
 	}
-	bytes, err := b.AppendBytes(1 + len(omci.SectionData))
-	if err != nil {
-		return err
+	sectionLength := len(omci.SectionData)
+	if omci.Extended {
+		if sectionLength > MaxDownloadSectionExtendedLength {
+			msg := fmt.Sprintf("invalid Download Section data length, must be <= %v, received: %v",
+				MaxDownloadSectionExtendedLength, sectionLength)
+			return me.NewProcessingError(msg)
+		}
+		// Append section data
+		bytes, err := b.AppendBytes(3 + sectionLength)
+		if err != nil {
+			return err
+		}
+		binary.BigEndian.PutUint16(bytes, uint16(1+sectionLength))
+		bytes[2] = omci.SectionNumber
+		copy(bytes[3:], omci.SectionData)
+	} else {
+		if sectionLength > MaxDownloadSectionLength {
+			msg := fmt.Sprintf("invalid Download Section data length, must be <= %v, received: %v",
+				MaxDownloadSectionLength, sectionLength)
+			return me.NewProcessingError(msg)
+		}
+		// Append section data
+		bytes, err := b.AppendBytes(1 + MaxDownloadSectionLength)
+		if err != nil {
+			return err
+		}
+		bytes[0] = omci.SectionNumber
+		copy(bytes[1:], omci.SectionData)
+
+		// Zero extended if needed
+		if sectionLength < MaxDownloadSectionLength {
+			copy(omci.SectionData[sectionLength:], lotsOfZeros[:MaxDownloadSectionLength-sectionLength])
+		}
 	}
-	bytes[0] = omci.SectionNumber
-	copy(bytes[1:], omci.SectionData[0:])
 	return nil
 }
 
@@ -2459,19 +2578,35 @@ func (omci *DownloadSectionResponse) DecodeFromBytes(data []byte, p gopacket.Pac
 	if omci.EntityClass != me.SoftwareImageClassID {
 		return me.NewProcessingError("invalid Entity Class for Download Section response")
 	}
-	omci.Result = me.Results(data[4])
+	if omci.Extended {
+		if len(data) < 8 {
+			p.SetTruncated()
+			return errors.New("frame too small")
+		}
+		omci.Result = me.Results(data[6])
+		omci.SectionNumber = data[7]
+	} else {
+		omci.Result = me.Results(data[4])
+		omci.SectionNumber = data[5]
+	}
 	if omci.Result > me.DeviceBusy {
 		msg := fmt.Sprintf("invalid results for Download Section response: %v, must be 0..6",
 			omci.Result)
 		return errors.New(msg)
 	}
-	omci.SectionNumber = data[5]
 	return nil
 }
 
 func decodeDownloadSectionResponse(data []byte, p gopacket.PacketBuilder) error {
 	omci := &DownloadSectionResponse{}
 	omci.MsgLayerType = LayerTypeDownloadSectionResponse
+	return decodingLayerDecoder(omci, data, p)
+}
+
+func decodeDownloadSectionResponseExtended(data []byte, p gopacket.PacketBuilder) error {
+	omci := &DownloadSectionResponse{}
+	omci.MsgLayerType = LayerTypeDownloadSectionResponse
+	omci.Extended = true
 	return decodingLayerDecoder(omci, data, p)
 }
 
@@ -2495,17 +2630,27 @@ func (omci *DownloadSectionResponse) SerializeTo(b gopacket.SerializeBuffer, opt
 	if omci.EntityClass != me.SoftwareImageClassID {
 		return me.NewProcessingError("invalid Entity Class for Download Section response")
 	}
-	bytes, err := b.AppendBytes(2)
-	if err != nil {
-		return err
-	}
 	if omci.Result > me.DeviceBusy {
 		msg := fmt.Sprintf("invalid results for Download Section response: %v, must be 0..6",
 			omci.Result)
 		return errors.New(msg)
 	}
-	bytes[0] = byte(omci.Result)
-	bytes[1] = omci.SectionNumber
+	if omci.Extended {
+		bytes, err := b.AppendBytes(4)
+		if err != nil {
+			return err
+		}
+		binary.BigEndian.PutUint16(bytes, uint16(2))
+		bytes[2] = byte(omci.Result)
+		bytes[3] = omci.SectionNumber
+	} else {
+		bytes, err := b.AppendBytes(2)
+		if err != nil {
+			return err
+		}
+		bytes[0] = byte(omci.Result)
+		bytes[1] = omci.SectionNumber
+	}
 	return nil
 }
 
@@ -3553,6 +3698,31 @@ func decodeTestResult(data []byte, p gopacket.PacketBuilder) error {
 	}
 }
 
+func decodeTestResultExtended(data []byte, p gopacket.PacketBuilder) error {
+	// Peek at Managed Entity Type
+	if len(data) < 8 {
+		p.SetTruncated()
+		return errors.New("frame too small")
+	}
+	classID := binary.BigEndian.Uint16(data)
+
+	// Is it a Managed Entity class we support customized decode of?
+	switch me.ClassID(classID) {
+	default:
+		omci := &TestResultNotification{}
+		omci.MsgLayerType = LayerTypeTestResult
+		omci.Extended = true
+		return decodingLayerDecoder(omci, data, p)
+
+	case me.AniGClassID, me.ReAniGClassID, me.PhysicalPathTerminationPointReUniClassID,
+		me.ReUpstreamAmplifierClassID, me.ReDownstreamAmplifierClassID:
+		omci := &OpticalLineSupervisionTestResult{}
+		omci.MsgLayerType = LayerTypeTestResult
+		omci.Extended = true
+		return decodingLayerDecoder(omci, data, p)
+	}
+}
+
 type TestResultNotification struct {
 	MeBasePacket
 	Payload []byte
@@ -3569,7 +3739,11 @@ func (omci *TestResultNotification) String() string {
 // DecodeFromBytes decodes the given bytes of a Test Result Notification into this layer
 func (omci *TestResultNotification) DecodeFromBytes(data []byte, p gopacket.PacketBuilder) error {
 	// Common ClassID/EntityID decode in msgBase
-	err := omci.MeBasePacket.DecodeFromBytes(data, p, 4)
+	payloadOffset := 4
+	if omci.Extended {
+		payloadOffset = 6
+	}
+	err := omci.MeBasePacket.DecodeFromBytes(data, p, payloadOffset)
 	if err != nil {
 		return err
 	}
@@ -3584,8 +3758,22 @@ func (omci *TestResultNotification) DecodeFromBytes(data []byte, p gopacket.Pack
 	if !me.SupportsMsgType(meDefinition, me.Test) {
 		return me.NewProcessingError("managed entity does not support Test Message-Type")
 	}
-	omci.Payload = make([]byte, MaxTestResultsLength)
-	copy(omci.Payload, omci.MeBasePacket.Payload)
+	if omci.Extended {
+		if len(data) < 6 {
+			p.SetTruncated()
+			return errors.New("frame too small")
+		}
+		length := binary.BigEndian.Uint16(data[4:])
+		if len(data) < 6+int(length) {
+			p.SetTruncated()
+			return errors.New("frame too small")
+		}
+		omci.Payload = make([]byte, length)
+		copy(omci.Payload, data[6:])
+	} else {
+		omci.Payload = make([]byte, MaxTestResultsLength)
+		copy(omci.Payload, omci.MeBasePacket.Payload)
+	}
 	return nil
 }
 
@@ -3610,17 +3798,27 @@ func (omci *TestResultNotification) SerializeTo(b gopacket.SerializeBuffer, opts
 	if omci.Payload == nil {
 		return errors.New("Test Results payload is missing")
 	}
-	if len(omci.Payload) > MaxTestResultsLength {
-		msg := fmt.Sprintf("Invalid Test Results payload size. Received %v bytes, expected %v",
-			len(omci.Payload), MaxTestResultsLength)
+
+	payloadOffset := 0
+	maxSize := MaxTestResultsLength
+
+	if omci.Extended {
+		payloadOffset = 2
+		maxSize = MaxExtendedLength - 10 - 4
+	}
+	if len(omci.Payload) > maxSize {
+		msg := fmt.Sprintf("Invalid Test Results payload size. Received %v bytes, max expected %v",
+			len(omci.Payload), maxSize)
 		return errors.New(msg)
 	}
-	bytes, err := b.AppendBytes(len(omci.Payload))
+	bytes, err := b.AppendBytes(len(omci.Payload) + payloadOffset)
 	if err != nil {
 		return err
 	}
-
-	copy(bytes, omci.Payload)
+	if omci.Extended {
+		binary.BigEndian.PutUint16(bytes, uint16(len(omci.Payload)))
+	}
+	copy(bytes[payloadOffset:], omci.Payload)
 	return nil
 }
 
@@ -3653,7 +3851,11 @@ func (omci *OpticalLineSupervisionTestResult) TestResults() []byte {
 // DecodeFromBytes decodes the given bytes of a Test Result Notification into this layer
 func (omci *OpticalLineSupervisionTestResult) DecodeFromBytes(data []byte, p gopacket.PacketBuilder) error {
 	// Common ClassID/EntityID decode in msgBase
-	err := omci.MeBasePacket.DecodeFromBytes(data, p, 4+17)
+	payloadOffset := 4
+	if omci.Extended {
+		payloadOffset = 6
+	}
+	err := omci.MeBasePacket.DecodeFromBytes(data, p, payloadOffset+17)
 	if err != nil {
 		return err
 	}
@@ -3671,26 +3873,26 @@ func (omci *OpticalLineSupervisionTestResult) DecodeFromBytes(data []byte, p gop
 	// Note: Unsupported tests will have a type = 0 and the value should be zero
 	//       as well, but that constraint is not enforced at this time.
 	// Type = 1
-	omci.PowerFeedVoltageType = data[4]
-	omci.PowerFeedVoltage = binary.BigEndian.Uint16(data[5:])
+	omci.PowerFeedVoltageType = data[payloadOffset]
+	omci.PowerFeedVoltage = binary.BigEndian.Uint16(data[payloadOffset+1:])
 
 	// Type = 3
-	omci.ReceivedOpticalPowerType = data[7]
-	omci.ReceivedOpticalPower = binary.BigEndian.Uint16(data[8:])
+	omci.ReceivedOpticalPowerType = data[payloadOffset+3]
+	omci.ReceivedOpticalPower = binary.BigEndian.Uint16(data[payloadOffset+4:])
 
 	// Type = 5
-	omci.MeanOpticalLaunchType = data[10]
-	omci.MeanOpticalLaunch = binary.BigEndian.Uint16(data[11:])
+	omci.MeanOpticalLaunchType = data[payloadOffset+6]
+	omci.MeanOpticalLaunch = binary.BigEndian.Uint16(data[payloadOffset+7:])
 
 	// Type = 9
-	omci.LaserBiasCurrentType = data[13]
-	omci.LaserBiasCurrent = binary.BigEndian.Uint16(data[14:])
+	omci.LaserBiasCurrentType = data[payloadOffset+9]
+	omci.LaserBiasCurrent = binary.BigEndian.Uint16(data[payloadOffset+10:])
 
 	// Type = 12
-	omci.TemperatureType = data[16]
-	omci.Temperature = binary.BigEndian.Uint16(data[17:])
+	omci.TemperatureType = data[payloadOffset+12]
+	omci.Temperature = binary.BigEndian.Uint16(data[payloadOffset+13:])
 
-	omci.GeneralPurposeBuffer = binary.BigEndian.Uint16(data[19:])
+	omci.GeneralPurposeBuffer = binary.BigEndian.Uint16(data[payloadOffset+15:])
 	return nil
 }
 
@@ -3711,22 +3913,30 @@ func (omci *OpticalLineSupervisionTestResult) SerializeTo(b gopacket.SerializeBu
 	if !me.SupportsMsgType(meDefinition, me.Test) {
 		return me.NewProcessingError("managed entity does not support Test Message-Type")
 	}
-	bytes, err := b.AppendBytes(17)
+	payloadOffset := 0
+
+	if omci.Extended {
+		payloadOffset = 2
+	}
+	bytes, err := b.AppendBytes(payloadOffset + 17)
 	if err != nil {
 		return err
 	}
 
-	bytes[0] = omci.PowerFeedVoltageType
-	binary.BigEndian.PutUint16(bytes[1:], omci.PowerFeedVoltage)
-	bytes[3] = omci.ReceivedOpticalPowerType
-	binary.BigEndian.PutUint16(bytes[4:], omci.ReceivedOpticalPower)
-	bytes[6] = omci.MeanOpticalLaunchType
-	binary.BigEndian.PutUint16(bytes[7:], omci.MeanOpticalLaunch)
-	bytes[9] = omci.LaserBiasCurrentType
-	binary.BigEndian.PutUint16(bytes[10:], omci.LaserBiasCurrent)
-	bytes[12] = omci.TemperatureType
-	binary.BigEndian.PutUint16(bytes[13:], omci.Temperature)
-	binary.BigEndian.PutUint16(bytes[15:], omci.GeneralPurposeBuffer)
+	if omci.Extended {
+		binary.BigEndian.PutUint16(bytes, 17)
+	}
+	bytes[payloadOffset] = omci.PowerFeedVoltageType
+	binary.BigEndian.PutUint16(bytes[payloadOffset+1:], omci.PowerFeedVoltage)
+	bytes[payloadOffset+3] = omci.ReceivedOpticalPowerType
+	binary.BigEndian.PutUint16(bytes[payloadOffset+4:], omci.ReceivedOpticalPower)
+	bytes[payloadOffset+6] = omci.MeanOpticalLaunchType
+	binary.BigEndian.PutUint16(bytes[payloadOffset+7:], omci.MeanOpticalLaunch)
+	bytes[payloadOffset+9] = omci.LaserBiasCurrentType
+	binary.BigEndian.PutUint16(bytes[payloadOffset+10:], omci.LaserBiasCurrent)
+	bytes[payloadOffset+12] = omci.TemperatureType
+	binary.BigEndian.PutUint16(bytes[payloadOffset+13:], omci.Temperature)
+	binary.BigEndian.PutUint16(bytes[payloadOffset+15:], omci.GeneralPurposeBuffer)
 	return nil
 }
 
@@ -3745,7 +3955,18 @@ func (omci *GetCurrentDataRequest) String() string {
 // DecodeFromBytes decodes the given bytes of a Get Current Data Request into this layer
 func (omci *GetCurrentDataRequest) DecodeFromBytes(data []byte, p gopacket.PacketBuilder) error {
 	// Common ClassID/EntityID decode in msgBase
-	err := omci.MeBasePacket.DecodeFromBytes(data, p, 4+2)
+	var offset int
+	if omci.Extended {
+		offset = 6
+	} else {
+		offset = 4
+	}
+	hdrSize := offset + 2
+	if len(data) < hdrSize {
+		p.SetTruncated()
+		return errors.New("frame too small")
+	}
+	err := omci.MeBasePacket.DecodeFromBytes(data, p, hdrSize)
 	if err != nil {
 		return err
 	}
@@ -3760,7 +3981,7 @@ func (omci *GetCurrentDataRequest) DecodeFromBytes(data []byte, p gopacket.Packe
 	}
 	// Note: G.988 specifies that an error code of (3) should result if more
 	//       than one attribute is requested
-	omci.AttributeMask = binary.BigEndian.Uint16(data[4:6])
+	omci.AttributeMask = binary.BigEndian.Uint16(data[offset:])
 	return nil
 }
 
@@ -3798,9 +4019,11 @@ func (omci *GetCurrentDataRequest) SerializeTo(b gopacket.SerializeBuffer, opts 
 //
 type GetCurrentDataResponse struct {
 	MeBasePacket
-	Result        me.Results
-	AttributeMask uint16
-	Attributes    me.AttributeValueMap
+	Result                   me.Results
+	AttributeMask            uint16
+	UnsupportedAttributeMask uint16
+	FailedAttributeMask      uint16
+	Attributes               me.AttributeValueMap
 }
 
 func (omci *GetCurrentDataResponse) String() string {
@@ -3811,7 +4034,20 @@ func (omci *GetCurrentDataResponse) String() string {
 // DecodeFromBytes decodes the given bytes of a Get Current Data Respnse into this layer
 func (omci *GetCurrentDataResponse) DecodeFromBytes(data []byte, p gopacket.PacketBuilder) error {
 	// Common ClassID/EntityID decode in msgBase
-	err := omci.MeBasePacket.DecodeFromBytes(data, p, 4+3)
+	var offset, length int
+	if omci.Extended {
+		offset = 6
+		length = 7
+	} else {
+		offset = 4
+		length = 3
+	}
+	hdrSize := offset + length
+	if len(data) < hdrSize {
+		p.SetTruncated()
+		return errors.New("frame too small")
+	}
+	err := omci.MeBasePacket.DecodeFromBytes(data, p, hdrSize)
 	if err != nil {
 		return err
 	}
@@ -3824,18 +4060,47 @@ func (omci *GetCurrentDataResponse) DecodeFromBytes(data []byte, p gopacket.Pack
 	if !me.SupportsMsgType(meDefinition, me.GetCurrentData) {
 		return me.NewProcessingError("managed entity does not support Get Current Data Message-Type")
 	}
-	omci.AttributeMask = binary.BigEndian.Uint16(data[4:6])
-
+	omci.Result = me.Results(data[offset])
+	omci.AttributeMask = binary.BigEndian.Uint16(data[offset+1:])
 	switch omci.Result {
 	case me.ProcessingError, me.NotSupported, me.UnknownEntity, me.UnknownInstance, me.DeviceBusy:
 		return nil // Done (do not try and decode attributes)
+	case me.AttributeFailure:
+		if omci.Extended {
+			omci.UnsupportedAttributeMask = binary.BigEndian.Uint16(data[offset+3:])
+			omci.FailedAttributeMask = binary.BigEndian.Uint16(data[offset+5:])
+		} else {
+			omci.UnsupportedAttributeMask = binary.BigEndian.Uint16(data[32:])
+			omci.FailedAttributeMask = binary.BigEndian.Uint16(data[34:])
+		}
 	}
-	// Attribute decode
-	omci.Attributes, err = meDefinition.DecodeAttributes(omci.AttributeMask, data[6:], p, byte(GetCurrentDataResponseType))
+	// Attribute decode. Note that the ITU-T G.988 specification states that the
+	//                   Unsupported and Failed attribute masks are always present
+	//                   but only valid if the status code== 9.  However some XGS
+	//                   ONUs (T&W and Alpha, perhaps more) will use these last 4
+	//                   octets for data if the status code == 0 in a baseline GET
+	//                   Response. So this behaviour is anticipated here as well
+	//                   and will be allowed in favor of greater interoperability.
+	omci.Attributes, err = meDefinition.DecodeAttributes(omci.AttributeMask, data[hdrSize:], p, byte(GetCurrentDataResponseType))
 	if err != nil {
 		return err
 	}
-	return nil
+	// Validate all attributes support read
+	for attrName := range omci.Attributes {
+		attr, err := me.GetAttributeDefinitionByName(meDefinition.GetAttributeDefinitions(), attrName)
+		if err != nil {
+			return err
+		}
+		if attr.Index != 0 && !me.SupportsAttributeAccess(*attr, me.Read) {
+			msg := fmt.Sprintf("attribute '%v' does not support read access", attrName)
+			return me.NewProcessingError(msg)
+		}
+	}
+	if eidDef, eidDefOK := meDefinition.GetAttributeDefinitions()[0]; eidDefOK {
+		omci.Attributes[eidDef.GetName()] = omci.EntityInstance
+		return nil
+	}
+	return errors.New("All Managed Entities have an EntityID attribute")
 }
 
 func decodeGetCurrentDataResponse(data []byte, p gopacket.PacketBuilder) error {
@@ -3860,26 +4125,107 @@ func (omci *GetCurrentDataResponse) SerializeTo(b gopacket.SerializeBuffer, opts
 	if !me.SupportsMsgType(meDefinition, me.GetCurrentData) {
 		return me.NewProcessingError("managed entity does not support the Get Current Data Message-Type")
 	}
-	bytes, err := b.AppendBytes(2)
+	var resultOffset, hdrSize int
+
+	if omci.Extended {
+		resultOffset = 2
+		hdrSize = resultOffset + 1 + 2 + 2 + 2 // length + result + masks
+	} else {
+		resultOffset = 0
+		hdrSize = resultOffset + 1 + 2 // length + result + attr-mask
+	}
+	bytes, err := b.AppendBytes(hdrSize)
 	if err != nil {
 		return err
 	}
-	binary.BigEndian.PutUint16(bytes[0:2], omci.AttributeMask)
+	bytes[resultOffset] = byte(omci.Result)
+	binary.BigEndian.PutUint16(bytes[resultOffset+1:], omci.AttributeMask)
 
+	// Validate all attributes support read
+	for attrName := range omci.Attributes {
+		var attr *me.AttributeDefinition
+		attr, err = me.GetAttributeDefinitionByName(meDefinition.GetAttributeDefinitions(), attrName)
+		if err != nil {
+			return err
+		}
+		if attr.Index != 0 && !me.SupportsAttributeAccess(*attr, me.Read) {
+			msg := fmt.Sprintf("attribute '%v' does not support read access", attrName)
+			return me.NewProcessingError(msg)
+		}
+	}
 	// Attribute serialization
-	// TODO: Only Baseline supported at this time
-	bytesAvailable := MaxBaselineLength - 9 - 8
-	var failedMask uint16
+	switch omci.Result {
+	default:
+		if omci.Extended {
+			binary.BigEndian.PutUint16(bytes, 7) // Length
+			binary.BigEndian.PutUint32(bytes[resultOffset+3:], 0)
+		}
+		break
 
-	err, failedMask = meDefinition.SerializeAttributes(omci.Attributes, omci.AttributeMask, b,
-		byte(GetCurrentDataResponseType), bytesAvailable, opts.FixLengths)
+	case me.Success, me.AttributeFailure:
+		var available int
+		if omci.Extended {
+			available = MaxExtendedLength - 10 - 3 - 4 - 4 // Less: header, result+mask, optional-masks mic
+		} else {
+			available = MaxBaselineLength - 8 - 3 - 4 - 8 // hdr, result+mask, optional-masks, trailer
+		}
+		// Serialize to temporary buffer if we may need to reset values due to
+		// recoverable truncation errors
+		attributeBuffer := gopacket.NewSerializeBuffer()
+		var failedMask uint16
+		err, failedMask = meDefinition.SerializeAttributes(omci.Attributes, omci.AttributeMask,
+			attributeBuffer, byte(GetCurrentDataResponseType), available, opts.FixLengths)
 
-	if failedMask != 0 {
-		// TODO: See GetResponse serialization above for the steps here
-		return me.NewMessageTruncatedError("getCurrentData attribute truncation not yet supported")
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+		if failedMask != 0 {
+			// Not all attributes would fit
+			omci.FailedAttributeMask |= failedMask
+			omci.AttributeMask &= ^failedMask
+			omci.Result = me.AttributeFailure
+
+			// Adjust already recorded values
+			bytes[resultOffset] = byte(omci.Result)
+			binary.BigEndian.PutUint16(bytes[resultOffset+1:], omci.AttributeMask)
+		}
+		if omci.Extended {
+			// Set length and any failure masks
+			binary.BigEndian.PutUint16(bytes, uint16(len(attributeBuffer.Bytes())+7))
+
+			if omci.Result == me.AttributeFailure {
+				binary.BigEndian.PutUint16(bytes[resultOffset+3:], omci.UnsupportedAttributeMask)
+				binary.BigEndian.PutUint16(bytes[resultOffset+5:], omci.FailedAttributeMask)
+			} else {
+				binary.BigEndian.PutUint32(bytes[resultOffset+3:], 0)
+			}
+		}
+		// Copy over attributes to the original serialization buffer
+		var newSpace []byte
+
+		newSpace, err = b.AppendBytes(len(attributeBuffer.Bytes()))
+		if err != nil {
+			return err
+		}
+		copy(newSpace, attributeBuffer.Bytes())
+
+		if !omci.Extended {
+			// Calculate space left. Max  - msgType header - OMCI trailer - spacedUsedSoFar
+			bytesLeft := MaxBaselineLength - 4 - 8 - len(b.Bytes())
+
+			var remainingBytes []byte
+			remainingBytes, err = b.AppendBytes(bytesLeft + 4)
+
+			if err != nil {
+				return me.NewMessageTruncatedError(err.Error())
+			}
+			copy(remainingBytes, lotsOfZeros[:])
+
+			if omci.Result == me.AttributeFailure {
+				binary.BigEndian.PutUint16(remainingBytes[bytesLeft-4:bytesLeft-2], omci.UnsupportedAttributeMask)
+				binary.BigEndian.PutUint16(remainingBytes[bytesLeft-2:bytesLeft], omci.FailedAttributeMask)
+			}
+		}
 	}
 	return nil
 }
