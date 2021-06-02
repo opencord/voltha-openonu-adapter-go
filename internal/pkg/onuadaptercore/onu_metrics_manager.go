@@ -31,6 +31,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v5/pkg/db"
 	"github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v5/pkg/log"
+	"github.com/opencord/voltha-protos/v4/go/extension"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
@@ -63,6 +64,27 @@ const (
 	GroupMetricEnabled               = true    // This is READONLY and cannot be changed from VOLTHA NBI
 	DefaultFrequencyOverrideEnabled  = true    // This is READONLY and cannot be changed from VOLTHA NBI
 	FrequencyGranularity             = 5       // The frequency (in seconds) has to be multiple of 5. This setting cannot changed later.
+)
+
+// constants for ethernet frame extended pm collection
+const (
+	ExtendedPmCreateAttempts            = 3
+	UnsupportedCounterValue32bit uint64 = 4294967294
+	UnsupportedCounterValue64bit uint64 = 18446744073709551614
+	dropEvents                          = "DropEvents"
+	octets                              = "Octets"
+	frames                              = "Frames"
+	broadcastFrames                     = "BroadcastFrames"
+	multicastFrames                     = "MulticastFrames"
+	crcErroredFrames                    = "CrcErroredFrames"
+	undersizeFrames                     = "UndersizeFrames"
+	oversizeFrames                      = "OversizeFrames"
+	frames64Octets                      = "Frames64Octets"
+	frames65To127Octets                 = "Frames65To127Octets"
+	frames128To255Octets                = "Frames128To255Octets"
+	frames256To511Octets                = "Frames256To511Octets"
+	frames512To1023Octets               = "Frames512To1023Octets"
+	frames1024To1518Octets              = "Frames1024To1518Octets"
 )
 
 // OpticalPowerGroupMetrics are supported optical pm names
@@ -174,6 +196,20 @@ var GemPortHistory = map[string]voltha.PmConfig_PmType{
 	"encryption_key_errors":     voltha.PmConfig_COUNTER,
 }
 
+var maskToEthernetFrameExtendedPM32Bit = map[uint16][]string{
+	0x3F00: {"drop_events", "octets", "frames", "broadcast_frames", "multicast_frames", "crc_errored_frames"},
+	0x00FC: {"undersize_frames", "oversize_frames", "64_octets", "65_to_127_octets", "128_to_255_octets", "256_to_511_octets"},
+	0x0003: {"512_to_1023_octets", "1024_to_1518_octets"},
+}
+
+var maskToEthernetFrameExtendedPM64Bit = map[uint16][]string{
+	0x3800: {"drop_events", "octets", "frames"},
+	0x0700: {"broadcast_frames", "multicast_frames", "crc_errored_frames"},
+	0x00E0: {"undersize_frames", "oversize_frames", "64_octets"},
+	0x001C: {"65_to_127_octets", "128_to_255_octets", "256_to_511_octets"},
+	0x0003: {"512_to_1023_octets", "1024_to_1518_octets"},
+}
+
 // Constants specific for L2 PM collection
 const (
 	L2PmCollectionInterval = 15 * 60 // Unit in seconds. Do not change this as this fixed by OMCI specification for L2 PM counters
@@ -184,7 +220,8 @@ const (
 	// Per Table 11.2.9-1 – OMCI baseline message limitations in G.988 spec, the max GET Response
 	// payload size is 25. We define 24 (one less) to allow for dynamic insertion of IntervalEndTime
 	// attribute (1 byte) in L2 PM GET Requests.
-	MaxL2PMGetPayLoadSize = 24
+	MaxL2PMGetPayLoadSize            = 24
+	MaxEthernetFrameExtPmPayloadSize = 25
 )
 
 // EthernetUniHistoryName specific constants
@@ -217,11 +254,12 @@ const (
 
 // KV Store related constants
 const (
-	cPmKvStorePrefix = "%s/openonu/pm-data/%s" // <some-base-path>/openonu/pm-data/<onu-device-id>
-	cPmAdd           = "add"
-	cPmAdded         = "added"
-	cPmRemove        = "remove"
-	cPmRemoved       = "removed"
+	cPmKvStorePrefix    = "%s/openonu/pm-data/%s" // <some-base-path>/openonu/pm-data/<onu-device-id>
+	cPmAdd              = "add"
+	cPmAdded            = "added"
+	cPmRemove           = "remove"
+	cPmRemoved          = "removed"
+	cExtPmKvStorePrefix = "%s/omci_me" //<some-base-path>/omci_me/<onu_vendor>/<onu_equipment_id>/<onu_sw_version>
 )
 
 // Defines the type for generic metric population function
@@ -257,11 +295,13 @@ type onuMetricsManager struct {
 	pDeviceHandler *deviceHandler
 	pAdaptFsm      *AdapterFsm
 
-	opticalMetricsChan             chan me.AttributeValueMap
-	uniStatusMetricsChan           chan me.AttributeValueMap
-	l2PmChan                       chan me.AttributeValueMap
-	syncTimeResponseChan           chan bool // true is success, false is fail
-	l2PmCreateOrDeleteResponseChan chan bool // true is success, false is fail
+	opticalMetricsChan                   chan me.AttributeValueMap
+	uniStatusMetricsChan                 chan me.AttributeValueMap
+	l2PmChan                             chan me.AttributeValueMap
+	extendedPmMeChan                     chan me.AttributeValueMap
+	syncTimeResponseChan                 chan bool       // true is success, false is fail
+	l2PmCreateOrDeleteResponseChan       chan bool       // true is success, false is fail
+	extendedPMCreateOrDeleteResponseChan chan me.Results // true is sucesss, false is fail
 
 	activeL2Pms  []string // list of active l2 pm MEs created on the ONU.
 	l2PmToDelete []string // list of L2 PMs to delete
@@ -281,6 +321,13 @@ type onuMetricsManager struct {
 	onuMetricsManagerLock sync.RWMutex
 
 	pmKvStore *db.Backend
+
+	supportedEthernetFrameExtendedPMClass         me.ClassID
+	ethernetFrameExtendedPmUpStreamMEToEntityID   map[*me.ManagedEntity]uint16
+	ethernetFrameExtendedPmDownStreamMEToEntityID map[*me.ManagedEntity]uint16
+	extPmKvStore                                  *db.Backend
+	onuEthernetFrameExtendedPmLock                sync.RWMutex
+	isDeviceReadyToCollectExtendedPmStats         bool
 }
 
 // newonuMetricsManager returns a new instance of the newonuMetricsManager
@@ -300,15 +347,20 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 	metricsManager.opticalMetricsChan = make(chan me.AttributeValueMap)
 	metricsManager.uniStatusMetricsChan = make(chan me.AttributeValueMap)
 	metricsManager.l2PmChan = make(chan me.AttributeValueMap)
+	metricsManager.extendedPmMeChan = make(chan me.AttributeValueMap)
 
 	metricsManager.syncTimeResponseChan = make(chan bool)
 	metricsManager.l2PmCreateOrDeleteResponseChan = make(chan bool)
+	metricsManager.extendedPMCreateOrDeleteResponseChan = make(chan me.Results)
 
 	metricsManager.stopProcessingOmciResponses = make(chan bool)
 	metricsManager.stopTicks = make(chan bool)
 
 	metricsManager.groupMetricMap = make(map[string]*groupMetric)
 	metricsManager.standaloneMetricMap = make(map[string]*standaloneMetric)
+
+	metricsManager.ethernetFrameExtendedPmUpStreamMEToEntityID = make(map[*me.ManagedEntity]uint16)
+	metricsManager.ethernetFrameExtendedPmDownStreamMEToEntityID = make(map[*me.ManagedEntity]uint16)
 
 	if dh.pmConfigs == nil { // dh.pmConfigs is NOT nil if adapter comes back from a restart. We should NOT go back to defaults in this case
 		metricsManager.initializeAllGroupMetrics()
@@ -336,6 +388,14 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 		// we continue given that it does not effect the actual services for the ONU,
 		// but there may be some negative effect on PM collection (there may be some mismatch in
 		// the actual PM config and what is present on the device).
+	}
+
+	baseExtPmKvStorePath := fmt.Sprintf(cExtPmKvStorePrefix, dh.pOpenOnuAc.cm.Backend.PathPrefix)
+	metricsManager.extPmKvStore = dh.setBackend(ctx, baseExtPmKvStorePath)
+	if metricsManager.extPmKvStore == nil {
+		logger.Errorw(ctx, "Can't initialize extPmKvStore - no backend connection to PM module",
+			log.Fields{"device-id": dh.deviceID, "service": baseExtPmKvStorePath})
+		return nil
 	}
 
 	logger.Info(ctx, "init-onuMetricsManager completed", log.Fields{"device-id": dh.deviceID})
@@ -998,6 +1058,8 @@ func (mm *onuMetricsManager) handleOmciMessage(ctx context.Context, msg OmciMess
 		_ = mm.handleOmciCreateResponseMessage(ctx, msg)
 	case omci.DeleteResponseType:
 		_ = mm.handleOmciDeleteResponseMessage(ctx, msg)
+	case omci.GetCurrentDataResponseType:
+		_ = mm.handleOmciGetCurrentDataResponseMessage(ctx, msg)
 	default:
 		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
 
@@ -1015,7 +1077,7 @@ func (mm *onuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 		logger.Errorw(ctx, "omci Msg layer could not be assigned for GetResponse - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
 		return fmt.Errorf("omci Msg layer could not be assigned for GetResponse - handling stopped: %s", mm.pDeviceHandler.deviceID)
 	}
-	logger.Debugw(ctx, "OMCI GetResponse Data", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "data-fields": msgObj})
+	logger.Debugw(ctx, "OMCI GetResponse Data", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "data-fields": msgObj, "result": msgObj.Result})
 	if msgObj.Result == me.Success {
 		meAttributes := msgObj.Attributes
 		switch msgObj.EntityClass {
@@ -1037,13 +1099,70 @@ func (mm *onuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 			me.FecPerformanceMonitoringHistoryDataClassID,
 			me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
 			mm.l2PmChan <- meAttributes
+			return nil
+		case me.EthernetFrameExtendedPmClassID,
+			me.EthernetFrameExtendedPm64BitClassID:
+			mm.extendedPmMeChan <- meAttributes
+			return nil
+		default:
+			logger.Errorw(ctx, "unhandled omci get response message",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
+		}
+	} else if msgObj.Result == me.AttributeFailure || msgObj.Result == me.ParameterError {
+		meAttributes := msgObj.Attributes
+		switch msgObj.EntityClass {
+		case me.EthernetFrameExtendedPmClassID,
+			me.EthernetFrameExtendedPm64BitClassID:
+			// not all counters may be supported in which case we have seen some ONUs throwing
+			// AttributeFailure error code, while correctly populating other counters it supports
+			mm.extendedPmMeChan <- meAttributes
+			return nil
 		default:
 			logger.Errorw(ctx, "unhandled omci get response message",
 				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
 		}
 	}
-
 	return fmt.Errorf("unhandled-omci-get-response-message")
+}
+
+func (mm *onuMetricsManager) handleOmciGetCurrentDataResponseMessage(ctx context.Context, msg OmciMessage) error {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetCurrentDataResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "omci Msg layer could not be detected for GetCurrentDataResponse - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return fmt.Errorf("omci Msg layer could not be detected for GetCurrentDataResponse - handling stopped: %s", mm.pDeviceHandler.deviceID)
+	}
+	msgObj, msgOk := msgLayer.(*omci.GetCurrentDataResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "omci Msg layer could not be assigned for GetCurrentDataResponse - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return fmt.Errorf("omci Msg layer could not be assigned for GetCurrentDataResponse - handling stopped: %s", mm.pDeviceHandler.deviceID)
+	}
+	logger.Debugw(ctx, "OMCI GetCurrentDataResponse Data", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "data-fields": msgObj, "result": msgObj.Result})
+	if msgObj.Result == me.Success {
+		meAttributes := msgObj.Attributes
+		switch msgObj.EntityClass {
+		case me.EthernetFrameExtendedPmClassID,
+			me.EthernetFrameExtendedPm64BitClassID:
+			mm.extendedPmMeChan <- meAttributes
+			return nil
+		default:
+			logger.Errorw(ctx, "unhandled omci get current data response message",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
+		}
+	} else if msgObj.Result == me.AttributeFailure || msgObj.Result == me.ParameterError {
+		meAttributes := msgObj.Attributes
+		switch msgObj.EntityClass {
+		case me.EthernetFrameExtendedPmClassID,
+			me.EthernetFrameExtendedPm64BitClassID:
+			// not all counters may be supported in which case we have seen some ONUs throwing
+			// AttributeFailure error code, while correctly populating other counters it supports
+			mm.extendedPmMeChan <- meAttributes
+			return nil
+		default:
+			logger.Errorw(ctx, "unhandled omci get current data response message",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
+		}
+	}
+	return fmt.Errorf("unhandled-omci-get-current-data-response-message")
 }
 
 func (mm *onuMetricsManager) handleOmciSynchronizeTimeResponseMessage(ctx context.Context, msg OmciMessage) error {
@@ -2194,6 +2313,10 @@ func (mm *onuMetricsManager) handleOmciCreateResponseMessage(ctx context.Context
 			mm.l2PmCreateOrDeleteResponseChan <- false
 		}
 		return nil
+	case me.EthernetFrameExtendedPmClassID,
+		me.EthernetFrameExtendedPm64BitClassID:
+		mm.extendedPMCreateOrDeleteResponseChan <- msgObj.Result
+		return nil
 	default:
 		logger.Errorw(ctx, "unhandled omci create response message",
 			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
@@ -2831,4 +2954,657 @@ func (mm *onuMetricsManager) removeIfFoundUint16(slice []uint16, n uint16) []uin
 		}
 	}
 	return slice
+}
+
+func (mm *onuMetricsManager) getEthernetFrameExtendedMETypeFromKvStore(ctx context.Context) (bool, error) {
+	// Check if the data is already available in KV store, if yes, do not send the request for get me.
+	var data me.ClassID
+	key := fmt.Sprintf("%s/%s/%s", mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersVendorID,
+		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersEquipmentID,
+		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersActiveSwVersion)
+	Value, err := mm.extPmKvStore.Get(ctx, key)
+	if err == nil {
+		if Value != nil {
+			logger.Debugw(ctx, "me-type-read",
+				log.Fields{"key": Value.Key, "device-id": mm.pDeviceHandler.deviceID})
+			tmpBytes, _ := kvstore.ToByte(Value.Value)
+
+			if err = json.Unmarshal(tmpBytes, &data); err != nil {
+				logger.Errorw(ctx, "unable-to-unmarshal-data", log.Fields{"error": err, "device-id": mm.pDeviceHandler.deviceID})
+				return false, err
+			}
+			logger.Debugw(ctx, "me-ext-pm-class-data", log.Fields{"class-id": data, "device-id": mm.pDeviceHandler.deviceID})
+			// We have found the data from db, no need to get through omci get message.
+			mm.supportedEthernetFrameExtendedPMClass = data
+			return true, nil
+		}
+		logger.Debugw(ctx, "no-me-ext-pm-class-data-found", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return false, nil
+	}
+	logger.Errorw(ctx, "unable-to-read-from-kv-store", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+	return false, err
+}
+
+func (mm *onuMetricsManager) waitForEthernetFrameCreateOrDeleteResponseOrTimeout(ctx context.Context, create bool, instID uint16, meClassID me.ClassID, upstream bool) (bool, error) {
+	logger.Debugw(ctx, "wait-for-ethernet-frame-create-or-delete-response-or-timeout", log.Fields{"create": create, "instID": instID, "meClassID": meClassID})
+	select {
+	case resp := <-mm.extendedPMCreateOrDeleteResponseChan:
+		logger.Debugw(ctx, "received-extended-pm-me-response",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "create": create, "meClassID": meClassID, "instID": instID, "upstream": upstream})
+		// If the result is me.InstanceExists it means the entity was already created. It is ok handled that as success
+		if resp == me.Success || resp == me.InstanceExists {
+			return true, nil
+		} else if resp == me.UnknownEntity || resp == me.ParameterError ||
+			resp == me.ProcessingError || resp == me.NotSupported || resp == me.AttributeFailure {
+			return false, fmt.Errorf("not-supported-me--resp-code-%v", resp)
+		} else {
+			logger.Warnw(ctx, "failed to create me", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "class-id": meClassID, "instID": instID, "upstream": upstream})
+			return true, fmt.Errorf("error-while-creating-me--resp-code-%v", resp)
+		}
+	case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
+		logger.Errorw(ctx, "timeout-waiting-for-ext-pm-me-response",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": false, "create": create, "meClassID": meClassID, "instID": instID, "upstream": upstream})
+	}
+	return false, fmt.Errorf("timeout-while-waiting-for-response")
+}
+
+func (mm *onuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.ClassID) (bool, error) {
+	cnt := 0
+	boolForDirection := make([]bool, 2) // stores true and false to indicate upstream and downstream directions.
+	boolForDirection = append(boolForDirection, true, false)
+	// Create ME twice, one for each direction. Boolean true is used to indicate upstream and false for downstream.
+	for _, direction := range boolForDirection {
+		for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
+			var entityID uint16
+			if direction {
+				entityID = uniPort.entityID + (uint16)(me.PhysicalPathTerminationPointEthernetUniClassID) + 0x100
+			} else {
+				entityID = uniPort.entityID + (uint16)(me.PhysicalPathTerminationPointEthernetUniClassID)
+			}
+
+			// parent entity id will be same for both direction
+			controlBlock := mm.getControlBlockForExtendedPMDirection(ctx, direction, uniPort.entityID)
+
+		inner1:
+			// retry ExtendedPmCreateAttempts times to create the instance of PM
+			for cnt = 0; cnt < ExtendedPmCreateAttempts; cnt++ {
+				meEnt, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendCreateOrDeleteEthernetFrameExtendedPMME(
+					ctx, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, direction, true,
+					mm.pAdaptFsm.commChan, entityID, meType, controlBlock)
+				if err != nil {
+					logger.Errorw(ctx, "EthernetFrameExtendedPMME-create-or-delete-failed",
+						log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+					return false, err
+				}
+				if supported, err := mm.waitForEthernetFrameCreateOrDeleteResponseOrTimeout(ctx, true, entityID, meType, direction); err == nil && supported {
+					if direction {
+						mm.ethernetFrameExtendedPmUpStreamMEToEntityID[meEnt] = entityID
+					} else {
+						mm.ethernetFrameExtendedPmDownStreamMEToEntityID[meEnt] = entityID
+					}
+					break inner1
+				} else if err != nil {
+					if !supported {
+						// Need to return immediately
+						return false, err
+					}
+					//In case of failure, go for a retry
+				}
+			}
+			if cnt == ExtendedPmCreateAttempts {
+				logger.Error(ctx, "exceeded-attempts-while-creating-me-for-ethernet-frame-extended-pm")
+				return true, fmt.Errorf("unable-to-create-me")
+			}
+		}
+	}
+	return true, nil
+}
+
+func (mm *onuMetricsManager) putExtPmMeKvStore(ctx context.Context) {
+	key := fmt.Sprintf("%s/%s/%s", mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersVendorID,
+		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersEquipmentID,
+		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersActiveSwVersion)
+	// check if we get the supported type me for ethernet frame extended pm class id
+	if mm.supportedEthernetFrameExtendedPMClass == 0 {
+		logger.Error(ctx, "unable-to-get-any-supported-extended-pm-me-class")
+	}
+	classSupported, err := json.Marshal(mm.supportedEthernetFrameExtendedPMClass)
+	if err != nil {
+		logger.Errorw(ctx, "unable-to-marshal-data", log.Fields{"err": err})
+	}
+	if err := mm.extPmKvStore.Put(ctx, key, classSupported); err != nil {
+		logger.Errorw(ctx, "unable-to-add-data-in-db", log.Fields{"err": err})
+	}
+}
+
+func (mm *onuMetricsManager) setAllExtPmMeCreatedFlag() {
+	mm.onuEthernetFrameExtendedPmLock.Lock()
+	mm.isDeviceReadyToCollectExtendedPmStats = true
+	mm.onuEthernetFrameExtendedPmLock.Unlock()
+}
+func (mm *onuMetricsManager) createEthernetFrameExtendedPMME(ctx context.Context) {
+	//get the type of extended frame pm me supported by onu first
+	exist, err := mm.getEthernetFrameExtendedMETypeFromKvStore(ctx)
+	if err != nil {
+		logger.Error(ctx, "unable-to-get-supported-me-for-ethernet-frame-extended-pm")
+		return
+	}
+	if exist {
+		// we have the me type, go ahead with the me type supported.
+		if _, err := mm.tryCreateExtPmMe(ctx, mm.supportedEthernetFrameExtendedPMClass); err != nil {
+			logger.Errorw(ctx, "unable-to-create-me-type", log.Fields{"device-id": mm.pDeviceHandler.deviceID,
+				"meClassID": mm.supportedEthernetFrameExtendedPMClass})
+			return
+		}
+		mm.setAllExtPmMeCreatedFlag()
+		return
+	}
+	// First try with 64 bit me
+	// we have the me type, go ahead with the me type supported.
+	supported64Bit, err := mm.tryCreateExtPmMe(ctx, me.EthernetFrameExtendedPm64BitClassID)
+	if err != nil && !supported64Bit {
+		logger.Errorw(ctx, "unable-to-create-me-type-as-it-is-not-supported",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "meClassID": me.EthernetFrameExtendedPm64BitClassID,
+				"supported": supported64Bit})
+		// Then Try with 32 bit type
+		if supported32Bit, err := mm.tryCreateExtPmMe(ctx, me.EthernetFrameExtendedPmClassID); err != nil {
+			logger.Errorw(ctx, "unable-to-create-me-type", log.Fields{"device-id": mm.pDeviceHandler.deviceID,
+				"meClassID": me.EthernetFrameExtendedPmClassID, "supported": supported32Bit})
+		} else if supported32Bit {
+			mm.supportedEthernetFrameExtendedPMClass = me.EthernetFrameExtendedPmClassID
+			mm.putExtPmMeKvStore(ctx)
+			mm.setAllExtPmMeCreatedFlag()
+		}
+	} else if err == nil && supported64Bit {
+		mm.supportedEthernetFrameExtendedPMClass = me.EthernetFrameExtendedPm64BitClassID
+		mm.putExtPmMeKvStore(ctx)
+		mm.setAllExtPmMeCreatedFlag()
+	}
+}
+
+func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.Context) *extension.SingleGetValueResponse {
+	errFunc := func(reason extension.GetValueResponse_ErrorReason) *extension.SingleGetValueResponse {
+		return &extension.SingleGetValueResponse{
+			Response: &extension.GetValueResponse{
+				Status:    extension.GetValueResponse_ERROR,
+				ErrReason: reason,
+			},
+		}
+	}
+	mm.onuEthernetFrameExtendedPmLock.RLock()
+	if !mm.isDeviceReadyToCollectExtendedPmStats {
+		mm.onuEthernetFrameExtendedPmLock.RUnlock()
+		return errFunc(extension.GetValueResponse_INTERNAL_ERROR)
+	}
+	mm.onuEthernetFrameExtendedPmLock.RUnlock()
+	// Collect metrics for upstream for all the PM Mes per uni port and aggregate
+	var pmUpstream extension.OmciEthernetFrameExtendedPm
+	var pmDownstream extension.OmciEthernetFrameExtendedPm
+	for meEnt, entityID := range mm.ethernetFrameExtendedPmUpStreamMEToEntityID {
+		var receivedMask uint16
+		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
+			if receivedMask == 0 {
+				pmUpstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmUpstream, false)
+				logger.Error(ctx, "all-the-attributes-of-ethernet-frame-extended-pm-counters-are-unsupported")
+				pmDownstream = pmUpstream
+				singleValResp := extension.SingleGetValueResponse{
+					Response: &extension.GetValueResponse{
+						Status: extension.GetValueResponse_OK,
+						Response: &extension.GetValueResponse_OnuCounters{
+							OnuCounters: &extension.GetOmciEthernetFrameExtendedPmResponse{
+								Upstream:   &pmUpstream,
+								Downstream: &pmDownstream,
+							},
+						},
+					},
+				}
+				return &singleValResp
+			}
+			// Aggregate the result for upstream
+			pmUpstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmUpstream, true)
+		} else {
+			return errFunc(errResp)
+		}
+	}
+
+	for meEnt, entityID := range mm.ethernetFrameExtendedPmDownStreamMEToEntityID {
+		var receivedMask uint16
+		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, false, &receivedMask); metricInfo != nil { // downstream
+			// Aggregate the result for downstream
+			pmDownstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmDownstream, true)
+		} else {
+			return errFunc(errResp)
+		}
+	}
+	singleValResp := extension.SingleGetValueResponse{
+		Response: &extension.GetValueResponse{
+			Status: extension.GetValueResponse_OK,
+			Response: &extension.GetValueResponse_OnuCounters{
+				OnuCounters: &extension.GetOmciEthernetFrameExtendedPmResponse{
+					Upstream:   &pmUpstream,
+					Downstream: &pmDownstream,
+				},
+			},
+		},
+	}
+	return &singleValResp
+}
+
+func (mm *onuMetricsManager) collectEthernetFrameExtendedPMData(ctx context.Context, meEnt *me.ManagedEntity, entityID uint16, upstream bool, receivedMask *uint16) (map[string]float64, extension.GetValueResponse_ErrorReason) {
+	var classID me.ClassID
+	logger.Debugw(ctx, "collecting-data-for-ethernet-frame-extended-pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "upstream": upstream})
+
+	classID = mm.supportedEthernetFrameExtendedPMClass
+	var attributeMaskList []uint16
+	if classID == me.EthernetFrameExtendedPmClassID {
+		attributeMaskList = []uint16{0x3F00, 0x00FC, 0x0003}
+	} else {
+		attributeMaskList = []uint16{0x3800, 0x0700, 0x00E0, 0x001C, 0x0003}
+	}
+	ethPMData := make(map[string]float64)
+	var sumReceivedMask uint16
+	for _, mask := range attributeMaskList {
+		if errResp, err := mm.populateEthernetFrameExtendedPMMetrics(ctx, classID, entityID, mask, ethPMData, upstream, &sumReceivedMask); err != nil {
+			logger.Errorw(ctx, "error-during-metric-collection",
+				log.Fields{"device-id": mm.pDeviceHandler.deviceID, "entityID": entityID, "err": err})
+			return nil, errResp
+		}
+		if mask == attributeMaskList[0] && sumReceivedMask == 0 {
+			//It means the first attributes fetch was a failure, hence instead of sending multiple failure get requests
+			//populate all counters as failure and return
+			mm.fillAllErrorCountersEthernetFrameExtendedPM(ethPMData)
+			break
+		}
+	}
+	*receivedMask = sumReceivedMask
+	return ethPMData, extension.GetValueResponse_REASON_UNDEFINED
+}
+
+// nolint: gocyclo
+func (mm *onuMetricsManager) populateEthernetFrameExtendedPMMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
+	requestedAttributesMask uint16, ethFrameExtPMData map[string]float64, upstream bool, sumReceivedMask *uint16) (extension.GetValueResponse_ErrorReason, error) {
+	var meAttributes me.AttributeValueMap
+	logger.Debugw(ctx, "requesting-attributes", log.Fields{"attributes-mask": requestedAttributesMask, "entityID": entityID, "classID": classID})
+	err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMeWithAttributeMask(ctx, classID, entityID, requestedAttributesMask, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
+	if err != nil {
+		logger.Errorw(ctx, "get-me-failed", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
+		return extension.GetValueResponse_INTERNAL_ERROR, err
+	}
+	select {
+	case meAttributes = <-mm.extendedPmMeChan:
+		logger.Debugw(ctx, "received-extended-pm-data",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "upstream": upstream, "entityID": entityID})
+	case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
+		logger.Errorw(ctx, "timeout-waiting-for-omci-get-response-for-received-extended-pm-data",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "upstream": upstream, "entityID": entityID})
+		return extension.GetValueResponse_TIMEOUT, fmt.Errorf("timeout-waiting-for-omci-get-response-for-received-extended-pm-data")
+	}
+	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
+		mask := mm.getEthFrameExtPMDataFromResponse(ctx, ethFrameExtPMData, meAttributes, requestedAttributesMask)
+		*sumReceivedMask += mask
+		logger.Debugw(ctx, "data-received-for-ethernet-frame-ext-pm", log.Fields{"data": ethFrameExtPMData, "entityID": entityID})
+	} else {
+		mask := mm.getEthFrameExtPM64BitDataFromResponse(ctx, ethFrameExtPMData, meAttributes, requestedAttributesMask)
+		*sumReceivedMask += mask
+		logger.Debugw(ctx, "data-received-for-ethernet-frame-ext-pm", log.Fields{"data": ethFrameExtPMData, "entityID": entityID})
+	}
+
+	return extension.GetValueResponse_REASON_UNDEFINED, nil
+}
+
+func (mm *onuMetricsManager) fillAllErrorCountersEthernetFrameExtendedPM(ethFrameExtPMData map[string]float64) {
+	sourceMap := maskToEthernetFrameExtendedPM64Bit
+	errorCounterValue := UnsupportedCounterValue64bit
+	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
+		sourceMap = maskToEthernetFrameExtendedPM32Bit
+		errorCounterValue = UnsupportedCounterValue32bit
+	}
+	for _, value := range sourceMap {
+		for _, k := range value {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				ethFrameExtPMData[k] = float64(errorCounterValue)
+			}
+		}
+	}
+}
+
+// nolint: gocyclo
+func (mm *onuMetricsManager) getEthFrameExtPMDataFromResponse(ctx context.Context, ethFrameExtPMData map[string]float64, meAttributes me.AttributeValueMap, requestedAttributesMask uint16) uint16 {
+	receivedMask := requestedAttributesMask
+	if len(meAttributes) == 1 {
+		// this will be the case when we received error
+		// assign all requested attributes to error counters in this case
+		for _, k := range maskToEthernetFrameExtendedPM32Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				ethFrameExtPMData[k] = float64(UnsupportedCounterValue32bit)
+				receivedMask = 0
+			}
+		}
+		return receivedMask
+	}
+	switch requestedAttributesMask {
+	case 0x3F00:
+		for _, k := range maskToEthernetFrameExtendedPM32Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "drop_events":
+					if val, ok := meAttributes[dropEvents]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "octets":
+					if val, ok := meAttributes[octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "frames":
+					if val, ok := meAttributes[frames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "broadcast_frames":
+					if val, ok := meAttributes[broadcastFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "multicast_frames":
+					if val, ok := meAttributes[multicastFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "crc_errored_frames":
+					if val, ok := meAttributes[crcErroredFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				default:
+					//do nothing
+				}
+			}
+		}
+	case 0x00FC:
+		for _, k := range maskToEthernetFrameExtendedPM32Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "undersize_frames":
+					if val, ok := meAttributes[undersizeFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "oversize_frames":
+					if val, ok := meAttributes[oversizeFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "64_octets":
+					if val, ok := meAttributes[frames64Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "65_to_127_octets":
+					if val, ok := meAttributes[frames65To127Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "128_to_255_octets":
+					if val, ok := meAttributes[frames128To255Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "256_to_511_octets":
+					if val, ok := meAttributes[frames256To511Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				default:
+					//do nothing
+				}
+			}
+		}
+	case 0x0003:
+		for _, k := range maskToEthernetFrameExtendedPM32Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "512_to_1023_octets":
+					if val, ok := meAttributes[frames512To1023Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				case "1024_to_1518_octets":
+					if val, ok := meAttributes[frames1024To1518Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint32))
+					}
+				default:
+					//do nothing
+				}
+			}
+		}
+	default:
+		//do nothing
+	}
+	return receivedMask
+}
+
+// nolint: gocyclo
+func (mm *onuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.Context, ethFrameExtPMData map[string]float64, meAttributes me.AttributeValueMap, requestedAttributesMask uint16) uint16 {
+	receivedMask := requestedAttributesMask
+	if len(meAttributes) == 1 {
+		// this will be the case when we received error
+		// assign all requested attributes to error counters in this case
+		for _, k := range maskToEthernetFrameExtendedPM64Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				ethFrameExtPMData[k] = float64(UnsupportedCounterValue64bit)
+				receivedMask = 0
+			}
+		}
+		return receivedMask
+	}
+	switch requestedAttributesMask {
+	case 0x3800:
+		for _, k := range maskToEthernetFrameExtendedPM64Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "drop_events":
+					if val, ok := meAttributes[dropEvents]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "octets":
+					if val, ok := meAttributes[octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "frames":
+					if val, ok := meAttributes[frames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				}
+			}
+		}
+	case 0x0700:
+		for _, k := range maskToEthernetFrameExtendedPM64Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "broadcast_frames":
+					if val, ok := meAttributes[broadcastFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "multicast_frames":
+					if val, ok := meAttributes[multicastFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "crc_errored_frames":
+					if val, ok := meAttributes[crcErroredFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				}
+			}
+		}
+	case 0x00E0:
+		for _, k := range maskToEthernetFrameExtendedPM64Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "undersize_frames":
+					if val, ok := meAttributes[undersizeFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "oversize_frames":
+					if val, ok := meAttributes[oversizeFrames]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "64_octets":
+					if val, ok := meAttributes[frames64Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				}
+			}
+		}
+	case 0x001C:
+		for _, k := range maskToEthernetFrameExtendedPM64Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "65_to_127_octets":
+					if val, ok := meAttributes[frames65To127Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "128_to_255_octets":
+					if val, ok := meAttributes[frames128To255Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "256_to_511_octets":
+					if val, ok := meAttributes[frames256To511Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				default:
+					//do nothing
+				}
+			}
+		}
+	case 0x0003:
+		for _, k := range maskToEthernetFrameExtendedPM64Bit[requestedAttributesMask] {
+			if _, ok := ethFrameExtPMData[k]; !ok {
+				switch k {
+				case "512_to_1023_octets":
+					if val, ok := meAttributes[frames512To1023Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				case "1024_to_1518_octets":
+					if val, ok := meAttributes[frames1024To1518Octets]; ok && val != nil {
+						ethFrameExtPMData[k] = float64(val.(uint64))
+					}
+				default:
+					//do nothing
+				}
+			}
+		}
+	}
+	return receivedMask
+}
+
+func (mm *onuMetricsManager) aggregateEthernetFrameExtendedPM(pmDataIn map[string]float64, pmData extension.OmciEthernetFrameExtendedPm, aggregate bool) extension.OmciEthernetFrameExtendedPm {
+	mm.onuEthernetFrameExtendedPmLock.Lock()
+	defer mm.onuEthernetFrameExtendedPmLock.Unlock()
+	errorCounterValue := UnsupportedCounterValue64bit
+	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
+		errorCounterValue = UnsupportedCounterValue32bit
+	}
+	var pmDataOut extension.OmciEthernetFrameExtendedPm
+	if aggregate {
+		if pmData.DropEvents != errorCounterValue {
+			pmDataOut.DropEvents = pmData.DropEvents + uint64(pmDataIn["drop_events"])
+		} else {
+			pmDataOut.DropEvents = pmData.DropEvents
+		}
+		if pmData.Octets != errorCounterValue {
+			pmDataOut.Octets = pmData.Octets + uint64(pmDataIn["octets"])
+		} else {
+			pmDataOut.Octets = pmData.Octets
+		}
+		if pmData.Frames != errorCounterValue {
+			pmDataOut.Frames = pmData.Frames + uint64(pmDataIn["frames"])
+		} else {
+			pmDataOut.Frames = pmData.Frames
+		}
+		if pmData.BroadcastFrames != errorCounterValue {
+			pmDataOut.BroadcastFrames = pmData.BroadcastFrames + uint64(pmDataIn["broadcast_frames"])
+		} else {
+			pmDataOut.BroadcastFrames = pmData.BroadcastFrames
+		}
+		if pmData.MulticastFrames != errorCounterValue {
+			pmDataOut.MulticastFrames = pmData.MulticastFrames + uint64(pmDataIn["multicast_frames"])
+		} else {
+			pmDataOut.MulticastFrames = pmData.MulticastFrames
+		}
+		if pmData.CrcErroredFrames != errorCounterValue {
+			pmDataOut.CrcErroredFrames = pmData.CrcErroredFrames + uint64(pmDataIn["crc_errored_frames"])
+		} else {
+			pmDataOut.CrcErroredFrames = pmData.CrcErroredFrames
+		}
+		if pmData.UndersizeFrames != errorCounterValue {
+			pmDataOut.UndersizeFrames = pmData.UndersizeFrames + uint64(pmDataIn["undersize_frames"])
+		} else {
+			pmDataOut.UndersizeFrames = pmData.UndersizeFrames
+		}
+		if pmData.OversizeFrames != errorCounterValue {
+			pmDataOut.OversizeFrames = pmData.OversizeFrames + uint64(pmDataIn["oversize_frames"])
+		} else {
+			pmDataOut.OversizeFrames = pmData.OversizeFrames
+		}
+		if pmData.Frames_64Octets != errorCounterValue {
+			pmDataOut.Frames_64Octets = pmData.Frames_64Octets + uint64(pmDataIn["64_octets"])
+		} else {
+			pmDataOut.Frames_64Octets = pmData.Frames_64Octets
+		}
+		if pmData.Frames_65To_127Octets != errorCounterValue {
+			pmDataOut.Frames_65To_127Octets = pmData.Frames_65To_127Octets + uint64(pmDataIn["65_to_127_octets"])
+		} else {
+			pmDataOut.Frames_65To_127Octets = pmData.Frames_65To_127Octets
+		}
+		if pmData.Frames_128To_255Octets != errorCounterValue {
+			pmDataOut.Frames_128To_255Octets = pmData.Frames_128To_255Octets + uint64(pmDataIn["128_to_255_octets"])
+		} else {
+			pmDataOut.Frames_128To_255Octets = pmData.Frames_128To_255Octets
+		}
+		if pmData.Frames_256To_511Octets != errorCounterValue {
+			pmDataOut.Frames_256To_511Octets = pmData.Frames_256To_511Octets + uint64(pmDataIn["256_to_511_octets"])
+		} else {
+			pmDataOut.Frames_256To_511Octets = pmData.Frames_256To_511Octets
+		}
+		if pmData.Frames_512To_1023Octets != errorCounterValue {
+			pmDataOut.Frames_512To_1023Octets = pmData.Frames_512To_1023Octets + uint64(pmDataIn["512_to_1023_octets"])
+		} else {
+			pmDataOut.Frames_512To_1023Octets = pmData.Frames_512To_1023Octets
+		}
+		if pmData.Frames_1024To_1518Octets != errorCounterValue {
+			pmDataOut.Frames_1024To_1518Octets = pmData.Frames_1024To_1518Octets + uint64(pmDataIn["1024_to_1518_octets"])
+		} else {
+			pmDataOut.Frames_1024To_1518Octets = pmData.Frames_1024To_1518Octets
+		}
+	} else {
+		pmDataOut.DropEvents = uint64(pmDataIn["drop_events"])
+		pmDataOut.Octets = uint64(pmDataIn["octets"])
+		pmDataOut.Frames = uint64(pmDataIn["frames"])
+		pmDataOut.BroadcastFrames = uint64(pmDataIn["broadcast_frames"])
+		pmDataOut.MulticastFrames = uint64(pmDataIn["multicast_frames"])
+		pmDataOut.CrcErroredFrames = uint64(pmDataIn["crc_errored_frames"])
+		pmDataOut.UndersizeFrames = uint64(pmDataIn["undersize_frames"])
+		pmDataOut.OversizeFrames = uint64(pmDataIn["oversize_frames"])
+		pmDataOut.Frames_64Octets = uint64(pmDataIn["64_octets"])
+		pmDataOut.Frames_65To_127Octets = uint64(pmDataIn["65_to_127_octets"])
+		pmDataOut.Frames_128To_255Octets = uint64(pmDataIn["128_to_255_octets"])
+		pmDataOut.Frames_256To_511Octets = uint64(pmDataIn["256_to_511_octets"])
+		pmDataOut.Frames_512To_1023Octets = uint64(pmDataIn["512_to_1023_octets"])
+		pmDataOut.Frames_1024To_1518Octets = uint64(pmDataIn["1024_to_1518_octets"])
+	}
+	return pmDataOut
+}
+
+func (mm *onuMetricsManager) getControlBlockForExtendedPMDirection(ctx context.Context, upstream bool, entityID uint16) []uint16 {
+	controlBlock := make([]uint16, 8)
+	// Control Block First two bytes are for threshold data 1/2 id - does not matter here
+	controlBlock[0] = 0
+	// Next two bytes are for the parent class ID
+	controlBlock[1] = (uint16)(me.PhysicalPathTerminationPointEthernetUniClassID)
+	// Next two bytes are for the parent me instance id
+	controlBlock[2] = entityID
+	// Next two bytes are for accumulation disable
+	controlBlock[3] = 0
+	// Next two bytes are for tca disable
+	controlBlock[4] = 0x4000 //tca global disable
+	// Next two bytes are for control fields - bit 1(lsb) as 1 for continuous accumulation and bit 2(0 for upstream)
+	if upstream {
+		controlBlock[5] = 1 << 0
+	} else {
+		controlBlock[5] = (1 << 0) | (1 << 1)
+	}
+	// Next two bytes are for tci - does not matter here
+	controlBlock[6] = 0
+	// Next two bytes are for reserved bits - does not matter here
+	controlBlock[7] = 0
+	return controlBlock
 }
