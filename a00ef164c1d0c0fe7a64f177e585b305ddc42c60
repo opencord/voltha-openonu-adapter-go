@@ -225,6 +225,24 @@
       "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "12bab01c_1e8484d3",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 382,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-03T08:06:39Z",
+      "side": 1,
+      "message": "you have not answered this comment",
+      "parentUuid": "6697c638_f80afdcd",
+      "revId": "a00ef164c1d0c0fe7a64f177e585b305ddc42c60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
