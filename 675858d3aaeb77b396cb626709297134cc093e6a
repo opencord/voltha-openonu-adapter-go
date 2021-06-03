@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "016535e4_5a402b65",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-03T12:51:50Z",
+      "side": 1,
+      "message": "I\u0027d propose to consistently remove the aDownloadTimeout argument from SetDownloadParamsAfterDownload() - also in the respective call in the deviceHandler then.",
+      "revId": "675858d3aaeb77b396cb626709297134cc093e6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
