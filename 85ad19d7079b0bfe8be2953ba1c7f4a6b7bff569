@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3c7ae51f_b423632b",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-03T09:27:23Z",
+      "side": 1,
+      "message": "this should be Errorw",
+      "revId": "85ad19d7079b0bfe8be2953ba1c7f4a6b7bff569",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6af2dfdc_6206393e",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-03T09:27:23Z",
+      "side": 1,
+      "message": "same here",
+      "revId": "85ad19d7079b0bfe8be2953ba1c7f4a6b7bff569",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6947a384_746e449e",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 382,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-03T09:27:23Z",
+      "side": 1,
+      "message": "return fmt.Errorf(\"handler-not-found-for-device: %s\", device.Id)",
+      "revId": "85ad19d7079b0bfe8be2953ba1c7f4a6b7bff569",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
