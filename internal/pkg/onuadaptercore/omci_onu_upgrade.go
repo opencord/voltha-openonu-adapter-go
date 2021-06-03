@@ -247,6 +247,8 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 		oFsm.inactiveImageMeID = aInactiveImageID //upgrade state machines run on configured inactive ImageId
 		oFsm.pImageDsc = apImageDsc
 		oFsm.pDownloadManager = apDownloadManager
+		oFsm.activateImage = true
+		oFsm.commitImage = true
 		oFsm.mutexUpgradeParams.Unlock()
 
 		go func(aPBaseFsm *fsm.FSM) {
