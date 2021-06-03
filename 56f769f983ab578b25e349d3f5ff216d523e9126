@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "d6dfdb1e_ed4233ba",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-03T15:29:41Z",
+      "side": 1,
+      "message": "Yes. If during the execution of Fsm, we saw that the TCONT is already allocated before, this means that the TCONT is already configured and used before for another UNI(or service). Then we don\u0027t need to configure this TCONT (Tcont Set) and also related PQs for this new UNI.",
+      "parentUuid": "0613feed_a2fede4f",
+      "revId": "56f769f983ab578b25e349d3f5ff216d523e9126",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "708b119b_8882ca45",
         "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
         "patchSetId": 25
@@ -30,6 +48,24 @@
       "writtenOn": "2021-06-03T06:37:12Z",
       "side": 1,
       "message": "Where is this populated? I could not find it.",
+      "revId": "56f769f983ab578b25e349d3f5ff216d523e9126",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6b2e1cba_a3fa8903",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 264,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-03T15:29:41Z",
+      "side": 1,
+      "message": "Line 924.",
+      "parentUuid": "708b119b_8882ca45",
       "revId": "56f769f983ab578b25e349d3f5ff216d523e9126",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
