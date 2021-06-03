@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0613feed_a2fede4f",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-03T06:37:12Z",
+      "side": 1,
+      "message": "Just trying to understand the usefulness of this flag. Is this useful when TCONT is shared across all the UNI ports?",
+      "revId": "56f769f983ab578b25e349d3f5ff216d523e9126",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "708b119b_8882ca45",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 264,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-03T06:37:12Z",
+      "side": 1,
+      "message": "Where is this populated? I could not find it.",
+      "revId": "56f769f983ab578b25e349d3f5ff216d523e9126",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
