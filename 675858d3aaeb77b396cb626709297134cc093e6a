@@ -16,6 +16,24 @@
       "revId": "675858d3aaeb77b396cb626709297134cc093e6a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "be700932_beb6ac51",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-03T13:14:44Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "016535e4_5a402b65",
+      "revId": "675858d3aaeb77b396cb626709297134cc093e6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
