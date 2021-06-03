@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a001fb5b_4974ab08",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-03T11:54:41Z",
+      "side": 1,
+      "message": "I think the checks still should be further rearranged: respExist should be verified on not-nil already before possibly accessing respExist.StatusCode in the line before this.",
+      "revId": "74cd283a7bfe0f5347c206c07c5177328dafd55c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
