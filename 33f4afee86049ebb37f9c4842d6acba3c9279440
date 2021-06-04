@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c64a3f36_3c49199b",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-04T11:12:27Z",
+      "side": 1,
+      "message": "That should be working, but there are now some unneeded repeated checks on respExist. So I would favor to move this block/check now to above block (line 146), meaning this way: \n                if respExist !\u003d nil {\n\t\t\tlogger.Errorw(ctx, \"could not http head from url\", log.Fields{\"url\": urlBase.String(),\n\t\t\t\t\"error\": errExist3, \"status\": respExist.StatusCode})\n\t\t        //if head is not supported by server we cannot use this test and just try to continue\n\t\t        if respExist.StatusCode !\u003d http.StatusMethodNotAllowed {\n\t\t\t        logger.Errorw(ctx, \"http head from url: file does not exist here, aborting\", log.Fields{\"url\": urlBase.String(),\n\t\t\t\t       \"error\": errExist3, \"status\": respExist.StatusCode})\n\t\t\t        return fmt.Errorf(\"http head from url: file does not exist here, aborting: %s, error: %s, status: %d\",\n\t\t\t\t       aURLName, errExist2, respExist.StatusCode)\n\t\t        }\n\t\t} else {\n\t\t\tlogger.Errorw(ctx, \"could not http head from url\", log.Fields{\"url\": urlBase.String(),\n\t\t\t\t\"error\": errExist3})\n\t\t}",
+      "revId": "33f4afee86049ebb37f9c4842d6acba3c9279440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "411784ad_eaf9917b",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-04T11:12:27Z",
+      "side": 1,
+      "message": "I think respExist  is not required as argument here, see below.",
+      "revId": "33f4afee86049ebb37f9c4842d6acba3c9279440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bb8ebdd7_beb1081e",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 184,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-04T11:12:27Z",
+      "side": 1,
+      "message": "I think that was still some error in my code that now gets more visible with your changes: the check probably should be: \nif err3 !\u003d nil || resp.StatusCode !\u003d http.StatusOK,\nsee also comment above",
+      "revId": "33f4afee86049ebb37f9c4842d6acba3c9279440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3cdb6a2f_2747e8df",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-04T11:12:27Z",
+      "side": 1,
+      "message": "and also here resp.StatusCode",
+      "revId": "33f4afee86049ebb37f9c4842d6acba3c9279440",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
