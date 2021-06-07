@@ -69,6 +69,24 @@
       "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ca57fa3_a7ce6090",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-07T15:39:16Z",
+      "side": 1,
+      "message": "If so I would assume the same in the head request handling above - and some of the effort spent there would not have been necessary. So may be we have a bit over-sized code there now, but well ...I would leave it now as it is ...",
+      "parentUuid": "90d2b932_9bb1c731",
+      "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
