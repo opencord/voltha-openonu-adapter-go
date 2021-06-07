@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "4e172432_11fae03b",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-07T13:11:10Z",
+      "side": 1,
+      "message": "you know if something like this needs to be done - it\u0027s a good sign that the logic is wrongly written. I never used conditional body close before but anyway it\u0027s out of the tickets scope",
+      "parentUuid": "20ac4ad6_5511c56c",
+      "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "29412d22_b3ff34c1",
         "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
         "patchSetId": 11
@@ -30,6 +48,24 @@
       "writtenOn": "2021-06-07T09:39:13Z",
       "side": 1,
       "message": "see speculation above.\nAt this code point similar to above handling I would then recommend a return of the function here like this (as you want to access \u0027resp\u0027 also behind the deferred function):\nif resp \u003d\u003d nil {\n    logger.Errorw(...)\n    return\n}\ndefer func .....",
+      "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "90d2b932_9bb1c731",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000569
+      },
+      "writtenOn": "2021-06-07T13:11:10Z",
+      "side": 1,
+      "message": "err3 :\u003d http.DefaultClient.Do(req) didn\u0027t return err resp won\u0027t be empty",
+      "parentUuid": "29412d22_b3ff34c1",
       "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
