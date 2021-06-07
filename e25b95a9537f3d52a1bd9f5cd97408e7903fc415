@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "e4ffc91e_1391c634",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2477,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-07T20:03:30Z",
+      "side": 1,
+      "message": "can you change this two lines with:\nif deviceEntry :\u003d dh.getOnuDeviceEntry(ctx, false); deviceEntry !\u003d nil {",
+      "revId": "e25b95a9537f3d52a1bd9f5cd97408e7903fc415",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d608c3a5_cc50d557",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 5
