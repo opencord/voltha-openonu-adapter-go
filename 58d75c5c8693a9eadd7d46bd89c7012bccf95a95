@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "20ac4ad6_5511c56c",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 161,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-07T09:39:13Z",
+      "side": 1,
+      "message": "Hmm, now the deferred Body.Close() handlings still looks quite asymmetric between the head-request handling here and the real request handling in requestDownload():\nHere the Body.Close is done always, even if errExist3 !\u003d nil and even if respExist \u003d\u003d nil (which may crash then in the deferred function).\nIn contrary to that in the requestDownload() function Body.Close() is (deferred) called only if err3 !\u003d nil, but even if resp should be nil (which also would crash in the deferred function then.\nBased on your previous changes I assume that you think it is possible that the response field might be nil even though the error code does not indicate some error (I do not know if that is a valid assumption, but theoretically of course possible). If that is true, then also the deferred close functions have to be protected for accessing the response field.\nI\u0027m not sure if the Body.Close() function has to be / might be called in case some error code was returned (I would rather guess, then the close is not required). So if we assume that the close is not required with some delivered error code, then the deferred close should be called here like this:\nif errExist3 \u003d\u003d nil \u0026\u0026 respExist !\u003d nil {\n    defer func() { ...}\n}",
+      "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "29412d22_b3ff34c1",
+        "filename": "internal/pkg/onuadaptercore/adapter_download_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-07T09:39:13Z",
+      "side": 1,
+      "message": "see speculation above.\nAt this code point similar to above handling I would then recommend a return of the function here like this (as you want to access \u0027resp\u0027 also behind the deferred function):\nif resp \u003d\u003d nil {\n    logger.Errorw(...)\n    return\n}\ndefer func .....",
+      "revId": "58d75c5c8693a9eadd7d46bd89c7012bccf95a95",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
