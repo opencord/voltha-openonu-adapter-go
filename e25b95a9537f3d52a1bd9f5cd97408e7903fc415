@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d608c3a5_cc50d557",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2482,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-07T09:06:10Z",
+      "side": 1,
+      "message": "There should be an error handling if *OnuDeviceEntry is not preset!",
+      "range": {
+        "startLine": 2482,
+        "startChar": 1,
+        "endLine": 2482,
+        "endChar": 2
+      },
+      "revId": "e25b95a9537f3d52a1bd9f5cd97408e7903fc415",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
