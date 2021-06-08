@@ -87,6 +87,30 @@
       "revId": "e25b95a9537f3d52a1bd9f5cd97408e7903fc415",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a3d31da6_651c9401",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2482,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-08T16:59:24Z",
+      "side": 1,
+      "message": "Ozge do you mind addressing this comment ?",
+      "parentUuid": "c6b32ccc_8569b7b6",
+      "range": {
+        "startLine": 2482,
+        "startChar": 1,
+        "endLine": 2482,
+        "endChar": 2
+      },
+      "revId": "e25b95a9537f3d52a1bd9f5cd97408e7903fc415",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
