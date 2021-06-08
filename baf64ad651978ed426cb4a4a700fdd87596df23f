@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "de4ab5fe_6108dc32",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2481,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-08T20:24:11Z",
+      "side": 1,
+      "message": "you are still missing the error handing here. please add an else statement with a logger.Errorw",
+      "revId": "baf64ad651978ed426cb4a4a700fdd87596df23f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
