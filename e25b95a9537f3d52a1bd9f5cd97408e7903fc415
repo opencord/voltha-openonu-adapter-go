@@ -63,6 +63,30 @@
       "revId": "e25b95a9537f3d52a1bd9f5cd97408e7903fc415",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c6b32ccc_8569b7b6",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2482,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-08T06:29:55Z",
+      "side": 1,
+      "message": "Yes, according to the other positions where getOnuDeviceEntry() is called.",
+      "parentUuid": "b558fecd_96f0921a",
+      "range": {
+        "startLine": 2482,
+        "startChar": 1,
+        "endLine": 2482,
+        "endChar": 2
+      },
+      "revId": "e25b95a9537f3d52a1bd9f5cd97408e7903fc415",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
