@@ -60,6 +60,7 @@ const (
 	upgradeEvContinueFinalize   = "upgradeEvContinueFinalize"
 	upgradeEvWaitForActivate    = "upgradeEvWaitForActivate"
 	upgradeEvRequestActivate    = "upgradeEvRequestActivate"
+	upgradeEvActivationDone     = "upgradeEvActivationDone"
 	upgradeEvWaitForCommit      = "upgradeEvWaitForCommit"
 	upgradeEvCommitSw           = "upgradeEvCommitSw"
 	upgradeEvCheckCommitted     = "upgradeEvCheckCommitted"
@@ -83,6 +84,7 @@ const (
 	upgradeStWaitEndDL          = "upgradeStWaitEndDL"
 	upgradeStWaitForActivate    = "upgradeStWaitForActivate"
 	upgradeStRequestingActivate = "upgradeStRequestingActivate"
+	upgradeStActivated          = "upgradeStActivated"
 	upgradeStWaitForCommit      = "upgradeStWaitForCommit"
 	upgradeStCommitSw           = "upgradeStCommitSw"
 	upgradeStCheckCommitted     = "upgradeStCheckCommitted"
@@ -187,8 +189,9 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			{Name: upgradeEvWaitForActivate, Src: []string{upgradeStWaitEndDL}, Dst: upgradeStWaitForActivate},
 			{Name: upgradeEvRequestActivate, Src: []string{upgradeStStarting, upgradeStWaitEndDL, upgradeStWaitForActivate},
 				Dst: upgradeStRequestingActivate}, //allows also for direct activation (without download) [TODO!!!]
+			{Name: upgradeEvActivationDone, Src: []string{upgradeStRequestingActivate}, Dst: upgradeStActivated},
 			{Name: upgradeEvWaitForCommit, Src: []string{upgradeStRequestingActivate}, Dst: upgradeStWaitForCommit},
-			{Name: upgradeEvCommitSw, Src: []string{upgradeStStarting, upgradeStWaitForCommit},
+			{Name: upgradeEvCommitSw, Src: []string{upgradeStStarting, upgradeStWaitForCommit, upgradeStActivated},
 				Dst: upgradeStCommitSw}, //allows also for direct commitment (without download) [TODO!!!]
 			{Name: upgradeEvCheckCommitted, Src: []string{upgradeStCommitSw}, Dst: upgradeStCheckCommitted},
 
@@ -199,13 +202,14 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 					upgradeStCreatingGemNCTPs, upgradeStCreatingGemIWs, upgradeStSettingPQs}, Dst: upgradeStStarting},
 			*/
 			// exceptional treatments
+			//on upgradeEvReset: upgradeStWaitForCommit and upgradeStActivated are not reset (to let the FSM survive the expected OnuDown indication)
 			{Name: upgradeEvReset, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStWaitForActivate,
-				upgradeStRequestingActivate, upgradeStCommitSw, upgradeStCheckCommitted}, //upgradeStWaitForCommit is not reset (later perhaps also not upgradeStWaitActivate)
+				upgradeStRequestingActivate, upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
 			{Name: upgradeEvAbort, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStWaitForActivate,
-				upgradeStRequestingActivate, upgradeStWaitForCommit, upgradeStCommitSw, upgradeStCheckCommitted},
+				upgradeStRequestingActivate, upgradeStActivated, upgradeStWaitForCommit, upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
 			{Name: upgradeEvRestart, Src: []string{upgradeStResetting}, Dst: upgradeStDisabled},
 		},
@@ -346,6 +350,7 @@ func (oFsm *OnuUpgradeFsm) SetActivationParamsStart(ctx context.Context, aImageV
 		oFsm.imageVersion = aImageVersion
 		oFsm.activateImage = true
 		oFsm.commitImage = aCommit
+		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN // this is just an activate request without prior download
 		oFsm.mutexUpgradeParams.Unlock()
 		//directly request the FSM to activate the image
 		_ = pBaseFsm.Event(upgradeEvRequestActivate) //no need to call the FSM event in background here
@@ -379,10 +384,10 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsRunning(ctx context.Context, aImag
 		pBaseFsm = oFsm.pAdaptFsm.pFsm
 	}
 	if pBaseFsm != nil {
-		if pBaseFsm.Is(upgradeStWaitForCommit) {
-			logger.Debugw(ctx, "OnuUpgradeFsm finish waiting for commit", log.Fields{"device-id": oFsm.deviceID})
-			_ = pBaseFsm.Event(upgradeEvCommitSw) //no need to call the FSM event in background here
-		}
+		//let the FSM decide if it is ready to process the event
+		logger.Debugw(ctx, "OnuUpgradeFsm requesting commit",
+			log.Fields{"device-id": oFsm.deviceID, "current FsmState": pBaseFsm.Current()})
+		_ = pBaseFsm.Event(upgradeEvCommitSw) //no need to call the FSM event in background here
 		return nil
 	}
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer", log.Fields{
@@ -405,6 +410,7 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsStart(ctx context.Context, aImageV
 		oFsm.inactiveImageMeID = aActiveImageID //upgrade state machines inactive ImageId is the new active ImageId
 		oFsm.imageVersion = aImageVersion
 		oFsm.commitImage = true
+		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN // this is just a commit request without prior download
 		oFsm.mutexUpgradeParams.Unlock()
 		//directly request the FSM to activate the image
 		_ = pBaseFsm.Event(upgradeEvCommitSw) //no need to call the FSM event in background here
@@ -433,6 +439,13 @@ func (oFsm *OnuUpgradeFsm) GetImageStates(ctx context.Context,
 	}
 	oFsm.mutexUpgradeParams.RUnlock()
 	return pImageState, nil
+}
+
+//SetImageState sets the FSM internal volthaImageState
+func (oFsm *OnuUpgradeFsm) SetImageState(ctx context.Context, aImageState voltha.ImageState_ImageActivationState) {
+	oFsm.mutexUpgradeParams.Lock()
+	defer oFsm.mutexUpgradeParams.Unlock()
+	oFsm.volthaImageState = aImageState
 }
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
@@ -847,7 +860,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event
 		pOnuUpgradeFsm := oFsm.pAdaptFsm
 		if pOnuUpgradeFsm != nil {
 			go func(a_pAFsm *AdapterFsm) {
-				_ = a_pAFsm.pFsm.Event(upgradeEvReset)
+				_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
 			}(pOnuUpgradeFsm)
 		}
 		return
@@ -1111,9 +1124,11 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
-			oFsm.mutexUpgradeParams.RLock()
+			oFsm.mutexUpgradeParams.Lock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
-				oFsm.mutexUpgradeParams.RUnlock()
+				oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_SUCCEEDED
+				oFsm.volthaImageState = voltha.ImageState_IMAGE_INACTIVE
+				oFsm.mutexUpgradeParams.Unlock()
 				logger.Debugw(ctx, "Expected EndSwDlResponse received", log.Fields{"device-id": oFsm.deviceID})
 				oFsm.mutexIsAwaitingOnuDlResponse.RLock()
 				if oFsm.isWaitingForOnuDlResponse {
@@ -1126,7 +1141,7 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				oFsm.chReceiveExpectedResponse <- true //let the FSM proceed from the waitState
 				return
 			}
-			oFsm.mutexUpgradeParams.RUnlock()
+			oFsm.mutexUpgradeParams.Unlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm StartSwDlResponse wrong ME instance: try again (later)?",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: possibly repeat the end request (once)? or verify ONU upgrade state?
@@ -1162,14 +1177,19 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 				return
 			}
-			oFsm.mutexUpgradeParams.RLock()
+			oFsm.mutexUpgradeParams.Lock()
 			if msgObj.EntityInstance == oFsm.inactiveImageMeID {
-				oFsm.mutexUpgradeParams.RUnlock()
-				logger.Infow(ctx, "Expected ActivateSwResponse received", log.Fields{"device-id": oFsm.deviceID})
-				_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForCommit)
+				oFsm.mutexUpgradeParams.Unlock()
+				logger.Infow(ctx, "Expected ActivateSwResponse received",
+					log.Fields{"device-id": oFsm.deviceID, "commit": oFsm.commitImage})
+				if oFsm.commitImage {
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForCommit)
+				} else {
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvActivationDone) // let the FSM wait for external commit request
+				}
 				return
 			}
-			oFsm.mutexUpgradeParams.RUnlock()
+			oFsm.mutexUpgradeParams.Unlock()
 			logger.Errorw(ctx, "OnuUpgradeFsm ActivateSwResponse wrong ME instance: abort",
 				log.Fields{"device-id": oFsm.deviceID, "ResponseMeId": msgObj.EntityInstance})
 			// TODO!!!: error treatment?
@@ -1283,15 +1303,13 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 					logger.Debugw(ctx, "OnuUpgradeFsm - expected ONU image version indicated by the ONU",
 						log.Fields{"device-id": oFsm.deviceID})
 				}
-				oFsm.volthaImageState = voltha.ImageState_IMAGE_ACTIVE
 				if imageIsCommitted == swIsCommitted {
-					oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_SUCCEEDED
 					oFsm.volthaImageState = voltha.ImageState_IMAGE_COMMITTED
 					logger.Infow(ctx, "requested SW image committed, releasing OnuUpgrade", log.Fields{"device-id": oFsm.deviceID})
 					oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, OnuDeviceEvent(oFsm.requestEvent)) //to let the handler now about success
 					oFsm.mutexUpgradeParams.Unlock()
 					//releasing the upgrade FSM
-					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvReset)
+					_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
 					return
 				}
 				oFsm.mutexUpgradeParams.Unlock()
@@ -1334,7 +1352,7 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aWa
 		//the upgrade process has to be aborted
 		pUpgradeFsm := oFsm.pAdaptFsm
 		if pUpgradeFsm != nil {
-			_ = pUpgradeFsm.pFsm.Event(upgradeEvReset)
+			_ = pUpgradeFsm.pFsm.Event(upgradeEvAbort)
 		} else {
 			logger.Errorw(ctx, "pUpgradeFsm is nil", log.Fields{"device-id": oFsm.deviceID})
 		}

@@ -1182,7 +1182,8 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 }
 
 //onuSwActivateRequest ensures activation of the requested image with commit options
-func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context, aVersion string, aCommitRequest bool) {
+func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context,
+	aVersion string, aCommitRequest bool) (*voltha.ImageState, error) {
 	var err error
 	//SW activation for the ONU image may have two use cases, one of them is selected here according to following prioritization:
 	//  1.) activation of the image for a started upgrade process (in case the running upgrade runs on the requested image)
@@ -1191,7 +1192,7 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context, aVersion stri
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "Onu image activation rejected: no valid OnuDevice", log.Fields{"device-id": dh.deviceID})
-		return
+		return nil, fmt.Errorf("no valid OnuDevice for device-id: %s", dh.deviceID)
 	}
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
@@ -1200,21 +1201,27 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context, aVersion stri
 			dh.deviceID, dh.deviceID)
 		if getErr != nil || onuVolthaDevice == nil {
 			logger.Errorw(ctx, "Failed to fetch Onu device for image activation", log.Fields{"device-id": dh.deviceID, "err": getErr})
-			return
+			return nil, fmt.Errorf("could not fetch device for device-id: %s", dh.deviceID)
 		}
 		//  use the OnuVendor identification from this device for the internal unique name
 		imageIdentifier := onuVolthaDevice.VendorId + aVersion //head on vendor ID of the ONU
 		// 1.) check a started upgrade process and rely the activation request to it
 		if err = dh.pOnuUpradeFsm.SetActivationParamsRunning(ctx, imageIdentifier, aCommitRequest); err != nil {
+			//if some ONU upgrade is ongoing we do not accept some explicit ONU image-version related activation
 			logger.Errorw(ctx, "onu upgrade fsm did not accept activation while running", log.Fields{
 				"device-id": dh.deviceID, "error": err})
-		} else {
-			logger.Debugw(ctx, "image activation acknowledged by onu upgrade processing", log.Fields{
-				"device-id": dh.deviceID, "image-id": imageIdentifier})
+			return nil, fmt.Errorf("activation not accepted for this version for device-id: %s", dh.deviceID)
 		}
-		//if some ONU upgrade is ongoing we do not accept some explicit ONU image-version related activation
-		//   (even though parameter setting is not accepted)
-		return
+		logger.Debugw(ctx, "image activation acknowledged by onu upgrade processing", log.Fields{
+			"device-id": dh.deviceID, "image-id": imageIdentifier})
+		var pImageStates *voltha.ImageState
+		if pImageStates, err = dh.pOnuUpradeFsm.GetImageStates(ctx, "", aVersion); err != nil {
+			pImageStates = &voltha.ImageState{}
+			pImageStates.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+			pImageStates.Reason = voltha.ImageState_UNKNOWN_ERROR
+			pImageStates.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+		}
+		return pImageStates, nil
 	} //else
 	dh.lockUpgradeFsm.RUnlock()
 
@@ -1224,7 +1231,7 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context, aVersion stri
 	if inactiveImageID, err = pDevEntry.GetInactiveImageMeID(ctx); err != nil || inactiveImageID > 1 {
 		logger.Errorw(ctx, "get inactive image failed", log.Fields{
 			"device-id": dh.deviceID, "err": err, "image-id": inactiveImageID})
-		return
+		return nil, fmt.Errorf("no valid inactive image found for device-id: %s", dh.deviceID)
 	}
 	err = dh.createOnuUpgradeFsm(ctx, pDevEntry, OmciOnuSwUpgradeDone)
 	if err == nil {
@@ -1232,18 +1239,27 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context, aVersion stri
 			inactiveImageID, aCommitRequest); err != nil {
 			logger.Errorw(ctx, "onu upgrade fsm did not accept activation to start", log.Fields{
 				"device-id": dh.deviceID, "error": err})
-			return
+			return nil, fmt.Errorf("activation to start from scratch not accepted for device-id: %s", dh.deviceID)
 		}
 		logger.Debugw(ctx, "inactive image activation acknowledged by onu upgrade", log.Fields{
 			"device-id": dh.deviceID, "image-version": aVersion})
-		return
+		var pImageStates *voltha.ImageState
+		if pImageStates, err = dh.pOnuUpradeFsm.GetImageStates(ctx, "", aVersion); err != nil {
+			pImageStates := &voltha.ImageState{}
+			pImageStates.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+			pImageStates.Reason = voltha.ImageState_UNKNOWN_ERROR
+			pImageStates.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+		}
+		return pImageStates, nil
 	} //else
 	logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
 		"device-id": dh.deviceID, "error": err})
+	return nil, fmt.Errorf("could not start upgradeFsm for device-id: %s", dh.deviceID)
 }
 
 //onuSwCommitRequest ensures commitment of the requested image
-func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context, aVersion string) {
+func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context,
+	aVersion string) (*voltha.ImageState, error) {
 	var err error
 	//SW commitment for the ONU image may have two use cases, one of them is selected here according to following prioritization:
 	//  1.) commitment of the image for a started upgrade process (in case the running upgrade runs on the requested image)
@@ -1252,7 +1268,7 @@ func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context, aVersion string
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "Onu image commitment rejected: no valid OnuDevice", log.Fields{"device-id": dh.deviceID})
-		return
+		return nil, fmt.Errorf("no valid OnuDevice for device-id: %s", dh.deviceID)
 	}
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
@@ -1261,54 +1277,68 @@ func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context, aVersion string
 			dh.deviceID, dh.deviceID)
 		if getErr != nil || onuVolthaDevice == nil {
 			logger.Errorw(ctx, "Failed to fetch Onu device for image commitment", log.Fields{"device-id": dh.deviceID, "err": getErr})
-			return
+			return nil, fmt.Errorf("could not fetch device for device-id: %s", dh.deviceID)
 		}
 		//  use the OnuVendor identification from this device for the internal unique name
 		imageIdentifier := onuVolthaDevice.VendorId + aVersion //head on vendor ID of the ONU
 		// 1.) check a started upgrade process and rely the commitment request to it
 		if err = dh.pOnuUpradeFsm.SetCommitmentParamsRunning(ctx, imageIdentifier); err != nil {
+			//if some ONU upgrade is ongoing we do not accept some explicit ONU image-version related commitment
 			logger.Errorw(ctx, "onu upgrade fsm did not accept commitment while running", log.Fields{
 				"device-id": dh.deviceID, "error": err})
-		} else {
-			logger.Debugw(ctx, "image commitment acknowledged by onu upgrade processing", log.Fields{
-				"device-id": dh.deviceID, "image-id": imageIdentifier})
+			return nil, fmt.Errorf("commitment not accepted for this version for device-id: %s", dh.deviceID)
 		}
-		//if some ONU upgrade is ongoing we do not accept some explicit ONU image-version related commitment
-		//   (even though parameter setting is not accepted)
-		return
+		logger.Debugw(ctx, "image commitment acknowledged by onu upgrade processing", log.Fields{
+			"device-id": dh.deviceID, "image-id": imageIdentifier})
+		var pImageStates *voltha.ImageState
+		if pImageStates, err = dh.pOnuUpradeFsm.GetImageStates(ctx, "", aVersion); err != nil {
+			pImageStates := &voltha.ImageState{}
+			pImageStates.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+			pImageStates.Reason = voltha.ImageState_UNKNOWN_ERROR
+			pImageStates.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+		}
+		return pImageStates, nil
 	} //else
 	dh.lockUpgradeFsm.RUnlock()
 
-	// 2.) check if requested image-version equals the inactive one and start its commitment
+	// 2.) use the active image to directly commit
 	var activeImageID uint16
 	if activeImageID, err = pDevEntry.GetActiveImageMeID(ctx); err != nil || activeImageID > 1 {
 		logger.Errorw(ctx, "get active image failed", log.Fields{
 			"device-id": dh.deviceID, "err": err, "image-id": activeImageID})
-		return
+		return nil, fmt.Errorf("no valid active image found for device-id: %s", dh.deviceID)
 	}
 	err = dh.createOnuUpgradeFsm(ctx, pDevEntry, OmciOnuSwUpgradeDone)
 	if err == nil {
 		if err = dh.pOnuUpradeFsm.SetCommitmentParamsStart(ctx, aVersion, activeImageID); err != nil {
 			logger.Errorw(ctx, "onu upgrade fsm did not accept commitment to start", log.Fields{
 				"device-id": dh.deviceID, "error": err})
-			return
+			return nil, fmt.Errorf("commitment to start from scratch not accepted for device-id: %s", dh.deviceID)
 		}
 		logger.Debugw(ctx, "active image commitment acknowledged by onu upgrade", log.Fields{
 			"device-id": dh.deviceID, "image-version": aVersion})
-		return
+		var pImageStates *voltha.ImageState
+		if pImageStates, err = dh.pOnuUpradeFsm.GetImageStates(ctx, "", aVersion); err != nil {
+			pImageStates := &voltha.ImageState{}
+			pImageStates.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+			pImageStates.Reason = voltha.ImageState_UNKNOWN_ERROR
+			pImageStates.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+		}
+		return pImageStates, nil
 	} //else
 	logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
 		"device-id": dh.deviceID, "error": err})
+	return nil, fmt.Errorf("could not start upgradeFsm for device-id: %s", dh.deviceID)
 }
 
 func (dh *deviceHandler) requestOnuSwUpgradeState(ctx context.Context, aImageIdentifier string,
 	aVersion string, pDeviceImageState *voltha.DeviceImageState) {
 	pDeviceImageState.DeviceId = dh.deviceID
-	pDeviceImageState.ImageState.Version = aImageIdentifier
+	pDeviceImageState.ImageState.Version = aVersion
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
 		dh.lockUpgradeFsm.RUnlock()
-		if pImageStates, err := dh.pOnuUpradeFsm.GetImageStates(ctx, aImageIdentifier, aVersion); err != nil {
+		if pImageStates, err := dh.pOnuUpradeFsm.GetImageStates(ctx, aImageIdentifier, aVersion); err == nil {
 			pDeviceImageState.ImageState.DownloadState = pImageStates.DownloadState
 			pDeviceImageState.ImageState.Reason = pImageStates.Reason
 			pDeviceImageState.ImageState.ImageState = pImageStates.ImageState
@@ -2636,6 +2666,7 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 			// commit is only processed in case out upgrade FSM indicates the according state (for automatic commit)
 			//  (some manual forced commit could do without)
 			if pUpgradeStatemachine.Is(upgradeStWaitForCommit) {
+				// here no need to update the upgrade image state to activated as the state will be immediately be set to committing
 				if pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.inactiveImageMeID) {
 					if err := pUpgradeStatemachine.Event(upgradeEvCommitSw); err != nil {
 						logger.Errorw(ctx, "OnuSwUpgradeFSM: can't call commit event", log.Fields{"err": err})
@@ -2648,6 +2679,16 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 						log.Fields{"device-id": dh.deviceID})
 					_ = pUpgradeStatemachine.Event(upgradeEvAbort)
 					return
+				}
+			} else {
+				//upgrade FSM is active but not waiting for commit: maybe because commit flag is not set
+				// upgrade FSM is to be informed if the current active image is the one that was used in upgrade for the download
+				if activeImageID, err := pDevEntry.GetActiveImageMeID(ctx); err == nil {
+					if dh.pOnuUpradeFsm.inactiveImageMeID == activeImageID {
+						logger.Debugw(ctx, "OnuSwUpgradeFSM image state set to activated", log.Fields{
+							"state": pUpgradeStatemachine.Current(), "device-id": dh.deviceID})
+						dh.pOnuUpradeFsm.SetImageState(ctx, voltha.ImageState_IMAGE_ACTIVE)
+					}
 				}
 			}
 		}

@@ -852,7 +852,6 @@ func (oo *OpenONUAC) Activate_onu_image(ctx context.Context, in *voltha.DeviceIm
 			loImageState := voltha.ImageState{}
 			loDeviceImageState.ImageState = &loImageState
 			loDeviceImageState.ImageState.Version = imageIdentifier
-			loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 			//compared to download procedure the vendorID (from device) is secondary here
 			//   and only needed in case the upgrade process is based on some ongoing download process (and can be retrieved in deviceHandler if needed)
 			// start image activation activity for each possible device
@@ -863,12 +862,19 @@ func (oo *OpenONUAC) Activate_onu_image(ctx context.Context, in *voltha.DeviceIm
 				//onu activation handling called in background without immediate error evaluation here
 				//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
 				//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
-				go handler.onuSwActivateRequest(ctx, imageIdentifier, (*in).CommitOnSuccess)
-				loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
-				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_ACTIVATING
+				if pImageStates, err := handler.onuSwActivateRequest(ctx, imageIdentifier, (*in).CommitOnSuccess); err != nil {
+					loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+					loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
+					loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_ACTIVATION_ABORTED
+				} else {
+					loDeviceImageState.ImageState.DownloadState = pImageStates.DownloadState
+					loDeviceImageState.ImageState.Reason = pImageStates.Reason
+					loDeviceImageState.ImageState.ImageState = pImageStates.ImageState
+				}
 			} else {
 				//cannot start SW activation for requested device
 				logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": loDeviceID})
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
 				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_ACTIVATION_ABORTED
 			}
@@ -894,7 +900,6 @@ func (oo *OpenONUAC) Commit_onu_image(ctx context.Context, in *voltha.DeviceImag
 			loImageState := voltha.ImageState{}
 			loDeviceImageState.ImageState = &loImageState
 			loDeviceImageState.ImageState.Version = imageIdentifier
-			loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 			//compared to download procedure the vendorID (from device) is secondary here
 			//   and only needed in case the upgrade process is based on some ongoing download process (and can be retrieved in deviceHandler if needed)
 			// start image activation activity for each possible device
@@ -905,12 +910,19 @@ func (oo *OpenONUAC) Commit_onu_image(ctx context.Context, in *voltha.DeviceImag
 				//onu commitment handling called in background without immediate error evaluation here
 				//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
 				//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
-				go handler.onuSwCommitRequest(ctx, imageIdentifier)
-				loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
-				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_COMMITTING
+				if pImageStates, err := handler.onuSwCommitRequest(ctx, imageIdentifier); err != nil {
+					loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
+					loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
+					loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_COMMIT_ABORTED
+				} else {
+					loDeviceImageState.ImageState.DownloadState = pImageStates.DownloadState
+					loDeviceImageState.ImageState.Reason = pImageStates.Reason
+					loDeviceImageState.ImageState.ImageState = pImageStates.ImageState
+				}
 			} else {
 				//cannot start SW commitment for requested device
 				logger.Warnw(ctx, "no handler found for image commitment", log.Fields{"device-id": loDeviceID})
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
 				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_COMMIT_ABORTED
 			}
