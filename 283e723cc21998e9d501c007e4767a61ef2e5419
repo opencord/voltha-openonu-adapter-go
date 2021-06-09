@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5583d5ad_fd14adf2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 2478,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-09T08:46:14Z",
+      "side": 1,
+      "message": "You should write a OnuDeviceEntry::getter function to retrieve the active SW version. compare e.g. OnuDeviceEntry::GetActiveImageMeID (defined  here in mib_sync.go, but by now a would prefer such definition in onu_device-entry.go). This getter function should also care about the valid flag!\nIf the field is not valid, you perhaps just insert an empty string (no reason to skip the complete event).",
+      "revId": "283e723cc21998e9d501c007e4767a61ef2e5419",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6174da87_031fb2bb",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 2480,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-09T08:46:14Z",
+      "side": 1,
+      "message": "See comment on \"software-version\".",
+      "revId": "283e723cc21998e9d501c007e4767a61ef2e5419",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
