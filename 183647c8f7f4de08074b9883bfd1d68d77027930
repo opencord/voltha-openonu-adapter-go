@@ -34,6 +34,24 @@
       "revId": "183647c8f7f4de08074b9883bfd1d68d77027930",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e3782c05_d2130c19",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 925,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-09T08:16:23Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a38d478d_47ec9d29",
+      "revId": "183647c8f7f4de08074b9883bfd1d68d77027930",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
