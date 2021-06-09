@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7e83f609_6f38a523",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 925,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-09T07:37:11Z",
+      "side": 1,
+      "message": "the image should be on the ONU, am I correct ? why then is this unknown ? shouldn\u0027t it be pImageStates.DownloadState in any case ? also this branch at line 923 and the failure case at line 914 are identical, so same comment applies and it would be great to unify them.",
+      "revId": "183647c8f7f4de08074b9883bfd1d68d77027930",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
