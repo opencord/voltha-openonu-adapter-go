@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "669aafa0_22ca7019",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1344,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-09T22:20:47Z",
+      "side": 1,
+      "message": "What is the response if ME doesn\u0027t exist? I guess we need to put \"oFsm.omciMIdsResponseReceived \u003c- false\" somewhere(in the case ME doesn\u0027t exist). Otherwise the FSM will wait for timeout in line 1486 (err \u003d oFsm.waitforOmciResponse(ctx)).",
+      "range": {
+        "startLine": 1344,
+        "startChar": 0,
+        "endLine": 1344,
+        "endChar": 43
+      },
+      "revId": "50d1b79400d7ba20b64a24e8f708a6ff668f7f99",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8671d41d_94d79067",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 1392,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-09T22:20:47Z",
+      "side": 1,
+      "message": "GetResponseType",
+      "range": {
+        "startLine": 1392,
+        "startChar": 6,
+        "endLine": 1392,
+        "endChar": 24
+      },
+      "revId": "50d1b79400d7ba20b64a24e8f708a6ff668f7f99",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4098eb62_5b557129",
+        "filename": "internal/pkg/onuadaptercore/platform.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-09T22:20:47Z",
+      "side": 1,
+      "message": "Don\u0027t change this until the tests are fixed. We will change it later when tests are changed accordingly.",
+      "range": {
+        "startLine": 121,
+        "startChar": 0,
+        "endLine": 121,
+        "endChar": 41
+      },
+      "revId": "50d1b79400d7ba20b64a24e8f708a6ff668f7f99",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
