@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "637a5b5d_7e430240",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 2483,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-09T07:27:25Z",
+      "side": 1,
+      "message": "formatting is not correct, please do make test, make lint and make scale before submitting. \n\nthis has to be } else {",
+      "revId": "7b00ee3e442b20c605b37bce8ad3ac303391a37d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
