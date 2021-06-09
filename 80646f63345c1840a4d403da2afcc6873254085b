@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "39bb3d3a_1f1bc26b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 3141,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-09T21:03:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "02aeeaf3_7095023e",
+      "revId": "80646f63345c1840a4d403da2afcc6873254085b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9a310f2c_46190a82",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 6
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "22a17465_f0b03822",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 2573,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-09T21:03:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a310f2c_46190a82",
+      "revId": "80646f63345c1840a4d403da2afcc6873254085b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1af34c12_0f47085e",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 6
@@ -47,6 +83,24 @@
       "writtenOn": "2021-06-09T11:20:09Z",
       "side": 1,
       "message": "orthographical error generating (sometimes sca complains)",
+      "revId": "80646f63345c1840a4d403da2afcc6873254085b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6051b669_868670e2",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 2623,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-09T21:03:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1af34c12_0f47085e",
       "revId": "80646f63345c1840a4d403da2afcc6873254085b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
