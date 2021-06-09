@@ -16,6 +16,24 @@
       "revId": "183647c8f7f4de08074b9883bfd1d68d77027930",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a38d478d_47ec9d29",
+        "filename": "internal/pkg/onuadaptercore/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 925,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-09T07:53:47Z",
+      "side": 1,
+      "message": "We can\u0027t make some reliabel statement about the image in this case. See the warning: Here there is no handler existing for this device (which should only appear in rare exceptional cases if at all) - with no existing handler we can\u0027t make any reliable statement about this device.\nThe block in line 914ff is different, even though the returned states are the same: in this case the handler exists, but the commit request processing delivers some error, perhaps because the given image is not known by the existing active upgrade process. Accordingly I would keep the processing apart (of course generating the same states could be unified, but maybe in future we could also generate different error codes (which would need an update of the protobufs) and it would just insert extra run time.",
+      "parentUuid": "7e83f609_6f38a523",
+      "revId": "183647c8f7f4de08074b9883bfd1d68d77027930",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
