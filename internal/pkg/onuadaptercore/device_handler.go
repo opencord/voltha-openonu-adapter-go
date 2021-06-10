@@ -1363,7 +1363,7 @@ func (dh *deviceHandler) requestOnuSwUpgradeState(ctx context.Context, aImageIde
 func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifier string,
 	aVersion string, pDeviceImageState *voltha.DeviceImageState) {
 	pDeviceImageState.DeviceId = dh.deviceID
-	pDeviceImageState.ImageState.Version = aImageIdentifier
+	pDeviceImageState.ImageState.Version = aVersion
 	pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
