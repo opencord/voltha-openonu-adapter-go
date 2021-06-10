@@ -416,7 +416,8 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 	for uniNo, uniPort := range oFsm.pOmciCC.pBaseDeviceHandler.uniEntityMap {
 		// only unlock the UniPort in case it is defined for usage (R2.6 limit only one port),
 		// compare also limitation for logical voltha port in dh.enableUniPortStateUpdate()
-		if (omciAdminState == 1) || (1<<uniPort.uniID)&activeUniPortStateUpdateMask == (1<<uniPort.uniID) {
+
+		if (omciAdminState == 1) || (1<<uniPort.uniID)&oFsm.pDeviceHandler.pOpenOnuAc.config.UniPortMask == (1<<uniPort.uniID) {
 			var meInstance *me.ManagedEntity
 			if uniPort.portType == uniPPTP {
 				logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{

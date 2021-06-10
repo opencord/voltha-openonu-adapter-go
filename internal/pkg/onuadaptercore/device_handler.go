@@ -2447,7 +2447,7 @@ func (dh *deviceHandler) enableUniPortStateUpdate(ctx context.Context) {
 
 	for uniNo, uniPort := range dh.uniEntityMap {
 		// only if this port is validated for operState transfer
-		if (1<<uniPort.uniID)&activeUniPortStateUpdateMask == (1 << uniPort.uniID) {
+		if (1<<uniPort.uniID)&dh.pOpenOnuAc.config.UniPortMask == (1 << uniPort.uniID) {
 			logger.Infow(ctx, "onuUniPort-forced-OperState-ACTIVE", log.Fields{"for PortNo": uniNo, "device-id": dh.deviceID})
 			uniPort.setOperState(vc.OperStatus_ACTIVE)
 			if !dh.isReconciling() {
@@ -2466,7 +2466,8 @@ func (dh *deviceHandler) disableUniPortStateUpdate(ctx context.Context) {
 	//   -> use current restriction to operate only on first UNI port as inherited from actual Py code
 	for uniNo, uniPort := range dh.uniEntityMap {
 		// only if this port is validated for operState transfer
-		if (1<<uniPort.uniID)&activeUniPortStateUpdateMask == (1 << uniPort.uniID) {
+
+		if (1<<uniPort.uniID)&dh.pOpenOnuAc.config.UniPortMask == (1 << uniPort.uniID) {
 			logger.Infow(ctx, "onuUniPort-forced-OperState-UNKNOWN", log.Fields{"for PortNo": uniNo, "device-id": dh.deviceID})
 			uniPort.setOperState(vc.OperStatus_UNKNOWN)
 			if !dh.isReconciling() {
