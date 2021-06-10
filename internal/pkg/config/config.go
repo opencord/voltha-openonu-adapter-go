@@ -69,6 +69,10 @@ const (
 	defaultOmciTimeout          = 3 * time.Second
 	defaultDlToAdapterTimeout   = 10 * time.Second
 	defaultDlToOnuTimeoutPer4MB = 60 * time.Minute //assumed for 4 MB of the image
+	//Mask to indicate which possibly active ONU UNI state  is really reported to the core
+	// compare python code - at the moment restrict active state to the first ONU UNI port
+	// check is limited to max 16 uni ports - cmp above UNI limit!!!
+	defaultUniPortMask = 0x0001
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -109,6 +113,7 @@ type AdapterFlags struct {
 	AlarmAuditInterval          time.Duration
 	DownloadToAdapterTimeout    time.Duration
 	DownloadToOnuTimeout4MB     time.Duration
+	UniPortMask                 int
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -149,6 +154,7 @@ func NewAdapterFlags() *AdapterFlags {
 		OmciTimeout:                 defaultOmciTimeout,
 		DownloadToAdapterTimeout:    defaultDlToAdapterTimeout,
 		DownloadToOnuTimeout4MB:     defaultDlToOnuTimeoutPer4MB,
+		UniPortMask:                 defaultUniPortMask,
 	}
 	return &adapterFlags
 }
@@ -259,6 +265,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = "File download to ONU timeout in minutes for a block of 4MB"
 	flag.DurationVar(&(so.DownloadToOnuTimeout4MB), "download_to_onu_timeout_4MB", defaultDlToOnuTimeoutPer4MB, help)
+
+	help = "The bitmask to identify UNI ports that need to be enabled"
+	flag.IntVar(&(so.UniPortMask), "uni_port_mask", defaultUniPortMask, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
