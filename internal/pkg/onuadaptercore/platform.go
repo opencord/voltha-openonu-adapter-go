@@ -115,11 +115,6 @@ const (
 	*/
 )
 
-//Mask to indicate which possibly active ONU UNI state  is really reported to the core
-// compare python code - at the moment restrict active state to the first ONU UNI port
-// check is limited to max 16 uni ports - cmp above UNI limit!!!
-var activeUniPortStateUpdateMask = 0x0001
-
 /*
 //MinUpstreamPortID value
 var minUpstreamPortID = 0xfffd
