@@ -1898,15 +1898,6 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Errorw(ctx, "MibSyncFsm invalid - cannot be executed!!", log.Fields{"device-id": dh.deviceID})
 		return fmt.Errorf("can't execute MibSync: %s", dh.deviceID)
 	}
-
-	if !dh.getCollectorIsRunning() {
-		// Start PM collector routine
-		go dh.startCollector(ctx)
-	}
-	if !dh.getAlarmManagerIsRunning(ctx) {
-		go dh.startAlarmManager(ctx)
-	}
-
 	return nil
 }
 
@@ -3482,13 +3473,6 @@ func (dh *deviceHandler) prepareReconcilingWithActiveAdapter(ctx context.Context
 		logger.Errorw(ctx, "reset of FSMs failed!", log.Fields{"device-id": dh.deviceID, "error": err})
 		// TODO: fatal error reset ONU, delete deviceHandler!
 		return
-	}
-	if !dh.getCollectorIsRunning() {
-		// Start PM collector routine
-		go dh.startCollector(ctx)
-	}
-	if !dh.getAlarmManagerIsRunning(ctx) {
-		go dh.startAlarmManager(ctx)
 	}
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
 	dh.startReconciling(ctx, false)

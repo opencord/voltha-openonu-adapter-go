@@ -305,8 +305,15 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		oo.baseDeviceHandler.addAllUniPorts(ctx)
 		oo.baseDeviceHandler.setDeviceReason(drInitialMibDownloaded)
 		oo.baseDeviceHandler.setReadyForOmciConfig(true)
-		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 
+		if !oo.baseDeviceHandler.getCollectorIsRunning() {
+			// Start PM collector routine
+			go oo.baseDeviceHandler.startCollector(ctx)
+		}
+		if !oo.baseDeviceHandler.getAlarmManagerIsRunning(ctx) {
+			go oo.baseDeviceHandler.startAlarmManager(ctx)
+		}
+		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
 
 		// start go routine with select() on reconciling flow channel before
