@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "301d14b2_c6c84c96",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 895,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-10T13:00:24Z",
+      "side": 1,
+      "message": "SCA looks good now. But could you please consider renaming the functions as suggested in the previous comments?",
+      "range": {
+        "startLine": 895,
+        "startChar": 26,
+        "endLine": 895,
+        "endChar": 44
+      },
+      "revId": "6a0e4b1980e4db07da3204b1ca908a8fe1eeb737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6eadcd71_a122cf4f",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 903,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-10T13:00:24Z",
+      "side": 1,
+      "message": "See comment above.",
+      "range": {
+        "startLine": 903,
+        "startChar": 26,
+        "endLine": 903,
+        "endChar": 46
+      },
+      "revId": "6a0e4b1980e4db07da3204b1ca908a8fe1eeb737",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
