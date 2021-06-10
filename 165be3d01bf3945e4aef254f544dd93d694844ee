@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bbb79cdf_aa0377d1",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1340,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-10T17:43:05Z",
+      "side": 1,
+      "message": "As far as I understand the GetResponse handling is only needed for MulticastGemInterworkingTerminationPoint ME. So it is good to remove other MEs here to avoid some unintended consequences later on.",
+      "range": {
+        "startLine": 1330,
+        "startChar": 0,
+        "endLine": 1340,
+        "endChar": 64
+      },
+      "revId": "165be3d01bf3945e4aef254f544dd93d694844ee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc3ec57f_f124bf0c",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1342,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-10T17:43:05Z",
+      "side": 1,
+      "message": "Also here you are only seem to be interested in multicast gem in log..",
+      "range": {
+        "startLine": 1342,
+        "startChar": 26,
+        "endLine": 1342,
+        "endChar": 45
+      },
+      "revId": "165be3d01bf3945e4aef254f544dd93d694844ee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7421381b_6082733b",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1491,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-10T17:43:05Z",
+      "side": 1,
+      "message": "should you really reset in this case as Reset would be sort of harsh handling, do you agree? Just curious on why you need to that? If it is ok to continue, then I do not find the relevance of this change set as if you received OMCI AttributeFailure reason as AlreadyExists on ME Create, it means the the ME already exists and you do not really need to do anything.",
+      "range": {
+        "startLine": 1489,
+        "startChar": 0,
+        "endLine": 1491,
+        "endChar": 10
+      },
+      "revId": "165be3d01bf3945e4aef254f544dd93d694844ee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
