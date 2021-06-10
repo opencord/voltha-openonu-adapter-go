@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a894abe_e385e838",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 2507,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-10T09:27:16Z",
+      "side": 1,
+      "message": "When you read from sOnuPersistentData you should call RLock()/RUnlock() of mutexPersOnuConfig.",
+      "range": {
+        "startLine": 2507,
+        "startChar": 45,
+        "endLine": 2507,
+        "endChar": 63
+      },
+      "revId": "364a0bebf229c00729b85f3ea7ad42c6fd8cd646",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7dd4f8b2_90bac920",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 2509,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-10T09:27:16Z",
+      "side": 1,
+      "message": "See comment above.",
+      "range": {
+        "startLine": 2509,
+        "startChar": 39,
+        "endLine": 2509,
+        "endChar": 57
+      },
+      "revId": "364a0bebf229c00729b85f3ea7ad42c6fd8cd646",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "12e152a8_b913f9e7",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 896,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-10T09:27:16Z",
+      "side": 1,
+      "message": "Function should be renamed because a function with the same name but different signature already exists - e.g. getActiveImageVersion().\nAdditionally please have a look at the \"make sca\" results for this function.",
+      "range": {
+        "startLine": 896,
+        "startChar": 26,
+        "endLine": 896,
+        "endChar": 44
+      },
+      "revId": "364a0bebf229c00729b85f3ea7ad42c6fd8cd646",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "57c9595a_11705f9a",
+        "filename": "internal/pkg/onuadaptercore/onu_device_entry.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 905,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-10T09:27:16Z",
+      "side": 1,
+      "message": "Name should be adjusted according to the name of the corresponding function.\nAdditionally please have a look at the \"make sca\" results for this function.",
+      "range": {
+        "startLine": 905,
+        "startChar": 26,
+        "endLine": 905,
+        "endChar": 46
+      },
+      "revId": "364a0bebf229c00729b85f3ea7ad42c6fd8cd646",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
