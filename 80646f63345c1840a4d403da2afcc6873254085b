@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "dc52fe0d_2860d916",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 3141,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-10T08:02:08Z",
+      "side": 1,
+      "message": "But when I deleted this line static code analysis return an error.",
+      "parentUuid": "39bb3d3a_1f1bc26b",
+      "revId": "80646f63345c1840a4d403da2afcc6873254085b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9a310f2c_46190a82",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 6
