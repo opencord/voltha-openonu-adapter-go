@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "f397634a_0319167e",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-11T09:26:53Z",
+      "side": 1,
+      "message": "can we reuse an existing constant for this ? otherwise it\u0027s yet another parameter to be exposed via helm charts.",
+      "revId": "99fb41905386467c46abbde21ef0c7082e30ede1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "751f2ba2_35563f57",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 5
