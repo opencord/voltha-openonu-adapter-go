@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "751f2ba2_35563f57",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2951,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-11T00:50:08Z",
+      "side": 1,
+      "message": "So here you are basically try to check if ExtendedPmME (64 / 32 bit) is supported. A brief description of the function in comments would be useful for any future developer trying to understand/change this would be helpful as the logic is quite involved. Also, I have not thoroughly reviewed the logic here and will need to be tested on hw/bbsim.",
+      "revId": "99fb41905386467c46abbde21ef0c7082e30ede1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9227e9e0_f39a1e96",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2952,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-11T00:50:08Z",
+      "side": 1,
+      "message": "Also a general comment about improvement needed here. You are basically fetching the OMCI ME here and that does not change for a onu_vendor/onu_model/onu_sw_version, so you store the OMCI ME table in path omci_me/\u003conu_vendor\u003e/\u003conu_model\u003e/\u003conu_sw_version\u003e on KV store and from then on re-used by all ONUs of a given onu_vendor/onu_model/onu_sw_version . The onu_vendor/onu_model/onu_sw_version are available in OnuPersistedData struct so you can form the key and look up the data on the KV store and if available, use that else get the ME from ONU and update the KV store to be used by other ONUs. \nThis would limit the unnecessary exchange of OMCI messages. Do you agree?",
+      "revId": "99fb41905386467c46abbde21ef0c7082e30ede1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
