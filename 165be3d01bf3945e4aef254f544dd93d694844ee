@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5ad37995_a2b090ab",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1340,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-11T13:33:48Z",
+      "side": 1,
+      "message": "Yeah, I thought this method can be used to other MEs someday. It\u0027s okay I\u0027ll remove them.",
+      "parentUuid": "bbb79cdf_aa0377d1",
+      "range": {
+        "startLine": 1330,
+        "startChar": 0,
+        "endLine": 1340,
+        "endChar": 64
+      },
+      "revId": "165be3d01bf3945e4aef254f544dd93d694844ee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dc3ec57f_f124bf0c",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 10
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "b2ecf1b0_6970ff2e",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1342,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-11T13:33:48Z",
+      "side": 1,
+      "message": "I\u0027ll remove other MEs.",
+      "parentUuid": "dc3ec57f_f124bf0c",
+      "range": {
+        "startLine": 1342,
+        "startChar": 26,
+        "endLine": 1342,
+        "endChar": 45
+      },
+      "revId": "165be3d01bf3945e4aef254f544dd93d694844ee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7421381b_6082733b",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 10
@@ -59,6 +107,30 @@
       "writtenOn": "2021-06-10T17:43:05Z",
       "side": 1,
       "message": "should you really reset in this case as Reset would be sort of harsh handling, do you agree? Just curious on why you need to that? If it is ok to continue, then I do not find the relevance of this change set as if you received OMCI AttributeFailure reason as AlreadyExists on ME Create, it means the the ME already exists and you do not really need to do anything.",
+      "range": {
+        "startLine": 1489,
+        "startChar": 0,
+        "endLine": 1491,
+        "endChar": 10
+      },
+      "revId": "165be3d01bf3945e4aef254f544dd93d694844ee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "61d2360c_008682cc",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1491,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-11T13:33:48Z",
+      "side": 1,
+      "message": "Yeah, We don\u0027t need to reset Fsm. But I\u0027m sure we don\u0027t need to create GEM port network CTP If we don\u0027t create Multicast GEM Interworking TP. Because of that I can change line 1490 as \"_ \u003d oFsm.pAdaptFsm.pFsm.Event(aniStConfigDone)\".",
+      "parentUuid": "7421381b_6082733b",
       "range": {
         "startLine": 1489,
         "startChar": 0,
