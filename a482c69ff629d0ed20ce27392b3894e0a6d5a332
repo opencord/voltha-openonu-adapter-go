@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a102635a_29316fe5",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1479,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-11T18:48:22Z",
+      "side": 1,
+      "message": "you probably need \"oFsm.mutexPLastTxMeInstance.Unlock()\" here",
+      "range": {
+        "startLine": 1479,
+        "startChar": 4,
+        "endLine": 1479,
+        "endChar": 10
+      },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d1dec8f5_1b9e26a8",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1480,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-11T18:48:22Z",
+      "side": 1,
+      "message": "I\u0027m not sure if you should do this here. In case MulticastGemIWTP created and set successfully it just returns. It doesn\u0027t trigger aniStConfigDone event. So you may need to remove this line and just return here. Micheal could you please comment on that?",
+      "range": {
+        "startLine": 1480,
+        "startChar": 0,
+        "endLine": 1480,
+        "endChar": 50
+      },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
