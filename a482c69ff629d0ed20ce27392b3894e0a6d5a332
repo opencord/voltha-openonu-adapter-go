@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0b8608f1_25408bf7",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1351,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-14T19:30:22Z",
+      "side": 1,
+      "message": "sending false to channel here ensures that the FSM will not wait for timeout in case of error response. A better implementation may be putting the omci result on to the channel and return this response from waitforOmciResponse() to the caller. This may be an issue for another task to change the channel type and all related create, set, get responses accordingly. Or we can do it here for get response and change the rest in another task.",
+      "parentUuid": "78ded887_05ef682f",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2ee644bb_ffce37e9",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
