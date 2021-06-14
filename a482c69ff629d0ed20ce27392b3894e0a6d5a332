@@ -2,6 +2,40 @@
   "comments": [
     {
       "key": {
+        "uuid": "78ded887_05ef682f",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1351,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "Just sending \u0027false\u0027 on the channel is a bit misleading here (see waitforOmciResponse() reaction \"uniPonAniConfigFsm wait-for-multi-entity-response aborted\"). But maybe we should leave the processing here this way to avoid the need of redefining the type of the channel by now. See comment on waitforOmciResponse()",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2ee644bb_ffce37e9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1352,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "Comment seems to be misleading here. Probably a debug log stating that the getResponse returned some error (probably \u0027unknown managed entity instance\u0027) - which may be normal behavior here.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a102635a_29316fe5",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
@@ -49,6 +83,23 @@
     },
     {
       "key": {
+        "uuid": "b14b995c_6b2679a1",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1479,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "I guess this should not be a warning here, as this seems to be a \u0027normal\u0027 situation at configuration, may be just debug.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d1dec8f5_1b9e26a8",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
@@ -66,6 +117,81 @@
         "endLine": 1480,
         "endChar": 50
       },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "721f1e50_abae5438",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1480,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "Yes, Mahir is right. The gem port loop should be continued do allow for configuration/checking of further gem ports. So do not \u0027return\u0027 from function here, but just continue with the loop. The aniStConfigDone event would be really wrong here (GemIwTp configuration is terminated at the end of this function (after the GemPort loop) using aniEvRxGemiwsResp.",
+      "parentUuid": "d1dec8f5_1b9e26a8",
+      "range": {
+        "startLine": 1480,
+        "startChar": 0,
+        "endLine": 1480,
+        "endChar": 50
+      },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a551c312_9707fd4d",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1482,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "A bit problematic here: err !\u003d nil is handled here as \u0027Gem does not exist\u0027. But with current implementation it could as well be some timeout or aborted processing. Maybe this is not a big issue here, but a way would to clarify this here would be to interprete the returned error. A timeout could be handled with FSM reset like in the other cases.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "739495c7_fcb7f3df",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1704,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "Note that you also use this now to indicate that the GetResponse did not deliver \u0027success\u0027, which may be normal.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "264d773f_4bcfe5b2",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1705,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T09:12:34Z",
+      "side": 1,
+      "message": "So maybe extend at least the log entry \"... or get response received with error\"",
       "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
