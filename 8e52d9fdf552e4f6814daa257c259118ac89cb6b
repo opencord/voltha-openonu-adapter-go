@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9d624d34_227000e4",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "Perhaps better omit \u0027_ONF\u0027 here - it is a bit confusing in respect to the other examples.",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ab294d30_8b9ea2c3",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "not activate here: .. for which to display the image  state",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66059761_7c2c8730",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "Version perhaps better without _ONF",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "25d6298d_3faf6bd8",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "... was correctly done and the image is in the inactive ONU partition (not yet activated)",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a57c4b7f_9ac6461b",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "Did you see these states once on some download command. What I have seen so far is:\nDEVICEID                                IMAGESTATE.VERSION    IMAGESTATE.DOWNLOADSTATE    IMAGESTATE.REASON    IMAGESTATE.IMAGESTATE    \n1e9a6a3f-8323-4abb-8028-ec43acbbb2ca    00000000000001        DOWNLOAD_STARTED            NO_ERROR             IMAGE_UNKNOWN            \n(see IMAGE_UNKNOWN)\n\nAnd perhaps again without _ONF",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8b9949d3_e218a479",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "... if ...",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1044c80d_e1bb3cc3",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "This command activates the given image on one or multiple devices (if the requested image is in the inactive ONU partition). This implies the switching of the active partition and reboot of the ONU.",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0e90270_78f5667a",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "Last sentence obsolete?",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05373992_774990ce",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "Obsolete with above comment?",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76e82c94_aeca67b7",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-14T10:23:24Z",
+      "side": 1,
+      "message": "...any upgrade related activity ...\nIt does not imply any activity to bring the ONU upgrade status to some previous or more consistent state. If required some further download command can be used to try to bring the ONU into the desired upgrade state.",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
