@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "99da7259_357b6355",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9d624d34_227000e4",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ab294d30_8b9ea2c3",
         "filename": "ONU_Upgrade_Notes.md",
         "patchSetId": 2
@@ -33,6 +51,24 @@
       "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5d6efbae_51171cf6",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab294d30_8b9ea2c3",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "662c531a_643845a7",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "66059761_7c2c8730",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "25d6298d_3faf6bd8",
         "filename": "ONU_Upgrade_Notes.md",
         "patchSetId": 2
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "0d3d57a2_f67501bc",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "25d6298d_3faf6bd8",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a57c4b7f_9ac6461b",
         "filename": "ONU_Upgrade_Notes.md",
         "patchSetId": 2
@@ -81,6 +153,24 @@
       "writtenOn": "2021-06-14T10:23:24Z",
       "side": 1,
       "message": "Did you see these states once on some download command. What I have seen so far is:\nDEVICEID                                IMAGESTATE.VERSION    IMAGESTATE.DOWNLOADSTATE    IMAGESTATE.REASON    IMAGESTATE.IMAGESTATE    \n1e9a6a3f-8323-4abb-8028-ec43acbbb2ca    00000000000001        DOWNLOAD_STARTED            NO_ERROR             IMAGE_UNKNOWN            \n(see IMAGE_UNKNOWN)\n\nAnd perhaps again without _ONF",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c6b28d2_cd1526b5",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "this is what Salman sent me in https://files.slack.com/files-pri/T095Z193Q-F024FL3GB1C/onu-sw-download-example-commands.txt",
+      "parentUuid": "a57c4b7f_9ac6461b",
       "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "5c60df88_a9273823",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8b9949d3_e218a479",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1044c80d_e1bb3cc3",
         "filename": "ONU_Upgrade_Notes.md",
         "patchSetId": 2
@@ -118,6 +226,24 @@
       "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7be820d2_3929fe73",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1044c80d_e1bb3cc3",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "528503d5_390e7ee9",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d0e90270_78f5667a",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "05373992_774990ce",
         "filename": "ONU_Upgrade_Notes.md",
         "patchSetId": 2
@@ -155,6 +299,24 @@
     },
     {
       "key": {
+        "uuid": "9163e390_19cf724b",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "05373992_774990ce",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "76e82c94_aeca67b7",
         "filename": "ONU_Upgrade_Notes.md",
         "patchSetId": 2
@@ -169,6 +331,24 @@
       "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0069b1ae_11e2a1bb",
+        "filename": "ONU_Upgrade_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-06-14T10:53:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "76e82c94_aeca67b7",
+      "revId": "8e52d9fdf552e4f6814daa257c259118ac89cb6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
