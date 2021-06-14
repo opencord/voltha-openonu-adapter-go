@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5355a183_1bb569d6",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1479,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-14T07:03:42Z",
+      "side": 1,
+      "message": "I didn\u0027t add Unlock here because already unlock at line 1475.",
+      "parentUuid": "a102635a_29316fe5",
+      "range": {
+        "startLine": 1479,
+        "startChar": 4,
+        "endLine": 1479,
+        "endChar": 10
+      },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d1dec8f5_1b9e26a8",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
