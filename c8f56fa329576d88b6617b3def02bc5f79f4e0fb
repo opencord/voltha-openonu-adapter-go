@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cb6fd502_39b3b6b2",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2951,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-15T09:15:39Z",
+      "side": 1,
+      "message": "Quite some big effort for PM counters. Might work -I did not fully check. I\u0027m not really a friend of this this approach as the effort for checking the support on OMCI seems quite high to me.\nBasically there two other options: \n1.) EthernetFrameExtendedPm64Bit is only defined since G.988-2017, that could be checked from MIB-upload data. But then there is still some danger that the ONU declares to be compatible to G.988-2017, but even then does not support EthernetFrameExtendedPm64Bit by some lack of implementation.\n2.) That would be my preferred solution: If some ME is not supported by the ONU, it has to reply on the create request with the according error code. Error codes on the create requests have to be checked anyway. So my recommended approach in this specific case would have been: \na) send create request for EthernetFrameExtendedPm64Bit, evaluate response: if ok, then use it, else\nb) send create request for EthernetFrameExtendedPm, evaluate response: if ok, then use it, else c) use EthernetFramePmHistoryData upstream/downstream\n\nBut maybe as it is implemented this way and might already work may it is left this way (at least in R2.8).\n\nImprovement as indicated by Girish to store the support (flags) in the kvStore could be considered but may be is not critical for initial release.",
+      "revId": "c8f56fa329576d88b6617b3def02bc5f79f4e0fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
