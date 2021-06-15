@@ -266,26 +266,27 @@ type onuPersistentData struct {
 
 // OnuDeviceEntry - ONU device info and FSM events.
 type OnuDeviceEntry struct {
-	deviceID                  string
-	baseDeviceHandler         *deviceHandler
-	pOpenOnuAc                *OpenONUAC
-	coreProxy                 adapterif.CoreProxy
-	adapterProxy              adapterif.AdapterProxy
-	PDevOmciCC                *omciCC
-	pOnuDB                    *onuDeviceDB
-	mibTemplateKVStore        *db.Backend
-	mutexPersOnuConfig        sync.RWMutex
-	sOnuPersistentData        onuPersistentData
-	mibTemplatePath           string
-	mutexOnuKVStore           sync.RWMutex
-	onuKVStore                *db.Backend
-	onuKVStorePath            string
-	mutexOnuKVStoreProcResult sync.RWMutex
-	onuKVStoreProcResult      error //error indication of processing
-	chOnuKvProcessingStep     chan uint8
-	onuSwImageIndications     sSwImageIndications
-	mutexOnuImageStatus       sync.RWMutex
-	pOnuImageStatus           *OnuImageStatus
+	deviceID                   string
+	baseDeviceHandler          *deviceHandler
+	pOpenOnuAc                 *OpenONUAC
+	coreProxy                  adapterif.CoreProxy
+	adapterProxy               adapterif.AdapterProxy
+	PDevOmciCC                 *omciCC
+	pOnuDB                     *onuDeviceDB
+	mibTemplateKVStore         *db.Backend
+	mutexPersOnuConfig         sync.RWMutex
+	sOnuPersistentData         onuPersistentData
+	mibTemplatePath            string
+	mutexOnuKVStore            sync.RWMutex
+	onuKVStore                 *db.Backend
+	onuKVStorePath             string
+	mutexOnuKVStoreProcResult  sync.RWMutex
+	onuKVStoreProcResult       error //error indication of processing
+	chOnuKvProcessingStep      chan uint8
+	mutexOnuSwImageIndications sync.RWMutex
+	onuSwImageIndications      sSwImageIndications
+	mutexOnuImageStatus        sync.RWMutex
+	pOnuImageStatus            *OnuImageStatus
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func(context.Context) error
 	supportedFsms OmciDeviceFsms
@@ -893,17 +894,25 @@ func (oo *OnuDeviceEntry) incrementMibDataSync(ctx context.Context) {
 }
 
 func (oo *OnuDeviceEntry) getActiveImageVersion(ctx context.Context) string {
+	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.activeEntityEntry.valid {
-		return oo.onuSwImageIndications.activeEntityEntry.version
+		value := oo.onuSwImageIndications.activeEntityEntry.version
+		oo.mutexOnuSwImageIndications.RUnlock()
+		return value
 	}
+	oo.mutexOnuSwImageIndications.RUnlock()
 	logger.Debugw(ctx, "Active Image is not valid", log.Fields{"device-id": oo.deviceID})
 	return ""
 }
 
 func (oo *OnuDeviceEntry) getInactiveImageVersion(ctx context.Context) string {
+	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.inactiveEntityEntry.valid {
-		return oo.onuSwImageIndications.inactiveEntityEntry.version
+		value := oo.onuSwImageIndications.inactiveEntityEntry.version
+		oo.mutexOnuSwImageIndications.RUnlock()
+		return value
 	}
+	oo.mutexOnuSwImageIndications.RUnlock()
 	logger.Debugw(ctx, "Inactive Image is not valid", log.Fields{"device-id": oo.deviceID})
 	return ""
 }
