@@ -16,6 +16,24 @@
       "revId": "c8f56fa329576d88b6617b3def02bc5f79f4e0fb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8afb3b9e_361fb460",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 2951,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-06-15T11:24:33Z",
+      "side": 1,
+      "message": "Agree with implementation  part 2. Will check with other folks if this is required in this release. Should be possible to change. Thanks",
+      "parentUuid": "cb6fd502_39b3b6b2",
+      "revId": "c8f56fa329576d88b6617b3def02bc5f79f4e0fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
