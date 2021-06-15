@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "ae804b09_7b32f202",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1351,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-15T18:09:28Z",
+      "side": 1,
+      "message": "I\u0027m leaving it as is now and will change the channel type in a separated task.",
+      "parentUuid": "0b8608f1_25408bf7",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2ee644bb_ffce37e9",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
@@ -48,6 +66,24 @@
       "writtenOn": "2021-06-14T09:12:34Z",
       "side": 1,
       "message": "Comment seems to be misleading here. Probably a debug log stating that the getResponse returned some error (probably \u0027unknown managed entity instance\u0027) - which may be normal behavior here.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "044846ac_d166fa93",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1352,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-15T18:09:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2ee644bb_ffce37e9",
       "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -118,6 +154,30 @@
     },
     {
       "key": {
+        "uuid": "36556d06_9b80f1d2",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1479,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-15T18:09:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5355a183_1bb569d6",
+      "range": {
+        "startLine": 1479,
+        "startChar": 4,
+        "endLine": 1479,
+        "endChar": 10
+      },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d1dec8f5_1b9e26a8",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
@@ -165,6 +225,30 @@
     },
     {
       "key": {
+        "uuid": "884208c8_b746811c",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1480,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-15T18:09:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "721f1e50_abae5438",
+      "range": {
+        "startLine": 1480,
+        "startChar": 0,
+        "endLine": 1480,
+        "endChar": 50
+      },
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a551c312_9707fd4d",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
@@ -176,6 +260,24 @@
       "writtenOn": "2021-06-14T09:12:34Z",
       "side": 1,
       "message": "A bit problematic here: err !\u003d nil is handled here as \u0027Gem does not exist\u0027. But with current implementation it could as well be some timeout or aborted processing. Maybe this is not a big issue here, but a way would to clarify this here would be to interprete the returned error. A timeout could be handled with FSM reset like in the other cases.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1a7894fb_da23b59b",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1482,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-15T18:09:28Z",
+      "side": 1,
+      "message": "Will do with channel type changes in it\u0027s task.",
+      "parentUuid": "a551c312_9707fd4d",
       "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -210,6 +312,24 @@
       "writtenOn": "2021-06-14T09:12:34Z",
       "side": 1,
       "message": "So maybe extend at least the log entry \"... or get response received with error\"",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "04758a83_4d1631f9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1705,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-15T18:09:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "264d773f_4bcfe5b2",
       "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
