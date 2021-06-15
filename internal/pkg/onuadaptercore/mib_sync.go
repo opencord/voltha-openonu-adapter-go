@@ -212,11 +212,14 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 
 func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *fsm.Event) {
 
+	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.activeEntityEntry.valid {
 		oo.mutexPersOnuConfig.Lock()
 		oo.sOnuPersistentData.PersActiveSwVersion = oo.onuSwImageIndications.activeEntityEntry.version
 		oo.mutexPersOnuConfig.Unlock()
+		oo.mutexOnuSwImageIndications.RUnlock()
 	} else {
+		oo.mutexOnuSwImageIndications.RUnlock()
 		logger.Errorw(ctx, "get-mib-template: no active SW version found, working with empty SW version, which might be untrustworthy",
 			log.Fields{"device-id": oo.deviceID})
 	}
@@ -696,6 +699,7 @@ func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID
 	oo.mutexPersOnuConfig.RUnlock()
 	if firstSwImageMeID == entityID {
 		//always accept the state of the first image (2nd image info should not yet be available)
+		oo.mutexOnuSwImageIndications.Lock()
 		if imageIsActive == swIsActive {
 			oo.onuSwImageIndications.activeEntityEntry.entityID = entityID
 			oo.onuSwImageIndications.activeEntityEntry.valid = true
@@ -715,10 +719,12 @@ func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID
 			//  (state of the second image is always expected afterwards or just invalid)
 			oo.onuSwImageIndications.activeEntityEntry.valid = false
 		}
+		oo.mutexOnuSwImageIndications.Unlock()
 		_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetSecondSwVersion)
 		return
 	} else if secondSwImageMeID == entityID {
 		//2nd image info might conflict with first image info, in which case we priorize first image info!
+		oo.mutexOnuSwImageIndications.Lock()
 		if imageIsActive == swIsActive { //2nd image reported to be active
 			if oo.onuSwImageIndications.activeEntityEntry.valid {
 				//conflict exists - state of first image is left active
@@ -751,6 +757,7 @@ func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID
 			oo.onuSwImageIndications.inactiveEntityEntry.version = imageVersion
 			oo.onuSwImageIndications.inactiveEntityEntry.isCommitted = imageIsCommitted
 		}
+		oo.mutexOnuSwImageIndications.Unlock()
 		_ = oo.pMibUploadFsm.pFsm.Event(ulEvGetMacAddress)
 		return
 	}
@@ -979,29 +986,40 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 
 //GetActiveImageMeID returns the Omci MeId of the active ONU image together with error code for validity
 func (oo *OnuDeviceEntry) GetActiveImageMeID(ctx context.Context) (uint16, error) {
+	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.activeEntityEntry.valid {
-		return oo.onuSwImageIndications.activeEntityEntry.entityID, nil
+		value := oo.onuSwImageIndications.activeEntityEntry.entityID
+		oo.mutexOnuSwImageIndications.RUnlock()
+		return value, nil
 	}
+	oo.mutexOnuSwImageIndications.RUnlock()
 	return 0xFFFF, fmt.Errorf("no valid active image found: %s", oo.deviceID)
 }
 
 //GetInactiveImageMeID returns the Omci MeId of the inactive ONU image together with error code for validity
 func (oo *OnuDeviceEntry) GetInactiveImageMeID(ctx context.Context) (uint16, error) {
+	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.inactiveEntityEntry.valid {
-		return oo.onuSwImageIndications.inactiveEntityEntry.entityID, nil
+		value := oo.onuSwImageIndications.inactiveEntityEntry.entityID
+		oo.mutexOnuSwImageIndications.RUnlock()
+		return value, nil
 	}
+	oo.mutexOnuSwImageIndications.RUnlock()
 	return 0xFFFF, fmt.Errorf("no valid inactive image found: %s", oo.deviceID)
 }
 
 //IsImageToBeCommitted returns true if the active image is still uncommitted
 func (oo *OnuDeviceEntry) IsImageToBeCommitted(ctx context.Context, aImageID uint16) bool {
+	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.activeEntityEntry.valid {
 		if oo.onuSwImageIndications.activeEntityEntry.entityID == aImageID {
 			if oo.onuSwImageIndications.activeEntityEntry.isCommitted == swIsUncommitted {
+				oo.mutexOnuSwImageIndications.RUnlock()
 				return true
 			}
 		}
 	}
+	oo.mutexOnuSwImageIndications.RUnlock()
 	return false //all other case are treated as 'nothing to commit
 }
 func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {

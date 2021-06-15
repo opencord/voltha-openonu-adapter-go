@@ -50,6 +50,7 @@ const (
 	cImgProductCode = "ProductCode"
 	cImgImageHash   = "ImageHash"
 )
+const cResponse = "response: "
 
 //NewOnuImageStatus creates a new instance of OnuImageStatus
 func NewOnuImageStatus(pDevEntry *OnuDeviceEntry) *OnuImageStatus {
@@ -61,14 +62,19 @@ func NewOnuImageStatus(pDevEntry *OnuDeviceEntry) *OnuImageStatus {
 		respChannel:         make(chan Message),
 	}
 }
+
 func (oo *OnuImageStatus) getOnuImageStatus(ctx context.Context) (*voltha.OnuImages, error) {
 
-	var images voltha.OnuImages
-
+	if !oo.pDevEntry.baseDeviceHandler.isReadyForOmciConfig() {
+		logger.Errorw(ctx, "command rejected - improper device state", log.Fields{"device-id": oo.deviceID})
+		return nil, fmt.Errorf("command-rejected-improper-device-state")
+	}
 	if oo.pDevEntry.PDevOmciCC == nil {
 		logger.Errorw(ctx, "omciCC not ready to receive omci messages", log.Fields{"device-id": oo.deviceID})
 		return nil, fmt.Errorf("omciCC-not-ready-to-receive-omci-messages")
 	}
+	var images voltha.OnuImages
+
 	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
 		logger.Debugw(ctx, "getOnuImageStatus for image id", log.Fields{"image-id": i, "device-id": oo.deviceID})
 
@@ -97,6 +103,8 @@ func (oo *OnuImageStatus) getOnuImageStatus(ctx context.Context) (*voltha.OnuIma
 		images.Items = append(images.Items, &image)
 	}
 	logger.Debugw(ctx, "images of the ONU", log.Fields{"images": images})
+	oo.updateOnuSwImageIndications(ctx, &images)
+	oo.updateOnuSwImagePersistentData(ctx)
 	return &images, nil
 }
 
@@ -181,38 +189,9 @@ func (oo *OnuImageStatus) processGetOnuImageStatusResp(ctx context.Context, msg 
 		if msgObj.EntityClass == oo.pLastTxMeInstance.GetClassID() &&
 			msgObj.EntityInstance == oo.pLastTxMeInstance.GetEntityID() {
 			oo.mutexPLastTxMeInstance.RUnlock()
-
-			meAttributes := msgObj.Attributes
-			logger.Debugw(ctx, "processGetOnuImageStatusResp omci attributes received", log.Fields{"attributes": meAttributes, "device-id": oo.deviceID})
-
-			for k := range oo.requestedAttributes {
-				switch k {
-				case cImgIsCommitted:
-					if meAttributes[cImgIsCommitted].(uint8) == swIsCommitted {
-						image.IsCommited = true
-					} else {
-						image.IsCommited = false
-					}
-				case cImgIsActive:
-					if meAttributes[cImgIsActive].(uint8) == swIsActive {
-						image.IsActive = true
-					} else {
-						image.IsActive = false
-					}
-				case cImgIsValid:
-					if meAttributes[cImgIsValid].(uint8) == swIsValid {
-						image.IsValid = true
-					} else {
-						image.IsValid = false
-					}
-				case cImgVersion:
-					image.Version = TrimStringFromMeOctet(meAttributes[cImgVersion])
-				case cImgProductCode:
-					image.ProductCode = TrimStringFromMeOctet(meAttributes[cImgProductCode])
-				case cImgImageHash:
-					bytes, _ := me.InterfaceToOctets(meAttributes[cImgImageHash])
-					image.Hash = hex.EncodeToString(bytes)
-				}
+			if err := oo.processAttributesReceived(ctx, msgObj, image); err != nil {
+				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": oo.deviceID})
+				return err
 			}
 			return nil
 		}
@@ -224,11 +203,134 @@ func (oo *OnuImageStatus) processGetOnuImageStatusResp(ctx context.Context, msg 
 	logger.Errorw(ctx, "processGetOnuImageStatusResp pLastTxMeInstance is nil", log.Fields{"device-id": oo.deviceID})
 	return fmt.Errorf("process-image-status-response-error")
 }
+
+func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj *omci.GetResponse, image *voltha.OnuImage) error {
+	meAttributes := msgObj.Attributes
+	logger.Debugw(ctx, "processAttributesReceived", log.Fields{"attributes": meAttributes, "device-id": oo.deviceID})
+
+	for k := range oo.requestedAttributes {
+
+		if msgObj.Result != me.Success && k != cImgProductCode && k != cImgImageHash {
+			logger.Errorw(ctx, "processAttributesReceived retrieval of mandatory attributes failed",
+				log.Fields{"device-id": oo.deviceID})
+			return fmt.Errorf("process-image-status-response-error")
+		}
+		switch k {
+
+		// mandatory attributes
+		case cImgIsCommitted:
+			if meAttributes[cImgIsCommitted].(uint8) == swIsCommitted {
+				image.IsCommited = true
+			} else {
+				image.IsCommited = false
+			}
+		case cImgIsActive:
+			if meAttributes[cImgIsActive].(uint8) == swIsActive {
+				image.IsActive = true
+			} else {
+				image.IsActive = false
+			}
+		case cImgIsValid:
+			if meAttributes[cImgIsValid].(uint8) == swIsValid {
+				image.IsValid = true
+			} else {
+				image.IsValid = false
+			}
+		case cImgVersion:
+			image.Version = TrimStringFromMeOctet(meAttributes[cImgVersion])
+
+		// optional attributes
+		case cImgProductCode:
+			if msgObj.Result == me.Success {
+				image.ProductCode = TrimStringFromMeOctet(meAttributes[cImgProductCode])
+			} else {
+				sResult := msgObj.Result.String()
+				logger.Infow(ctx, "processAttributesReceived - ProductCode",
+					log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
+				image.ProductCode = cResponse + sResult
+			}
+		case cImgImageHash:
+			if msgObj.Result == me.Success {
+				bytes, _ := me.InterfaceToOctets(meAttributes[cImgImageHash])
+				image.Hash = hex.EncodeToString(bytes)
+			} else {
+				sResult := msgObj.Result.String()
+				logger.Infow(ctx, "processAttributesReceived - ImageHash",
+					log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
+				image.Hash = cResponse + sResult
+			}
+		}
+	}
+	return nil
+}
+
+func (oo *OnuImageStatus) updateOnuSwImageIndications(ctx context.Context, images *voltha.OnuImages) {
+
+	oo.pDevEntry.mutexOnuSwImageIndications.Lock()
+	validActiveImageFound := false
+	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
+		if images.Items[i].IsActive && images.Items[i].IsValid {
+			oo.pDevEntry.onuSwImageIndications.activeEntityEntry.entityID = uint16(i)
+			oo.pDevEntry.onuSwImageIndications.activeEntityEntry.valid = images.Items[i].IsValid
+			oo.pDevEntry.onuSwImageIndications.activeEntityEntry.version = images.Items[i].Version
+			if images.Items[i].IsCommited {
+				oo.pDevEntry.onuSwImageIndications.activeEntityEntry.isCommitted = swIsCommitted
+			} else {
+				oo.pDevEntry.onuSwImageIndications.activeEntityEntry.isCommitted = swIsUncommitted
+			}
+			validActiveImageFound = true
+			break
+		}
+	}
+	if !validActiveImageFound {
+		oo.pDevEntry.onuSwImageIndications.activeEntityEntry.valid = false
+	}
+	validInactiveImageFound := false
+	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
+		if !images.Items[i].IsActive && images.Items[i].IsValid {
+			oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.entityID = uint16(i)
+			oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.valid = images.Items[i].IsValid
+			oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.version = images.Items[i].Version
+			if images.Items[i].IsCommited {
+				oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.isCommitted = swIsCommitted
+			} else {
+				oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.isCommitted = swIsUncommitted
+			}
+			validInactiveImageFound = true
+			break
+		}
+	}
+	if !validInactiveImageFound {
+		oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.valid = false
+	}
+	oo.pDevEntry.mutexOnuSwImageIndications.Unlock()
+}
+
+func (oo *OnuImageStatus) updateOnuSwImagePersistentData(ctx context.Context) {
+
+	activeImageVersion := oo.pDevEntry.getActiveImageVersion(ctx)
+	oo.pDevEntry.mutexPersOnuConfig.Lock()
+	if oo.pDevEntry.sOnuPersistentData.PersActiveSwVersion != activeImageVersion {
+		logger.Infow(ctx, "Active SW version has been changed at ONU - update persistent data",
+			log.Fields{"old version": oo.pDevEntry.sOnuPersistentData.PersActiveSwVersion,
+				"new version": activeImageVersion, "device-id": oo.deviceID})
+		oo.pDevEntry.sOnuPersistentData.PersActiveSwVersion = activeImageVersion
+		oo.pDevEntry.mutexPersOnuConfig.Unlock()
+		if err := oo.pDevEntry.baseDeviceHandler.storePersistentData(ctx); err != nil {
+			logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
+				log.Fields{"device-id": oo.deviceID, "err": err})
+		}
+		return
+	}
+	oo.pDevEntry.mutexPersOnuConfig.Unlock()
+}
+
 func (oo *OnuImageStatus) setWaitingForResp(value bool) {
 	oo.mutexWaitingForResp.Lock()
 	oo.waitingForResp = value
 	oo.mutexWaitingForResp.Unlock()
 }
+
 func (oo *OnuImageStatus) isWaitingForResp() bool {
 	oo.mutexWaitingForResp.RLock()
 	value := oo.waitingForResp
