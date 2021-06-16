@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "b4777a35_7ee46339",
+        "filename": "VERSION",
+        "patchSetId": 16
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T08:39:39Z",
+      "side": 1,
+      "message": "some 1.3.2-devXXX versiion would be required by now.",
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "084ee00e_dcc2e581",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 16
