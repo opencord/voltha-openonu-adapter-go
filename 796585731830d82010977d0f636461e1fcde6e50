@@ -122,6 +122,24 @@
       "revId": "796585731830d82010977d0f636461e1fcde6e50",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0d2eb9c7_c05e30ed",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1481,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T12:53:42Z",
+      "side": 1,
+      "message": "Sure, but you have to continue with possibly further gemPorts of the gemPortAttribsSlice in the  for loop starting in line 1447.",
+      "parentUuid": "5ac9b039_30124284",
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
