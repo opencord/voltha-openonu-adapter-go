@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4f8009dc_b6dd03e4",
+        "filename": "internal/pkg/onuadaptercore/onu_image_status.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T17:25:23Z",
+      "side": 1,
+      "message": "This is a bitcontradictionary to what you do with the mandatory elements. But I understand that you are perhaps trying to transfer correctly received mandatory data and not discard that all on some error in the optional paramters. But then \"invalid response\" might be a bit misleading (the response is not really invalid). Perhaps better would be \"OMCI response error\", and if you want to go a step further then you could still insert the OMCI error (as number [or string?] - number is sufficient to me ;-)).",
+      "revId": "7ec05b0d443ea6e0c0b02758be09a2c9ab9cf217",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e5cac0b0_948a1369",
+        "filename": "internal/pkg/onuadaptercore/onu_image_status.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T17:25:23Z",
+      "side": 1,
+      "message": "same as above.",
+      "revId": "7ec05b0d443ea6e0c0b02758be09a2c9ab9cf217",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
