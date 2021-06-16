@@ -135,6 +135,9 @@ const (
 	drRebooting                        = 10
 	drOmciFlowsDeleted                 = 11
 	drTechProfileConfigDeleteSuccess   = 12
+	drReconcileFailed                  = 13
+	drReconcileMaxTimeout              = 14
+	drReconcileCanceled                = 15
 )
 
 var deviceReasonMap = map[uint8]string{
@@ -151,6 +154,9 @@ var deviceReasonMap = map[uint8]string{
 	drRebooting:                        "rebooting",
 	drOmciFlowsDeleted:                 "omci-flows-deleted",
 	drTechProfileConfigDeleteSuccess:   "tech-profile-config-delete-success",
+	drReconcileFailed:                  "reconcile-failed",
+	drReconcileMaxTimeout:              "reconcile-max-timeout",
+	drReconcileCanceled:                "reconciling-canceled",
 }
 
 const (
@@ -3529,6 +3535,9 @@ func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig bool) {
 	logger.Debugw(ctx, "start reconciling", log.Fields{"skipOnuConfig": skipOnuConfig, "device-id": dh.deviceID})
 
+	connectStatus := voltha.ConnectStatus_UNREACHABLE
+	operState := voltha.OperStatus_UNKNOWN
+
 	if !dh.isReconciling() {
 		go func() {
 			logger.Debugw(ctx, "wait for channel signal or timeout",
@@ -3540,8 +3549,6 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
 							log.Fields{"device-id": dh.deviceID})
 					} else {
-						connectStatus := voltha.ConnectStatus_UNREACHABLE
-						operState := voltha.OperStatus_UNKNOWN
 						if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
 							connectStatus = voltha.ConnectStatus_REACHABLE
 							if !onuDevEntry.sOnuPersistentData.PersUniDisableDone {
@@ -3558,21 +3565,39 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 						}
 
 						logger.Debugw(ctx, "Core DeviceStateUpdate", log.Fields{"connectStatus": connectStatus, "operState": operState})
-						if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, connectStatus, operState); err != nil {
-							logger.Errorw(ctx, "unable to update device state to core",
-								log.Fields{"OperState": onuDevEntry.sOnuPersistentData.PersOperState, "Err": err})
-						}
 					}
 					logger.Debugw(ctx, "reconciling has been finished in time",
 						log.Fields{"device-id": dh.deviceID})
+					if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, connectStatus, operState); err != nil {
+						logger.Errorw(ctx, "unable to update device state to core",
+							log.Fields{"device-id": dh.deviceID, "Err": err})
+					}
 				} else {
 					logger.Errorw(ctx, "wait for reconciling aborted",
 						log.Fields{"device-id": dh.deviceID})
+
+					if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+						logger.Errorw(ctx, "No valid OnuDevice",
+							log.Fields{"device-id": dh.deviceID})
+					} else if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
+						connectStatus = voltha.ConnectStatus_REACHABLE
+					}
+
+					dh.deviceReconcileFailedUpdate(ctx, connectStatus)
 				}
 			case <-time.After(dh.pOpenOnuAc.maxTimeoutReconciling):
-				//TODO: handle notification to core if reconciling timed out
 				logger.Errorw(ctx, "timeout waiting for reconciling to be finished!",
 					log.Fields{"device-id": dh.deviceID})
+
+				if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+					logger.Errorw(ctx, "No valid OnuDevice",
+						log.Fields{"device-id": dh.deviceID})
+				} else if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
+					connectStatus = voltha.ConnectStatus_REACHABLE
+				}
+
+				dh.deviceReconcileFailedUpdate(ctx, connectStatus)
+
 			}
 			dh.mutexReconcilingFlag.Lock()
 			dh.reconciling = cNoReconciling
@@ -3649,4 +3674,17 @@ func (dh *deviceHandler) isReadyForOmciConfig() bool {
 	flagValue := dh.readyForOmciConfig
 	dh.mutexReadyForOmciConfig.RUnlock()
 	return flagValue
+}
+
+func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, connectStatus voltha.ConnectStatus_Types) {
+	if err := dh.deviceReasonUpdate(ctx, drReconcileCanceled, true); err != nil {
+		logger.Errorw(ctx, "unable to update device reason to core",
+			log.Fields{"device-id": dh.deviceID, "Err": err})
+	}
+
+	logger.Debugw(ctx, "Core DeviceStateUpdate", log.Fields{"connectStatus": connectStatus, "operState": voltha.OperStatus_RECONCILING_FAILED})
+	if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, connectStatus, voltha.OperStatus_RECONCILING_FAILED); err != nil {
+		logger.Errorw(ctx, "unable to update device state to core",
+			log.Fields{"device-id": dh.deviceID, "Err": err})
+	}
 }
