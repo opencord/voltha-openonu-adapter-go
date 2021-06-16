@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d08f0e2c_864bae5a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3546,
+      "author": {
+        "id": 1000729
+      },
+      "writtenOn": "2021-06-16T16:48:21Z",
+      "side": 1,
+      "message": "Can\u0027t set more precise reason as ReconcilingFinished send true even in case of error. \nAs per my understanding this channel is just to indicate whether the reconciling is finished or not.\nNeed more precise approach if we need to update device reason with different error cases.",
+      "range": {
+        "startLine": 3546,
+        "startChar": 21,
+        "endLine": 3546,
+        "endChar": 46
+      },
+      "revId": "790cce75f64ac765499de62fa30e7d64ec86b39c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
