@@ -22,6 +22,47 @@
       "revId": "796585731830d82010977d0f636461e1fcde6e50",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7d351f87_819009f7",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T08:38:22Z",
+      "side": 1,
+      "message": "It is probably a copy/paste from CreateResonse handling. Holger is right, \u0027InstanceExists\u0027 is not applicable to GetRequest.",
+      "parentUuid": "084ee00e_dcc2e581",
+      "range": {
+        "startLine": 1321,
+        "startChar": 55,
+        "endLine": 1321,
+        "endChar": 70
+      },
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3b623d5_e4721790",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1481,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T08:38:22Z",
+      "side": 1,
+      "message": "You should not generate the event and not return here (maybe my previous comment was misleading here). Returning here would possibly have the effect that not all needed GemPorts are configured (for-loop is left to early). Event aniEvRxRemGemiwResp should only be generated at the end of the for loop (see line 1571).\nSo what you need to do here is just \u0027continue\u0027 (to skip the configurarion for the current (multicast) gem).",
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }

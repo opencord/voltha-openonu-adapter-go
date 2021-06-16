@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "dc6a53a8_6be22f3d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3189,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-16T08:38:22Z",
+      "side": 1,
+      "message": "My comment here was meant: If we don\u0027t use the function (anymore?) then it can be completely removed. Well, we can do so also at a later time.",
+      "revId": "a482c69ff629d0ed20ce27392b3894e0a6d5a332",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "78ded887_05ef682f",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 15
