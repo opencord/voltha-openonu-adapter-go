@@ -66,6 +66,30 @@
     },
     {
       "key": {
+        "uuid": "96106668_8596b266",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1321,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-16T11:37:34Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7d351f87_819009f7",
+      "range": {
+        "startLine": 1321,
+        "startChar": 55,
+        "endLine": 1321,
+        "endChar": 70
+      },
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b3b623d5_e4721790",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 16
@@ -77,6 +101,24 @@
       "writtenOn": "2021-06-16T08:38:22Z",
       "side": 1,
       "message": "You should not generate the event and not return here (maybe my previous comment was misleading here). Returning here would possibly have the effect that not all needed GemPorts are configured (for-loop is left to early). Event aniEvRxRemGemiwResp should only be generated at the end of the for loop (see line 1571).\nSo what you need to do here is just \u0027continue\u0027 (to skip the configurarion for the current (multicast) gem).",
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5ac9b039_30124284",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1481,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-16T11:37:34Z",
+      "side": 1,
+      "message": "I want to \"continue\" to other configuration. If we don\u0027t need to create Multicast gem then we don\u0027t need to create GEM Port Network CTP.",
+      "parentUuid": "b3b623d5_e4721790",
       "revId": "796585731830d82010977d0f636461e1fcde6e50",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
