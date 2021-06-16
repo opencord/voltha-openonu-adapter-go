@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "084ee00e_dcc2e581",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 1321,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-16T08:11:22Z",
+      "side": 1,
+      "message": "Did you really see this as a result in a getResponse?",
+      "range": {
+        "startLine": 1321,
+        "startChar": 55,
+        "endLine": 1321,
+        "endChar": 70
+      },
+      "revId": "796585731830d82010977d0f636461e1fcde6e50",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
