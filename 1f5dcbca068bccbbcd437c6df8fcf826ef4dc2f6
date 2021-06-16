@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "756db418_ef618eec",
+        "filename": "internal/pkg/onuadaptercore/onu_image_status.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 249,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-16T13:17:51Z",
+      "side": 1,
+      "message": "see question below",
+      "parentUuid": "09bc96ae_a5e2f119",
+      "revId": "1f5dcbca068bccbbcd437c6df8fcf826ef4dc2f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "13c6b4c0_2fccad26",
         "filename": "internal/pkg/onuadaptercore/onu_image_status.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2021-06-16T13:02:34Z",
       "side": 1,
       "message": "i think is ok to log and ignore the invalid attribute instead of returning error, given that is an optional attribute.",
+      "revId": "1f5dcbca068bccbbcd437c6df8fcf826ef4dc2f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "816c5d96_a3322de1",
+        "filename": "internal/pkg/onuadaptercore/onu_image_status.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-16T13:17:51Z",
+      "side": 1,
+      "message": "If we end up here, it\u0027s a violation of standard G.988 on the part of ONU. Shouldn\u0027t we make that clear by a corresponding output string for the faulty attribute - e.g. \"invalid response\"? All successfully determined attributes would then be returned anyway.",
+      "parentUuid": "13c6b4c0_2fccad26",
       "revId": "1f5dcbca068bccbbcd437c6df8fcf826ef4dc2f6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -56,6 +92,30 @@
       "revId": "1f5dcbca068bccbbcd437c6df8fcf826ef4dc2f6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e8c0703_64e91856",
+        "filename": "internal/pkg/onuadaptercore/onu_image_status.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-16T13:17:51Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "dace57ed_ef3719ce",
+      "range": {
+        "startLine": 316,
+        "startChar": 65,
+        "endLine": 316,
+        "endChar": 72
+      },
+      "revId": "1f5dcbca068bccbbcd437c6df8fcf826ef4dc2f6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
