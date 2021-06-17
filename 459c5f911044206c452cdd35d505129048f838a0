@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f0e274b3_c60f66de",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 1417,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-17T14:36:19Z",
+      "side": 1,
+      "message": "Not sure if that is (generally) sufficient. What you are doing here is to look for the McGemPort on all FSM instances that are not related to this port. But it might as well be that there is a different FSM based on some different TechProfile on the same UNI, that might have already the MCGemPort. Might be that is not really probable, but at least theoretically possible. So you could check all FSM instances different from the actual uniTpKey.",
+      "revId": "459c5f911044206c452cdd35d505129048f838a0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
