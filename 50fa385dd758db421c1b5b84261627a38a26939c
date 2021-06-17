@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "79274524_ae84e96c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 645,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-17T14:11:38Z",
+      "side": 1,
+      "message": "If you want to admit downstream flows on add, you surely have to do the same on remove - or not?",
+      "revId": "50fa385dd758db421c1b5b84261627a38a26939c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "727a1b39_9facb4bc",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 695,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-17T14:11:38Z",
+      "side": 1,
+      "message": "This way a downstreamFlow would never be transferred to the FSM. \nIt seems as if you wantto use simply the existence of a downstream flow to allow the TrafficDescriptor configuration also for downstream? \nUnfortunately it is not that easy (sequence of configured flows is undefined).\nEasiest way would perhaps be to retrigger the FSM with only this attribute (setTDOnDown), perhaps with a separate function. If FSM does not yet exist, then you have to store it for subsequent calls iof flow configuration. In the FSM (specific method) you could check if the the downstream attribute is to be changed, and if yes, then start the GemNTCTP assignment for all existing bidirectional GemPorts (probably in a seperate state(s)). \nIt would be much easier, if it would be possible to generally apply the TD to both directions (perhaps also a way of trying to get some first solution)?",
+      "revId": "50fa385dd758db421c1b5b84261627a38a26939c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2eebfe9a_182abc92",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 1627,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-17T14:11:38Z",
+      "side": 1,
+      "message": "As far as I have seen TrafficDescriptor is not needed for SetResponse.",
+      "revId": "50fa385dd758db421c1b5b84261627a38a26939c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
