@@ -33,6 +33,24 @@
       "revId": "459c5f911044206c452cdd35d505129048f838a0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c203a667_095e1225",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-17T20:14:22Z",
+      "side": 1,
+      "message": "I don\u0027t think we changed it with multi-uni implementation Michael.Of course you are welcome to check it when you are available.",
+      "parentUuid": "e51381dc_f2cc5da9",
+      "revId": "459c5f911044206c452cdd35d505129048f838a0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
