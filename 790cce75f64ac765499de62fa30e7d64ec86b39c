@@ -46,6 +46,30 @@
       "revId": "790cce75f64ac765499de62fa30e7d64ec86b39c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "09441956_d2fc56bb",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3546,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-17T12:02:12Z",
+      "side": 1,
+      "message": "You could introduce an new function - something like deviceHandler::stopReconcilingOnError() to be called at the positions with reconciling issues. However, you would then have to drill out the channel to be able to signal at least a third state.",
+      "parentUuid": "f85abb1d_c1a4ba60",
+      "range": {
+        "startLine": 3546,
+        "startChar": 21,
+        "endLine": 3546,
+        "endChar": 46
+      },
+      "revId": "790cce75f64ac765499de62fa30e7d64ec86b39c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
