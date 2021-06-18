@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "81fc6cfe_01185442",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 598,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-18T12:01:54Z",
+      "side": 1,
+      "message": "Well, It is  a bit strange to have the ProxyAddress as \u0027message\u0027 element plus some elements of the ProxyAddress in the send parameters (see line 604/605), but if it helps - fine.\nPerhaps the interface for sending could be a bit consolidated later on.",
+      "revId": "58b704bce7cc704021be721c9a98738e0582c33b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
