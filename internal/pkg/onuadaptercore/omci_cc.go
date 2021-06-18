@@ -37,6 +37,7 @@ import (
 
 	//"github.com/opencord/voltha-lib-go/v4/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v4/pkg/log"
+	"github.com/opencord/voltha-protos/v4/go/common"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	//"github.com/opencord/voltha-protos/v4/go/voltha"
@@ -592,7 +593,11 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 				"toDeviceType":  oo.pBaseDeviceHandler.ProxyAddressType,
 				"proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
 		}
-		omciMsg := &ic.InterAdapterOmciMessage{Message: omciTxRequest.txFrame}
+		omciMsg := &ic.InterAdapterOmciMessage{
+			Message:       omciTxRequest.txFrame,
+			ProxyAddress:  oo.pBaseDeviceHandler.device.ProxyAddress,
+			ConnectStatus: common.ConnectStatus_REACHABLE,
+		}
 		if sendErr := oo.adapterProxy.SendInterAdapterMessage(log.WithSpanFromContext(context.Background(), ctx), omciMsg,
 			ic.InterAdapterMessageType_OMCI_REQUEST,
 			//fromTopic,toType,toDevId, ProxyDevId
