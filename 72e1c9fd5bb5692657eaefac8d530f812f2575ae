@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "04c090f0_840c6491",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-18T07:15:19Z",
+      "side": 1,
+      "message": "Should have been a bit easier with \nif aniFsm.uniTpKey \u003d\u003d uniTpKey { ...\nbut that\u0027s just formal (no real need for change)",
+      "revId": "72e1c9fd5bb5692657eaefac8d530f812f2575ae",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
