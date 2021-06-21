@@ -1,0 +1,8 @@
+Code-Review+2: Girish Gowdra <girish@opennetworking.org>
+Code-Review+1: Holger Hildebrandt <holger.hildebrandt@adtran.com>
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Submitted-by: Girish Gowdra <girish@opennetworking.org>
+Submitted-at: Mon, 21 Jun 2021 21:24:22 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/25481
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
