@@ -53,6 +53,29 @@
     },
     {
       "key": {
+        "uuid": "54c5a4ea_523553be",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 975,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-21T13:47:37Z",
+      "side": 1,
+      "message": "When you call the function with nil-pointer for \"apFlowMetaData *voltha.FlowMetadata\" the processing will crash in  \nUniVlanConfigFsm::CreateTrafficDescriptor(). It looks like as you have to store at least parts of FlowMetadata in kv-store.",
+      "range": {
+        "startLine": 975,
+        "startChar": 65,
+        "endLine": 975,
+        "endChar": 68
+      },
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "11e9b6a2_04699768",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 31
@@ -64,6 +87,29 @@
       "writtenOn": "2021-06-21T13:44:17Z",
       "side": 1,
       "message": "see above line 975",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ccdbcc8_fb9c1006",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 984,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-21T13:47:37Z",
+      "side": 1,
+      "message": "See comment above.",
+      "range": {
+        "startLine": 984,
+        "startChar": 88,
+        "endLine": 984,
+        "endChar": 91
+      },
       "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -104,6 +150,29 @@
     },
     {
       "key": {
+        "uuid": "93f6f61d_3ca17b84",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2884,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-21T13:47:37Z",
+      "side": 1,
+      "message": "Why should this function be globally visible (start with capital letter)?",
+      "range": {
+        "startLine": 2884,
+        "startChar": 30,
+        "endLine": 2884,
+        "endChar": 53
+      },
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5d2bb05f_19516935",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 31
@@ -132,6 +201,29 @@
       "writtenOn": "2021-06-21T13:44:17Z",
       "side": 1,
       "message": "first evaluate the error and only on success the parameters in above lines.",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1ccaf5ec_f76b36a7",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2941,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-21T13:47:37Z",
+      "side": 1,
+      "message": "Why should this function be globally visible (start with capital letter)?",
+      "range": {
+        "startLine": 2941,
+        "startChar": 30,
+        "endLine": 2941,
+        "endChar": 64
+      },
       "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
