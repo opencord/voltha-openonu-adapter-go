@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6f1cfdec_42324063",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 3386,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-21T14:34:47Z",
+      "side": 1,
+      "message": "Since the parent function is called from an external RPC, one cannot be sure that metrics manager has already been configured - especially since the configuration was moved to after the mib-download was done. Therefore, pOnuMetricsMgr should be checked to see if it contains a valid reference.",
+      "range": {
+        "startLine": 3386,
+        "startChar": 12,
+        "endLine": 3386,
+        "endChar": 26
+      },
+      "revId": "41403b8dff0ab522ff4f325e21e02574ae3cbc8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "053a4632_f00b2463",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-21T14:34:47Z",
+      "side": 1,
+      "message": "Shouldn\u0027t the equipment_id be part of the key here?",
+      "range": {
+        "startLine": 272,
+        "startChar": 4,
+        "endLine": 272,
+        "endChar": 54
+      },
+      "revId": "41403b8dff0ab522ff4f325e21e02574ae3cbc8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
