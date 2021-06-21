@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "768435f0_9b189b4a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 701,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "My comment from patch 23 is still valid - see there. This code would only work as expected in case the downstream flow is not the last one received from here from rwCore. Having the downstream flow as last one might be quite improbable at the moment, but theoretically possible. The current code would not trigger the FSM then. A further assumption is that configuration of the rule until reaching the GemPortConfig takes longer than the received FlowAdd processing here in the deviceHandler, but that might be quite probable with current rwCore behavior (even though also not assured).",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d4ab979_ac999221",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 731,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "apFlowMetaData migth still be nil here. Is it the same for all flows? Assured?",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "35628bd7_2dc7be80",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 975,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "See VlanConfigFsm: I have the impression that passing nil in the metadata pointer is not really expected/admitted there.\nI\u0027d still suppose you have to store the metadata to kvStore for reconciling?",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11e9b6a2_04699768",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 984,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "see above line 975",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ce0456c5_11b155e5",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "asynchrounus write to VlanConfig Data: use mutexFlowParams",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6a2431ed_db023548",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 1795,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "Still valid comment from patch 23: As far as I have seen TrafficDescriptor is not needed for SetResponse..",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5d2bb05f_19516935",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2893,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "apFlowMetaData might still be nil here - to be verified. (see deviceHandler comments)",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a2f0298_69a3b085",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2899,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "first evaluate the error and only on success the parameters in above lines.",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "629ae1df_fbba4c87",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2943,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-21T13:44:17Z",
+      "side": 1,
+      "message": "So it looks now as if you want to set the TD either to upstream or to downstream now, depending on if we have received a downstream port flow or not. Is this really what you wanted (thougt upstream should be always set?)?",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
