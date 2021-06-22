@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7da85943_f60cfdf3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 879,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-22T18:49:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ee06b005_3705409e",
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8515cef4_f59a9462",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 8
@@ -39,6 +57,30 @@
       "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38fa0653_d97451a5",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 889,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-22T18:49:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8515cef4_f59a9462",
+      "range": {
+        "startLine": 889,
+        "startChar": 4,
+        "endLine": 889,
+        "endChar": 12
+      },
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "f4478017_d28bdd2d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 899,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-22T18:49:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6530e28b_e204ea5e",
+      "range": {
+        "startLine": 899,
+        "startChar": 4,
+        "endLine": 899,
+        "endChar": 12
+      },
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "261afe4e_2404ddda",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 8
@@ -82,6 +148,24 @@
     },
     {
       "key": {
+        "uuid": "68bb2c39_2fff1edb",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 921,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-22T18:49:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "261afe4e_2404ddda",
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f3ad5f9b_9ec359eb",
         "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
         "patchSetId": 8
@@ -93,6 +177,24 @@
       "writtenOn": "2021-06-22T06:44:26Z",
       "side": 1,
       "message": "This might delay/block the basic boot-up procedure for the ONU. Think, you saw the need of introducing this somewhere. But maybe in future tests it could be verified if that may run in background.",
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a25a032f_7fe04277",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-06-22T18:49:50Z",
+      "side": 1,
+      "message": "There could be delay of (6 seconds + code path delay + etcd interaction delay)  in the worst case. I saw very very rarely some time back in scale tests, but i again never saw in the recent past after some more etcd client enhancements (like etcd client pool + etcd client retry). I wouldn\u0027t expect to hit this code path, but it were to hit we can experience some delay for the relevant ONU to boot up.",
+      "parentUuid": "f3ad5f9b_9ec359eb",
       "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
