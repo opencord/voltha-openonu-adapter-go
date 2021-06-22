@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ee06b005_3705409e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 879,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T06:44:26Z",
+      "side": 1,
+      "message": "Maybe this one now only should be set in case the tpInst could be assigned, maybe below in line 894.This allows for error detection and early abort of reconcilement.",
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "261afe4e_2404ddda",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 921,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T06:44:26Z",
+      "side": 1,
+      "message": "when modified as per comment on line 879, this comment content should be slightly modified.",
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f3ad5f9b_9ec359eb",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T06:44:26Z",
+      "side": 1,
+      "message": "This might delay/block the basic boot-up procedure for the ONU. Think, you saw the need of introducing this somewhere. But maybe in future tests it could be verified if that may run in background.",
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
