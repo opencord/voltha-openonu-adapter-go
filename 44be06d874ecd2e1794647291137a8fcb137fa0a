@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "dda7c31f_b679897e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 729,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-22T17:12:56Z",
+      "side": 1,
+      "message": "Why would it be taken only for the first upstream flow? Isn\u0027t this called for each flow?",
+      "parentUuid": "6ffebd72_b9d985a4",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f5d9db1a_0aac68c7",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 35
@@ -70,6 +88,24 @@
     },
     {
       "key": {
+        "uuid": "f586a96f_287fa7bf",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 295,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-22T17:12:56Z",
+      "side": 1,
+      "message": "It is a flow related data and will trigger its traffic descriptor for each upstream flow. An alternative may be using uniVlanFlowParams instead of uniVlanRuleParams.",
+      "parentUuid": "cb8f959b_5932f32a",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "959ebbf5_4148002e",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 35
@@ -81,6 +117,24 @@
       "writtenOn": "2021-06-22T16:30:01Z",
       "side": 1,
       "message": "I think I mentioned that already somewhere: I\u0027m wondering why you call createTrafficDescriptor() only from state function enterConfigIncrFlow() (which would do a configuration for additional rules on this UNI), why not in enterConfigEvtocd() (which would be the normal place for the first rule of the UNI).",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11cb241c_79f58d79",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 1457,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-22T17:12:56Z",
+      "side": 1,
+      "message": "A subscriber on a UNI may get more than one service each on different GEMs. So each upstream flow should trigger a traffic descriptor creation. In this case, should we call createTrafficDescriptor() from both enterConfigIncrFlow() and enterConfigEvtocd()?",
+      "parentUuid": "959ebbf5_4148002e",
       "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
