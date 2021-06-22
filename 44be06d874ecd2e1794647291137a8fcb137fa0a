@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6ffebd72_b9d985a4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 729,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T16:30:01Z",
+      "side": 1,
+      "message": "So what  I am still concerned a bit is, for which flow the expected metadata is really set - or may be it is the same for all possibley configured flows? That might be no poblem in DT and TT setup (TT I am not sure). But in ATT setup multiple flows are configured for downstream that are in the end detected to be one \u0027ONU rule\u0027 - and in your processing the metadata would be taken only for the first upstream flow detected here. If the metadata is the same for all the upstream flows of this UNI (and TechProfile), then fine, if not, it might be problematic.",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f5d9db1a_0aac68c7",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 2916,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T16:30:01Z",
+      "side": 1,
+      "message": "Do you trust flow configuration, that apFlowMetaData is always !\u003d nil? Otherwise you would have to check on non-nil already here (else it would crash here).",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c0c20ad3_c865ed55",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 2922,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T16:30:01Z",
+      "side": 1,
+      "message": "same as in line 2916",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cb8f959b_5932f32a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 295,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T16:30:01Z",
+      "side": 1,
+      "message": "So you write the meter config to kvstore again using the uniVlanRuleParams. That\u0027s basically ok by now to me, but should not be the correct place in future. Should be stored independent from uniVlanRuleParams. But that is a bit more effort - and yes, can and should be done later.",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "959ebbf5_4148002e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 1457,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-22T16:30:01Z",
+      "side": 1,
+      "message": "I think I mentioned that already somewhere: I\u0027m wondering why you call createTrafficDescriptor() only from state function enterConfigIncrFlow() (which would do a configuration for additional rules on this UNI), why not in enterConfigEvtocd() (which would be the normal place for the first rule of the UNI).",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
