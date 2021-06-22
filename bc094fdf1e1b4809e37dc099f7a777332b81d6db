@@ -133,6 +133,24 @@
     },
     {
       "key": {
+        "uuid": "10001b8d_98743a1b",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ce0456c5_11b155e5",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6a2431ed_db023548",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 31
@@ -150,6 +168,24 @@
     },
     {
       "key": {
+        "uuid": "d5cdf302_3c780968",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 1795,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6a2431ed_db023548",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "93f6f61d_3ca17b84",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 31
@@ -161,6 +197,30 @@
       "writtenOn": "2021-06-21T13:47:37Z",
       "side": 1,
       "message": "Why should this function be globally visible (start with capital letter)?",
+      "range": {
+        "startLine": 2884,
+        "startChar": 30,
+        "endLine": 2884,
+        "endChar": 53
+      },
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9f01c0e9_5259fc20",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2884,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Changed as createTrafficDescriptor.",
+      "parentUuid": "93f6f61d_3ca17b84",
       "range": {
         "startLine": 2884,
         "startChar": 30,
@@ -190,6 +250,42 @@
     },
     {
       "key": {
+        "uuid": "3bb74679_a4c51f6f",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2893,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5d2bb05f_19516935",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "540c1077_2a0582ef",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2893,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5d2bb05f_19516935",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a2f0298_69a3b085",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 31
@@ -204,6 +300,24 @@
       "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0d4ec1a8_308a9880",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2899,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9a2f0298_69a3b085",
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -227,6 +341,30 @@
       "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "061bf939_3324a543",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 31
+      },
+      "lineNbr": 2941,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-06-22T15:17:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1ccaf5ec_f76b36a7",
+      "range": {
+        "startLine": 2941,
+        "startChar": 30,
+        "endLine": 2941,
+        "endChar": 64
+      },
+      "revId": "bc094fdf1e1b4809e37dc099f7a777332b81d6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
