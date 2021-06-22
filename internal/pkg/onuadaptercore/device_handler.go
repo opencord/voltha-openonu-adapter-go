@@ -1981,7 +1981,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
 	if pDevEntry.PDevOmciCC != nil {
-		pDevEntry.PDevOmciCC.CancelRequestMonitoring()
+		pDevEntry.PDevOmciCC.CancelRequestMonitoring(ctx)
 	}
 	pDevEntry.mutexOnuImageStatus.RLock()
 	if pDevEntry.pOnuImageStatus != nil {

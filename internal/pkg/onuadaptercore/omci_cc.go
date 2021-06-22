@@ -171,7 +171,7 @@ func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 func (oo *omciCC) stop(ctx context.Context) error {
 	logger.Debugw(ctx, "omciCC-stopping", log.Fields{"device-id": oo.deviceID})
 	//reseting all internal data, which might also be helpful for discarding any lingering tx/rx requests
-	oo.CancelRequestMonitoring()
+	oo.CancelRequestMonitoring(ctx)
 	oo.mutexTxQueue.Lock()
 	oo.txQueue.Init() // clear the tx queue
 	oo.mutexTxQueue.Unlock()
@@ -677,7 +677,13 @@ func (oo *omciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, p
 	}
 	oo.mutexMonReq.RLock()
 	if _, exist := oo.monitoredRequests[omciMsg.TransactionID]; exist {
-		oo.monitoredRequests[omciMsg.TransactionID].chSuccess <- true
+		//implement non-blocking channel send to avoid blocking on mutexMonReq later
+		select {
+		case oo.monitoredRequests[omciMsg.TransactionID].chSuccess <- true:
+		default:
+			logger.Debugw(ctx, "response not send on omciRespChannel (no receiver)", log.Fields{
+				"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "device-id": oo.deviceID})
+		}
 	} else {
 		logger.Infow(ctx, "reqMon: map entry does not exist!",
 			log.Fields{"tid": omciMsg.TransactionID, "device-id": oo.deviceID})
@@ -3080,10 +3086,16 @@ loop:
 }
 
 //CancelRequestMonitoring terminates monitoring of outstanding omci requests
-func (oo *omciCC) CancelRequestMonitoring() {
+func (oo *omciCC) CancelRequestMonitoring(ctx context.Context) {
 	oo.mutexMonReq.RLock()
 	for k := range oo.monitoredRequests {
-		oo.monitoredRequests[k].chSuccess <- false
+		//implement non-blocking channel send to avoid blocking on mutexMonReq later
+		select {
+		case oo.monitoredRequests[k].chSuccess <- false:
+		default:
+			logger.Debugw(ctx, "cancel not send on omciRespChannel (no receiver)", log.Fields{
+				"index": k, "device-id": oo.deviceID})
+		}
 	}
 	oo.mutexMonReq.RUnlock()
 }
