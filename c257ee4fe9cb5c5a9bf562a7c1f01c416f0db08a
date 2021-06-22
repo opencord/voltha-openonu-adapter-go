@@ -19,6 +19,52 @@
     },
     {
       "key": {
+        "uuid": "8515cef4_f59a9462",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 889,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-22T08:41:20Z",
+      "side": 1,
+      "message": "Does it makes sense to continue reconciling here - obviously we have an inconsistency between the tp-path from kv-store and the corresponding olt-data?",
+      "range": {
+        "startLine": 889,
+        "startChar": 4,
+        "endLine": 889,
+        "endChar": 12
+      },
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6530e28b_e204ea5e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 899,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-22T08:41:20Z",
+      "side": 1,
+      "message": "See comment above.",
+      "range": {
+        "startLine": 899,
+        "startChar": 4,
+        "endLine": 899,
+        "endChar": 12
+      },
+      "revId": "c257ee4fe9cb5c5a9bf562a7c1f01c416f0db08a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "261afe4e_2404ddda",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 8
