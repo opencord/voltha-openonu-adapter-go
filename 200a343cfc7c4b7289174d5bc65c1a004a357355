@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "34995418_edd16e65",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 36
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T09:43:39Z",
+      "side": 1,
+      "message": "Jenkins regression was already successful, so yes, Robot stat test TS is compatible withthis change",
+      "parentUuid": "2a77c866_ec4676ca",
+      "revId": "200a343cfc7c4b7289174d5bc65c1a004a357355",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "13b238d8_6ec583d2",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 36
