@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "62233da9_c4c6ae51",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 36
+      },
+      "lineNbr": 729,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T08:20:53Z",
+      "side": 1,
+      "message": "Based on comments to patch #35... Now: \nWith the move of the meter data to uniVlanFlowParams the behavior will be this:\nDifferent flows (for same VLAN rule) will be detected in the FSM as the same rule again and no FSM processing will be done. If the meter parameters of these flows should be different, only the parameters of the first detected flow will be configured.\nBut as Mahir wrote in slack discussion: assumption here is that all flows of the same service have the same meter parameters. Then we don\u0027t have a problem here (and as Mahir wrote: according checks could also be introduced later)",
+      "revId": "200a343cfc7c4b7289174d5bc65c1a004a357355",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2a77c866_ec4676ca",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 36
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T08:20:53Z",
+      "side": 1,
+      "message": "Also with this change we have to check if the existing robot TS checks still work.",
+      "revId": "200a343cfc7c4b7289174d5bc65c1a004a357355",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "13b238d8_6ec583d2",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 36
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T08:20:53Z",
+      "side": 1,
+      "message": "And if aMeter \u003d\u003d nil ? Then loFlowParams.Meter will still be nil.\nSo then this conditional execution makes no sense and you can do the assignment (copy) unconditionally.",
+      "revId": "200a343cfc7c4b7289174d5bc65c1a004a357355",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "948430d4_e8aa1f88",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 36
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T08:20:53Z",
+      "side": 1,
+      "message": "compare comment on line 329",
+      "revId": "200a343cfc7c4b7289174d5bc65c1a004a357355",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

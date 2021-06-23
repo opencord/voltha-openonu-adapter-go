@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "150f70b2_8cd6a995",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 729,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T08:20:53Z",
+      "side": 1,
+      "message": "addFlowItemToUniPort is called for each upstream flow here. This one then breaks down the flow parameters to the ONU related (VLAN) rule and calls either createVlanFilterFsm (on first flow) or UniVlanConfigFsm::SetUniFlowParams(). Both calls to the FSM result into some check on the the concerned ONU (VLAN) rule. If the rule is already set (which might be the case because the original flow comes down to the same rule as already given by another flow), then no activity for that flow is done anymore in the FSM (as it was already configured). \nNow behavior with patch #35 - including the meter parameters into uniVlanRuleParams - is following: \nIf different meter parameters should be detected from the different flows (but the basic (VLAN) rule is still the same), then the FSM might start to configure that rule again. I am not sure if that will be accepted/successfully done for all the configurations already existing.\nIf the meter parameters are the same, then rule configuration will be done for the rule originating from first processed upstream flow (well, then we don\u0027t have a problem anyway)",
+      "parentUuid": "dda7c31f_b679897e",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f5d9db1a_0aac68c7",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 35
@@ -135,6 +153,24 @@
       "side": 1,
       "message": "A subscriber on a UNI may get more than one service each on different GEMs. So each upstream flow should trigger a traffic descriptor creation. In this case, should we call createTrafficDescriptor() from both enterConfigIncrFlow() and enterConfigEvtocd()?",
       "parentUuid": "959ebbf5_4148002e",
+      "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "77d02291_ae6c8e08",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 35
+      },
+      "lineNbr": 1457,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-23T08:20:53Z",
+      "side": 1,
+      "message": "Yes, as done in patch#36 now.",
+      "parentUuid": "11cb241c_79f58d79",
       "revId": "44be06d874ecd2e1794647291137a8fcb137fa0a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
