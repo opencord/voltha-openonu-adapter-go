@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "450677e8_bdd5dd4a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 3660,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-23T07:53:23Z",
+      "side": 1,
+      "message": "Would be good to include success-flag in the log.",
+      "range": {
+        "startLine": 3660,
+        "startChar": 8,
+        "endLine": 3660,
+        "endChar": 14
+      },
+      "revId": "d4f9704161fd3883721716e21707879e01627b43",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "501f8594_6399fe9f",
+        "filename": "internal/pkg/onuadaptercore/mib_sync.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1096,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-06-23T07:53:23Z",
+      "side": 1,
+      "message": "Now stopReconciling() could be called here too.",
+      "range": {
+        "startLine": 1096,
+        "startChar": 2,
+        "endLine": 1096,
+        "endChar": 53
+      },
+      "revId": "d4f9704161fd3883721716e21707879e01627b43",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
