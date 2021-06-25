@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "56d8ee55_a9bce89c",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-06-25T16:32:29Z",
+      "side": 1,
+      "message": "protos is v4 only, no change",
+      "parentUuid": "b4e884b5_20c5576a",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "808eb004_502fc1f5",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 24
@@ -33,6 +51,24 @@
       "revId": "a9c63a046be256137d178e391e63315331354f49",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "01be107b_efd14121",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 1111,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-06-25T16:32:29Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "808eb004_502fc1f5",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "db01e6ca_b0f447ef",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 1151,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-06-25T16:32:29Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "0adcf0c7_553c168d",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "432464ba_54be6491",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 24
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "a1ba5072_9b9bd4b2",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 3020,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-06-25T16:32:29Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "432464ba_54be6491",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9854603d_c4b026fa",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 24
@@ -84,6 +156,24 @@
       "revId": "a9c63a046be256137d178e391e63315331354f49",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "538cde39_f19c90f0",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 3199,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-06-25T16:32:29Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9854603d_c4b026fa",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
