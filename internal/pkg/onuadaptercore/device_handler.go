@@ -21,10 +21,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -2718,15 +2719,43 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 		if pUpgradeStatemachine != nil {
 			// commit is only processed in case out upgrade FSM indicates the according state (for automatic commit)
 			//  (some manual forced commit could do without)
-			if pUpgradeStatemachine.Is(upgradeStWaitForCommit) {
+			upgradeState := pUpgradeStatemachine.Current()
+			if (upgradeState == upgradeStWaitForCommit) ||
+				(upgradeState == upgradeStRequestingActivate) {
+				// also include upgradeStRequestingActivate as it may be left in case the ActivateResponse just got lost
 				// here no need to update the upgrade image state to activated as the state will be immediately be set to committing
 				if pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.inactiveImageMeID) {
-					if err := pUpgradeStatemachine.Event(upgradeEvCommitSw); err != nil {
-						logger.Errorw(ctx, "OnuSwUpgradeFSM: can't call commit event", log.Fields{"err": err})
+					activeImageID, errImg := pDevEntry.GetActiveImageMeID(ctx)
+					if errImg != nil {
+						logger.Errorw(ctx, "OnuSwUpgradeFSM abort - could not get active image after reboot",
+							log.Fields{"device-id": dh.deviceID})
+						_ = pUpgradeStatemachine.Event(upgradeEvAbort)
 						return
 					}
-					logger.Debugw(ctx, "OnuSwUpgradeFSM commit image requested", log.Fields{
-						"state": pUpgradeStatemachine.Current(), "device-id": dh.deviceID})
+					if activeImageID == dh.pOnuUpradeFsm.inactiveImageMeID {
+						if (upgradeState == upgradeStRequestingActivate) && !dh.pOnuUpradeFsm.GetCommitFlag(ctx) {
+							// if FSM was waiting on activateResponse, new image is active, but FSM shall not commit, then:
+							if err := pUpgradeStatemachine.Event(upgradeEvActivationDone); err != nil {
+								logger.Errorw(ctx, "OnuSwUpgradeFSM: can't call activate-done event", log.Fields{"err": err})
+								return
+							}
+							logger.Debugw(ctx, "OnuSwUpgradeFSM activate-done after reboot", log.Fields{
+								"state": upgradeState, "device-id": dh.deviceID})
+						} else {
+							//FSM in waitForCommit or (upgradeStRequestingActivate [lost ActivateResp] and commit allowed)
+							if err := pUpgradeStatemachine.Event(upgradeEvCommitSw); err != nil {
+								logger.Errorw(ctx, "OnuSwUpgradeFSM: can't call commit event", log.Fields{"err": err})
+								return
+							}
+							logger.Debugw(ctx, "OnuSwUpgradeFSM commit image requested", log.Fields{
+								"state": upgradeState, "device-id": dh.deviceID})
+						}
+					} else {
+						logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit/on ActivateResponse, but load did not start with expected image Id",
+							log.Fields{"device-id": dh.deviceID})
+						_ = pUpgradeStatemachine.Event(upgradeEvAbort)
+						return
+					}
 				} else {
 					logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit, but nothing to commit on ONU - abort upgrade",
 						log.Fields{"device-id": dh.deviceID})

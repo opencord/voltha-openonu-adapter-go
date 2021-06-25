@@ -191,8 +191,8 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 				Dst: upgradeStRequestingActivate}, //allows also for direct activation (without download) [TODO!!!]
 			{Name: upgradeEvActivationDone, Src: []string{upgradeStRequestingActivate}, Dst: upgradeStActivated},
 			{Name: upgradeEvWaitForCommit, Src: []string{upgradeStRequestingActivate}, Dst: upgradeStWaitForCommit},
-			{Name: upgradeEvCommitSw, Src: []string{upgradeStStarting, upgradeStWaitForCommit, upgradeStActivated},
-				Dst: upgradeStCommitSw}, //allows also for direct commitment (without download) [TODO!!!]
+			{Name: upgradeEvCommitSw, Src: []string{upgradeStStarting, upgradeStRequestingActivate, upgradeStWaitForCommit,
+				upgradeStActivated}, Dst: upgradeStCommitSw}, //allows also for direct commitment (without download) [TODO!!!]
 			{Name: upgradeEvCheckCommitted, Src: []string{upgradeStCommitSw}, Dst: upgradeStCheckCommitted},
 
 			/*
@@ -202,10 +202,11 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 					upgradeStCreatingGemNCTPs, upgradeStCreatingGemIWs, upgradeStSettingPQs}, Dst: upgradeStStarting},
 			*/
 			// exceptional treatments
-			//on upgradeEvReset: upgradeStWaitForCommit and upgradeStActivated are not reset (to let the FSM survive the expected OnuDown indication)
+			//on upgradeEvReset: upgradeStRequestingActivate, upgradeStWaitForCommit and upgradeStActivated are not reset
+			// (to let the FSM survive the expected OnuDown indication)
 			{Name: upgradeEvReset, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStWaitForActivate,
-				upgradeStRequestingActivate, upgradeStCommitSw, upgradeStCheckCommitted},
+				upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
 			{Name: upgradeEvAbort, Src: []string{upgradeStStarting, upgradeStWaitingAdapterDL, upgradeStPreparingDL, upgradeStDLSection,
 				upgradeStVerifyWindow, upgradeStDLSection, upgradeStFinalizeDL, upgradeStWaitEndDL, upgradeStWaitForActivate,
@@ -422,6 +423,13 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsStart(ctx context.Context, aImageV
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
 }
 
+//GetCommitFlag delivers the commit flag that was configured here
+func (oFsm *OnuUpgradeFsm) GetCommitFlag(ctx context.Context) bool {
+	oFsm.mutexUpgradeParams.RLock()
+	defer oFsm.mutexUpgradeParams.RUnlock()
+	return oFsm.commitImage
+}
+
 //GetImageStates delivers the download states as per device proto buf or error indication
 func (oFsm *OnuUpgradeFsm) GetImageStates(ctx context.Context,
 	aImageIdentifier string, aVersion string) (*voltha.ImageState, error) {
@@ -464,8 +472,7 @@ func (oFsm *OnuUpgradeFsm) CancelProcessing(ctx context.Context) {
 	//chOnuDlReady is cleared as part of the FSM reset processing (from enterResetting())
 
 	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
-	// specific here: If the FSM is in upgradeStWaitForCommit, it is left there for possibly later commit
-	// this possibly also refers later to (not yet existing) upgradeStWaitForActivate (with ctl API changes)
+	// specific here: See definition of state changes: some states are excluded from reset for possible later commit
 	pAdaptFsm := oFsm.pAdaptFsm
 	if pAdaptFsm != nil {
 		// calling FSM events in background to avoid blocking of the caller
