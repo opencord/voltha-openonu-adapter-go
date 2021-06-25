@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b4e884b5_20c5576a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-25T15:17:09Z",
+      "side": 1,
+      "message": "some v4 version left over",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "808eb004_502fc1f5",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 1111,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-25T15:17:09Z",
+      "side": 1,
+      "message": "You perhaps should except all the possible error codes as \u0027not supported\u0027",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0adcf0c7_553c168d",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 1151,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-25T15:17:09Z",
+      "side": 1,
+      "message": "see above: You perhaps should except all the possible error codes as \u0027not supported\u0027",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "432464ba_54be6491",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 3020,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-25T15:17:09Z",
+      "side": 1,
+      "message": "The idea migh be to also allow for possible future other extended instances with other parent classes. But note that this way the entity ID may get ambiguous (theoretically). So by now you could even do without the PhysicalPathTerminationPointEthernetUniClassID. But as it ios for now it is no problem.",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9854603d_c4b026fa",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 3199,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-06-25T15:17:09Z",
+      "side": 1,
+      "message": "you could probably also use the keys from maskToEthernetFrameExtendedPM32Bit a.s.o here, but of course also working this way ..",
+      "revId": "a9c63a046be256137d178e391e63315331354f49",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
