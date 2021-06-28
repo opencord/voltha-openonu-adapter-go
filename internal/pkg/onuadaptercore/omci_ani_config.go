@@ -51,7 +51,7 @@ const (
 	aniEvWaitFlowRem       = "aniEvWaitFlowRem"
 	aniEvFlowRemDone       = "aniEvFlowRemDone"
 	aniEvRxRemGemiwResp    = "aniEvRxRemGemiwResp"
-	aniEvRxRemGemntpResp   = "aniEvRxRemGemntpResp"
+	aniEvRxRemTdResp       = "aniEvRxRemTdResp"
 	aniEvRemTcontPath      = "aniEvRemTcontPath"
 	aniEvRxResetTcontResp  = "aniEvRxResetTcontResp"
 	aniEvRxRem1pMapperResp = "aniEvRxRem1pMapperResp"
@@ -182,7 +182,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			{Name: aniEvWaitFlowRem, Src: []string{aniStRemovingGemIW}, Dst: aniStWaitingFlowRem},
 			{Name: aniEvFlowRemDone, Src: []string{aniStWaitingFlowRem}, Dst: aniStRemovingGemIW},
 			{Name: aniEvRxRemGemiwResp, Src: []string{aniStRemovingGemIW}, Dst: aniStRemovingGemNCTP},
-			{Name: aniEvRxRemGemntpResp, Src: []string{aniStRemovingGemNCTP}, Dst: aniStConfigDone},
+			{Name: aniEvRxRemTdResp, Src: []string{aniStRemovingGemNCTP}, Dst: aniStConfigDone},
 
 			//for removing TCONT related resources
 			{Name: aniEvRemTcontPath, Src: []string{aniStConfigDone}, Dst: aniStResetTcont},
@@ -923,11 +923,31 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	}
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
-
+	// Wait for response of GEM NWCTP to proceed Traffic Descriptor deletion
+	err = oFsm.waitforOmciResponse(ctx)
+	if err != nil {
+		logger.Errorw(ctx, "GemNWCtp delete failed, aborting AniConfig FSM!",
+			log.Fields{"device-id": oFsm.deviceID, "gemPortId": loGemPortID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
+	oFsm.deleteTrafficDescriptor(ctx, loGemPortID)
 	// Mark the gem port to be removed for Performance History monitoring
 	if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
 		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(ctx, loGemPortID)
 	}
+}
+
+func (oFsm *uniPonAniConfigFsm) deleteTrafficDescriptor(ctx context.Context, gemPortID uint16) {
+	logger.Debugw(ctx, "Starting Traffic Descriptor Deletion", log.Fields{"device-id": oFsm.deviceID, "gemPortID": gemPortID})
+	oFsm.mutexPLastTxMeInstance.Lock()
+	meInstance, err := oFsm.pOmciCC.sendDeleteTD(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, gemPortID)
+	if err != nil {
+		logger.Errorw(ctx, "TrafficDescriptor delete request failed", log.Fields{"device-id": oFsm.deviceID, "gemPortID": gemPortID})
+	}
+	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
 }
 
 func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.Event) {
@@ -1277,7 +1297,12 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 			case "GemPortNetworkCtp":
 				{ // let the FSM proceed ...
 					oFsm.mutexPLastTxMeInstance.RUnlock()
-					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemGemntpResp)
+					oFsm.omciMIdsResponseReceived <- true
+				}
+			case "TrafficDescriptor":
+				{ // let the FSM proceed ...
+					oFsm.mutexPLastTxMeInstance.RUnlock()
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemTdResp)
 				}
 			case "Ieee8021PMapperServiceProfile":
 				{ // let the FSM proceed ...
