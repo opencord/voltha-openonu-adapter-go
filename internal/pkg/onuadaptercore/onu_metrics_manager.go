@@ -103,12 +103,12 @@ const (
 
 // UniStatusGroupMetrics are supported UNI status names
 var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
-	"uni_port_no":     voltha.PmConfig_CONTEXT,
-	"me_class_id":     voltha.PmConfig_CONTEXT,
-	"entity_id":       voltha.PmConfig_CONTEXT,
-	"sensed_type":     voltha.PmConfig_GAUGE,
-	"oper_status":     voltha.PmConfig_GAUGE,
-	"uni_admin_state": voltha.PmConfig_GAUGE,
+	"uni_port_no":       voltha.PmConfig_CONTEXT,
+	"me_class_id":       voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"configuration_ind": voltha.PmConfig_GAUGE,
+	"oper_status":       voltha.PmConfig_GAUGE,
+	"uni_admin_state":   voltha.PmConfig_GAUGE,
 }
 
 // UniStatusGroupMetrics specific constants
@@ -878,7 +878,7 @@ loop2:
 		var meAttributes me.AttributeValueMap
 		pptpMetrics := make(map[string]float32)
 
-		requestedAttributes := me.AttributeValueMap{"SensedType": 0, "OperationalState": 0, "AdministrativeState": 0}
+		requestedAttributes := me.AttributeValueMap{"ConfigurationInd": 0, "OperationalState": 0, "AdministrativeState": 0}
 		meInstance, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, pptpInstID, requestedAttributes, mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, mm.pAdaptFsm.commChan)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.pAdaptFsm.deviceID})
@@ -899,8 +899,8 @@ loop2:
 			// Populate metric only if it was enabled.
 			for k := range UniStatusGroupMetrics {
 				switch k {
-				case "sensed_type":
-					if val, ok := meAttributes["SensedType"]; ok && val != nil {
+				case "configuration_ind":
+					if val, ok := meAttributes["ConfigurationInd"]; ok && val != nil {
 						pptpMetrics[k] = float32(val.(byte))
 					}
 				case "oper_status":

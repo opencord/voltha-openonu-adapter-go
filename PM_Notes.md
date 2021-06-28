@@ -41,7 +41,7 @@ var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 	"uni_port_no":     voltha.PmConfig_CONTEXT,
 	"me_class_id":     voltha.PmConfig_CONTEXT,
 	"entity_id":       voltha.PmConfig_CONTEXT,
-	"sensed_type":     voltha.PmConfig_GAUGE,
+	"configuration_ind":     voltha.PmConfig_GAUGE,
 	"oper_status":     voltha.PmConfig_GAUGE,
 	"uni_admin_state": voltha.PmConfig_GAUGE,
 }
@@ -49,7 +49,7 @@ var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
 Note:
 1. UniStatusMetrics comprise metrics for either PPTP or VEIP ME's and the UNI-G ME.
 2. me_class_id defines the corresponding metric type with the ME class value as defined in G988, Table 12.2.4-1
-3. `sensed_type` is relevant only for PPTP ME (meaning me_class_id = 11) and per G.988 specification, "When a circuit pack is present, this attribute represents its type as one of the values from Table 9.1.5-1."
+3. `configuration_ind` is relevant only for PPTP ME (meaning me_class_id = 11) and per G.988 specification, "When a circuit pack is present, this attribute represents its type as one of the values from Table 9.1.5-1."
 4. Valid values for `oper_state` are 0 (enabled) and 1 (disabled)
 5. Valid values for `uni_admin_state` are 0 (unlocks) and 1 (locks)
 6. `oper_state` and `uni_admin_state` are relevant for both PPTP (me_class_id = 11) and VEIP ME (me_class_id = 329), however only `uni_admin_state` is relevant for UNI-G ME (me_class_id = 264).
