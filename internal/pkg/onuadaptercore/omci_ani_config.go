@@ -923,11 +923,24 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	}
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
-
 	// Mark the gem port to be removed for Performance History monitoring
 	if oFsm.pDeviceHandler.pOnuMetricsMgr != nil {
 		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(ctx, loGemPortID)
 	}
+	oFsm.deleteTrafficDescriptor(ctx, loGemPortID)
+}
+
+func (oFsm *uniPonAniConfigFsm) deleteTrafficDescriptor(ctx context.Context, gemPortID uint16) {
+	logger.Debugw(ctx, "Starting Traffic Descriptor Deletion", log.Fields{"device-id": oFsm.deviceID})
+	oFsm.mutexPLastTxMeInstance.Lock()
+	meInstance, err := oFsm.pOmciCC.sendDeleteTD(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, gemPortID)
+	if err != nil {
+		oFsm.mutexPLastTxMeInstance.Unlock()
+		logger.Errorw(ctx, "TrafficDescriptor delete request failed", log.Fields{"device-id": oFsm.deviceID})
+	}
+	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
 }
 
 func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.Event) {
