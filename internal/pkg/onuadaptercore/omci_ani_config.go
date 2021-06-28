@@ -52,6 +52,7 @@ const (
 	aniEvFlowRemDone       = "aniEvFlowRemDone"
 	aniEvRxRemGemiwResp    = "aniEvRxRemGemiwResp"
 	aniEvRxRemGemntpResp   = "aniEvRxRemGemntpResp"
+	aniEvRxRemTdResp       = "aniEvRxRemTdResp"
 	aniEvRemTcontPath      = "aniEvRemTcontPath"
 	aniEvRxResetTcontResp  = "aniEvRxResetTcontResp"
 	aniEvRxRem1pMapperResp = "aniEvRxRem1pMapperResp"
@@ -77,6 +78,7 @@ const (
 	aniStRemovingGemIW       = "aniStRemovingGemIW"
 	aniStWaitingFlowRem      = "aniStWaitingFlowRem"
 	aniStRemovingGemNCTP     = "aniStRemovingGemNCTP"
+	aniStRemovingTD          = "aniStRemovingTD"
 	aniStResetTcont          = "aniStResetTcont"
 	aniStRemDot1PMapper      = "aniStRemDot1PMapper"
 	aniStRemAniBPCD          = "aniStRemAniBPCD"
@@ -182,7 +184,8 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			{Name: aniEvWaitFlowRem, Src: []string{aniStRemovingGemIW}, Dst: aniStWaitingFlowRem},
 			{Name: aniEvFlowRemDone, Src: []string{aniStWaitingFlowRem}, Dst: aniStRemovingGemIW},
 			{Name: aniEvRxRemGemiwResp, Src: []string{aniStRemovingGemIW}, Dst: aniStRemovingGemNCTP},
-			{Name: aniEvRxRemGemntpResp, Src: []string{aniStRemovingGemNCTP}, Dst: aniStConfigDone},
+			{Name: aniEvRxRemGemntpResp, Src: []string{aniStRemovingGemNCTP}, Dst: aniStRemovingTD},
+			{Name: aniEvRxRemTdResp, Src: []string{aniStRemovingTD}, Dst: aniStConfigDone},
 
 			//for removing TCONT related resources
 			{Name: aniEvRemTcontPath, Src: []string{aniStConfigDone}, Dst: aniStResetTcont},
@@ -191,7 +194,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			{Name: aniEvRxRemAniBPCDResp, Src: []string{aniStRemAniBPCD}, Dst: aniStRemoveDone},
 
 			{Name: aniEvTimeoutSimple, Src: []string{aniStCreatingDot1PMapper, aniStCreatingMBPCD, aniStSettingTconts, aniStSettingDot1PMapper,
-				aniStRemovingGemIW, aniStRemovingGemNCTP,
+				aniStRemovingGemIW, aniStRemovingGemNCTP, aniStRemovingTD,
 				aniStResetTcont, aniStRemDot1PMapper, aniStRemAniBPCD, aniStRemoveDone}, Dst: aniStStarting},
 			{Name: aniEvTimeoutMids, Src: []string{
 				aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs}, Dst: aniStStarting},
@@ -199,7 +202,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			// exceptional treatment for all states except aniStResetting
 			{Name: aniEvReset, Src: []string{aniStStarting, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
 				aniStSettingTconts, aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs, aniStSettingDot1PMapper,
-				aniStConfigDone, aniStRemovingGemIW, aniStWaitingFlowRem, aniStRemovingGemNCTP,
+				aniStConfigDone, aniStRemovingGemIW, aniStWaitingFlowRem, aniStRemovingGemNCTP, aniStRemovingTD,
 				aniStResetTcont, aniStRemDot1PMapper, aniStRemAniBPCD, aniStRemoveDone}, Dst: aniStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: aniEvRestart, Src: []string{aniStResetting}, Dst: aniStDisabled},
@@ -220,6 +223,7 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			("enter_" + aniStRemovingGemIW):       func(e *fsm.Event) { instFsm.enterRemovingGemIW(ctx, e) },
 			("enter_" + aniStWaitingFlowRem):      func(e *fsm.Event) { instFsm.enterWaitingFlowRem(ctx, e) },
 			("enter_" + aniStRemovingGemNCTP):     func(e *fsm.Event) { instFsm.enterRemovingGemNCTP(ctx, e) },
+			("enter_" + aniStRemovingTD):          func(e *fsm.Event) { instFsm.enterRemovingTD(ctx, e) },
 			("enter_" + aniStResetTcont):          func(e *fsm.Event) { instFsm.enterResettingTcont(ctx, e) },
 			("enter_" + aniStRemDot1PMapper):      func(e *fsm.Event) { instFsm.enterRemoving1pMapper(ctx, e) },
 			("enter_" + aniStRemAniBPCD):          func(e *fsm.Event) { instFsm.enterRemovingAniBPCD(ctx, e) },
@@ -929,6 +933,35 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 		oFsm.pDeviceHandler.pOnuMetricsMgr.RemoveGemPortForPerfMonitoring(ctx, loGemPortID)
 	}
 }
+func (oFsm *uniPonAniConfigFsm) enterRemovingTD(ctx context.Context, e *fsm.Event) {
+	oFsm.pUniTechProf.mutexTPState.Lock()
+	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
+	oFsm.pUniTechProf.mutexTPState.Unlock()
+	logger.Debugw(ctx, "uniPonAniConfigFsm - start removing Traffic Descriptor", log.Fields{
+		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
+		"TD-entity-id": loGemPortID})
+
+	oFsm.mutexPLastTxMeInstance.Lock()
+	defer oFsm.mutexPLastTxMeInstance.Unlock()
+	meInstance, err := oFsm.pOmciCC.sendDeleteTD(log.WithSpanFromContext(context.TODO(), ctx),
+		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, loGemPortID)
+
+	if err != nil {
+		logger.Errorw(ctx, "TD delete failed - proceed fsm",
+			log.Fields{"device-id": oFsm.deviceID, "gemPortID": loGemPortID})
+		pConfigAniStateAFsm := oFsm.pAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.pFsm != nil {
+					_ = aPAFsm.pFsm.Event(aniEvRxRemTdResp)
+				}
+			}(pConfigAniStateAFsm)
+			return
+		}
+	}
+	oFsm.pLastTxMeInstance = meInstance
+}
 
 func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start resetting the TCont", log.Fields{
@@ -1170,7 +1203,33 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 		return
 	}
 }
-
+func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetFailResponseMessage(ctx context.Context, msgObj *omci.SetResponse) {
+	//If TCONT fails, then we need to revert the allocated TCONT in DB.
+	//Because FSMs are running sequentially, we don't expect the same TCONT hit by another tech-profile FSM while this FSM is running.
+	oFsm.mutexPLastTxMeInstance.RLock()
+	defer oFsm.mutexPLastTxMeInstance.RUnlock()
+	if oFsm.pLastTxMeInstance != nil && msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
+		msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
+		switch oFsm.pLastTxMeInstance.GetName() {
+		case "TCont":
+			//If this is for TCONT creation(requestEventOffset=0) and this is the first allocation of TCONT(so noone else is using the same TCONT)
+			//We should revert DB
+			if oFsm.requestEventOffset == 0 && !oFsm.tcontSetBefore && oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey] != nil {
+				logger.Debugw(ctx, "UniPonAniConfigFsm TCONT creation failed on device. Freeing alloc id", log.Fields{"device-id": oFsm.deviceID,
+					"alloc-id": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID, "uni-tp": oFsm.uniTpKey})
+				if pDevEntry := oFsm.pDeviceHandler.getOnuDeviceEntry(ctx, false); pDevEntry != nil {
+					pDevEntry.freeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
+				} else {
+					logger.Warnw(ctx, "Unable to get device entry! couldn't free tcont",
+						log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "device-id": oFsm.deviceID})
+				}
+			}
+		default:
+			logger.Warnw(ctx, "Unsupported ME name received with error!",
+				log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "result": msgObj.Result, "device-id": oFsm.deviceID})
+		}
+	}
+}
 func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx context.Context, msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 	if msgLayer == nil {
@@ -1190,10 +1249,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 
-		//FIXME: If setting TCONT fails we need to revert the DB back. Because of the concurency,
-		//doing it here may cause a data inconsistency. To fix this problem we need to think on running
-		//the FSMs of different UNIs sequentially instead of running them concurrently.
-
+		oFsm.handleOmciAniConfigSetFailResponseMessage(ctx, msgObj)
 		return
 	}
 	oFsm.mutexPLastTxMeInstance.RLock()
@@ -1278,6 +1334,11 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 				{ // let the FSM proceed ...
 					oFsm.mutexPLastTxMeInstance.RUnlock()
 					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemGemntpResp)
+				}
+			case "TrafficDescriptor":
+				{ // let the FSM proceed ...
+					oFsm.mutexPLastTxMeInstance.RUnlock()
+					_ = oFsm.pAdaptFsm.pFsm.Event(aniEvRxRemTdResp)
 				}
 			case "Ieee8021PMapperServiceProfile":
 				{ // let the FSM proceed ...
