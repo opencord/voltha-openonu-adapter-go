@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ec231b7a_41d4ec63",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1198,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-29T22:06:08Z",
+      "side": 1,
+      "message": "given that this block of code isn\u0027t process intensive or time consuming (and i don\u0027t think it is) is there any value of using a `defer oFsm.mutexPLastTxMeInstance.RUnlock()` right after the `RLock()` as opposed to make sure `RUnlock` is called in all the right places?",
+      "range": {
+        "startLine": 1189,
+        "startChar": 5,
+        "endLine": 1198,
+        "endChar": 6
+      },
+      "revId": "77e4fc9791f43f7060ac6981524d3dc8d8de1689",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
