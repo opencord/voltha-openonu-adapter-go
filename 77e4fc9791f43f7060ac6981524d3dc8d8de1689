@@ -22,6 +22,30 @@
       "revId": "77e4fc9791f43f7060ac6981524d3dc8d8de1689",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4446bdca_12af5e63",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1198,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-29T22:13:37Z",
+      "side": 1,
+      "message": "Currently for TCont entity instance you are right. Given that we don\u0027t have any other entity instance type here now, I can change it.",
+      "parentUuid": "ec231b7a_41d4ec63",
+      "range": {
+        "startLine": 1189,
+        "startChar": 5,
+        "endLine": 1198,
+        "endChar": 6
+      },
+      "revId": "77e4fc9791f43f7060ac6981524d3dc8d8de1689",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
