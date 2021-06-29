@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b2d96fe7_88528e55",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1181,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-29T22:40:43Z",
+      "side": 1,
+      "message": "Need switch there for future instance additions. Others done.",
+      "parentUuid": "8384aa45_31a160ab",
+      "range": {
+        "startLine": 1178,
+        "startChar": 0,
+        "endLine": 1181,
+        "endChar": 0
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "33fdd9c4_c06f7862",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 4
@@ -39,6 +63,24 @@
       "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a271f42_57213289",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1183,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-29T22:40:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "33fdd9c4_c06f7862",
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "717b0712_98424b33",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1190,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-29T22:40:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "891644f0_0d0f2e7c",
+      "range": {
+        "startLine": 1190,
+        "startChar": 0,
+        "endLine": 1190,
+        "endChar": 66
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f5bb9872_d4819026",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 4
@@ -88,6 +154,30 @@
     },
     {
       "key": {
+        "uuid": "fb851678_863fe0d0",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1193,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-29T22:40:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f5bb9872_d4819026",
+      "range": {
+        "startLine": 1193,
+        "startChar": 0,
+        "endLine": 1193,
+        "endChar": 69
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8099d03f_5fab5a95",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 4
@@ -108,6 +198,30 @@
       "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed525bd9_b220a07a",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1202,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-06-29T22:40:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8099d03f_5fab5a95",
+      "range": {
+        "startLine": 1202,
+        "startChar": 0,
+        "endLine": 1202,
+        "endChar": 5
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
