@@ -1,0 +1,113 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8384aa45_31a160ab",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1181,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-29T22:27:08Z",
+      "side": 1,
+      "message": "these can be combined into a single \u0026\u0026-ed if?",
+      "range": {
+        "startLine": 1178,
+        "startChar": 0,
+        "endLine": 1181,
+        "endChar": 0
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33fdd9c4_c06f7862",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1183,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-29T22:27:08Z",
+      "side": 1,
+      "message": "don\u0027t need the block brackets here.",
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "891644f0_0d0f2e7c",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1190,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-29T22:27:08Z",
+      "side": 1,
+      "message": "could this be added as an additional \u0026\u0026 clause as opposed to a nested if? i would hope the optimizer deals with this, but might be cleaner to just have one less nesting.",
+      "range": {
+        "startLine": 1190,
+        "startChar": 0,
+        "endLine": 1190,
+        "endChar": 66
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f5bb9872_d4819026",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1193,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-29T22:27:08Z",
+      "side": 1,
+      "message": "if pDevEntry :\u003d oFsm.pDeviceHander.get...; pDevEntry !\u003d nil {",
+      "range": {
+        "startLine": 1193,
+        "startChar": 0,
+        "endLine": 1193,
+        "endChar": 69
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8099d03f_5fab5a95",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1202,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-29T22:27:08Z",
+      "side": 1,
+      "message": "don\u0027t need the \"block\" brackets here",
+      "range": {
+        "startLine": 1202,
+        "startChar": 0,
+        "endLine": 1202,
+        "endChar": 5
+      },
+      "revId": "24e168c69790ac4865a8f03da07b82824a6210f8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
