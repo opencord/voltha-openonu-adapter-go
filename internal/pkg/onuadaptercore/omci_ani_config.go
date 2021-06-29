@@ -1170,7 +1170,49 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 		return
 	}
 }
+func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetFailResponseMessage(ctx context.Context, msgObj *omci.SetResponse) {
+	//If TCONT fails, then we need to revert the allocated TCONT in DB.
+	//Because FSMs are running sequentially, we don't expect the same TCONT hit by another tech-profile FSM while this FSM is running.
+	oFsm.mutexPLastTxMeInstance.RLock()
+	if oFsm.pLastTxMeInstance != nil {
+		if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
+			msgObj.EntityInstance == oFsm.pLastTxMeInstance.GetEntityID() {
+			switch oFsm.pLastTxMeInstance.GetName() {
+			case "TCont":
+				{
+					//If this is for TCONT creation(requestEventOffset=0) and this is the first allocation of TCONT(so noone else is using the same TCONT)
+					//We should revert DB
+					oFsm.mutexPLastTxMeInstance.RUnlock()
+					logger.Debugw(ctx, "UniPonAniConfigFsm TCONT creation failed on device.", log.Fields{"device-id": oFsm.deviceID,
+						"alloc-id": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID, "uni-tp": oFsm.uniTpKey,
+						"requestEventOffset": oFsm.requestEventOffset, "tcontSetBefore": oFsm.tcontSetBefore})
+					if oFsm.requestEventOffset == 0 && !oFsm.tcontSetBefore {
+						if oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey] != nil {
+							logger.Debugw(ctx, "UniPonAniConfigFsm TCONT creation failed on device. Freeing alloc id", log.Fields{"device-id": oFsm.deviceID,
+								"alloc-id": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID, "uni-tp": oFsm.uniTpKey})
+							pDevEntry := oFsm.pDeviceHandler.getOnuDeviceEntry(ctx, false)
+							if pDevEntry != nil {
+								pDevEntry.freeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
+							}
+						}
+					}
 
+				}
+			default:
+				{
+					oFsm.mutexPLastTxMeInstance.RUnlock()
+					logger.Warnw(ctx, "Unsupported ME name received with error!",
+						log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "result": msgObj.Result, "device-id": oFsm.deviceID})
+				}
+			}
+		} else {
+			oFsm.mutexPLastTxMeInstance.RUnlock()
+		}
+
+	} else {
+		oFsm.mutexPLastTxMeInstance.RUnlock()
+	}
+}
 func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx context.Context, msg OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
 	if msgLayer == nil {
@@ -1190,10 +1232,7 @@ func (oFsm *uniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 
-		//FIXME: If setting TCONT fails we need to revert the DB back. Because of the concurency,
-		//doing it here may cause a data inconsistency. To fix this problem we need to think on running
-		//the FSMs of different UNIs sequentially instead of running them concurrently.
-
+		oFsm.handleOmciAniConfigSetFailResponseMessage(ctx, msgObj)
 		return
 	}
 	oFsm.mutexPLastTxMeInstance.RLock()
