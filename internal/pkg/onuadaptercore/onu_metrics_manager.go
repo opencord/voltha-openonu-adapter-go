@@ -1589,7 +1589,9 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 			mm.onuMetricsManagerLock.Unlock()
 		}
 	}
+	mm.onuMetricsManagerLock.RLock()
 	logger.Debugw(ctx, "state create pm - done", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "active-l2-pms": mm.activeL2Pms, "pms-to-add": mm.l2PmToAdd})
+	mm.onuMetricsManagerLock.RUnlock()
 	// Does not matter we send success or failure here.
 	// Those PMs that we failed to create will be attempted to create again in the next PM creation cycle (assuming
 	// we have not exceed max attempts to create the PM ME)
@@ -1609,7 +1611,7 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 	_ = copy(copyOfL2PmToDelete, mm.l2PmToDelete)
 	mm.onuMetricsManagerLock.RUnlock()
 
-	logger.Debugw(ctx, "state delete pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "pms-to-delete": mm.l2PmToDelete})
+	logger.Debugw(ctx, "state delete pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "pms-to-delete": copyOfL2PmToDelete})
 	for _, n := range copyOfL2PmToDelete {
 		resp := false
 		cnt := 0
@@ -1775,7 +1777,9 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 			mm.onuMetricsManagerLock.Unlock()
 		}
 	}
+	mm.onuMetricsManagerLock.RLock()
 	logger.Debugw(ctx, "state delete pm - done", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "active-l2-pms": mm.activeL2Pms, "pms-to-delete": mm.l2PmToDelete})
+	mm.onuMetricsManagerLock.RUnlock()
 	// Does not matter we send success or failure here.
 	// Those PMs that we failed to delete will be attempted to create again in the next PM collection cycle
 	go func() {

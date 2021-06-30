@@ -2570,10 +2570,12 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 							"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
 						},
 					}
+					oFsm.mutexPLastTxMeInstance.Lock()
 					meInstance, err := oFsm.pOmciCC.sendSetEvtocdVar(context.TODO(),
 						oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 						oFsm.pAdaptFsm.commChan, meParams)
 					if err != nil {
+						oFsm.mutexPLastTxMeInstance.Unlock()
 						logger.Errorw(ctx, "SetEvtocdVar set failed, aborting UniVlanConfigFsm!",
 							log.Fields{"device-id": oFsm.deviceID})
 						_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
@@ -2582,6 +2584,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 					//accept also nil as (error) return value for writing to LastTx
 					//  - this avoids misinterpretation of new received OMCI messages
 					oFsm.pLastTxMeInstance = meInstance
+					oFsm.mutexPLastTxMeInstance.Unlock()
 
 					//verify response
 					err = oFsm.waitforOmciResponse(ctx)
@@ -2997,13 +3000,16 @@ func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMete
 			"MeterType":            1,
 		},
 	}
+	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, errCreateTD := oFsm.pOmciCC.sendCreateTDVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 		true, oFsm.pAdaptFsm.commChan, meParams)
 	if errCreateTD != nil {
+		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "Traffic Descriptor create failed", log.Fields{"device-id": oFsm.deviceID})
 		return err
 	}
 	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
 	err = oFsm.waitforOmciResponse(ctx)
 	if err != nil {
 		logger.Errorw(ctx, "Traffic Descriptor create failed, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
@@ -3028,13 +3034,16 @@ func (oFsm *UniVlanConfigFsm) setTrafficDescriptorToGemPortNWCTP(ctx context.Con
 			"TrafficManagementPointerForUpstream": gemPortID,
 		},
 	}
+	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.sendSetGemNCTPVar(log.WithSpanFromContext(context.TODO(), ctx),
 		oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true, oFsm.pAdaptFsm.commChan, meParams)
 	if err != nil {
+		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "GemNCTP set failed", log.Fields{"device-id": oFsm.deviceID})
 		return err
 	}
 	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
 	err = oFsm.waitforOmciResponse(ctx)
 	if err != nil {
 		logger.Errorw(ctx, "Upstream Traffic Descriptor set failed, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
