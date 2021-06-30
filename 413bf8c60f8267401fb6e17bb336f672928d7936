@@ -116,6 +116,30 @@
       "revId": "413bf8c60f8267401fb6e17bb336f672928d7936",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22e11858_e2e77dc1",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-30T15:04:06Z",
+      "side": 1,
+      "message": "yes. and with the call to Lock followed by the deferred call to Unlock it will be protected. perhaps the intent of my comment wasn\u0027t clear. i am suggesting that you remove the explicit unlock call at the end of the function and replace it with a deferred call to unlock right after the call to Lock. The deferred call will be executed when the function exits. Using a deferred call in this way helps insure that unlock is called even if the function exits (returns) in an unexpected way.",
+      "parentUuid": "218637f3_b4d6b5c4",
+      "range": {
+        "startLine": 950,
+        "startChar": 0,
+        "endLine": 950,
+        "endChar": 37
+      },
+      "revId": "413bf8c60f8267401fb6e17bb336f672928d7936",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
