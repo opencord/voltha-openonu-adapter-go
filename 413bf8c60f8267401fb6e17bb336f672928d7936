@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3fa6039d_60b3cac8",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 928,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-30T14:14:19Z",
+      "side": 1,
+      "message": "if err \u003d ....; err !\u003d nil {",
+      "range": {
+        "startLine": 927,
+        "startChar": 0,
+        "endLine": 928,
+        "endChar": 16
+      },
+      "revId": "413bf8c60f8267401fb6e17bb336f672928d7936",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b076da0_2c2650cc",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 943,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-30T14:14:19Z",
+      "side": 1,
+      "message": "defer oFsm.mutexPLastTxMeInstance.Unlock()",
+      "range": {
+        "startLine": 943,
+        "startChar": 0,
+        "endLine": 943,
+        "endChar": 35
+      },
+      "revId": "413bf8c60f8267401fb6e17bb336f672928d7936",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c74c870_21f6608e",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-06-30T14:14:19Z",
+      "side": 1,
+      "message": "no longer needed with defer call",
+      "range": {
+        "startLine": 950,
+        "startChar": 0,
+        "endLine": 950,
+        "endChar": 37
+      },
+      "revId": "413bf8c60f8267401fb6e17bb336f672928d7936",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
