@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b92d07b1_dc258bf9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 945,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-07-01T08:17:47Z",
+      "side": 1,
+      "message": "Because you are triggering a state transition below, you should place expicit Unlock()-calls at the same positions as in the comparable functions (e.g. enterResettingTcont()).",
+      "range": {
+        "startLine": 945,
+        "startChar": 1,
+        "endLine": 945,
+        "endChar": 43
+      },
+      "revId": "8f8a7ef4d48dc88ed30e87b81e4407576dea2b01",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "196e4dc9_0c74f9c4",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 957,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-07-01T08:17:47Z",
+      "side": 1,
+      "message": "Shouldn\u0027t you do a reset here?",
+      "range": {
+        "startLine": 957,
+        "startChar": 27,
+        "endLine": 957,
+        "endChar": 43
+      },
+      "revId": "8f8a7ef4d48dc88ed30e87b81e4407576dea2b01",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
