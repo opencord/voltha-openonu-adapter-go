@@ -20,10 +20,11 @@ package adaptercoreonu
 import (
 	"context"
 	"fmt"
-	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 
 	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 )
@@ -608,6 +609,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				// remove the removeEntry
 				delete(onuTP.mapRemoveGemEntry, uniTPKey)
 				onuTP.mutexTPState.Unlock()
+				onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 				return
 			}
 			if _, ok := onuTP.pAniConfigFsm[uniTPKey]; !ok {
@@ -625,6 +627,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				// remove the removeEntry
 				delete(onuTP.mapRemoveGemEntry, uniTPKey)
 				onuTP.mutexTPState.Unlock()
+				onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 				return
 			}
 			if onuTP.getProfileResetting(uniTPKey) {
@@ -674,11 +677,22 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 		}
 		// remove GemPort from config DB
 		//ensure write protection for access to mapPonAniConfig
+		logger.Debugw(ctx, "uniPonAniConfigFsm removing gem from config data and clearing ani FSM", log.Fields{
+			"device-id": onuTP.deviceID, "gem-id": onuTP.mapRemoveGemEntry[uniTPKey].removeGemID, "uniTPKey": uniTPKey})
 		onuTP.mutexTPState.Lock()
 		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
 		// remove the removeEntry
 		delete(onuTP.mapRemoveGemEntry, uniTPKey)
 		onuTP.mutexTPState.Unlock()
+
+		if onuTP.tpRemoved(ctx, aUniID, aTpID) {
+			onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
+			_ = onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Event(aniEvReset)
+			if bDeviceProcStatusUpdate {
+				// generate deviceHandler StatusEvent in case the FSM was not invoked and OMCI processing not locked due to device state
+				go onuTP.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
+			}
+		}
 		//  deviceHandler StatusEvent (reason update) (see end of function) is only generated in case some element really was removed
 	} else { //if cResourceTcont == aResource {
 		logger.Debugw(ctx, "reset TCont with AllocId", log.Fields{
@@ -718,7 +732,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				aUniID, onuTP.deviceID)
 			*/
 			//if the FSM is not valid, also TP related data should not be valid - clear the internal store profile data
-			onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
+			//onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 			return
 		}
 		if _, ok := onuTP.pAniConfigFsm[uniTPKey]; !ok {
@@ -727,7 +741,7 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			//even if the FSM invocation did not work we don't indicate a problem within procResult
 			//errors could exist also because there was nothing to delete - so we just accept that as 'deleted'
 			//if the FSM is not valid, also TP related data should not be valid - clear the internal store profile data
-			onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
+			//onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 			return
 		}
 		if onuTP.baseDeviceHandler.isReadyForOmciConfig() {
@@ -770,15 +784,26 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
 		//clear the internal store profile data
-		onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
+		//onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 		// reset also the FSM in order to admit a new OMCI configuration in case a new profile is created
 		// FSM stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
-		_ = onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Event(aniEvReset)
+		//_ = onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Event(aniEvReset)
 	}
-	if bDeviceProcStatusUpdate {
+	/*if bDeviceProcStatusUpdate {
 		// generate deviceHandler StatusEvent in case the FSM was not invoked and OMCI processing not locked due to device state
 		go onuTP.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
+	}*/
+}
+
+func (onuTP *onuUniTechProf) tpRemoved(ctx context.Context, uniID uint8, tpID uint8) bool {
+	uniTPKey := uniTP{uniID: uniID, tpID: tpID}
+	logger.Debugw(ctx, "tpRemoved -  current state", log.Fields{
+		"device-id": onuTP.deviceID, "ani-fsm-sate": onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Current()})
+	if onuTP.mapPonAniConfig[uniTPKey] == nil || (onuTP.mapPonAniConfig[uniTPKey] != nil &&
+		len(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams) == 0) {
+		return true
 	}
+	return false
 }
 
 func (onuTP *onuUniTechProf) waitForTimeoutOrCompletion(

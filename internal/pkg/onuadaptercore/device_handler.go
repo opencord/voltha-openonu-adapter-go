@@ -517,14 +517,38 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
 	dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+	pDevEntry.resetKvProcessingErrorIndication()
 
 	var wg sync.WaitGroup
 	wg.Add(1) // for the 1 go routine to finish
 	go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delGemPortMsg.TpInstancePath,
 		cResourceGemPort, delGemPortMsg.GemPortId, &wg)
 	dh.waitForCompletion(ctx, cancel, &wg, "GemDelete") //wait for background process to finish
+	if err := dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID); err != nil {
+		logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
+		return err
+	}
+	logger.Debugw(ctx, "gem-delete-completed-checking-if-last-gem", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId})
 
-	return dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID)
+	if dh.pOnuTP.tpRemoved(ctx, uniID, tpID) {
+		logger.Infow(ctx, "delete-gem-port-last-gem-of-tp", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId})
+		if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, tpID, ""); bTpModify {
+			var wg2 sync.WaitGroup
+			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+			wg2.Add(1)
+			// Removal of the gem id mapping represents the removal of the tech profile
+			logger.Infow(ctx, "delete-gem-port-updating-kv", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId})
+			go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg2)
+			dh.waitForCompletion(ctx, cancel2, &wg2, "GemDeleteinKV") //wait for background process to finish
+			if err = pDevEntry.getKvProcessingErrorIndication(); err != nil {
+				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
+				return err
+			}
+		}
+	}
+	logger.Infow(ctx, "delete-gem-port-request-completed", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId,
+		"result": dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())})
+	return nil
 }
 
 func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
@@ -569,26 +593,30 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 		return err
 	}
 
-	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, tpID, ""); bTpModify {
-		pDevEntry.freeTcont(ctx, uint16(delTcontMsg.AllocId))
-		// deadline context to ensure completion of background routines waited for
-		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-		dctx, cancel := context.WithDeadline(context.Background(), deadline)
+	pDevEntry.freeTcont(ctx, uint16(delTcontMsg.AllocId))
+	// deadline context to ensure completion of background routines waited for
+	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+	dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+	dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+
+	var wg sync.WaitGroup
+	wg.Add(1) // for the 1 go routines to finish
+	go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delTcontMsg.TpInstancePath,
+		cResourceTcont, delTcontMsg.AllocId, &wg)
+	/*if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, tpID, ""); bTpModify {
 		pDevEntry.resetKvProcessingErrorIndication()
-
-		var wg sync.WaitGroup
-		wg.Add(2) // for the 2 go routines to finish
-		go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delTcontMsg.TpInstancePath,
-			cResourceTcont, delTcontMsg.AllocId, &wg)
+		wg.Add(1)
+		logger.Infow(ctx, "delete-tcont-updating-kv", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID})
 		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
 		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
-		dh.waitForCompletion(ctx, cancel, &wg, "TContDelete") //wait for background process to finish
+	}*/
+	dh.waitForCompletion(ctx, cancel, &wg, "TContDelete") //wait for background process to finish
+	logger.Infow(ctx, "delete-tcont-request-completed", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID,
+		"result": dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID)})
 
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
-	}
-	return nil
+	return dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID)
+
 }
 
 //processInterAdapterMessage sends the proxied messages to the target device
