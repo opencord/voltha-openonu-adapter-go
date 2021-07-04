@@ -62,6 +62,7 @@ const (
 	aniEvReset             = "aniEvReset"
 	aniEvRestart           = "aniEvRestart"
 	aniEvSkipOmciConfig    = "aniEvSkipOmciConfig"
+	aniEvRemGemDone        = "aniEvRemGemDone"
 )
 const (
 	// states of config PON ANI port FSM
@@ -185,13 +186,14 @@ func newUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *omciCC, apUniPort *
 			{Name: aniEvFlowRemDone, Src: []string{aniStWaitingFlowRem}, Dst: aniStRemovingGemIW},
 			{Name: aniEvRxRemGemiwResp, Src: []string{aniStRemovingGemIW}, Dst: aniStRemovingGemNCTP},
 			{Name: aniEvRxRemGemntpResp, Src: []string{aniStRemovingGemNCTP}, Dst: aniStRemovingTD},
-			{Name: aniEvRxRemTdResp, Src: []string{aniStRemovingTD}, Dst: aniStConfigDone},
+			{Name: aniEvRxRemTdResp, Src: []string{aniStRemovingTD}, Dst: aniStRemDot1PMapper},
+			{Name: aniEvRemGemDone, Src: []string{aniStRemDot1PMapper}, Dst: aniStConfigDone},
+			{Name: aniEvRxRem1pMapperResp, Src: []string{aniStRemDot1PMapper}, Dst: aniStRemAniBPCD},
+			{Name: aniEvRxRemAniBPCDResp, Src: []string{aniStRemAniBPCD}, Dst: aniStRemoveDone},
 
 			//for removing TCONT related resources
 			{Name: aniEvRemTcontPath, Src: []string{aniStConfigDone}, Dst: aniStResetTcont},
-			{Name: aniEvRxResetTcontResp, Src: []string{aniStResetTcont}, Dst: aniStRemDot1PMapper},
-			{Name: aniEvRxRem1pMapperResp, Src: []string{aniStRemDot1PMapper}, Dst: aniStRemAniBPCD},
-			{Name: aniEvRxRemAniBPCDResp, Src: []string{aniStRemAniBPCD}, Dst: aniStRemoveDone},
+			{Name: aniEvRxResetTcontResp, Src: []string{aniStResetTcont}, Dst: aniStConfigDone},
 
 			{Name: aniEvTimeoutSimple, Src: []string{aniStCreatingDot1PMapper, aniStCreatingMBPCD, aniStSettingTconts, aniStSettingDot1PMapper,
 				aniStRemovingGemIW, aniStRemovingGemNCTP, aniStRemovingTD,
@@ -996,6 +998,29 @@ func (oFsm *uniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 func (oFsm *uniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "uniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
+	mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
+	unicastGemCount := 0
+	for _, gemEntry := range mapGemPortParams {
+		if !gemEntry.isMulticast {
+			unicastGemCount++
+		}
+	}
+	if unicastGemCount > 1 {
+		logger.Debugw(ctx, "uniPonAniConfigFsm - Not the last gem in fsm. Skip the rest", log.Fields{
+			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "unicast-gem-count": unicastGemCount, "gem-count": len(mapGemPortParams)})
+		pConfigAniStateAFsm := oFsm.pAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.pFsm != nil {
+					_ = aPAFsm.pFsm.Event(aniEvRemGemDone)
+				}
+			}(pConfigAniStateAFsm)
+			return
+		}
+	}
+	logger.Debugw(ctx, "uniPonAniConfigFsm - Last gem in fsm. Continue with Mapper removal", log.Fields{
+		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "unicast-gem-count": unicastGemCount, "gem-count": len(mapGemPortParams)})
 
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.sendDeleteDot1PMapper(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
