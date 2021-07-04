@@ -473,13 +473,6 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 	ctx context.Context,
 	msg *ic.InterAdapterMessage) error {
 
-	logger.Infow(ctx, "delete-gem-port-request", log.Fields{"device-id": dh.deviceID})
-
-	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
-	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
-		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
-	}
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Warnw(ctx, "onuTechProf instance not set up for DelGem request - ignoring request",
@@ -509,29 +502,17 @@ func (dh *deviceHandler) processInterAdapterDeleteGemPortReqMessage(
 		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": delGemPortMsg.TpInstancePath})
 		return err
 	}
-
+	logger.Infow(ctx, "delete-gem-port-request", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId})
 	//a removal of some GemPort would never remove the complete TechProfile entry (done on T-Cont)
 
-	// deadline context to ensure completion of background routines waited for
-	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+	return dh.deleteTechProfileResource(ctx, uniID, tpID, delGemPortMsg.TpInstancePath,
+		cResourceGemPort, delGemPortMsg.GemPortId)
 
-	dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
-
-	var wg sync.WaitGroup
-	wg.Add(1) // for the 1 go routine to finish
-	go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delGemPortMsg.TpInstancePath,
-		cResourceGemPort, delGemPortMsg.GemPortId, &wg)
-	dh.waitForCompletion(ctx, cancel, &wg, "GemDelete") //wait for background process to finish
-
-	return dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID)
 }
 
 func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 	ctx context.Context,
 	msg *ic.InterAdapterMessage) error {
-
-	logger.Infow(ctx, "delete-tcont-request", log.Fields{"device-id": dh.deviceID})
 
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
@@ -568,26 +549,64 @@ func (dh *deviceHandler) processInterAdapterDeleteTcontReqMessage(
 		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": tpPath})
 		return err
 	}
+	logger.Infow(ctx, "delete-tcont-request", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID, "tcont": delTcontMsg.AllocId})
 
-	if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, tpID, ""); bTpModify {
-		pDevEntry.freeTcont(ctx, uint16(delTcontMsg.AllocId))
-		// deadline context to ensure completion of background routines waited for
-		deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-		dctx, cancel := context.WithDeadline(context.Background(), deadline)
+	pDevEntry.freeTcont(ctx, uint16(delTcontMsg.AllocId))
 
-		dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
-		pDevEntry.resetKvProcessingErrorIndication()
+	return dh.deleteTechProfileResource(ctx, uniID, tpID, delTcontMsg.TpInstancePath,
+		cResourceTcont, delTcontMsg.AllocId)
 
-		var wg sync.WaitGroup
-		wg.Add(2) // for the 2 go routines to finish
-		go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, delTcontMsg.TpInstancePath,
-			cResourceTcont, delTcontMsg.AllocId, &wg)
-		// Removal of the tcont/alloc id mapping represents the removal of the tech profile
-		go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
-		dh.waitForCompletion(ctx, cancel, &wg, "TContDelete") //wait for background process to finish
+}
 
-		return dh.combineErrorStrings(dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID), pDevEntry.getKvProcessingErrorIndication())
+func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
+	uniID uint8, tpID uint8, pathString string, resource resourceEntry, entryID uint32) error {
+	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.deviceID})
+		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
+	var resourceName string
+	if cResourceGemPort == resource {
+		resourceName = "Gem"
+	} else {
+		resourceName = "Tcont"
+	}
+
+	// deadline context to ensure completion of background routines waited for
+	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+
+	dh.pOnuTP.resetTpProcessingErrorIndication(uniID, tpID)
+
+	var wg sync.WaitGroup
+	wg.Add(1) // for the 1 go routine to finish
+	go dh.pOnuTP.deleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, pathString,
+		resource, entryID, &wg)
+	dh.waitForCompletion(ctx, cancel, &wg, resourceName+"Delete") //wait for background process to finish
+	if err := dh.pOnuTP.getTpProcessingErrorIndication(uniID, tpID); err != nil {
+		logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
+		return err
+	}
+
+	if dh.pOnuTP.isTechProfileConfigCleared(ctx, uniID, tpID) {
+		logger.Debugw(ctx, "techProfile-config-cleared", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID})
+		if bTpModify := pDevEntry.updateOnuUniTpPath(ctx, uniID, tpID, ""); bTpModify {
+			pDevEntry.resetKvProcessingErrorIndication()
+			var wg2 sync.WaitGroup
+			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+			wg2.Add(1)
+			// Removal of the gem id mapping represents the removal of the tech profile
+			logger.Infow(ctx, "remove-techProfile-indication-in-kv", log.Fields{"device-id": dh.deviceID, "uni-id": uniID, "tpID": tpID})
+			go pDevEntry.updateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg2)
+			dh.waitForCompletion(ctx, cancel2, &wg2, "TechProfileDeleteOn"+resourceName) //wait for background process to finish
+			if err := pDevEntry.getKvProcessingErrorIndication(); err != nil {
+				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
+				return err
+			}
+		}
+	}
+	logger.Debugw(ctx, "delete-tech-profile-resource-completed", log.Fields{"device-id": dh.deviceID,
+		"uni-id": uniID, "tpID": tpID, "resource-type": resourceName, "resource-id": entryID})
 	return nil
 }
 
@@ -3250,19 +3269,6 @@ func (dh *deviceHandler) storePersistentData(ctx context.Context) error {
 		return fmt.Errorf("no valid OnuDevice: %s", dh.deviceID)
 	}
 	return dh.startWritingOnuDataToKvStore(ctx, pDevEntry)
-}
-
-func (dh *deviceHandler) combineErrorStrings(errS ...error) error {
-	var errStr string = ""
-	for _, err := range errS {
-		if err != nil {
-			errStr = errStr + err.Error() + " "
-		}
-	}
-	if errStr != "" {
-		return fmt.Errorf("%s: %s", errStr, dh.deviceID)
-	}
-	return nil
 }
 
 // getUniPortMEEntityID takes uniPortNo as the input and returns the Entity ID corresponding to this UNI-G ME Instance
