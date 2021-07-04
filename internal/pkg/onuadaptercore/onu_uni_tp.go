@@ -20,10 +20,11 @@ package adaptercoreonu
 import (
 	"context"
 	"fmt"
-	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/opencord/voltha-protos/v4/go/tech_profile"
 
 	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 )
@@ -551,7 +552,6 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 		"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "Resource": aResource})
 	uniTPKey := uniTP{uniID: aUniID, tpID: aTpID}
 
-	bDeviceProcStatusUpdate := true
 	if cResourceGemPort == aResource {
 		logger.Debugw(ctx, "remove GemPort from the list of existing ones of the TP", log.Fields{
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "GemPort": aEntryID})
@@ -669,18 +669,18 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			//as a consequence a possible remove-flow does not see any dependency on the TechProfile anymore and is executed (pro forma) directly
 			//a later TechProfile removal would cause the device-reason to be updated to 'techProfile-delete-success' which is not the expected state
 			// and anyway is no real useful information at that stage
-			bDeviceProcStatusUpdate = false
 			logger.Debugw(ctx, "uniPonAniConfigFsm delete Gem on OMCI skipped based on device state", log.Fields{
 				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
 		// remove GemPort from config DB
 		//ensure write protection for access to mapPonAniConfig
+		logger.Debugw(ctx, "uniPonAniConfigFsm removing gem from config data and clearing ani FSM", log.Fields{
+			"device-id": onuTP.deviceID, "gem-id": onuTP.mapRemoveGemEntry[uniTPKey].removeGemID, "uniTPKey": uniTPKey})
 		onuTP.mutexTPState.Lock()
 		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
 		// remove the removeEntry
 		delete(onuTP.mapRemoveGemEntry, uniTPKey)
 		onuTP.mutexTPState.Unlock()
-		//  deviceHandler StatusEvent (reason update) (see end of function) is only generated in case some element really was removed
 	} else { //if cResourceTcont == aResource {
 		logger.Debugw(ctx, "reset TCont with AllocId", log.Fields{
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "allocId": aEntryID})
@@ -718,8 +718,6 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			onuTP.procResult[uniTpKey] = fmt.Errorf("TCont cleanup aborted: no AniConfigFsm available %d on %s",
 				aUniID, onuTP.deviceID)
 			*/
-			//if the FSM is not valid, also TP related data should not be valid - clear the internal store profile data
-			onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 			return
 		}
 		if _, ok := onuTP.pAniConfigFsm[uniTPKey]; !ok {
@@ -728,7 +726,6 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			//even if the FSM invocation did not work we don't indicate a problem within procResult
 			//errors could exist also because there was nothing to delete - so we just accept that as 'deleted'
 			//if the FSM is not valid, also TP related data should not be valid - clear the internal store profile data
-			onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
 			return
 		}
 		if onuTP.baseDeviceHandler.isReadyForOmciConfig() {
@@ -766,20 +763,36 @@ func (onuTP *onuUniTechProf) deleteTpResource(ctx context.Context,
 			}
 		} else {
 			//see gemPort comments
-			bDeviceProcStatusUpdate = false
 			logger.Debugw(ctx, "uniPonAniConfigFsm TCont cleanup on OMCI skipped based on device state", log.Fields{
 				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.getDeviceReasonString()})
 		}
-		//clear the internal store profile data
-		onuTP.clearAniSideConfig(ctx, aUniID, aTpID)
-		// reset also the FSM in order to admit a new OMCI configuration in case a new profile is created
-		// FSM stop maybe encapsulated as OnuTP method - perhaps later in context of module splitting
-		_ = onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Event(aniEvReset)
 	}
-	if bDeviceProcStatusUpdate {
-		// generate deviceHandler StatusEvent in case the FSM was not invoked and OMCI processing not locked due to device state
-		go onuTP.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
+
+}
+
+func (onuTP *onuUniTechProf) isTechProfileConfigCleared(ctx context.Context, uniID uint8, tpID uint8) bool {
+	uniTPKey := uniTP{uniID: uniID, tpID: tpID}
+	logger.Debugw(ctx, "isTechProfileConfigCleared", log.Fields{"device-id": onuTP.deviceID})
+	if onuTP.mapPonAniConfig[uniTPKey] != nil {
+		mapGemPortParams := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams
+		unicastGemCount := 0
+		for _, gemEntry := range mapGemPortParams {
+			if !gemEntry.isMulticast {
+				unicastGemCount++
+			}
+		}
+		if unicastGemCount == 0 || onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID == 0 {
+			logger.Debugw(ctx, "clearing-ani-side-config", log.Fields{
+				"device-id": onuTP.deviceID, "uniTpKey": uniTPKey})
+			onuTP.clearAniSideConfig(ctx, uniID, tpID)
+			if _, ok := onuTP.pAniConfigFsm[uniTPKey]; ok {
+				_ = onuTP.pAniConfigFsm[uniTPKey].pAdaptFsm.pFsm.Event(aniEvReset)
+			}
+			go onuTP.baseDeviceHandler.deviceProcStatusUpdate(ctx, OmciAniResourceRemoved)
+			return true
+		}
 	}
+	return false
 }
 
 func (onuTP *onuUniTechProf) waitForTimeoutOrCompletion(
