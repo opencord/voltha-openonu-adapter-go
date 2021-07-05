@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "317d43cd_78700e58",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 735,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-05T16:39:07Z",
+      "side": 1,
+      "message": "Yes, the ani side config deletion is moved from TCONT deletion to GEM deletion. So related GEM will be deleted later and the cleanup will be done there with all these checks. Btw I will clean the code if tests pass.",
+      "parentUuid": "b55f1653_aca64d0e",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1148826a_1cb0ad4b",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2021-07-05T08:42:48Z",
       "side": 1,
       "message": "same",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ba27ff8d_f0c68c60",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-05T16:39:07Z",
+      "side": 1,
+      "message": "same",
+      "parentUuid": "1148826a_1cb0ad4b",
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
