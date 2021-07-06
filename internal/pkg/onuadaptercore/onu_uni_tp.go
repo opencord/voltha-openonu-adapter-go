@@ -226,8 +226,9 @@ func (onuTP *onuUniTechProf) configureUniTp(ctx context.Context,
 	if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpConfigProcessingStep, processingStep) {
 		//timeout or error detected
 		onuTP.mutexTPState.RLock()
-		defer onuTP.mutexTPState.RUnlock()
-		if onuTP.tpProfileExists[uniTpKey] {
+		ok := onuTP.tpProfileExists[uniTpKey]
+		onuTP.mutexTPState.RUnlock()
+		if ok {
 			//ignore the internal error in case the new profile is already configured
 			// and abort the processing here
 			return

@@ -1082,13 +1082,15 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 		oFsm.actualUniVlanConfigMeter = oFsm.uniVlanFlowParamsSlice[0].Meter
 		tpID := oFsm.actualUniVlanConfigRule.TpID
 		oFsm.TpIDWaitingFor = tpID
+		//cmp also usage in EVTOCDE create in omci_cc
+		oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
+		oFsm.mutexFlowParams.Unlock()
+
 		loTechProfDone := oFsm.pUniTechProf.getTechProfileDone(ctx, oFsm.pOnuUniPort.uniID, uint8(tpID))
 		logger.Debugw(ctx, "UniVlanConfigFsm - start with first rule", log.Fields{
 			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
 			"set-Vlan": oFsm.actualUniVlanConfigRule.SetVid, "tp-id": tpID, "ProfDone": loTechProfDone})
-		//cmp also usage in EVTOCDE create in omci_cc
-		oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
-		oFsm.mutexFlowParams.Unlock()
+
 		// Can't call FSM Event directly, decoupling it
 		go func(aPAFsm *AdapterFsm, aTechProfDone bool) {
 			if aPAFsm != nil && aPAFsm.pFsm != nil {
