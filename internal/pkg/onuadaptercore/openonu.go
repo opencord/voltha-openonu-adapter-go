@@ -837,7 +837,8 @@ func (oo *OpenONUAC) Get_onu_images(ctx context.Context, deviceID string) (*volt
 	logger.Infow(ctx, "Get_onu_images", log.Fields{"device-id": deviceID})
 	if handler := oo.getDeviceHandler(ctx, deviceID, false); handler != nil {
 		var err error
-		if images, err := handler.getOnuImages(ctx); err == nil {
+		images, err := handler.getOnuImages(ctx)
+		if err == nil {
 			return images, nil
 		}
 		return nil, fmt.Errorf(fmt.Sprintf("%s-%s", err, deviceID))
