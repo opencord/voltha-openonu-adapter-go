@@ -65,7 +65,7 @@ github.com/looplab/fsm
 ## explicit
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v5 v5.0.2
+# github.com/opencord/voltha-lib-go/v5 v5.0.4
 ## explicit
 github.com/opencord/voltha-lib-go/v5/pkg/adapters
 github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif
