@@ -323,8 +323,8 @@ type onuMetricsManager struct {
 	pmKvStore *db.Backend
 
 	supportedEthernetFrameExtendedPMClass         me.ClassID
-	ethernetFrameExtendedPmUpStreamMEToEntityID   map[*me.ManagedEntity]uint16
-	ethernetFrameExtendedPmDownStreamMEToEntityID map[*me.ManagedEntity]uint16
+	ethernetFrameExtendedPmUpStreamMEByEntityID   map[uint16]*me.ManagedEntity
+	ethernetFrameExtendedPmDownStreamMEByEntityID map[uint16]*me.ManagedEntity
 	extPmKvStore                                  *db.Backend
 	onuEthernetFrameExtendedPmLock                sync.RWMutex
 	isDeviceReadyToCollectExtendedPmStats         bool
@@ -359,8 +359,8 @@ func newonuMetricsManager(ctx context.Context, dh *deviceHandler) *onuMetricsMan
 	metricsManager.groupMetricMap = make(map[string]*groupMetric)
 	metricsManager.standaloneMetricMap = make(map[string]*standaloneMetric)
 
-	metricsManager.ethernetFrameExtendedPmUpStreamMEToEntityID = make(map[*me.ManagedEntity]uint16)
-	metricsManager.ethernetFrameExtendedPmDownStreamMEToEntityID = make(map[*me.ManagedEntity]uint16)
+	metricsManager.ethernetFrameExtendedPmUpStreamMEByEntityID = make(map[uint16]*me.ManagedEntity)
+	metricsManager.ethernetFrameExtendedPmDownStreamMEByEntityID = make(map[uint16]*me.ManagedEntity)
 
 	if dh.pmConfigs == nil { // dh.pmConfigs is NOT nil if adapter comes back from a restart. We should NOT go back to defaults in this case
 		metricsManager.initializeAllGroupMetrics()
@@ -1428,10 +1428,8 @@ func (mm *onuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 		cnt := 0
 		switch n {
 		case EthernetBridgeHistoryName:
-			boolForDirection := make([]bool, 2) // stores true and false to indicate upstream and downstream directions.
-			boolForDirection = append(boolForDirection, true, false)
 			// Create ME twice, one for each direction. Boolean true is used to indicate upstream and false for downstream.
-			for _, direction := range boolForDirection {
+			for _, direction := range []bool{true, false} {
 				for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
 					// Attach the EthernetFramePerformanceMonitoringHistoryData ME to MacBridgePortConfigData on the UNI port
 					entityID := macBridgePortAniBaseEID + uniPort.entityID
@@ -1635,10 +1633,8 @@ func (mm *onuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 		logger.Debugw(ctx, "entities to delete", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "metricName": n, "entityIDs": copyOfEntityIDs})
 		switch n {
 		case EthernetBridgeHistoryName:
-			boolForDirection := make([]bool, 2) // stores true and false to indicate upstream and downstream directions.
-			boolForDirection = append(boolForDirection, true, false)
 			// Create ME twice, one for each direction. Boolean true is used to indicate upstream and false for downstream.
-			for _, direction := range boolForDirection {
+			for _, direction := range []bool{true, false} {
 				for _, entityID := range copyOfEntityIDs {
 				inner1:
 					// retry L2PmDeleteAttempts times to delete the instance of PM
@@ -3014,10 +3010,8 @@ func (mm *onuMetricsManager) waitForEthernetFrameCreateOrDeleteResponseOrTimeout
 
 func (mm *onuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.ClassID) (bool, error) {
 	cnt := 0
-	boolForDirection := make([]bool, 2) // stores true and false to indicate upstream and downstream directions.
-	boolForDirection = append(boolForDirection, true, false)
 	// Create ME twice, one for each direction. Boolean true is used to indicate upstream and false for downstream.
-	for _, direction := range boolForDirection {
+	for _, direction := range []bool{true, false} {
 		for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
 			var entityID uint16
 			if direction {
@@ -3042,9 +3036,9 @@ func (mm *onuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.Cla
 				}
 				if supported, err := mm.waitForEthernetFrameCreateOrDeleteResponseOrTimeout(ctx, true, entityID, meType, direction); err == nil && supported {
 					if direction {
-						mm.ethernetFrameExtendedPmUpStreamMEToEntityID[meEnt] = entityID
+						mm.ethernetFrameExtendedPmUpStreamMEByEntityID[entityID] = meEnt
 					} else {
-						mm.ethernetFrameExtendedPmDownStreamMEToEntityID[meEnt] = entityID
+						mm.ethernetFrameExtendedPmDownStreamMEByEntityID[entityID] = meEnt
 					}
 					break inner1
 				} else if err != nil {
@@ -3144,7 +3138,7 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 	// Collect metrics for upstream for all the PM Mes per uni port and aggregate
 	var pmUpstream extension.OmciEthernetFrameExtendedPm
 	var pmDownstream extension.OmciEthernetFrameExtendedPm
-	for meEnt, entityID := range mm.ethernetFrameExtendedPmUpStreamMEToEntityID {
+	for entityID, meEnt := range mm.ethernetFrameExtendedPmUpStreamMEByEntityID {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
 			if receivedMask == 0 {
@@ -3171,7 +3165,7 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 		}
 	}
 
-	for meEnt, entityID := range mm.ethernetFrameExtendedPmDownStreamMEToEntityID {
+	for entityID, meEnt := range mm.ethernetFrameExtendedPmDownStreamMEByEntityID {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, false, &receivedMask); metricInfo != nil { // downstream
 			// Aggregate the result for downstream
