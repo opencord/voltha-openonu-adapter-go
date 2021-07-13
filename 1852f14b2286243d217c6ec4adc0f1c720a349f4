@@ -2,6 +2,244 @@
   "comments": [
     {
       "key": {
+        "uuid": "a01c9f78_89cf4750",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "is only related to Kv processing - should be reset only if needed, e.g. in line 539",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f283ec24_d3572687",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 531,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "comment not really needed here, comment in line 534 sufficient",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "39ef037e_ed35b632",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "Perhaps the complete techProfile removal handling can be done in separate function - see comments on T-Cont removal to have the similar processing also there ..",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "389721bf_c5f1bbf8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 533,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "see name proposal in onu_uni_tp.go",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c7237c8_325b160b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 534,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "comment proposal: \"techProfile-config cleared\", no need to have the GemPort as parameter here.",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "08bc7f16_1eab8170",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 540,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "comment proposal: \"remove techProfile indication in kv\", no need to have the GemPort as parameter here.",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "322dd3a8_2dd0430b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "proposal on reason: \"TechProfileDeleteOn Gem\"",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9aab53d4_a811745c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 607,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "I\u0027d propose the similar processing here as in the deleteGemPort processing above, meaning checking isTechProfileConfigCleared() and according Kv processing to clear the TechProfile\n(see also comment in onu_uni_tp.go) (so then another waitGroup must be started - compare GemPort removal))",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6cdb4f59_b3b0d6d8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 618,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "see above, if modified, combineErrorStrings() should be used again ...",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "10a1fb4a_c6708d24",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "I\u0027d say this is wrong (unneeded) here.",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "92b41152_ada34add",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 630,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "I\u0027d say this is wrong (unneeded) here.",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71a88422_1a1ef1b8",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 689,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "See comment to tpRemoved/isTechProfileConfigCleared(): I\u0027d do the clearAniSideConfig as part of this function (directly).",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1469a946_190a1123",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 690,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "same as above",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe6db81d_9d4df4da",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 691,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "not sure, if this is required here. So maybe the complete tpRemoved-block may be omitted here (tpRemoved/isTechProfileConfigCleared() is already called from deviceHandler - should be enough)",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b55f1653_aca64d0e",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -66,6 +304,57 @@
       "side": 1,
       "message": "same",
       "parentUuid": "1148826a_1cb0ad4b",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d6f8d3d0_dc52da7e",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 798,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "Naming convention: I\u0027d prefer isTechProfileConfigCleared()",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fc3b4c6b_8cc7c1b5",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "I would recommend to extend the check by \u0026\u0026 ...tcontParams.allocID \u003d\u003d 0 (also T-Cont must have been cleared)",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7b4e423e_32901a01",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-13T10:12:16Z",
+      "side": 1,
+      "message": "I#d propose to call clearAniSideConfig() from here. Best using some internal flag that allows for detecting the transition between \u0027techprofAssigned\u0027 and \u0027techProfConfigCleared\u0027",
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
