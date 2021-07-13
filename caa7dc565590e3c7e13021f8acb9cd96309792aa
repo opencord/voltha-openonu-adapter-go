@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "acf46ba1_ba08f04f",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3017,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-07-13T00:48:20Z",
+      "side": 1,
+      "message": "@himani: I would agree with David\u0027s suggestion and I also see the same issue at two other places in the code. Can you fix there too?",
+      "revId": "caa7dc565590e3c7e13021f8acb9cd96309792aa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b333c172_c7ba5387",
         "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
         "patchSetId": 1
