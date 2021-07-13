@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b333c172_c7ba5387",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3021,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-07-13T00:29:29Z",
+      "side": 1,
+      "message": "for _, direction :\u003d range []bool{true, false} {",
+      "range": {
+        "startLine": 3017,
+        "startChar": 0,
+        "endLine": 3021,
+        "endChar": 0
+      },
+      "revId": "caa7dc565590e3c7e13021f8acb9cd96309792aa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed589aca_40129e0a",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3024,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2021-07-13T00:29:29Z",
+      "side": 1,
+      "message": "adding 256 to get a unique ID seems a bit risky. at best this needs to be documented as to why this will actually not break at some future point. I suspect this is outside the scope of this code patch, but needs to be considered at some point.",
+      "range": {
+        "startLine": 3024,
+        "startChar": 32,
+        "endLine": 3024,
+        "endChar": 39
+      },
+      "revId": "caa7dc565590e3c7e13021f8acb9cd96309792aa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
