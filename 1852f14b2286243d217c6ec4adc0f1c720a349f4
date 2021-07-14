@@ -632,6 +632,24 @@
     },
     {
       "key": {
+        "uuid": "4d92fe5d_3c5b95b2",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-14T15:58:31Z",
+      "side": 1,
+      "message": "Sorry - my fault. But leaving the code here that way would make the latest changes on tContDelete in device handler obsolete. So what I meant here was to extend the check this way: if onuTP.mapPonAniConfig[uniTPKey] \u003d\u003d nil || (onuTP.mapPonAniConfig[uniTPKey] !\u003d nil \u0026\u0026 (\nlen(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams) \u003d\u003d 0 || \nonuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID \u003d\u003d 0)\n { ...\nThis is to remove the Techprofile indication (and ANI configuration) if either no GemPort exists or no TCont.",
+      "parentUuid": "ecbdaf08_47ae503d",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7b4e423e_32901a01",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -661,6 +679,24 @@
       "side": 1,
       "message": "No problem, I called clearAniSideConfig() here, but I couldn\u0027t get the reason for flag.",
       "parentUuid": "7b4e423e_32901a01",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4f747d3c_3560cd63",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-14T15:58:31Z",
+      "side": 1,
+      "message": "With comment above it should be more evident: You could call this function in state where the TechProfile/AniSideConfig is already removed. So if you do that you should store it in the flag and don\u0027t do the clear-Processing again on next call.",
+      "parentUuid": "dc35628b_ad88f366",
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true

@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f346c5d0_95a9ecd1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 512,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-14T15:58:31Z",
+      "side": 1,
+      "message": "This is now kind of duplicate with log entry in line 476, if you want to add the extra information elements perhaps do it there.",
+      "revId": "1cbf3dc763e6e465f806bb0a05b7ef8a2c4c771d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "04616cbf_abf13e2a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 531,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-14T15:58:31Z",
+      "side": 1,
+      "message": "As previous comment: now this code at GemDelete and TContDelete looks quite similar. Could make sense to put the processing under this block into some function. (For sure not needed urgently).",
+      "revId": "1cbf3dc763e6e465f806bb0a05b7ef8a2c4c771d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a459c82e_4ccac545",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-14T15:58:31Z",
+      "side": 1,
+      "message": "Would prefer debug level",
+      "revId": "1cbf3dc763e6e465f806bb0a05b7ef8a2c4c771d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "21a1b185_66794552",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-07-14T15:58:31Z",
+      "side": 1,
+      "message": "kind of duplicate comment, see above, perhaps add extra information in comment in line 557",
+      "revId": "1cbf3dc763e6e465f806bb0a05b7ef8a2c4c771d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
