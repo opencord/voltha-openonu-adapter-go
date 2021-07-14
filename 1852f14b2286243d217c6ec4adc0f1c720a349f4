@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ea96efdb_49a808d6",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a01c9f78_89cf4750",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f283ec24_d3572687",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -33,6 +51,24 @@
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a7fcbef_55a570f1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 531,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f283ec24_d3572687",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "568379e3_fcac69dd",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "39ef037e_ed35b632",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "389721bf_c5f1bbf8",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -67,6 +121,24 @@
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "79a041a3_ad0221bf",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 533,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "389721bf_c5f1bbf8",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "34a10e4b_54496fe3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 534,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8c7237c8_325b160b",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "08bc7f16_1eab8170",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -101,6 +191,24 @@
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ec1d54f1_45436e92",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 540,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "08bc7f16_1eab8170",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "759692d4_b8fe7fe2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "322dd3a8_2dd0430b",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9aab53d4_a811745c",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "c21b4446_2597d599",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 607,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9aab53d4_a811745c",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6cdb4f59_b3b0d6d8",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 1
@@ -149,6 +293,24 @@
       "writtenOn": "2021-07-13T10:12:16Z",
       "side": 1,
       "message": "see above, if modified, combineErrorStrings() should be used again ...",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6ae6d27a_91d009b1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 618,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "each error(tpProcessing and KVProcessing returned separately in their result check. So left nil here.",
+      "parentUuid": "6cdb4f59_b3b0d6d8",
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -172,6 +334,24 @@
     },
     {
       "key": {
+        "uuid": "2f464717_8fd95265",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "10a1fb4a_c6708d24",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "92b41152_ada34add",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -186,6 +366,24 @@
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "54a2fb20_41014533",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 630,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "92b41152_ada34add",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -206,6 +404,24 @@
     },
     {
       "key": {
+        "uuid": "6c7b77d9_2f3caf7f",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 689,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "71a88422_1a1ef1b8",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1469a946_190a1123",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -223,6 +439,24 @@
     },
     {
       "key": {
+        "uuid": "f851dec0_259a9aae",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 690,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1469a946_190a1123",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fe6db81d_9d4df4da",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -234,6 +468,24 @@
       "writtenOn": "2021-07-13T10:12:16Z",
       "side": 1,
       "message": "not sure, if this is required here. So maybe the complete tpRemoved-block may be omitted here (tpRemoved/isTechProfileConfigCleared() is already called from deviceHandler - should be enough)",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "260f760e_d9d9c546",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 691,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "I moved this into isTechProfileConfigCleared() function. I think it is still needed to send \"tech-profile-removed\" reason to core in case the tech-profile is cleared.",
+      "parentUuid": "fe6db81d_9d4df4da",
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -327,6 +579,24 @@
     },
     {
       "key": {
+        "uuid": "3e5077b0_68be5397",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 798,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d6f8d3d0_dc52da7e",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fc3b4c6b_8cc7c1b5",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -344,6 +614,24 @@
     },
     {
       "key": {
+        "uuid": "ecbdaf08_47ae503d",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "In shared tcont case, If there is another UNI using the same tcont, then there is no TCONT remove message issued by olt-adapter for this tech-profile removal. So checking alloc would probably leads us to a wrong decision.",
+      "parentUuid": "fc3b4c6b_8cc7c1b5",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7b4e423e_32901a01",
         "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
         "patchSetId": 1
@@ -355,6 +643,24 @@
       "writtenOn": "2021-07-13T10:12:16Z",
       "side": 1,
       "message": "I#d propose to call clearAniSideConfig() from here. Best using some internal flag that allows for detecting the transition between \u0027techprofAssigned\u0027 and \u0027techProfConfigCleared\u0027",
+      "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc35628b_ad88f366",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_tp.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 804,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-07-14T14:21:19Z",
+      "side": 1,
+      "message": "No problem, I called clearAniSideConfig() here, but I couldn\u0027t get the reason for flag.",
+      "parentUuid": "7b4e423e_32901a01",
       "revId": "1852f14b2286243d217c6ec4adc0f1c720a349f4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
