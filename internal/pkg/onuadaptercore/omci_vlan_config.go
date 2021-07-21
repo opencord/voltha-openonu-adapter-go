@@ -792,11 +792,11 @@ remove_loop:
 				logger.Debugw(ctx, "UniVlanConfigFsm flow removal - cookie found", log.Fields{
 					"device-id": oFsm.deviceID, "cookie": cookie})
 				deletedCookie = aCookie
-				kvStoreWrite := false //default setting is to not write to kvStore immediately - will be done on FSM execution finally
 				//remove the cookie from the cookie slice and verify it is getting empty
 				if len(storedUniFlowParams.CookieSlice) == 1 {
 					// had to shift content to function due to sca complexity
 					flowCookieMatch = oFsm.removeRuleComplete(ctx, storedUniFlowParams, aCookie)
+					//persistencyData write is now part of removeRuleComplete() (on success)
 				} else {
 					flowCookieMatch = true
 					//cut off the requested cookie by slicing out this element
@@ -804,7 +804,6 @@ remove_loop:
 						oFsm.uniVlanFlowParamsSlice[flow].CookieSlice[:i],
 						oFsm.uniVlanFlowParamsSlice[flow].CookieSlice[i+1:]...)
 					// no activity within the FSM for OMCI processing, the deviceReason may be updated immediately
-					kvStoreWrite = true // ensure actual data write to kvStore immediately (no FSM activity)
 					// state transition notification is checked in deviceHandler
 					if oFsm.pDeviceHandler != nil {
 						// success indication without the need to write to kvStore (done already below with updated data from storePersUniFlowConfig())
@@ -820,13 +819,13 @@ remove_loop:
 						logger.Debugw(ctx, "UniVlanConfigFsm remaining cookie awaited for deletion before new rule add", log.Fields{
 							"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
 					}
-				}
-				//permanently store the modified flow config for reconcile case
-				if oFsm.pDeviceHandler != nil {
-					if err := oFsm.pDeviceHandler.storePersUniFlowConfig(ctx, oFsm.pOnuUniPort.uniID,
-						&oFsm.uniVlanFlowParamsSlice, kvStoreWrite); err != nil {
-						logger.Errorw(ctx, err.Error(), log.Fields{"device-id": oFsm.deviceID})
-						return err
+					//permanently store the modified flow config for reconcile case and immediately write to KvStore
+					if oFsm.pDeviceHandler != nil {
+						if err := oFsm.pDeviceHandler.storePersUniFlowConfig(ctx, oFsm.pOnuUniPort.uniID,
+							&oFsm.uniVlanFlowParamsSlice, true); err != nil {
+							logger.Errorw(ctx, err.Error(), log.Fields{"device-id": oFsm.deviceID})
+							return err
+						}
 					}
 				}
 				break remove_loop //found the cookie - no further search for this requested cookie
@@ -850,6 +849,7 @@ remove_loop:
 }
 
 // removeRuleComplete initiates the complete removal of a VLAN rule (from single cookie element)
+// requires mutexFlowParams to be locked at call
 func (oFsm *UniVlanConfigFsm) removeRuleComplete(ctx context.Context,
 	aUniFlowParams uniVlanFlowParams, aCookie uint64) bool {
 	pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
@@ -999,6 +999,13 @@ removeFromSlice_loop:
 		errStr := "UniVlanConfigFsm cookie for removal not found, internal counter not updated"
 		logger.Errorw(ctx, errStr, log.Fields{"device-id": oFsm.deviceID})
 		return errors.New(errStr)
+	}
+	//if the cookie was found and removed from uniVlanFlowParamsSlice above now write the modified persistency data
+	//  KVStore update will be done after reaching the requested FSM end state (not immediately here)
+	if err := oFsm.pDeviceHandler.storePersUniFlowConfig(ctx, oFsm.pOnuUniPort.uniID,
+		&oFsm.uniVlanFlowParamsSlice, false); err != nil {
+		logger.Errorw(ctx, err.Error(), log.Fields{"device-id": oFsm.deviceID})
+		return err
 	}
 	return nil
 }
