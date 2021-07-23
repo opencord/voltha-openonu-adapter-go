@@ -286,12 +286,11 @@ func (oFsm *uniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 		}(pAdaptFsm)
 	}
 
-	//wait for completion of possibly ongoing techprofile config/remove requests to avoid
-	// access conflicts on internal data by next needed data clearance
-	//activity should be aborted in short time if running with FSM due to above FSM reset
-	//  or finished without FSM dependency in short time
-	oFsm.pUniTechProf.lockTpProcMutex()
-	defer oFsm.pUniTechProf.unlockTpProcMutex()
+	// possible access conflicts on internal data by next needed data clearance
+	//   are avoided by using mutexTPState also from within clearAniSideConfig
+	//   do not try to lock TpProcMutex here as done in previous code version
+	//   as it may result in deadlock situations (as observed at soft-reboot handling where
+	//   TpProcMutex is already locked by some ongoing TechProfile config/removal processing
 	//remove all TechProf related internal data to allow for new configuration
 	oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.uniID, oFsm.techProfileID)
 }
@@ -324,11 +323,6 @@ func (oFsm *uniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 		tcontInstID, tcontAlreadyExist, err := pDevEntry.allocateFreeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
 		if err != nil {
 			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID, "err": err})
-			if oFsm.chanSet {
-				// indicate processing error/abort to the caller
-				oFsm.chSuccess <- 0
-				oFsm.chanSet = false //reset the internal channel state
-			}
 			//reset the state machine to enable usage on subsequent requests
 			_ = aPAFsm.pFsm.Event(aniEvReset)
 			return
@@ -1080,6 +1074,21 @@ func (oFsm *uniPonAniConfigFsm) enterAniRemoveDone(ctx context.Context, e *fsm.E
 func (oFsm *uniPonAniConfigFsm) enterResettingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "uniPonAniConfigFsm resetting", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
+
+	if oFsm.isChanSet() {
+		// indicate processing error to the caller (in case there was still some open request)
+		logger.Debugw(ctx, "uniPonAniConfigFsm processingError on channel", log.Fields{
+			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.deviceID})
+		//use non-blocking channel send to avoid blocking because of non-existing receiver
+		//  (even though the channel is checked on 'set', the outside receiver channel might (theoretically) already be deleted)
+		select {
+		case oFsm.chSuccess <- 0:
+		default:
+			logger.Debugw(ctx, "uniPonAniConfigFsm processingError not send on channel (no receiver)", log.Fields{
+				"device-id": oFsm.deviceID})
+		}
+		oFsm.setChanSet(false) //reset the internal channel state
+	}
 
 	pConfigAniStateAFsm := oFsm.pAdaptFsm
 	if pConfigAniStateAFsm != nil {
