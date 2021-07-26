@@ -589,15 +589,18 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 					oFsm.actualUniVlanConfigMeter = oFsm.uniVlanFlowParamsSlice[oFsm.configuredUniFlow].Meter
 					//tpId of the next rule to be configured
 					tpID := oFsm.actualUniVlanConfigRule.TpID
-					loTechProfDone := oFsm.pUniTechProf.getTechProfileDone(ctx, oFsm.pOnuUniPort.uniID, tpID)
 					oFsm.TpIDWaitingFor = tpID
-					logger.Debugw(ctx, "UniVlanConfigFsm - incremental config request (on setConfig)", log.Fields{
-						"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
-						"set-Vlan": oFsm.actualUniVlanConfigRule.SetVid, "tp-id": tpID, "ProfDone": loTechProfDone})
-
+					loSetVlan := oFsm.actualUniVlanConfigRule.SetVid
 					//attention: take care to release the mutexFlowParams when calling the FSM directly -
 					//  synchronous FSM 'event/state' functions may rely on this mutex
+					//  but it must be released already before calling getTechProfileDone() as it may already be locked
+					//  by the techProfile processing call to VlanFsm.IsFlowRemovePending() (see VOL-4207)
 					oFsm.mutexFlowParams.Unlock()
+					loTechProfDone := oFsm.pUniTechProf.getTechProfileDone(ctx, oFsm.pOnuUniPort.uniID, tpID)
+					logger.Debugw(ctx, "UniVlanConfigFsm - incremental config request (on setConfig)", log.Fields{
+						"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
+						"set-Vlan": loSetVlan, "tp-id": tpID, "ProfDone": loTechProfDone})
+
 					var fsmErr error
 					if loTechProfDone {
 						// let the vlan processing continue with next rule
@@ -1091,12 +1094,16 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 		oFsm.TpIDWaitingFor = tpID
 		//cmp also usage in EVTOCDE create in omci_cc
 		oFsm.evtocdID = macBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.macBpNo)
+		loSetVlan := oFsm.actualUniVlanConfigRule.SetVid
+		//attention: take care to release the mutexFlowParams when calling the FSM directly -
+		//  synchronous FSM 'event/state' functions may rely on this mutex
+		//  but it must be released already before calling getTechProfileDone() as it may already be locked
+		//  by the techProfile processing call to VlanFsm.IsFlowRemovePending() (see VOL-4207)
 		oFsm.mutexFlowParams.Unlock()
-
 		loTechProfDone := oFsm.pUniTechProf.getTechProfileDone(ctx, oFsm.pOnuUniPort.uniID, uint8(tpID))
 		logger.Debugw(ctx, "UniVlanConfigFsm - start with first rule", log.Fields{
 			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
-			"set-Vlan": oFsm.actualUniVlanConfigRule.SetVid, "tp-id": tpID, "ProfDone": loTechProfDone})
+			"set-Vlan": loSetVlan, "tp-id": tpID, "ProfDone": loTechProfDone})
 
 		// Can't call FSM Event directly, decoupling it
 		go func(aPAFsm *AdapterFsm, aTechProfDone bool) {
@@ -1300,11 +1307,17 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 		//tpId of the next rule to be configured
 		tpID := oFsm.actualUniVlanConfigRule.TpID
 		oFsm.TpIDWaitingFor = tpID
+		loSetVlan := oFsm.actualUniVlanConfigRule.SetVid
+		//attention: take care to release the mutexFlowParams when calling the FSM directly -
+		//  synchronous FSM 'event/state' functions may rely on this mutex
+		//  but it must be released already before calling getTechProfileDone() as it may already be locked
+		//  by the techProfile processing call to VlanFsm.IsFlowRemovePending() (see VOL-4207)
+		oFsm.mutexFlowParams.Unlock()
 		loTechProfDone := oFsm.pUniTechProf.getTechProfileDone(ctx, oFsm.pOnuUniPort.uniID, tpID)
 		logger.Debugw(ctx, "UniVlanConfigFsm - incremental config request", log.Fields{
 			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID,
-			"set-Vlan": oFsm.actualUniVlanConfigRule.SetVid, "tp-id": tpID, "ProfDone": loTechProfDone})
-		oFsm.mutexFlowParams.Unlock()
+			"set-Vlan": loSetVlan, "tp-id": tpID, "ProfDone": loTechProfDone})
+
 		// Can't call FSM Event directly, decoupling it
 		go func(aPBaseFsm *fsm.FSM, aTechProfDone bool) {
 			if aTechProfDone {
