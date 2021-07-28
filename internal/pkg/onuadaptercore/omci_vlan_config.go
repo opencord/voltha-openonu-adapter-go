@@ -883,11 +883,14 @@ func (oFsm *UniVlanConfigFsm) removeRuleComplete(ctx context.Context,
 		//at this point it is evident that no flow anymore will refer to a still possibly active Techprofile
 		//request that this profile gets deleted before a new flow add is allowed (except for some aborted add)
 		if !cancelPendingConfig {
+			// ensure mutexFlowParams not locked before calling some TPProcessing activity (that might already be pending on it)
+			oFsm.mutexFlowParams.Unlock()
 			logger.Debugw(ctx, "UniVlanConfigFsm flow removal requested - set TechProfile to-delete", log.Fields{
 				"device-id": oFsm.deviceID})
 			if oFsm.pUniTechProf != nil {
 				oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, usedTpID, true)
 			}
+			oFsm.mutexFlowParams.Lock()
 		}
 	} else {
 		if !cancelPendingConfig {
@@ -1030,10 +1033,13 @@ func (oFsm *UniVlanConfigFsm) updateTechProfileToDelete(ctx context.Context, use
 	} else {
 		logger.Debugw(ctx, "UniVlanConfigFsm tp-id used in deleted flow is not used anymore - set TechProfile to-delete", log.Fields{
 			"device-id": oFsm.deviceID, "tp-id": usedTpID})
+		// ensure mutexFlowParams not locked before calling some TPProcessing activity (that might already be pending on it)
+		oFsm.mutexFlowParams.Unlock()
 		if oFsm.pUniTechProf != nil {
 			//request that this profile gets deleted before a new flow add is allowed
 			oFsm.pUniTechProf.setProfileToDelete(oFsm.pOnuUniPort.uniID, usedTpID, true)
 		}
+		oFsm.mutexFlowParams.Lock()
 	}
 }
 
@@ -1201,10 +1207,12 @@ func (oFsm *UniVlanConfigFsm) enterConfigEvtocd(ctx context.Context, e *fsm.Even
 			oFsm.mutexFlowParams.RLock()
 			tpID := oFsm.actualUniVlanConfigRule.TpID
 			vlanID := oFsm.actualUniVlanConfigRule.SetVid
+			configuredUniFlows := oFsm.configuredUniFlow
+			// ensure mutexFlowParams not locked before calling some TPProcessing activity (that might already be pending on it)
+			oFsm.mutexFlowParams.RUnlock()
 			for _, gemPort := range oFsm.pUniTechProf.getMulticastGemPorts(ctx, oFsm.pOnuUniPort.uniID, uint8(tpID)) {
 				logger.Infow(ctx, "Setting multicast MEs, with first flow", log.Fields{"deviceID": oFsm.deviceID,
-					"techProfile": tpID, "gemPort": gemPort, "vlanID": vlanID, "configuredUniFlow": oFsm.configuredUniFlow})
-				oFsm.mutexFlowParams.RUnlock()
+					"techProfile": tpID, "gemPort": gemPort, "vlanID": vlanID, "configuredUniFlow": configuredUniFlows})
 				errCreateAllMulticastME := oFsm.performSettingMulticastME(ctx, tpID, gemPort,
 					vlanID)
 				if errCreateAllMulticastME != nil {
@@ -1212,9 +1220,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigEvtocd(ctx context.Context, e *fsm.Even
 						log.Fields{"device-id": oFsm.deviceID})
 					_ = oFsm.pAdaptFsm.pFsm.Event(vlanEvReset)
 				}
-				oFsm.mutexFlowParams.RLock()
 			}
-			oFsm.mutexFlowParams.RUnlock()
 			//If this first flow contains a meter, then create TD for related gems.
 			if oFsm.actualUniVlanConfigMeter != nil {
 				logger.Debugw(ctx, "Creating Traffic Descriptor", log.Fields{"device-id": oFsm.deviceID, "meter": oFsm.actualUniVlanConfigMeter})
@@ -1481,6 +1487,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 		oFsm.mutexFlowParams.RLock()
 		tpID := oFsm.actualUniVlanConfigRule.TpID
 		configuredUniFlow := oFsm.configuredUniFlow
+		// ensure mutexFlowParams not locked before calling some TPProcessing activity (that might already be pending on it)
 		oFsm.mutexFlowParams.RUnlock()
 		errEvto := oFsm.performConfigEvtocdEntries(ctx, configuredUniFlow)
 		//This is correct passing scenario
