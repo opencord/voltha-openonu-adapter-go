@@ -16,6 +16,24 @@
       "revId": "3ce9fa0baf896facef39869367092f4eaf010ff1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c00d14f_ad0c0019",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 887,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-07-28T18:54:05Z",
+      "side": 1,
+      "message": "I have +1 the patch and merging this so as not to block this patch. But I believe we have plans to re-org the code.",
+      "parentUuid": "f88a17d4_658ced9e",
+      "revId": "3ce9fa0baf896facef39869367092f4eaf010ff1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
