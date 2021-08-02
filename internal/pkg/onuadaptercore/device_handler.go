@@ -858,10 +858,11 @@ func (dh *deviceHandler) reconcileDeviceTechProf(ctx context.Context) {
 	}
 	dh.pOnuTP.lockTpProcMutex()
 	defer dh.pOnuTP.unlockTpProcMutex()
-	pDevEntry.mutexPersOnuConfig.RLock()
-	defer pDevEntry.mutexPersOnuConfig.RUnlock()
 
+	pDevEntry.mutexPersOnuConfig.RLock()
+	persMutexLock := true
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
+		pDevEntry.mutexPersOnuConfig.RUnlock()
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
 		if !dh.isSkipOnuConfigReconciling() {
@@ -880,6 +881,11 @@ outerLoop:
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.deviceID})
 			continue
 		}
+		//release mutexPersOnuConfig before TechProfile (ANIConfig) processing as otherwise the reception of
+		//  OMCI frames may get completely stuck due to lock request within incrementMibDataSync() at OMCI
+		//  frame reception may also lock the complete OMCI reception processing based on mutexRxSchedMap
+		pDevEntry.mutexPersOnuConfig.RUnlock()
+		persMutexLock = false
 		techProfsFound = true // set to true if we found TP once for any UNI port
 		for tpID := range uniData.PersTpPathMap {
 			// Request the TpInstance again from the openolt adapter in case of reconcile
@@ -897,10 +903,11 @@ outerLoop:
 			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
 			case *ic.InterAdapterTechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
 				tpInst = *techTpInst.TpInstance
-				logger.Debugw(ctx, "received-tp-instance-successfully-after-reconcile", log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
-
+				logger.Debugw(ctx, "received-tp-instance-successfully-after-reconcile", log.Fields{
+					"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
 			default: // do not support epon or other tech
-				logger.Errorw(ctx, "unsupported-tech", log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
+				logger.Errorw(ctx, "unsupported-tech-profile", log.Fields{
+					"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.deviceID})
 				techProfInstLoadFailed = true // stop loading tp instance as soon as we hit failure
 				break outerLoop
 			}
@@ -920,12 +927,24 @@ outerLoop:
 				techProfInstLoadFailed = true // stop loading tp instance as soon as we hit failure
 				break outerLoop
 			}
-		}
+		} // for all TpPath entries for this UNI
 		if len(uniData.PersFlowParams) != 0 {
 			flowsFound = true
 		}
+		pDevEntry.mutexPersOnuConfig.RLock() //set protection again for loop test on sOnuPersistentData
+		persMutexLock = true
+	} // for all UNI entries from sOnuPersistentData
+	if persMutexLock { // if loop was left with mutexPersOnuConfig still set
+		pDevEntry.mutexPersOnuConfig.RUnlock()
 	}
-	if !techProfsFound {
+
+	//had to move techProf/flow result evaluation into separate function due to SCA complexity limit
+	dh.updateReconcileStates(ctx, techProfsFound, techProfInstLoadFailed, flowsFound)
+}
+
+func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
+	abTechProfsFound bool, abTechProfInstLoadFailed bool, abFlowsFound bool) {
+	if !abTechProfsFound {
 		logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
 		if !dh.isSkipOnuConfigReconciling() {
@@ -933,14 +952,14 @@ outerLoop:
 		}
 		return
 	}
-	if techProfInstLoadFailed {
+	if abTechProfInstLoadFailed {
 		dh.setDeviceReason(drTechProfileConfigDownloadFailed)
 		dh.stopReconciling(ctx, false)
 		return
 	} else if dh.isSkipOnuConfigReconciling() {
 		dh.setDeviceReason(drTechProfileConfigDownloadSuccess)
 	}
-	if !flowsFound {
+	if !abFlowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
 		if !dh.isSkipOnuConfigReconciling() {
@@ -960,10 +979,10 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		}
 		return
 	}
-	pDevEntry.mutexPersOnuConfig.RLock()
-	defer pDevEntry.mutexPersOnuConfig.RUnlock()
 
+	pDevEntry.mutexPersOnuConfig.RLock()
 	if len(pDevEntry.sOnuPersistentData.PersUniConfig) == 0 {
+		pDevEntry.mutexPersOnuConfig.RUnlock()
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
 		if !dh.isSkipOnuConfigReconciling() {
@@ -985,6 +1004,11 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 			// It doesn't make sense to configure any flows if no TPs are available
 			continue
 		}
+		//release mutexPersOnuConfig before VlanConfig processing as otherwise the reception of
+		//  OMCI frames may get completely stuck due to lock request within incrementMibDataSync() at OMCI
+		//  frame reception may also lock the complete OMCI reception processing based on mutexRxSchedMap
+		pDevEntry.mutexPersOnuConfig.RUnlock()
+
 		var uniPort *onuUniPort
 		var exist bool
 		uniNo := mkUniPortNum(ctx, dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
@@ -1001,7 +1025,8 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 		flowsProcessed := 0
 		dh.setReconcilingFlows(true)
 		for _, flowData := range uniData.PersFlowParams {
-			logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{"device-id": dh.deviceID, "cookies": flowData.CookieSlice})
+			logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{
+				"device-id": dh.deviceID, "uni-id": uniData.PersUniID, "cookies": flowData.CookieSlice})
 			// If this is the last flow for the device we need to announce it the waiting
 			// chReconcilingFlowsFinished channel
 			if flowsProcessed == len(uniData.PersFlowParams)-1 {
@@ -1024,15 +1049,19 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 			}
 			dh.lockVlanConfig.Unlock()
 			flowsProcessed++
-		}
-		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{"device-id": dh.deviceID, "flowsProcessed": flowsProcessed,
+		} //for all flows of this UNI
+		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{
+			"device-id": dh.deviceID, "uni-id": uniData.PersUniID, "flowsProcessed": flowsProcessed,
 			"numUniFlows":       dh.UniVlanConfigFsmMap[uniData.PersUniID].numUniFlows,
 			"configuredUniFlow": dh.UniVlanConfigFsmMap[uniData.PersUniID].configuredUniFlow})
 		// this can't be used as global finished reconciling flag because
 		// assumes is getting called before the state machines for the last flow is completed,
 		// while this is not guaranteed.
 		//dh.setReconcilingFlows(false)
-	}
+		pDevEntry.mutexPersOnuConfig.RLock() //set protection again for loop test on sOnuPersistentData
+	} // for all UNI entries from sOnuPersistentData
+	pDevEntry.mutexPersOnuConfig.RUnlock()
+
 	if !flowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.deviceID})
