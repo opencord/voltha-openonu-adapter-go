@@ -34,6 +34,24 @@
       "revId": "9545be2547e7acb829a8a6ec6d3eaf974ed4cf53",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "80b99ab6_16c521db",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-08-04T15:46:25Z",
+      "side": 1,
+      "message": "Ack - Ok, have not seen that you need the pDevEntry for freeing the TCont down below.",
+      "parentUuid": "84d1fe96_b88cf346",
+      "revId": "9545be2547e7acb829a8a6ec6d3eaf974ed4cf53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
