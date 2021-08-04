@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eb95bee5_36b97757",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-08-04T14:43:30Z",
+      "side": 1,
+      "message": "Now this check is obsolete here, compare according change in processInterAdapterDeleteGemPortReqMessage().",
+      "revId": "9545be2547e7acb829a8a6ec6d3eaf974ed4cf53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
