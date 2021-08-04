@@ -16,6 +16,24 @@
       "revId": "9545be2547e7acb829a8a6ec6d3eaf974ed4cf53",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84d1fe96_b88cf346",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-08-04T14:58:15Z",
+      "side": 1,
+      "message": "pDevEntry is used in line 554. So I left the check here.",
+      "parentUuid": "eb95bee5_36b97757",
+      "revId": "9545be2547e7acb829a8a6ec6d3eaf974ed4cf53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
