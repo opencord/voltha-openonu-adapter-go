@@ -28,7 +28,7 @@ import (
 	//"time"
 
 	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
+	"github.com/opencord/voltha-lib-go/v6/pkg/log"
 	vc "github.com/opencord/voltha-protos/v4/go/common"
 	of "github.com/opencord/voltha-protos/v4/go/openflow_13"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
@@ -112,6 +112,7 @@ func (oo *onuUniPort) createVolthaPort(ctx context.Context, apDeviceHandler *dev
 		"name": name, "hwAddr": ofHwAddr, "OperState": ofUniPortState})
 
 	pUniPort := &voltha.Port{
+		DeviceId:   apDeviceHandler.deviceID,
 		PortNo:     oo.portNo,
 		Label:      oo.name,
 		Type:       voltha.Port_ETHERNET_UNI,
@@ -134,8 +135,7 @@ func (oo *onuUniPort) createVolthaPort(ctx context.Context, apDeviceHandler *dev
 	retryCnt := 0
 	var err error
 	for retryCnt = 0; retryCnt < maxRetry; retryCnt++ {
-		if err = apDeviceHandler.coreProxy.PortCreated(log.WithSpanFromContext(context.TODO(), ctx),
-			apDeviceHandler.deviceID, pUniPort); err != nil {
+		if err = apDeviceHandler.createPortInCore(ctx, pUniPort); err != nil {
 			logger.Errorf(ctx, "Device FSM: PortCreated-failed-%s, retrying after a delay", err)
 			// retry after a sleep
 			time.Sleep(2 * time.Second)
