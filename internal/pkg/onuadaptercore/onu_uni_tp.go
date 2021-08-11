@@ -24,9 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/opencord/voltha-lib-go/v6/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/tech_profile"
-
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 )
 
 //definitions for TechProfileProcessing - copied from OltAdapter:openolt_flowmgr.go
