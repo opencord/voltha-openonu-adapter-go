@@ -27,14 +27,14 @@ import (
 	"sync"
 	"time"
 
-	meters "github.com/opencord/voltha-lib-go/v5/pkg/meters"
+	meters "github.com/opencord/voltha-lib-go/v6/pkg/meters"
 	"github.com/opencord/voltha-protos/v4/go/voltha"
 
 	gp "github.com/google/gopacket"
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
+	"github.com/opencord/voltha-lib-go/v6/pkg/log"
 	of "github.com/opencord/voltha-protos/v4/go/openflow_13"
 )
 

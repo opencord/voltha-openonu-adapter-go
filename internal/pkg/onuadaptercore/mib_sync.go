@@ -28,17 +28,12 @@ import (
 
 	"github.com/looplab/fsm"
 
-	//"sync"
 	"time"
 
-	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
-	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v4/go/voltha"
+	"github.com/opencord/voltha-lib-go/v6/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v6/pkg/log"
 )
 
 type sLastTxMeParameter struct {

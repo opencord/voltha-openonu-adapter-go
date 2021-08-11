@@ -20,7 +20,6 @@ package adaptercoreonu
 import (
 	"context"
 	"errors"
-	//"github.com/opencord/voltha-lib-go/v5/pkg/log"
 )
 
 /*
