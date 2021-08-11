@@ -25,7 +25,7 @@ import (
 	"sync"
 
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
+	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 )
 
 type meDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
