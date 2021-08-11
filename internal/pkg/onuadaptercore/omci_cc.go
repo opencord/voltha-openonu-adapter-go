@@ -33,11 +33,12 @@ import (
 
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif"
+
+	vgrpc "github.com/opencord/voltha-lib-go/v6/pkg/grpc"
 
 	"github.com/opencord/voltha-protos/v4/go/common"
-	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
+	//"github.com/opencord/voltha-lib-go/v6/pkg/kafka"
+	"github.com/opencord/voltha-lib-go/v6/pkg/log"
 	ic "github.com/opencord/voltha-protos/v4/go/inter_container"
 	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
 	//"github.com/opencord/voltha-protos/v4/go/voltha"
@@ -99,8 +100,7 @@ type omciCC struct {
 	pOnuDeviceEntry    *OnuDeviceEntry
 	deviceID           string
 	pBaseDeviceHandler *deviceHandler
-	coreProxy          adapterif.CoreProxy
-	adapterProxy       adapterif.AdapterProxy
+	coreClient         *vgrpc.Client
 	supportExtMsg      bool
 	rxOmciFrameError   tOmciReceiveError
 
@@ -139,15 +139,14 @@ var responsesWithMibDataSync = []omci.MessageType{
 //mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func newOmciCC(ctx context.Context, onuDeviceEntry *OnuDeviceEntry,
 	deviceID string, deviceHandler *deviceHandler,
-	coreProxy adapterif.CoreProxy, adapterProxy adapterif.AdapterProxy) *omciCC {
+	coreClient *vgrpc.Client) *omciCC {
 	logger.Debugw(ctx, "init-omciCC", log.Fields{"device-id": deviceID})
 	var omciCC omciCC
 	omciCC.enabled = false
 	omciCC.pOnuDeviceEntry = onuDeviceEntry
 	omciCC.deviceID = deviceID
 	omciCC.pBaseDeviceHandler = deviceHandler
-	omciCC.coreProxy = coreProxy
-	omciCC.adapterProxy = adapterProxy
+	omciCC.coreClient = coreClient
 	omciCC.supportExtMsg = false
 	omciCC.rxOmciFrameError = cOmciMessageReceiveNoError
 	omciCC.txFrames = 0
@@ -590,18 +589,18 @@ func (oo *omciCC) sendNextRequest(ctx context.Context) error {
 				"TxOmciMessage": hex.EncodeToString(omciTxRequest.txFrame),
 				"device-id":     oo.deviceID,
 				"toDeviceType":  oo.pBaseDeviceHandler.ProxyAddressType,
-				"proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID})
+				"proxyDeviceID": oo.pBaseDeviceHandler.ProxyAddressID,
+				"proxyAddress":  oo.pBaseDeviceHandler.device.ProxyAddress})
 		}
-		omciMsg := &ic.InterAdapterOmciMessage{
-			Message:       omciTxRequest.txFrame,
-			ProxyAddress:  oo.pBaseDeviceHandler.device.ProxyAddress,
-			ConnectStatus: common.ConnectStatus_REACHABLE, // If we are sending OMCI messages means we are connected, else we should not be here
+		omciMsg := &ic.OmciMessage{
+			ParentDeviceId: oo.pBaseDeviceHandler.ProxyAddressID,
+			ChildDeviceId:  oo.deviceID,
+			Message:        omciTxRequest.txFrame,
+			ProxyAddress:   oo.pBaseDeviceHandler.device.ProxyAddress,
+			ConnectStatus:  common.ConnectStatus_REACHABLE, // If we are sending OMCI messages means we are connected, else we should not be here
 		}
-		if sendErr := oo.adapterProxy.SendInterAdapterMessage(log.WithSpanFromContext(context.Background(), ctx), omciMsg,
-			ic.InterAdapterMessageType_OMCI_REQUEST,
-			//fromTopic,toType,toDevId, ProxyDevId
-			oo.pOnuDeviceEntry.baseDeviceHandler.pOpenOnuAc.config.Topic, oo.pBaseDeviceHandler.ProxyAddressType,
-			oo.deviceID, oo.pBaseDeviceHandler.ProxyAddressID, ""); sendErr != nil {
+		sendErr := oo.pBaseDeviceHandler.sendOMCIRequest(ctx, oo.pBaseDeviceHandler.device.ProxyAddress.Endpoint, omciMsg)
+		if sendErr != nil {
 			logger.Errorw(ctx, "send omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
 			return sendErr
 		}
