@@ -29,6 +29,8 @@ linters-settings:
 
   misspell:
     locale: US
+    ignore-words:
+      - cancelled
 
 linters:
   enable:
