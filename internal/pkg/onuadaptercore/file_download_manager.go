@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
+	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 )
 
 const cDefaultLocalDir = "/tmp" //this is the default local dir to download to
