@@ -27,9 +27,7 @@ import (
 
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
-	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
+	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 )
 
 //lockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI

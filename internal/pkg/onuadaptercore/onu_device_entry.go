@@ -25,22 +25,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 
-	//"sync"
-	//"time"
-
-	"github.com/looplab/fsm"
-	"github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif"
-	"github.com/opencord/voltha-lib-go/v5/pkg/db"
-	"github.com/opencord/voltha-lib-go/v5/pkg/db/kvstore"
-
-	//"github.com/opencord/voltha-lib-go/v5/pkg/kafka"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
-	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v4/go/voltha"
+	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 )
 
 const (
@@ -269,8 +261,7 @@ type OnuDeviceEntry struct {
 	deviceID                   string
 	baseDeviceHandler          *deviceHandler
 	pOpenOnuAc                 *OpenONUAC
-	coreProxy                  adapterif.CoreProxy
-	adapterProxy               adapterif.AdapterProxy
+	coreClient                 *vgrpc.Client
 	PDevOmciCC                 *omciCC
 	pOnuDB                     *onuDeviceDB
 	mibTemplateKVStore         *db.Backend
@@ -319,8 +310,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	onuDeviceEntry.deviceID = dh.deviceID
 	onuDeviceEntry.baseDeviceHandler = dh
 	onuDeviceEntry.pOpenOnuAc = dh.pOpenOnuAc
-	onuDeviceEntry.coreProxy = dh.coreProxy
-	onuDeviceEntry.adapterProxy = dh.AdapterProxy
+	onuDeviceEntry.coreClient = dh.coreClient
 	onuDeviceEntry.devState = DeviceStatusInit
 	onuDeviceEntry.sOnuPersistentData.PersUniConfig = make([]uniPersConfig, 0)
 	onuDeviceEntry.sOnuPersistentData.PersTcontMap = make(map[uint16]uint16)
@@ -520,8 +510,7 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 func (oo *OnuDeviceEntry) start(ctx context.Context) error {
 	logger.Debugw(ctx, "OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC == nil {
-		oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler,
-			oo.coreProxy, oo.adapterProxy)
+		oo.PDevOmciCC = newOmciCC(ctx, oo, oo.deviceID, oo.baseDeviceHandler, oo.coreClient)
 		if oo.PDevOmciCC == nil {
 			logger.Errorw(ctx, "Could not create devOmciCc - abort", log.Fields{"for device-id": oo.deviceID})
 			return fmt.Errorf("could not create devOmciCc %s", oo.deviceID)
