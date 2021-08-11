@@ -535,7 +535,7 @@ func (oo *OpenONUAC) Cancel_image_download(ctx context.Context, device *voltha.D
 	return nil, errors.New("unImplemented")
 }
 
-//Activate_image_update requests downloading some Onu Software image to the INU via OMCI
+//Activate_image_update requests downloading some Onu Software image to the ONU via OMCI
 //  according to indications as given in request and on success activate the image on the ONU
 //The ImageDownload needs to be called `request`due to library reflection requirements
 func (oo *OpenONUAC) Activate_image_update(ctx context.Context, device *voltha.Device, request *voltha.ImageDownload) (*voltha.ImageDownload, error) {
@@ -633,67 +633,90 @@ func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.Dev
 	if request != nil && len((*request).DeviceId) > 0 && (*request).Image.Version != "" {
 		loResponse := voltha.DeviceImageResponse{}
 		imageIdentifier := (*request).Image.Version
-		//inform the deviceHandler about (possibly new) requested ONU download requests
+		downloadedToAdapter := false
 		firstDevice := true
 		var vendorID string
 		for _, pCommonID := range (*request).DeviceId {
+			vendorIDMatch := true
 			loDeviceID := (*pCommonID).Id
-			onuVolthaDevice, err := oo.coreProxy.GetDevice(log.WithSpanFromContext(context.TODO(), ctx),
-				loDeviceID, loDeviceID)
-			if err != nil || onuVolthaDevice == nil {
-				logger.Warnw(ctx, "Failed to fetch Onu device for image download",
-					log.Fields{"device-id": loDeviceID, "err": err})
-				continue //try the work with next deviceId
-			}
-			if firstDevice {
-				//start/verify download of the image to the adapter based on first found device only
-				//  use the OnuVendor identification from first given device
-				firstDevice = false
-				vendorID = onuVolthaDevice.VendorId
-				imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
-				logger.Debugw(ctx, "download request for file", log.Fields{"image-id": imageIdentifier})
-
-				if !oo.pFileManager.ImageExists(ctx, imageIdentifier) {
-					logger.Debugw(ctx, "start image download", log.Fields{"image-description": request})
-					// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
-					// the download itself is later done in background
-					if err := oo.pFileManager.StartDownload(ctx, imageIdentifier, (*request).Image.Url); err != nil {
-						return nil, err
-					}
-				}
-				// image already exists
-				logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": imageIdentifier})
-			} else {
-				//for all following devices verify the matching vendorID
-				if onuVolthaDevice.VendorId != vendorID {
-					logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
-						log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
-					continue //try the work with next deviceId
-				}
-			}
 			loDeviceImageState := voltha.DeviceImageState{}
 			loDeviceImageState.DeviceId = loDeviceID
 			loImageState := voltha.ImageState{}
 			loDeviceImageState.ImageState = &loImageState
 			loDeviceImageState.ImageState.Version = (*request).Image.Version
-			// start the ONU download activity for each possible device
-			// assumption here is, that the concerned device was already created (automatic start after device creation not supported)
-			if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
-				logger.Debugw(ctx, "image download on omci requested", log.Fields{
-					"image-id": imageIdentifier, "device-id": loDeviceID})
-				//onu upgrade handling called in background without immediate error evaluation here
-				//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
-				//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
-				go handler.onuSwUpgradeAfterDownload(ctx, request, oo.pFileManager, imageIdentifier)
-				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_STARTED
-				loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+
+			onuVolthaDevice, err := oo.coreProxy.GetDevice(log.WithSpanFromContext(context.TODO(), ctx),
+				loDeviceID, loDeviceID)
+			if err != nil || onuVolthaDevice == nil {
+				logger.Warnw(ctx, "Failed to fetch Onu device for image download",
+					log.Fields{"device-id": loDeviceID, "err": err})
+				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
+				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR //proto restriction, better option: 'INVALID_DEVICE'
 				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
 			} else {
-				//cannot start ONU download for requested device
-				logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": loDeviceID})
-				loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
-				loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
-				loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+				if firstDevice {
+					//start/verify download of the image to the adapter based on first found device only
+					//  use the OnuVendor identification from first given device
+					firstDevice = false
+					vendorID = onuVolthaDevice.VendorId
+					imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
+					logger.Debugw(ctx, "download request for file", log.Fields{"image-id": imageIdentifier})
+
+					if !oo.pFileManager.ImageExists(ctx, imageIdentifier) {
+						logger.Debugw(ctx, "start image download", log.Fields{"image-description": request})
+						// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
+						// the download itself is later done in background
+						if err := oo.pFileManager.StartDownload(ctx, imageIdentifier, (*request).Image.Url); err == nil {
+							downloadedToAdapter = true
+						}
+						//else: treat any error here as 'INVALID_URL' (even though it might as well be some issue on local FS, eg. 'INSUFFICIENT_SPACE')
+						// otherwise a more sophisticated error evaluation is needed
+					} else {
+						// image already exists
+						downloadedToAdapter = true
+						logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": imageIdentifier})
+						// note: If the image (with vendorId+name) has already been downloaded before from some other
+						//   valid URL, the current URL is just ignored. If the operators want to ensure that the new URL
+						//   is really used, then they first have to use the 'abort' API to remove the existing image!
+						//   (abort API can be used also after some successful download to just remove the image from adapter)
+					}
+				} else {
+					//for all following devices verify the matching vendorID
+					if onuVolthaDevice.VendorId != vendorID {
+						logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
+							log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
+						vendorIDMatch = false
+					}
+				}
+				if downloadedToAdapter && vendorIDMatch {
+					// start the ONU download activity for each possible device
+					// assumption here is, that the concerned device was already created (automatic start after device creation not supported)
+					if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
+						logger.Debugw(ctx, "image download on omci requested", log.Fields{
+							"image-id": imageIdentifier, "device-id": loDeviceID})
+						//onu upgrade handling called in background without immediate error evaluation here
+						//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
+						//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
+						go handler.onuSwUpgradeAfterDownload(ctx, request, oo.pFileManager, imageIdentifier)
+						loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_STARTED
+						loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
+						loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+					} else {
+						//cannot start ONU download for requested device
+						logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": loDeviceID})
+						loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
+						loDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR //proto restriction, better option: 'INVALID_DEVICE'
+						loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+					}
+				} else {
+					loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
+					if !downloadedToAdapter {
+						loDeviceImageState.ImageState.Reason = voltha.ImageState_INVALID_URL
+					} else { //only logical option is !vendorIDMatch
+						loDeviceImageState.ImageState.Reason = voltha.ImageState_VENDOR_DEVICE_MISMATCH
+					}
+					loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+				}
 			}
 			loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, &loDeviceImageState)
 		}
@@ -708,55 +731,73 @@ func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.Dev
 func (oo *OpenONUAC) Get_onu_image_status(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
 	if in != nil && len((*in).DeviceId) > 0 && (*in).Version != "" {
 		loResponse := voltha.DeviceImageResponse{}
-		pDlToAdapterImageState := &voltha.ImageState{}
 		imageIdentifier := (*in).Version
+		var vendorIDSet bool
 		firstDevice := true
 		var vendorID string
 		for _, pCommonID := range (*in).DeviceId {
 			loDeviceID := (*pCommonID).Id
+			pDeviceImageState := &voltha.DeviceImageState{
+				DeviceId: loDeviceID,
+			}
+			vendorIDSet = false
 			onuVolthaDevice, err := oo.coreProxy.GetDevice(log.WithSpanFromContext(context.TODO(), ctx),
 				loDeviceID, loDeviceID)
 			if err != nil || onuVolthaDevice == nil {
 				logger.Warnw(ctx, "Failed to fetch Onu device to get image status",
 					log.Fields{"device-id": loDeviceID, "err": err})
-				continue //try the work with next deviceId
-			}
-			if firstDevice {
-				//start/verify download of the image to the adapter based on first found device only
-				//  use the OnuVendor identification from first given device
-				firstDevice = false
-				vendorID = onuVolthaDevice.VendorId
-				imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
-				logger.Debugw(ctx, "status request for image", log.Fields{"image-id": imageIdentifier})
-				oo.pFileManager.RequestDownloadState(ctx, imageIdentifier, pDlToAdapterImageState)
-			} else {
-				//for all following devices verify the matching vendorID
-				if onuVolthaDevice.VendorId != vendorID {
-					logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
-						log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
-					continue //try the work with next deviceId
+				pImageState := &voltha.ImageState{
+					Version:       (*in).Version,
+					DownloadState: voltha.ImageState_DOWNLOAD_UNKNOWN, //no statement about last activity possible
+					Reason:        voltha.ImageState_UNKNOWN_ERROR,    //something like "DEVICE_NOT_EXISTS" would be better (proto def)
+					ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
 				}
-			}
-			pDeviceImageState := &voltha.DeviceImageState{
-				ImageState: &voltha.ImageState{
-					DownloadState: (*pDlToAdapterImageState).DownloadState,
-					Reason:        (*pDlToAdapterImageState).Reason,
-				},
-			}
-			// get the handler for the device
-			if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
-				logger.Debugw(ctx, "image status request for", log.Fields{
-					"image-id": imageIdentifier, "device-id": loDeviceID})
-				//status request is called synchronously to collect the indications for all concerned devices
-				handler.requestOnuSwUpgradeState(ctx, imageIdentifier, (*in).Version, pDeviceImageState)
+				pDeviceImageState.ImageState = pImageState
 			} else {
-				//cannot get the handler
-				logger.Warnw(ctx, "no handler found for image status request ", log.Fields{"device-id": loDeviceID})
-				pDeviceImageState.DeviceId = loDeviceID
-				pDeviceImageState.ImageState.Version = (*in).Version
-				pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
-				pDeviceImageState.ImageState.Reason = voltha.ImageState_UNKNOWN_ERROR
-				pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
+				if firstDevice {
+					//start/verify download of the image to the adapter based on first found device only
+					//  use the OnuVendor identification from first given device
+					firstDevice = false
+					vendorID = onuVolthaDevice.VendorId
+					imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
+					vendorIDSet = true
+					logger.Debugw(ctx, "status request for image", log.Fields{"image-id": imageIdentifier})
+				} else {
+					//for all following devices verify the matching vendorID
+					if onuVolthaDevice.VendorId != vendorID {
+						logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
+							log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
+					} else {
+						vendorIDSet = true
+					}
+				}
+				if !vendorIDSet {
+					pImageState := &voltha.ImageState{
+						Version:       (*in).Version,
+						DownloadState: voltha.ImageState_DOWNLOAD_UNKNOWN, //can't be sure that download for this device was really tried
+						Reason:        voltha.ImageState_VENDOR_DEVICE_MISMATCH,
+						ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
+					}
+					pDeviceImageState.ImageState = pImageState
+				} else {
+					// get the handler for the device
+					if handler := oo.getDeviceHandler(ctx, loDeviceID, false); handler != nil {
+						logger.Debugw(ctx, "image status request for", log.Fields{
+							"image-id": imageIdentifier, "device-id": loDeviceID})
+						//status request is called synchronously to collect the indications for all concerned devices
+						pDeviceImageState.ImageState = handler.requestOnuSwUpgradeState(ctx, imageIdentifier, (*in).Version)
+					} else {
+						//cannot get the handler
+						logger.Warnw(ctx, "no handler found for image status request ", log.Fields{"device-id": loDeviceID})
+						pImageState := &voltha.ImageState{
+							Version:       (*in).Version,
+							DownloadState: voltha.ImageState_DOWNLOAD_UNKNOWN, //no statement about last activity possible
+							Reason:        voltha.ImageState_UNKNOWN_ERROR,    //something like "DEVICE_NOT_EXISTS" would be better (proto def)
+							ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
+						}
+						pDeviceImageState.ImageState = pImageState
+					}
+				}
 			}
 			loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, pDeviceImageState)
 		}
@@ -809,14 +850,14 @@ func (oo *OpenONUAC) Abort_onu_image_upgrade(ctx context.Context, in *voltha.Dev
 				//upgrade cancel is called synchronously to collect the imageResponse indications for all concerned devices
 				handler.cancelOnuSwUpgrade(ctx, imageIdentifier, (*in).Version, pDeviceImageState)
 			} else {
-				//cannot start ONU download for requested device
+				//cannot start aborting ONU download for requested device
 				logger.Warnw(ctx, "no handler found for aborting upgrade ", log.Fields{"device-id": loDeviceID})
 				pDeviceImageState.DeviceId = loDeviceID
 				pDeviceImageState.ImageState.Version = (*in).Version
 				//nolint:misspell
 				pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_CANCELLED
 				//nolint:misspell
-				pDeviceImageState.ImageState.Reason = voltha.ImageState_CANCELLED_ON_REQUEST
+				pDeviceImageState.ImageState.Reason = voltha.ImageState_CANCELLED_ON_REQUEST //something better would be possible with protos modification
 				pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
 			}
 			loResponse.DeviceImageStates = append(loResponse.DeviceImageStates, pDeviceImageState)

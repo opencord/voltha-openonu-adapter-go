@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
 const cDefaultLocalDir = "/tmp" //this is the default local dir to download to
@@ -113,11 +112,13 @@ func (dm *fileDownloadManager) StartDownload(ctx context.Context, aImageName str
 	loDownloadImageParams := downloadImageParams{
 		downloadImageName: aImageName, downloadImageState: cFileStateDlStarted,
 		downloadImageLen: 0, downloadImageCrc: 0}
-	dm.mutexDownloadImageDsc.Lock()
-	dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, loDownloadImageParams)
-	dm.mutexDownloadImageDsc.Unlock()
 	//try to download from http
-	err := dm.downloadFile(ctx, aURLCommand, cDefaultLocalDir, aImageName)
+	var err error
+	if err = dm.downloadFile(ctx, aURLCommand, cDefaultLocalDir, aImageName); err == nil {
+		dm.mutexDownloadImageDsc.Lock()
+		dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, loDownloadImageParams)
+		dm.mutexDownloadImageDsc.Unlock()
+	}
 	//return the result of the start-request to comfort the core processing even though the complete download may go on in background
 	return err
 }
@@ -282,6 +283,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		req, err2 := http.NewRequest("GET", urlBase.String(), nil)
 		if err2 != nil {
 			logger.Errorw(ctx, "could not generate http request", log.Fields{"url": urlBase.String(), "error": err2})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
 		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
@@ -291,6 +293,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		if err3 != nil || respExist.StatusCode != http.StatusOK {
 			logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(),
 				"error": err3, "status": respExist.StatusCode})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
 		defer func() {
@@ -305,6 +308,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		file, err := os.Create(aLocalPathName)
 		if err != nil {
 			logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
 		defer func() {
@@ -318,6 +322,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		_, err = io.Copy(file, resp.Body)
 		if err != nil {
 			logger.Errorw(ctx, "could not copy file content", log.Fields{"url": urlBase.String(), "file": aLocalPathName, "error": err})
+			dm.removeImage(ctx, aFileName, true)
 			return
 		}
 
@@ -354,47 +359,38 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 	return nil
 }
 
-func (dm *fileDownloadManager) RequestDownloadState(ctx context.Context, aImageName string,
-	apDlToAdapterImageState *voltha.ImageState) {
-	logger.Debugw(ctx, "request download state for image to Adapter", log.Fields{"image-name": aImageName})
-	dm.mutexDownloadImageDsc.RLock()
-	defer dm.mutexDownloadImageDsc.RUnlock()
-
-	for _, dnldImgDsc := range dm.downloadImageDscSlice {
-		if dnldImgDsc.downloadImageName == aImageName {
-			//image found (by name)
-			apDlToAdapterImageState.DownloadState = voltha.ImageState_DOWNLOAD_REQUESTED
-			apDlToAdapterImageState.Reason = voltha.ImageState_NO_ERROR
-			return
-		}
-	}
-	//image not found (by name)
-	apDlToAdapterImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
-	apDlToAdapterImageState.Reason = voltha.ImageState_NO_ERROR
-}
-
-func (dm *fileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
-	logger.Debugw(ctx, "Cancel the download to Adapter", log.Fields{"image-name": aImageName})
-	// for the moment that would only support to wait for the download end and remove the image then
-	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)
+//removeImage deletes the given image according to the Image name from filesystem and downloadImageDscSlice
+func (dm *fileDownloadManager) removeImage(ctx context.Context, aImageName string, aDelFs bool) {
+	logger.Debugw(ctx, "remove the image from Adapter", log.Fields{"image-name": aImageName})
 	dm.mutexDownloadImageDsc.RLock()
 	defer dm.mutexDownloadImageDsc.RUnlock()
 
 	tmpSlice := dm.downloadImageDscSlice[:0]
 	for _, dnldImgDsc := range dm.downloadImageDscSlice {
 		if dnldImgDsc.downloadImageName == aImageName {
-			//image found (by name) - remove the image from filesystem
+			//image found (by name)
 			logger.Debugw(ctx, "removing image", log.Fields{"image-name": aImageName})
-			aLocalPathName := cDefaultLocalDir + "/" + aImageName
-			if err := os.Remove(aLocalPathName); err != nil {
-				logger.Debugw(ctx, "image not removed from filesystem", log.Fields{
-					"image-name": aImageName, "error": err})
+			if aDelFs {
+				//remove the image from filesystem
+				aLocalPathName := cDefaultLocalDir + "/" + aImageName
+				if err := os.Remove(aLocalPathName); err != nil {
+					// might be a temporary situation, when the file was not yet (completely) written
+					logger.Debugw(ctx, "image not removed from filesystem", log.Fields{
+						"image-name": aImageName, "error": err})
+				}
 			}
-			// and in the imageDsc slice by just not appending
+			// and remove from the imageDsc slice by just not appending
 		} else {
 			tmpSlice = append(tmpSlice, dnldImgDsc)
 		}
 	}
 	dm.downloadImageDscSlice = tmpSlice
 	//image not found (by name)
+}
+
+//CancelDownload just wraps removeImage (for possible extensions to e.g. really stop a ongoing download)
+func (dm *fileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
+	// for the moment that would only support to wait for the download end and remove the image then
+	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)
+	dm.removeImage(ctx, aImageName, true)
 }
