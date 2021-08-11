@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fc8877b2_667a4b37",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1201,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-08-11T12:30:48Z",
+      "side": 1,
+      "message": "You could avoid all these GolangCI-Lint configurations by modifying the \"misspell\" section in .golangci.yml file in the following way:\n\n  misspell:\n    locale: US\n    ignore-words:\n      - cancelled",
+      "range": {
+        "startLine": 1201,
+        "startChar": 6,
+        "endLine": 1201,
+        "endChar": 12
+      },
+      "revId": "42b1b953e997d331890352619e47baf07285ba4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
