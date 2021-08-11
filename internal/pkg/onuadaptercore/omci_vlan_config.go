@@ -27,15 +27,15 @@ import (
 	"sync"
 	"time"
 
-	meters "github.com/opencord/voltha-lib-go/v5/pkg/meters"
-	"github.com/opencord/voltha-protos/v4/go/voltha"
+	meters "github.com/opencord/voltha-lib-go/v7/pkg/meters"
+	"github.com/opencord/voltha-protos/v5/go/voltha"
 
 	gp "github.com/google/gopacket"
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	of "github.com/opencord/voltha-protos/v4/go/openflow_13"
+	"github.com/opencord/voltha-lib-go/v7/pkg/log"
+	of "github.com/opencord/voltha-protos/v5/go/openflow_13"
 )
 
 const (

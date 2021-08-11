@@ -26,10 +26,10 @@ import (
 
 	"github.com/opencord/omci-lib-go"
 	me "github.com/opencord/omci-lib-go/generated"
-	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v4/go/inter_container"
-	//"github.com/opencord/voltha-protos/v4/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v4/go/voltha"
+	"github.com/opencord/voltha-lib-go/v7/pkg/log"
+	//ic "github.com/opencord/voltha-protos/v5/go/inter_container"
+	//"github.com/opencord/voltha-protos/v5/go/openflow_13"
+	//"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
 func (onuDeviceEntry *OnuDeviceEntry) enterDLStartingState(ctx context.Context, e *fsm.Event) {
