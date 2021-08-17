@@ -218,6 +218,7 @@ type deviceHandler struct {
 	uniEntityMap                map[uint32]*onuUniPort
 	mutexKvStoreContext         sync.Mutex
 	lockVlanConfig              sync.RWMutex
+	lockVlanAdd                 sync.RWMutex
 	UniVlanConfigFsmMap         map[uint8]*UniVlanConfigFsm
 	lockUpgradeFsm              sync.RWMutex
 	pOnuUpradeFsm               *OnuUpgradeFsm
@@ -259,6 +260,7 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 	//TODO initialize the support classes.
 	dh.uniEntityMap = make(map[uint32]*onuUniPort)
 	dh.lockVlanConfig = sync.RWMutex{}
+	dh.lockVlanAdd = sync.RWMutex{}
 	dh.lockUpgradeFsm = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
@@ -3021,25 +3023,32 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		logger.Debugw(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.deviceID})
 	}
 
-	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
-	//  must be set including the execution of createVlanFilterFsm() to avoid unintended creation of FSM's
-	//  when different rules are requested concurrently for the same uni
-	//  (also vlan persistency data does not support multiple FSM's on the same UNI correctly!)
-	dh.lockVlanConfig.Lock()
-	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID, "tpID": loTpID, "uniID": apUniPort.uniID})
 	var meter *voltha.OfpMeterConfig
 	if apFlowMetaData != nil {
 		meter = apFlowMetaData.Meters[0]
 	}
+	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
+	//  must be set including the execution of createVlanFilterFsm() to avoid unintended creation of FSM's
+	//  when different rules are requested concurrently for the same uni
+	//  (also vlan persistency data does not support multiple FSM's on the same UNI correctly!)
+	dh.lockVlanAdd.Lock()     //prevent multiple add activities to start in parallel
+	dh.lockVlanConfig.RLock() //read protection on UniVlanConfigFsmMap (removeFlowItemFromUniPort)
+	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.deviceID, "tpID": loTpID, "uniID": apUniPort.uniID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
+		//SetUniFlowParams() may block on some rule that is suspended-to-add
+		//  in order to allow for according flow removal lockVlanConfig may only be used with RLock here
 		err := dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
 			loMatchVlan, loSetVlan, loSetPcp, false, meter)
-		dh.lockVlanConfig.Unlock()
+		dh.lockVlanConfig.RUnlock()
+		dh.lockVlanAdd.Unlock() //re-admit new Add-flow-processing
 		return err
 	}
+	dh.lockVlanConfig.RUnlock()
+	dh.lockVlanConfig.Lock() //createVlanFilterFsm should always be a non-blocking operation and requires r+w lock
 	err := dh.createVlanFilterFsm(ctx, apUniPort, loTpID, loCookieSlice,
 		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone, false, meter)
 	dh.lockVlanConfig.Unlock()
+	dh.lockVlanAdd.Unlock() //re-admit new Add-flow-processing
 	return err
 }
 
@@ -3075,6 +3084,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	//mutex protection as the update_flow rpc maybe running concurrently for different flows, perhaps also activities
 	dh.lockVlanConfig.RLock()
 	defer dh.lockVlanConfig.RUnlock()
+	logger.Debugw(ctx, "flow-remove got RLock", log.Fields{"device-id": dh.deviceID, "uniID": apUniPort.uniID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(ctx, loCookie)
 	}
