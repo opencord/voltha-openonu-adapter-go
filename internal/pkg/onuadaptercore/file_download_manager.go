@@ -165,6 +165,12 @@ func (dm *fileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFile
 
 //RequestDownloadReady receives a channel that has to be used to inform the requester in case the concerned file is downloaded
 func (dm *fileDownloadManager) RequestDownloadReady(ctx context.Context, aFileName string, aWaitChannel chan<- bool) {
+	//mutexDownloadImageDsc must already be locked here to avoid an update of the dnldImgReadyWaiting map
+	//  just after returning false on imageLocallyDownloaded() (not found) and immediate handling of the
+	//  download success (within updateFileState())
+	//  so updateFileState() can't interfere here just after imageLocallyDownloaded() before setting the requester map
+	dm.mutexDownloadImageDsc.Lock()
+	defer dm.mutexDownloadImageDsc.Unlock()
 	if dm.imageLocallyDownloaded(ctx, aFileName) {
 		//image found (by name) and fully downloaded
 		logger.Debugw(ctx, "file ready - immediate response", log.Fields{"image-name": aFileName})
@@ -173,8 +179,6 @@ func (dm *fileDownloadManager) RequestDownloadReady(ctx context.Context, aFileNa
 	}
 	//when we are here the image was not yet found or not fully downloaded -
 	//  add the device specific channel to the list of waiting requesters
-	dm.mutexDownloadImageDsc.Lock()
-	defer dm.mutexDownloadImageDsc.Unlock()
 	if loRequesterChannelMap, ok := dm.dnldImgReadyWaiting[aFileName]; ok {
 		//entry for the file name already exists
 		if _, exists := loRequesterChannelMap[aWaitChannel]; !exists {
@@ -216,11 +220,9 @@ func (dm *fileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName
 // FileDownloadManager private (unexported) methods -- start
 
 //imageLocallyDownloaded returns true if the requested image already exists within the adapter
+//  requires mutexDownloadImageDsc to be locked (at least RLocked)
 func (dm *fileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImageName string) bool {
 	logger.Debugw(ctx, "checking if image is fully downloaded to adapter", log.Fields{"image-name": aImageName})
-	dm.mutexDownloadImageDsc.RLock()
-	defer dm.mutexDownloadImageDsc.RUnlock()
-
 	for _, dnldImgDsc := range dm.downloadImageDscSlice {
 		if dnldImgDsc.downloadImageName == aImageName {
 			//image found (by name)
@@ -235,6 +237,33 @@ func (dm *fileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImag
 	//image not found (by name)
 	logger.Errorw(ctx, "image does not exist", log.Fields{"image-name": aImageName})
 	return false
+}
+
+//updateFileState sets the new active (downloaded) file state and informs possibly waiting requesters on this change
+func (dm *fileDownloadManager) updateFileState(ctx context.Context, aImageName string, aFileSize int64) {
+	dm.mutexDownloadImageDsc.Lock()
+	defer dm.mutexDownloadImageDsc.Unlock()
+	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - need to write changes on the original map
+			dm.downloadImageDscSlice[imgKey].downloadImageState = cFileStateDlSucceeded
+			dm.downloadImageDscSlice[imgKey].downloadImageLen = aFileSize
+			logger.Debugw(ctx, "imageState download succeeded", log.Fields{
+				"image-name": aImageName, "image-size": aFileSize})
+			//in case upgrade process(es) was/were waiting for the file, inform them
+			for imageName, channelMap := range dm.dnldImgReadyWaiting {
+				if imageName == aImageName {
+					for channel := range channelMap {
+						// use all found channels to inform possible requesters about the existence of the file
+						channel <- true
+						delete(dm.dnldImgReadyWaiting[imageName], channel) //requester served
+					}
+					return //can leave directly
+				}
+			}
+			return //can leave directly
+		}
+	}
 }
 
 //downloadFile downloads the specified file from the given http location
@@ -329,31 +358,12 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		fileStats, statsErr := file.Stat()
 		if err != nil {
 			logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
+			return
 		}
 		fileSize := fileStats.Size()
 		logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileSize})
 
-		dm.mutexDownloadImageDsc.Lock()
-		defer dm.mutexDownloadImageDsc.Unlock()
-		for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
-			if dnldImgDsc.downloadImageName == aFileName {
-				//image found (by name) - need to write changes on the original map
-				dm.downloadImageDscSlice[imgKey].downloadImageState = cFileStateDlSucceeded
-				dm.downloadImageDscSlice[imgKey].downloadImageLen = fileSize
-				//in case upgrade process(es) was/were waiting for the file, inform them
-				for imageName, channelMap := range dm.dnldImgReadyWaiting {
-					if imageName == aFileName {
-						for channel := range channelMap {
-							// use all found channels to inform possible requesters about the existence of the file
-							channel <- true
-							delete(dm.dnldImgReadyWaiting[imageName], channel) //requester served
-						}
-						return //can leave directly
-					}
-				}
-				return //can leave directly
-			}
-		}
+		dm.updateFileState(ctx, aFileName, fileSize)
 		//TODO:!!! further extension could be provided here, e.g. already computing and possibly comparing the CRC, vendor check
 	}()
 	return nil
