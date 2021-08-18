@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "47b90467_e0bfdd1d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3034,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-08-18T09:23:50Z",
+      "side": 1,
+      "message": "lockVlanAdd is locked for a very long processing seqence in which other mutexes are also involved. Hopefully this situation will be resolved by the planned sequentialization of request processing.",
+      "range": {
+        "startLine": 3034,
+        "startChar": 4,
+        "endLine": 3034,
+        "endChar": 15
+      },
+      "revId": "bc4170a6d399a9e321dd6e612886b7008b9aa19e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
