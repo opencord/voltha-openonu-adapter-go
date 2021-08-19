@@ -46,7 +46,7 @@ import (
 	ic "github.com/opencord/voltha-protos/v5/go/inter_container"
 
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
-	ac "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/onuadaptercore"
+	ac "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/core"
 )
 
 const (
