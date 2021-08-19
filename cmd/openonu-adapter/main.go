@@ -43,7 +43,7 @@ import (
 	"github.com/opencord/voltha-protos/v4/go/voltha"
 
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
-	ac "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/onuadaptercore"
+	ac "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/core"
 )
 
 type adapter struct {
