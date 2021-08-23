@@ -496,7 +496,11 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 						//a delay for adding the cookie to this rule is requested
 						// take care of the mutex which is already locked here, need to unlock/lock accordingly to prevent deadlock in suspension
 						oFsm.mutexFlowParams.Unlock()
-						oFsm.suspendNewRule(ctx)
+						if deleteSuccess := oFsm.suspendNewRule(ctx); !deleteSuccess {
+							logger.Errorw(ctx, "UniVlanConfigFsm suspended add-cookie-to-rule aborted", log.Fields{
+								"device-id": oFsm.deviceID, "cookie": delayedCookie})
+							return fmt.Errorf(" UniVlanConfigFsm suspended add-cookie-to-rule aborted %s", oFsm.deviceID)
+						}
 						flowCookieModify, requestAppendRule = oFsm.reviseFlowConstellation(ctx, delayedCookie, loRuleParams)
 						oFsm.mutexFlowParams.Lock()
 					} else {
@@ -515,7 +519,12 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	oFsm.mutexFlowParams.Unlock()
 
 	if !flowEntryMatch { //it is (was) a new rule
-		delayedCookie := oFsm.suspendIfRequiredNewRule(ctx, aCookieSlice)
+		delayedCookie, deleteSuccess := oFsm.suspendIfRequiredNewRule(ctx, aCookieSlice)
+		if !deleteSuccess {
+			logger.Errorw(ctx, "UniVlanConfigFsm suspended add-new-rule aborted", log.Fields{
+				"device-id": oFsm.deviceID, "cookie": delayedCookie})
+			return fmt.Errorf(" UniVlanConfigFsm suspended add-new-rule aborted %s", oFsm.deviceID)
+		}
 		requestAppendRule = true //default assumption here is that rule is to be appended
 		flowCookieModify = true  //and that the the flow data base is to be updated
 		if delayedCookie != 0 {  //it was suspended
@@ -713,15 +722,16 @@ func (oFsm *UniVlanConfigFsm) delayNewRuleForCookie(ctx context.Context, aCookie
 	}
 	return 0 //no delay requested
 }
-func (oFsm *UniVlanConfigFsm) suspendNewRule(ctx context.Context) {
+func (oFsm *UniVlanConfigFsm) suspendNewRule(ctx context.Context) bool {
 	oFsm.mutexFlowParams.RLock()
 	logger.Infow(ctx, "Need to suspend adding this rule as long as the cookie is still connected to some other rule", log.Fields{
 		"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
 	oFsm.mutexFlowParams.RUnlock()
+	cookieDeleted := true //default assumption also for timeout (just try to continue as if removed)
 	select {
-	case <-oFsm.chCookieDeleted:
-		logger.Infow(ctx, "resume adding this rule after having deleted cookie in some other rule", log.Fields{
-			"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
+	case cookieDeleted = <-oFsm.chCookieDeleted:
+		logger.Infow(ctx, "resume adding this rule after having deleted cookie in some other rule or abort", log.Fields{
+			"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie, "deleted": cookieDeleted})
 	case <-time.After(oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
 		logger.Errorw(ctx, "timeout waiting for deletion of cookie in some other rule, just try to continue", log.Fields{
 			"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
@@ -729,16 +739,18 @@ func (oFsm *UniVlanConfigFsm) suspendNewRule(ctx context.Context) {
 	oFsm.mutexFlowParams.Lock()
 	oFsm.delayNewRuleCookie = 0
 	oFsm.mutexFlowParams.Unlock()
+	return cookieDeleted
 }
-func (oFsm *UniVlanConfigFsm) suspendIfRequiredNewRule(ctx context.Context, aCookieSlice []uint64) uint64 {
+func (oFsm *UniVlanConfigFsm) suspendIfRequiredNewRule(ctx context.Context, aCookieSlice []uint64) (uint64, bool) {
 	oFsm.mutexFlowParams.Lock()
 	delayedCookie := oFsm.delayNewRuleForCookie(ctx, aCookieSlice)
 	oFsm.mutexFlowParams.Unlock()
 
+	deleteSuccess := true
 	if delayedCookie != 0 {
-		oFsm.suspendNewRule(ctx)
+		deleteSuccess = oFsm.suspendNewRule(ctx)
 	}
-	return delayedCookie
+	return delayedCookie, deleteSuccess
 }
 
 //returns flowModified, RuleAppendRequest
@@ -1793,7 +1805,7 @@ func (oFsm *UniVlanConfigFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 	if oFsm.delayNewRuleCookie != 0 {
 		// looks like the waiting AddFlow is stuck
 		oFsm.mutexFlowParams.RUnlock()
-		oFsm.chCookieDeleted <- true // let the waiting AddFlow thread continue/terminate
+		oFsm.chCookieDeleted <- false // let the waiting AddFlow thread terminate
 		oFsm.mutexFlowParams.RLock()
 	}
 	if len(oFsm.uniRemoveFlowsSlice) > 0 {
