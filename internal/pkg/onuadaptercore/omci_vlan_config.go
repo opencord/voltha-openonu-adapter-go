@@ -501,8 +501,8 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 								"device-id": oFsm.deviceID, "cookie": delayedCookie})
 							return fmt.Errorf(" UniVlanConfigFsm suspended add-cookie-to-rule aborted %s", oFsm.deviceID)
 						}
-						oFsm.mutexFlowParams.Lock()
 						flowCookieModify, requestAppendRule = oFsm.reviseFlowConstellation(ctx, delayedCookie, loRuleParams)
+						oFsm.mutexFlowParams.Lock()
 					} else {
 						logger.Debugw(ctx, "UniVlanConfigFsm flow setting -adding new cookie", log.Fields{
 							"device-id": oFsm.deviceID, "cookie": newCookie})
