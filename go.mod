@@ -17,7 +17,7 @@ require (
 	github.com/looplab/fsm v0.2.0
 	github.com/opencord/omci-lib-go v1.3.3
 	github.com/opencord/voltha-lib-go/v7 v7.0.1
-	github.com/opencord/voltha-protos/v5 v5.0.0
+	github.com/opencord/voltha-protos/v5 v5.0.1
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.41.0
 )
