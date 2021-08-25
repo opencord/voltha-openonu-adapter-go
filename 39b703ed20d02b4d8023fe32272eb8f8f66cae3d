@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "48b296f6_44790514",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 312,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-08-25T14:27:45Z",
+      "side": 1,
+      "message": "No, not needed. It can be assumed that respExist is set in case errExist3 is nil.",
+      "parentUuid": "9e93ef1d_f66af699",
+      "range": {
+        "startLine": 312,
+        "startChar": 24,
+        "endLine": 312,
+        "endChar": 44
+      },
+      "revId": "39b703ed20d02b4d8023fe32272eb8f8f66cae3d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "21c172cc_57b01376",
         "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2021-08-25T14:07:38Z",
       "side": 1,
       "message": "See comment above.",
+      "range": {
+        "startLine": 349,
+        "startChar": 20,
+        "endLine": 349,
+        "endChar": 35
+      },
+      "revId": "39b703ed20d02b4d8023fe32272eb8f8f66cae3d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "496bfd2c_3b1f5eb4",
+        "filename": "internal/pkg/onuadaptercore/file_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-08-25T14:27:45Z",
+      "side": 1,
+      "message": "see above.",
+      "parentUuid": "21c172cc_57b01376",
       "range": {
         "startLine": 349,
         "startChar": 20,
