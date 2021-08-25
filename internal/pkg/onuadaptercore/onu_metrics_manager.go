@@ -3138,6 +3138,10 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 	// Collect metrics for upstream for all the PM Mes per uni port and aggregate
 	var pmUpstream extension.OmciEthernetFrameExtendedPm
 	var pmDownstream extension.OmciEthernetFrameExtendedPm
+	counterFormat := extension.GetOmciEthernetFrameExtendedPmResponse_Sixty_Four_Bit
+	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
+		counterFormat = extension.GetOmciEthernetFrameExtendedPmResponse_Thirty_Two_Bit
+	}
 	for entityID, meEnt := range mm.ethernetFrameExtendedPmUpStreamMEByEntityID {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
@@ -3150,8 +3154,9 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 						Status: extension.GetValueResponse_OK,
 						Response: &extension.GetValueResponse_OnuCounters{
 							OnuCounters: &extension.GetOmciEthernetFrameExtendedPmResponse{
-								Upstream:   &pmUpstream,
-								Downstream: &pmDownstream,
+								Upstream:                          &pmUpstream,
+								Downstream:                        &pmDownstream,
+								OmciEthernetFrameExtendedPmFormat: counterFormat,
 							},
 						},
 					},
@@ -3179,8 +3184,9 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 			Status: extension.GetValueResponse_OK,
 			Response: &extension.GetValueResponse_OnuCounters{
 				OnuCounters: &extension.GetOmciEthernetFrameExtendedPmResponse{
-					Upstream:   &pmUpstream,
-					Downstream: &pmDownstream,
+					Upstream:                          &pmUpstream,
+					Downstream:                        &pmDownstream,
+					OmciEthernetFrameExtendedPmFormat: counterFormat,
 				},
 			},
 		},
