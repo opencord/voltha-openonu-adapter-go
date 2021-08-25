@@ -135,9 +135,7 @@ type OnuUpgradeFsm struct {
 	mutexIsAwaitingAdapterDlResponse sync.RWMutex
 	chAdapterDlReady                 chan bool
 	isWaitingForAdapterDlResponse    bool
-	mutexIsAwaitingOnuDlResponse     sync.RWMutex
 	chOnuDlReady                     chan bool
-	isWaitingForOnuDlResponse        bool
 	activateImage                    bool
 	commitImage                      bool
 	mutexAbortRequest                sync.RWMutex
@@ -596,7 +594,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 	if err != nil || fileLen > int64(cMaxUint32) {
 		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
-		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //Something like 'LOCAL_FILE_ERROR' would be better (proto)
+		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //something like 'LOCAL_FILE_ERROR' would be better (proto)
 		oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN
 		oFsm.mutexUpgradeParams.Unlock()
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: problems getting image buffer length", log.Fields{
@@ -618,7 +616,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 	if err != nil {
 		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
-		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //Something like 'LOCAL_FILE_ERROR' would be better (proto)
+		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //something like 'LOCAL_FILE_ERROR' would be better (proto)
 		oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN
 		oFsm.mutexUpgradeParams.Unlock()
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: can't get image buffer", log.Fields{
@@ -646,6 +644,13 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	//"NumberOfCircuitPacks": oFsm.numberCircuitPacks, "CircuitPacks MeId": 0}) //parallel circuit packs download not supported
 
 	oFsm.mutexUpgradeParams.Unlock()
+
+	// flush commMetricsChan
+	select {
+	case <-oFsm.chOnuDlReady:
+		logger.Debug(ctx, "flushed OnuDlReady channel")
+	default:
+	}
 	go oFsm.waitOnDownloadToOnuReady(ctx, oFsm.chOnuDlReady) // start supervision of the complete download-to-ONU procedure
 
 	err = oFsm.pOmciCC.sendStartSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
@@ -706,7 +711,7 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 				"device-id": oFsm.deviceID, "bufferStartOffset": bufferStartOffset,
 				"bufferEndOffset": bufferEndOffset, "imageLength": oFsm.imageLength})
 			oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
-			oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //Something like 'LOCAL_FILE_ERROR' would be better (proto)
+			oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //something like 'LOCAL_FILE_ERROR' would be better (proto)
 			oFsm.mutexUpgradeParams.Unlock()
 			//logical error -- reset the FSM
 			pBaseFsm := oFsm.pAdaptFsm
@@ -821,7 +826,7 @@ func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
 		}
 		oFsm.mutexUpgradeParams.Lock()
 		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
-		oFsm.volthaDownloadReason = voltha.ImageState_IMAGE_REFUSED_BY_ONU //Something like 'END_DOWNLOAD_TIMEOUT' would be better (proto)
+		oFsm.volthaDownloadReason = voltha.ImageState_IMAGE_REFUSED_BY_ONU //something like 'END_DOWNLOAD_TIMEOUT' would be better (proto)
 		oFsm.mutexUpgradeParams.Unlock()
 		go func(a_pAFsm *AdapterFsm) {
 			_ = a_pAFsm.pFsm.Event(upgradeEvAbort)
@@ -989,13 +994,11 @@ func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 	}
 
 	// in case the download-to-ONU timer is still running - cancel it
-	oFsm.mutexIsAwaitingOnuDlResponse.RLock()
-	if oFsm.isWaitingForOnuDlResponse {
-		oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
-		//use channel to indicate that the download response waiting shall be aborted for this device (channel)
-		oFsm.chOnuDlReady <- false
-	} else {
-		oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
+	//use non-blocking channel (to be independent from receiver state)
+	select {
+	//use channel to indicate that the download response waiting shall be aborted for this device (channel)
+	case oFsm.chOnuDlReady <- false:
+	default:
 	}
 
 	pConfigupgradeStateAFsm := oFsm.pAdaptFsm
@@ -1239,16 +1242,11 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 					//  - assume new loaded image as valid-inactive immediately
 					oFsm.volthaImageState = voltha.ImageState_IMAGE_INACTIVE
 					oFsm.mutexUpgradeParams.Unlock()
-					oFsm.mutexIsAwaitingOnuDlResponse.RLock()
-					if oFsm.isWaitingForOnuDlResponse {
-						oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
-						//use non-blocking channel to indicate that the download to ONU was successful
-						select {
-						case oFsm.chOnuDlReady <- true:
-						default:
-						}
-					} else {
-						oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
+					//use non-blocking channel (to be independent from receiver state)
+					select {
+					//use non-blocking channel to indicate that the download to ONU was successful
+					case oFsm.chOnuDlReady <- true:
+					default:
 					}
 				} else {
 					oFsm.mutexUpgradeParams.Unlock()
@@ -1401,13 +1399,11 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 						oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN              //something like 'DOWNLOADED' would be better - proto def
 						oFsm.mutexUpgradeParams.Unlock()
 						//stop the running ONU download timer
-						oFsm.mutexIsAwaitingOnuDlResponse.RLock()
-						if oFsm.isWaitingForOnuDlResponse {
-							oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
-							//use channel to indicate that the download to ONU was not successful
-							oFsm.chOnuDlReady <- false
-						} else {
-							oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
+						//use non-blocking channel (to be independent from receiver state)
+						select {
+						//use channel to indicate that the download response waiting shall be aborted for this device (channel)
+						case oFsm.chOnuDlReady <- false:
+						default:
 						}
 						// TODO!!!: error treatment?
 						//TODO!!!: possibly send event information for aborted upgrade (aborted by wrong version)?
@@ -1434,13 +1430,11 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 							log.Fields{"device-id": oFsm.deviceID})
 						_ = oFsm.pAdaptFsm.pFsm.Event(upgradeEvWaitForActivate)
 					}
-					oFsm.mutexIsAwaitingOnuDlResponse.RLock()
-					if oFsm.isWaitingForOnuDlResponse {
-						oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
-						//use channel to indicate that the download to ONU was successful
-						oFsm.chOnuDlReady <- true
-					} else {
-						oFsm.mutexIsAwaitingOnuDlResponse.RUnlock()
+					//use non-blocking channel (to be independent from receiver state)
+					select {
+					//use non-blocking channel to indicate that the download to ONU was successful
+					case oFsm.chOnuDlReady <- true:
+					default:
 					}
 					return
 				}
@@ -1569,10 +1563,25 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aSy
 		logger.Warnw(ctx, "OnuUpgradeFsm Waiting-adapter-download timeout", log.Fields{
 			"for device-id": oFsm.deviceID, "image-id": oFsm.imageIdentifier, "timeout": downloadToAdapterTimeout})
 		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, aWaitChannel)
+		//running into timeout here may still have the download to adapter active -> abort
+		oFsm.pFileManager.CancelDownload(ctx, oFsm.imageIdentifier)
 		oFsm.mutexIsAwaitingAdapterDlResponse.Lock()
 		oFsm.isWaitingForAdapterDlResponse = false
 		oFsm.mutexIsAwaitingAdapterDlResponse.Unlock()
-		oFsm.abortOnOmciError(ctx, true, voltha.ImageState_IMAGE_UNKNOWN) //no ImageState update
+		oFsm.mutexUpgradeParams.Lock()
+		oFsm.conditionalCancelRequested = false //any conditional cancelRequest is superseded by this abortion
+		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
+		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //something like 'DOWNLOAD_TO_ADAPTER_TIMEOUT' would be better (proto)
+		oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN     //something like 'IMAGE_DOWNLOAD_ABORTED' would be better (proto)
+		oFsm.mutexUpgradeParams.Unlock()
+		//TODO!!!: possibly send event information for aborted upgrade (aborted by omci processing)??
+		if oFsm.pAdaptFsm != nil && oFsm.pAdaptFsm.pFsm != nil {
+			err := oFsm.pAdaptFsm.pFsm.Event(upgradeEvAbort)
+			if err != nil {
+				logger.Warnw(ctx, "onu upgrade fsm could not abort on omci error", log.Fields{
+					"device-id": oFsm.deviceID, "error": err})
+			}
+		}
 		return
 
 	case success := <-aWaitChannel:
@@ -1590,14 +1599,13 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aSy
 			}
 			return
 		}
-		// waiting was aborted (probably on external request)
+		// waiting was aborted (assumed here to be caused by
+		//   error detection or cancel at download after upgrade FSM reset/abort with according image states set there)
 		logger.Debugw(ctx, "OnuUpgradeFsm Waiting-adapter-download aborted", log.Fields{"device-id": oFsm.deviceID})
 		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, aWaitChannel)
 		oFsm.mutexIsAwaitingAdapterDlResponse.Lock()
 		oFsm.isWaitingForAdapterDlResponse = false
 		oFsm.mutexIsAwaitingAdapterDlResponse.Unlock()
-		//the upgrade process has to be aborted
-		oFsm.abortOnOmciError(ctx, true, voltha.ImageState_IMAGE_UNKNOWN) //no ImageState update
 		return
 	}
 }
@@ -1607,9 +1615,6 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToOnuReady(ctx context.Context, aWaitCh
 	downloadToOnuTimeout := time.Duration(1+(oFsm.imageLength/0x400000)) * oFsm.downloadToOnuTimeout4MB
 	logger.Debugw(ctx, "OnuUpgradeFsm start download-to-ONU timer", log.Fields{"device-id": oFsm.deviceID,
 		"duration": downloadToOnuTimeout})
-	oFsm.mutexIsAwaitingOnuDlResponse.Lock()
-	oFsm.isWaitingForOnuDlResponse = true
-	oFsm.mutexIsAwaitingOnuDlResponse.Unlock()
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
@@ -1617,28 +1622,19 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToOnuReady(ctx context.Context, aWaitCh
 	case <-time.After(downloadToOnuTimeout): //using an image-size depending timout (in minutes)
 		logger.Warnw(ctx, "OnuUpgradeFsm Waiting-ONU-download timeout", log.Fields{
 			"for device-id": oFsm.deviceID, "image-id": oFsm.imageIdentifier, "timeout": downloadToOnuTimeout})
-		oFsm.mutexIsAwaitingOnuDlResponse.Lock()
-		oFsm.isWaitingForOnuDlResponse = false
-		oFsm.mutexIsAwaitingOnuDlResponse.Unlock()
 		//the upgrade process has to be aborted
-		oFsm.abortOnOmciError(ctx, true, voltha.ImageState_IMAGE_UNKNOWN) //no ImageState update
+		oFsm.abortOnOmciError(ctx, false, voltha.ImageState_IMAGE_UNKNOWN) //no ImageState update
 		return
 
 	case success := <-aWaitChannel:
 		if success {
 			logger.Debugw(ctx, "OnuUpgradeFsm image-downloaded on ONU received", log.Fields{"device-id": oFsm.deviceID})
-			oFsm.mutexIsAwaitingOnuDlResponse.Lock()
-			oFsm.isWaitingForOnuDlResponse = false
-			oFsm.mutexIsAwaitingOnuDlResponse.Unlock()
 			//all fine, let the FSM proceed like defined from the sender of this event
 			return
 		}
 		// waiting was aborted (assumed here to be caused by
-		//   error detection or cancel at download after upgrade FSM reset/abort)
+		//   error detection or cancel at download after upgrade FSM reset/abort with according image states set there)
 		logger.Debugw(ctx, "OnuUpgradeFsm Waiting-ONU-download aborted", log.Fields{"device-id": oFsm.deviceID})
-		oFsm.mutexIsAwaitingOnuDlResponse.Lock()
-		oFsm.isWaitingForOnuDlResponse = false
-		oFsm.mutexIsAwaitingOnuDlResponse.Unlock()
 		return
 	}
 }

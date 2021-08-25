@@ -47,10 +47,12 @@ const (
 )
 
 type downloadImageParams struct {
-	downloadImageName  string
-	downloadImageState fileState
-	downloadImageLen   int64
-	downloadImageCrc   uint32
+	downloadImageName       string
+	downloadImageState      fileState
+	downloadImageLen        int64
+	downloadImageCrc        uint32
+	downloadActive          bool
+	downloadContextCancelFn context.CancelFunc
 }
 
 type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map for easier (unique) element appending
@@ -239,6 +241,23 @@ func (dm *fileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImag
 	return false
 }
 
+//updateDownloadCancel sets context cancel function to be used in case the download is to be aborted
+func (dm *fileDownloadManager) updateDownloadCancel(ctx context.Context,
+	aImageName string, aCancelFn context.CancelFunc) {
+	dm.mutexDownloadImageDsc.Lock()
+	defer dm.mutexDownloadImageDsc.Unlock()
+	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - need to write changes on the original map
+			dm.downloadImageDscSlice[imgKey].downloadContextCancelFn = aCancelFn
+			dm.downloadImageDscSlice[imgKey].downloadActive = true
+			logger.Debugw(ctx, "downloadContextCancelFn set", log.Fields{
+				"image-name": aImageName})
+			return //can leave directly
+		}
+	}
+}
+
 //updateFileState sets the new active (downloaded) file state and informs possibly waiting requesters on this change
 func (dm *fileDownloadManager) updateFileState(ctx context.Context, aImageName string, aFileSize int64) {
 	dm.mutexDownloadImageDsc.Lock()
@@ -246,6 +265,7 @@ func (dm *fileDownloadManager) updateFileState(ctx context.Context, aImageName s
 	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
 		if dnldImgDsc.downloadImageName == aImageName {
 			//image found (by name) - need to write changes on the original map
+			dm.downloadImageDscSlice[imgKey].downloadActive = false
 			dm.downloadImageDscSlice[imgKey].downloadImageState = cFileStateDlSucceeded
 			dm.downloadImageDscSlice[imgKey].downloadImageLen = aFileSize
 			logger.Debugw(ctx, "imageState download succeeded", log.Fields{
@@ -290,6 +310,12 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 	_ = reqExist.WithContext(ctxExist)
 	respExist, errExist3 := http.DefaultClient.Do(reqExist)
 	if errExist3 != nil || respExist.StatusCode != http.StatusOK {
+		if respExist == nil {
+			logger.Errorw(ctx, "http head from url error - no status, aborting", log.Fields{"url": urlBase.String(),
+				"error": errExist3})
+			return fmt.Errorf("http head from url error - no status, aborting: %s, error: %s",
+				aURLCommand, errExist3)
+		}
 		logger.Infow(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
 			"error": errExist3, "status": respExist.StatusCode})
 		//if head is not supported by server we cannot use this test and just try to continue
@@ -297,7 +323,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 			logger.Errorw(ctx, "http head from url: file does not exist here, aborting", log.Fields{"url": urlBase.String(),
 				"error": errExist3, "status": respExist.StatusCode})
 			return fmt.Errorf("http head from url: file does not exist here, aborting: %s, error: %s, status: %d",
-				aURLCommand, errExist2, respExist.StatusCode)
+				aURLCommand, errExist3, respExist.StatusCode)
 		}
 	}
 	defer func() {
@@ -316,12 +342,18 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 			return
 		}
 		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
+		dm.updateDownloadCancel(ctx, aFileName, cancel)
 		defer cancel()
 		_ = req.WithContext(ctx)
 		resp, err3 := http.DefaultClient.Do(req)
-		if err3 != nil || respExist.StatusCode != http.StatusOK {
-			logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(),
-				"error": err3, "status": respExist.StatusCode})
+		if err3 != nil || resp.StatusCode != http.StatusOK {
+			if resp == nil {
+				logger.Errorw(ctx, "http get error - no status, aborting", log.Fields{"url": urlBase.String(),
+					"error": err3})
+			} else {
+				logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(),
+					"error": err3, "status": resp.StatusCode})
+			}
 			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
@@ -398,9 +430,23 @@ func (dm *fileDownloadManager) removeImage(ctx context.Context, aImageName strin
 	//image not found (by name)
 }
 
-//CancelDownload just wraps removeImage (for possible extensions to e.g. really stop a ongoing download)
+//CancelDownload stops the download and clears all entires concerning this aimageName
 func (dm *fileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
 	// for the moment that would only support to wait for the download end and remove the image then
 	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)
-	dm.removeImage(ctx, aImageName, true)
+	dm.mutexDownloadImageDsc.RLock()
+	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - need to to check on ongoing download
+			if dm.downloadImageDscSlice[imgKey].downloadActive {
+				//then cancel the download using the context cancel function
+				dm.downloadImageDscSlice[imgKey].downloadContextCancelFn()
+			}
+			//and remove possibly stored traces of this image
+			dm.mutexDownloadImageDsc.RUnlock()
+			go dm.removeImage(ctx, aImageName, true) //including the chance that nothing was yet written to FS, should not matter
+			return                                   //can leave directly
+		}
+	}
+	dm.mutexDownloadImageDsc.RUnlock()
 }
