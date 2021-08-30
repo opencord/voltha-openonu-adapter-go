@@ -3120,7 +3120,7 @@ func (mm *onuMetricsManager) createEthernetFrameExtendedPMME(ctx context.Context
 	}
 }
 
-func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.Context) *extension.SingleGetValueResponse {
+func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.Context, onuInfo *extension.GetOmciEthernetFrameExtendedPmRequest) *extension.SingleGetValueResponse {
 	errFunc := func(reason extension.GetValueResponse_ErrorReason) *extension.SingleGetValueResponse {
 		return &extension.SingleGetValueResponse{
 			Response: &extension.GetValueResponse{
@@ -3138,7 +3138,29 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 	// Collect metrics for upstream for all the PM Mes per uni port and aggregate
 	var pmUpstream extension.OmciEthernetFrameExtendedPm
 	var pmDownstream extension.OmciEthernetFrameExtendedPm
-	for entityID, meEnt := range mm.ethernetFrameExtendedPmUpStreamMEByEntityID {
+	upstreamEntityMap := make(map[uint16]*me.ManagedEntity)
+	downstreamEntityMap := make(map[uint16]*me.ManagedEntity)
+	if onuInfo.IsUniIndex != nil {
+		for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
+			if uniPort.uniID == uint8(onuInfo.GetUniIndex())  {
+				upstreamEntityMap[uniPort.entityID + 0x100] = mm.ethernetFrameExtendedPmUpStreamMEByEntityID[uniPort.entityID + 0x100]
+				downstreamEntityMap[uniPort.entityID] = mm.ethernetFrameExtendedPmDownStreamMEByEntityID[uniPort.entityID]
+				break
+			}
+		}
+		if len(downstreamEntityMap) == 0 || len(upstreamEntityMap) == 0 {
+			return errFunc(extension.GetValueResponse_INVALID_REQ_TYPE)
+		}
+	} else {
+		// make a copy of all downstream and upstream maps in the local ones
+		for entityID, meEnt := range mm.ethernetFrameExtendedPmUpStreamMEByEntityID {
+			upstreamEntityMap[entityID] = meEnt
+		}
+		for entityID, meEnt := range mm.ethernetFrameExtendedPmDownStreamMEByEntityID {
+			downstreamEntityMap[entityID] = meEnt
+		}
+	}
+	for entityID, meEnt := range upstreamEntityMap {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
 			if receivedMask == 0 {
@@ -3165,7 +3187,7 @@ func (mm *onuMetricsManager) collectEthernetFrameExtendedPMCounters(ctx context.
 		}
 	}
 
-	for entityID, meEnt := range mm.ethernetFrameExtendedPmDownStreamMEByEntityID {
+	for entityID, meEnt := range downstreamEntityMap {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, false, &receivedMask); metricInfo != nil { // downstream
 			// Aggregate the result for downstream

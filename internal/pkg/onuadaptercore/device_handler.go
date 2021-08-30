@@ -3511,7 +3511,7 @@ func (dh *deviceHandler) getOnuOMCICounters(ctx context.Context, onuInfo *extens
 			},
 		}
 	}
-	resp := dh.pOnuMetricsMgr.collectEthernetFrameExtendedPMCounters(ctx)
+	resp := dh.pOnuMetricsMgr.collectEthernetFrameExtendedPMCounters(ctx, onuInfo)
 	return resp
 }
 
