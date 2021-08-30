@@ -406,29 +406,29 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
 			errorsList = append(errorsList, err)
 		}
-		select {
-		case handler.stopCollector <- true: // stop the metric collector routine
+
+		// Stop PM, Alarm and Self Test event handler routines
+		if handler.getCollectorIsRunning() {
+			handler.stopCollector <- true
 			logger.Debugw(ctx, "sent stop signal to metric collector routine", log.Fields{"device-id": device.Id})
-		default:
-			logger.Warnw(ctx, "metric collector routine not waiting on stop signal", log.Fields{"device-id": device.Id})
+
 		}
-		select {
-		case handler.stopAlarmManager <- true: //stop the alarm manager.
+		if handler.getAlarmManagerIsRunning(ctx) {
+			handler.stopAlarmManager <- true
 			logger.Debugw(ctx, "sent stop signal to alarm manager", log.Fields{"device-id": device.Id})
-		default:
-			logger.Warnw(ctx, "alarm manager not waiting on stop signal", log.Fields{"device-id": device.Id})
 		}
+		if handler.pSelfTestHdlr.GetSelfTestHandlerIsRunning() {
+			handler.pSelfTestHdlr.stopSelfTestModule <- true
+			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
+		}
+
+		// Clear PM data on the KV store
 		if handler.pOnuMetricsMgr != nil {
 			if err := handler.pOnuMetricsMgr.clearAllPmData(ctx); err != nil {
 				errorsList = append(errorsList, err)
 			}
 		}
-		select {
-		case handler.pSelfTestHdlr.stopSelfTestModule <- true:
-			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
-		default:
-			logger.Warnw(ctx, "self test handler module not waiting on stop signal", log.Fields{"device-id": device.Id})
-		}
+
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
 		if len(errorsList) > 0 {

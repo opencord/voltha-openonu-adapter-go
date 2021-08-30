@@ -2112,6 +2112,9 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	if dh.getAlarmManagerIsRunning(ctx) {
 		dh.stopAlarmManager <- true
 	}
+	if dh.pSelfTestHdlr.GetSelfTestHandlerIsRunning() {
+		dh.pSelfTestHdlr.stopSelfTestModule <- true
+	}
 
 	//reset a possibly running upgrade FSM
 	//  (note the Upgrade FSM may stay alive e.g. in state upgradeStWaitForCommit to endure the ONU reboot)

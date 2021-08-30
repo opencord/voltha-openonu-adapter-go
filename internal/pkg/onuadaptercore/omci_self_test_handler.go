@@ -64,7 +64,9 @@ type selfTestControlBlock struct {
 	selfTestFsmMap  map[generated.ClassID]*fsmCb // The fsmCb is indexed by ME Class ID of the Test Action procedure
 	selfTestFsmLock sync.RWMutex
 
-	stopSelfTestModule chan bool
+	selfTestHandlerLock   sync.RWMutex
+	selfTestHandlerActive bool
+	stopSelfTestModule    chan bool
 }
 
 // newSelfTestMsgHandlerCb creates the selfTestControlBlock
@@ -342,8 +344,9 @@ func (selfTestCb *selfTestControlBlock) selfTestRequestComplete(ctx context.Cont
 }
 
 func (selfTestCb *selfTestControlBlock) waitForStopSelfTestModuleSignal(ctx context.Context) {
-
+	selfTestCb.SetSelfTestHandlerIsRunning(true)
 	<-selfTestCb.stopSelfTestModule // block on stop signal
+	selfTestCb.SetSelfTestHandlerIsRunning(false)
 
 	logger.Infow(ctx, "received stop signal - clean up start", log.Fields{"device-id": selfTestCb.deviceID})
 	selfTestCb.selfTestFsmLock.Lock()
@@ -362,6 +365,20 @@ func (selfTestCb *selfTestControlBlock) waitForStopSelfTestModuleSignal(ctx cont
 }
 
 //// Exported functions
+
+// SetSelfTestHandlerActive sets the value to selfTestCb.selfTestHandlerActive
+func (selfTestCb *selfTestControlBlock) SetSelfTestHandlerIsRunning(active bool) {
+	selfTestCb.selfTestHandlerLock.Lock()
+	defer selfTestCb.selfTestHandlerLock.Unlock()
+	selfTestCb.selfTestHandlerActive = active
+}
+
+// GetSelfTestHandlerActive gets selfTestCb.selfTestHandlerActive
+func (selfTestCb *selfTestControlBlock) GetSelfTestHandlerIsRunning() bool {
+	selfTestCb.selfTestHandlerLock.RLock()
+	defer selfTestCb.selfTestHandlerLock.RUnlock()
+	return selfTestCb.selfTestHandlerActive
+}
 
 // selfTestRequest initiate Test Request handling procedure. The results are asynchronously conveyed on the respChan.
 // If the return from selfTestRequest is NOT nil, the caller shall not wait for async response.
