@@ -16,6 +16,24 @@
       "revId": "9b7135fc13d7f75a0bb87506b0a3ea8415fad45e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ad56bf58_fcd1a798",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3155,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-08-31T08:17:40Z",
+      "side": 1,
+      "message": "Actually the previous code was collecting the counters for all uni, so the range was set for downstream and upstream map for that onu. But if uni id is provided, in this case also I wanted to keep the code simple, so in this case instead of range there would be only two case, 1 downstream me and 1 upstream me, so that\u0027s why I created local maps, and based on the case I assign either all or one me in that local map.",
+      "parentUuid": "29150631_868d8110",
+      "revId": "9b7135fc13d7f75a0bb87506b0a3ea8415fad45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
