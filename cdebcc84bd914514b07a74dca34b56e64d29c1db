@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "66da55b2_b53147ce",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3152,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-01T19:04:53Z",
+      "side": 1,
+      "message": "Can you log an error before the return here as none of the higher layer functions are logging any error.",
+      "revId": "cdebcc84bd914514b07a74dca34b56e64d29c1db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
