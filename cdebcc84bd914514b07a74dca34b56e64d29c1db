@@ -16,6 +16,24 @@
       "revId": "cdebcc84bd914514b07a74dca34b56e64d29c1db",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f205e622_78b598d0",
+        "filename": "internal/pkg/onuadaptercore/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3152,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-09-03T11:05:45Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "66da55b2_b53147ce",
+      "revId": "cdebcc84bd914514b07a74dca34b56e64d29c1db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
