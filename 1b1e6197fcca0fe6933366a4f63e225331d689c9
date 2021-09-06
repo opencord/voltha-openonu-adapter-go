@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "763d6adc_431bb1d7",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1043,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-06T12:41:57Z",
+      "side": 1,
+      "message": "I think context.background() is better here in place of context.TODO()",
+      "revId": "1b1e6197fcca0fe6933366a4f63e225331d689c9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
