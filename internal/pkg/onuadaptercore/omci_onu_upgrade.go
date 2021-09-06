@@ -50,6 +50,7 @@ const (
 const (
 	// events of config PON ANI port FSM
 	upgradeEvStart              = "upgradeEvStart"
+	upgradeEvDisable            = "upgradeEvDisable"
 	upgradeEvAdapterDownload    = "upgradeEvAdapterDownload"
 	upgradeEvPrepareSwDownload  = "upgradeEvPrepareSwDownload"
 	upgradeEvRxStartSwDownload  = "upgradeEvRxStartSwDownload"
@@ -68,9 +69,10 @@ const (
 
 	//upgradeEvTimeoutSimple  = "upgradeEvTimeoutSimple"
 	//upgradeEvTimeoutMids    = "upgradeEvTimeoutMids"
-	upgradeEvReset   = "upgradeEvReset"
-	upgradeEvAbort   = "upgradeEvAbort"
-	upgradeEvRestart = "upgradeEvRestart"
+	upgradeEvReset           = "upgradeEvReset"
+	upgradeEvAbort           = "upgradeEvAbort"
+	upgradeEvRestart         = "upgradeEvRestart"
+	upgradeEvAbortSwDownload = "upgradeEvAbortSwDownload"
 )
 
 const (
@@ -91,6 +93,8 @@ const (
 	upgradeStCommitSw           = "upgradeStCommitSw"
 	upgradeStCheckCommitted     = "upgradeStCheckCommitted"
 	upgradeStResetting          = "upgradeStResetting"
+	upgradeStRestarting         = "upgradeStRestarting"
+	upgradeStAbortingDL         = "upgradeStAbortingDL"
 )
 
 //required definition for IdleState detection for activities on OMCI
@@ -144,6 +148,8 @@ type OnuUpgradeFsm struct {
 	volthaDownloadState              voltha.ImageState_ImageDownloadState
 	volthaDownloadReason             voltha.ImageState_ImageFailureReason
 	volthaImageState                 voltha.ImageState_ImageActivationState
+	isEndSwDlOpen                    bool
+	chReceiveAbortEndSwDlResponse    chan bool
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -171,6 +177,7 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 	instFsm.chReceiveExpectedResponse = make(chan bool)
 	instFsm.chAdapterDlReady = make(chan bool)
 	instFsm.chOnuDlReady = make(chan bool)
+	instFsm.chReceiveAbortEndSwDlResponse = make(chan bool)
 
 	instFsm.pAdaptFsm = NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
 	if instFsm.pAdaptFsm == nil {
@@ -223,7 +230,9 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 				upgradeStRequestingActivate, upgradeStActivated, upgradeStWaitForCommit,
 				upgradeStCommitSw, upgradeStCheckCommitted},
 				Dst: upgradeStResetting},
-			{Name: upgradeEvRestart, Src: []string{upgradeStResetting}, Dst: upgradeStDisabled},
+			{Name: upgradeEvAbortSwDownload, Src: []string{upgradeStResetting}, Dst: upgradeStAbortingDL},
+			{Name: upgradeEvRestart, Src: []string{upgradeStResetting, upgradeStAbortingDL}, Dst: upgradeStRestarting},
+			{Name: upgradeEvDisable, Src: []string{upgradeStRestarting}, Dst: upgradeStDisabled},
 		},
 		fsm.Callbacks{
 			"enter_state":                          func(e *fsm.Event) { instFsm.pAdaptFsm.logFsmStateChange(ctx, e) },
@@ -239,6 +248,8 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler *deviceHandler,
 			"enter_" + upgradeStCommitSw:           func(e *fsm.Event) { instFsm.enterCommitSw(ctx, e) },
 			"enter_" + upgradeStCheckCommitted:     func(e *fsm.Event) { instFsm.enterCheckCommitted(ctx, e) },
 			"enter_" + upgradeStResetting:          func(e *fsm.Event) { instFsm.enterResetting(ctx, e) },
+			"enter_" + upgradeStAbortingDL:         func(e *fsm.Event) { instFsm.enterAbortingDL(ctx, e) },
+			"enter_" + upgradeStRestarting:         func(e *fsm.Event) { instFsm.enterRestarting(ctx, e) },
 			"enter_" + upgradeStDisabled:           func(e *fsm.Event) { instFsm.enterDisabled(ctx, e) },
 		},
 	)
@@ -653,7 +664,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 	go oFsm.waitOnDownloadToOnuReady(ctx, oFsm.chOnuDlReady) // start supervision of the complete download-to-ONU procedure
 
-	err = oFsm.pOmciCC.sendStartSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
+	err = oFsm.pOmciCC.sendStartSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.omciDownloadWindowSizeLimit, oFsm.origImageLength)
 	if err != nil {
 		logger.Errorw(ctx, "StartSwDl abort: can't send section", log.Fields{
@@ -661,6 +672,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		oFsm.abortOnOmciError(ctx, true, voltha.ImageState_IMAGE_UNKNOWN) //no ImageState update
 		return
 	}
+	oFsm.isEndSwDlOpen = true
 }
 
 func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Event) {
@@ -735,7 +747,7 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 				"device-id": oFsm.deviceID, "DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute})
 		}
 		oFsm.mutexUpgradeParams.Unlock() //unlock here to give other functions some chance to process during/after the send request
-		err := oFsm.pOmciCC.sendDownloadSection(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
+		err := oFsm.pOmciCC.sendDownloadSection(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 			oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, framePrint)
 		if err != nil {
 			logger.Errorw(ctx, "DlSection abort: can't send section", log.Fields{
@@ -797,8 +809,10 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 		}(pBaseFsm)
 		return
 	}
-	err := oFsm.pOmciCC.sendEndSoftwareDownload(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
+	err := oFsm.pOmciCC.sendEndSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, oFsm.origImageLength, oFsm.imageCRC)
+
+	oFsm.isEndSwDlOpen = false // also to be reset in case of OMCI error, as further send attempts would not make sense
 	if err != nil {
 		logger.Errorw(ctx, "EndSwDl abort: can't send section", log.Fields{
 			"device-id": oFsm.deviceID, "error": err})
@@ -893,7 +907,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckImageName(ctx context.Context, e *fsm.Event
 	logger.Debugw(ctx, "OnuUpgradeFsm checking downloaded image name", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
-	meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+	meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.Background(), ctx),
 		me.SoftwareImageClassID, oFsm.inactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout,
 		false, oFsm.pAdaptFsm.commChan)
 	if err != nil {
@@ -909,7 +923,7 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm activate SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 
-	err := oFsm.pOmciCC.sendActivateSoftware(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
+	err := oFsm.pOmciCC.sendActivateSoftware(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID)
 	if err != nil {
 		logger.Errorw(ctx, "ActivateSw abort: can't send activate frame", log.Fields{
@@ -936,7 +950,7 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 				"device-id": oFsm.deviceID, "me-id": inactiveImageID}) //more efficient activeImageID with above check
 			oFsm.volthaImageState = voltha.ImageState_IMAGE_COMMITTING
 			oFsm.mutexUpgradeParams.Unlock()
-			err := oFsm.pOmciCC.sendCommitSoftware(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
+			err := oFsm.pOmciCC.sendCommitSoftware(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
 				oFsm.pAdaptFsm.commChan, inactiveImageID) //more efficient activeImageID with above check
 			if err != nil {
 				logger.Errorw(ctx, "CommitSw abort: can't send commit sw frame", log.Fields{
@@ -971,7 +985,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event
 	logger.Debugw(ctx, "OnuUpgradeFsm checking committed SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.inactiveImageMeID})
 	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
-	meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
+	meInstance, err := oFsm.pOmciCC.sendGetMe(log.WithSpanFromContext(context.Background(), ctx),
 		me.SoftwareImageClassID, oFsm.inactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false, oFsm.pAdaptFsm.commChan)
 	if err != nil {
 		logger.Errorw(ctx, "OnuUpgradeFsm get Software Image ME result error",
@@ -1000,7 +1014,69 @@ func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 	case oFsm.chOnuDlReady <- false:
 	default:
 	}
+	pConfigupgradeStateAFsm := oFsm.pAdaptFsm
+	if pConfigupgradeStateAFsm != nil {
+		var nextEvent string
+		if oFsm.isEndSwDlOpen {
+			nextEvent = upgradeEvAbortSwDownload
+		} else {
+			nextEvent = upgradeEvRestart
+		}
+		// Can't call FSM Event directly, decoupling it
+		go func(a_pAFsm *AdapterFsm) {
+			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+				_ = a_pAFsm.pFsm.Event(nextEvent)
+			}
+		}(pConfigupgradeStateAFsm)
+	}
+}
 
+func (oFsm *OnuUpgradeFsm) enterAbortingDL(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "OnuUpgradeFsm aborting download to ONU", log.Fields{"device-id": oFsm.deviceID})
+
+	pBaseFsm := oFsm.pAdaptFsm
+	if pBaseFsm == nil {
+		logger.Errorw(ctx, "OnuUpgradeFsm aborting download: BaseFsm invalid", log.Fields{"device-id": oFsm.deviceID})
+		return
+	}
+	// abort the download operation by sending an end software download message with invalid CRC and image size
+	err := oFsm.pOmciCC.sendEndSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, false,
+		oFsm.pAdaptFsm.commChan, oFsm.inactiveImageMeID, 0, 0xFFFFFFFF)
+
+	oFsm.isEndSwDlOpen = false // also to be reset in case of OMCI error, as further send attempts would not make sense
+
+	if err != nil {
+		logger.Errorw(ctx, "OnuUpgradeFsm aborting download: can't send EndSwDl request", log.Fields{"device-id": oFsm.deviceID})
+		// Can't call FSM Event directly, decoupling it
+		go func(a_pAFsm *AdapterFsm) {
+			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+				_ = a_pAFsm.pFsm.Event(upgradeEvRestart)
+			}
+		}(pBaseFsm)
+		return
+	}
+	select {
+	case <-time.After(oFsm.pOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
+		logger.Warnw(ctx, "OnuUpgradeFsm aborting download: timeout - no response received", log.Fields{"device-id": oFsm.deviceID})
+		go func(a_pAFsm *AdapterFsm) {
+			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+				_ = a_pAFsm.pFsm.Event(upgradeEvRestart)
+			}
+		}(pBaseFsm)
+		return
+	case <-oFsm.chReceiveAbortEndSwDlResponse:
+		logger.Debug(ctx, "OnuUpgradeFsm aborting download: response received")
+		go func(a_pAFsm *AdapterFsm) {
+			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
+				_ = a_pAFsm.pFsm.Event(upgradeEvRestart)
+			}
+		}(pBaseFsm)
+		return
+	}
+}
+
+func (oFsm *OnuUpgradeFsm) enterRestarting(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "OnuUpgradeFsm restarting", log.Fields{"device-id": oFsm.deviceID})
 	pConfigupgradeStateAFsm := oFsm.pAdaptFsm
 	if pConfigupgradeStateAFsm != nil {
 		// abort running message processing
@@ -1016,7 +1092,7 @@ func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 		// Can't call FSM Event directly, decoupling it
 		go func(a_pAFsm *AdapterFsm) {
 			if a_pAFsm != nil && a_pAFsm.pFsm != nil {
-				_ = a_pAFsm.pFsm.Event(upgradeEvRestart)
+				_ = a_pAFsm.pFsm.Event(upgradeEvDisable)
 			}
 		}(pConfigupgradeStateAFsm)
 	}
@@ -1205,6 +1281,13 @@ func (oFsm *OnuUpgradeFsm) handleOmciOnuUpgradeMessage(ctx context.Context, msg 
 		} //DownloadSectionResponseType
 	case omci.EndSoftwareDownloadResponseType:
 		{
+			if oFsm.pAdaptFsm.pFsm.Is(upgradeStAbortingDL) {
+				// calling FSM events in background to avoid blocking of the caller
+				go func(aPAFsm *AdapterFsm) {
+					oFsm.chReceiveAbortEndSwDlResponse <- true
+				}(oFsm.pAdaptFsm)
+				return
+			}
 			msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeEndSoftwareDownloadResponse)
 			if msgLayer == nil {
 				logger.Errorw(ctx, "Omci Msg layer could not be detected for EndSwDlResponse",
