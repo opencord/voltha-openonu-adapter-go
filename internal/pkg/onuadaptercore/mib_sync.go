@@ -316,6 +316,11 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if !oo.baseDeviceHandler.getAlarmManagerIsRunning(ctx) {
 			go oo.baseDeviceHandler.startAlarmManager(ctx)
 		}
+
+		if !oo.baseDeviceHandler.getFlowMonitoringIsRunning() {
+			go oo.baseDeviceHandler.perOnuFlowHandlerRoutine()
+		}
+
 		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
 

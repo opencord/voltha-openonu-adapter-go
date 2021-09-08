@@ -73,6 +73,11 @@ const (
 	// compare python code - at the moment restrict active state to the first ONU UNI port
 	// check is limited to max 16 uni ports - cmp above UNI limit!!!
 	defaultUniPortMask = 0x0001
+
+	// Defines the maximum number of flows (add/remove) that can be queued for the ONU
+	// Assuming 15 flows per ONU and 4 UNI, this translates to 60
+	// This is configurable at startup
+	defaultMaxConcurrentFlowsPerOnu = 60
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -114,6 +119,7 @@ type AdapterFlags struct {
 	DownloadToAdapterTimeout    time.Duration
 	DownloadToOnuTimeout4MB     time.Duration
 	UniPortMask                 int
+	MaxConcurrentFlowsPerOnu    int
 }
 
 // NewAdapterFlags returns a new RWCore config
@@ -155,6 +161,7 @@ func NewAdapterFlags() *AdapterFlags {
 		DownloadToAdapterTimeout:    defaultDlToAdapterTimeout,
 		DownloadToOnuTimeout4MB:     defaultDlToOnuTimeoutPer4MB,
 		UniPortMask:                 defaultUniPortMask,
+		MaxConcurrentFlowsPerOnu:    defaultMaxConcurrentFlowsPerOnu,
 	}
 	return &adapterFlags
 }
@@ -268,6 +275,9 @@ func (so *AdapterFlags) ParseCommandArguments() {
 
 	help = "The bitmask to identify UNI ports that need to be enabled"
 	flag.IntVar(&(so.UniPortMask), "uni_port_mask", defaultUniPortMask, help)
+
+	help = "The max number of concurrent flows (add/remove) that can be queued per ONU"
+	flag.IntVar(&(so.MaxConcurrentFlowsPerOnu), "max_concurrent_flows_per_onu", defaultMaxConcurrentFlowsPerOnu, help)
 
 	flag.Parse()
 	containerName := getContainerInfo()
