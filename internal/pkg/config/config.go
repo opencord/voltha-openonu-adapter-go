@@ -71,6 +71,7 @@ type AdapterFlags struct {
 	GrpcAddress                 string
 	CoreEndpoint                string
 	RPCTimeout                  time.Duration
+	MaxConcurrentFlowsPerUni    int
 }
 
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
@@ -270,6 +271,10 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"max_retry_delay",
 		10*time.Second,
 		"The maximum number of milliseconds to delay before a connection retry attempt")
+	fs.IntVar(&(so.MaxConcurrentFlowsPerUni),
+		"max_concurrent_flows_per_uni",
+		16,
+		"The max number of concurrent flows (add/remove) that can be queued per UNI")
 
 	_ = fs.Parse(args)
 	containerName := getContainerInfo()
