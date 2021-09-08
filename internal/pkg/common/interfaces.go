@@ -76,6 +76,8 @@ type IdeviceHandler interface {
 	GetAlarmManagerIsRunning(context.Context) bool
 	StartAlarmManager(context.Context)
 
+	GetFlowMonitoringIsRunning(uniID uint8) bool
+
 	CheckAuditStartCondition(context.Context, UsedOmciConfigFsms) bool
 
 	RemoveOnuUpgradeFsm(context.Context, *voltha.ImageState)
@@ -112,6 +114,8 @@ type IdeviceHandler interface {
 
 	SendOMCIRequest(context.Context, string, *ic.OmciMessage) error
 	CreatePortInCore(context.Context, *voltha.Port) error
+
+	PerOnuFlowHandlerRoutine(uniID uint8)
 }
 
 // IonuDeviceEntry interface to onuDeviceEntry
