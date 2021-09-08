@@ -74,6 +74,7 @@ type OpenONUAC struct {
 	omciTimeout                int // in seconds
 	alarmAuditInterval         time.Duration
 	dlToOnuTimeout4M           time.Duration
+	maxConcurrentFlowsPerUni   int
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -110,6 +111,7 @@ func NewOpenONUAC(ctx context.Context, kafkaICProxy kafka.InterContainerProxy,
 	openOnuAc.omciTimeout = int(cfg.OmciTimeout.Seconds())
 	openOnuAc.alarmAuditInterval = cfg.AlarmAuditInterval
 	openOnuAc.dlToOnuTimeout4M = cfg.DownloadToOnuTimeout4MB
+	openOnuAc.maxConcurrentFlowsPerUni = cfg.MaxConcurrentFlowsPerUni
 
 	openOnuAc.pSupportedFsms = &OmciDeviceFsms{
 		"mib-synchronizer": {
@@ -420,6 +422,12 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 		if handler.pSelfTestHdlr.GetSelfTestHandlerIsRunning() {
 			handler.pSelfTestHdlr.stopSelfTestModule <- true
 			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
+		}
+		for i := 0; i < maxUnisPerOnu; i++ {
+			if handler.getFlowMonitoringIsRunning(uint8(i)) {
+				handler.stopFlowMonitoringRoutine[i] <- true
+				logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id})
+			}
 		}
 
 		// Clear PM data on the KV store
