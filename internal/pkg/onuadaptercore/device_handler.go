@@ -166,6 +166,16 @@ const (
 	cSkipOnuConfigReconciling
 )
 
+// FlowCb is the flow control block containing flow add/delete information along with a response channel
+type FlowCb struct {
+	ctx          context.Context // Flow handler context
+	addFlow      bool            // if true flow to be added, else removed
+	flowItem     *ofp.OfpFlowStats
+	uniPort      *onuUniPort
+	flowMetaData *voltha.FlowMetadata
+	respChan     *chan error // channel to report the Flow handling error
+}
+
 //deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
 	deviceID         string
@@ -234,6 +244,11 @@ type deviceHandler struct {
 	mutexDeletionInProgressFlag sync.RWMutex
 	pLastUpgradeImageState      *voltha.ImageState
 	upgradeFsmChan              chan struct{}
+
+	flowCbChan                     chan FlowCb
+	mutexFlowMonitoringRoutineFlag sync.RWMutex
+	stopFlowMonitoringRoutine      chan bool
+	isFlowMonitoringRoutineActive  bool
 }
 
 //newDeviceHandler creates a new device handler
@@ -275,6 +290,9 @@ func newDeviceHandler(ctx context.Context, cp adapterif.CoreProxy, ap adapterif.
 		ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
 	}
 	dh.upgradeFsmChan = make(chan struct{})
+
+	dh.stopFlowMonitoringRoutine = make(chan bool)
+	dh.flowCbChan = make(chan FlowCb, dh.pOpenOnuAc.maxConcurrentFlowsPerOnu)
 
 	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
 		dh.pmConfigs = cloned.PmConfigs
@@ -662,8 +680,9 @@ func (dh *deviceHandler) processInterAdapterMessage(ctx context.Context, msg *ic
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *openflow_13.FlowChanges,
 	apOfGroupChanges *openflow_13.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
-	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID, "metadata": apFlowMetaData})
-	var retError error = nil
+	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.deviceID, "flow": apOfFlowChanges, "metadata": apFlowMetaData})
+	var errorsList []error
+	var retError error
 	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
 	if apOfFlowChanges.ToRemove != nil {
 		for _, flowItem := range apOfFlowChanges.ToRemove.Items {
@@ -671,12 +690,14 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				logger.Warnw(ctx, "flow-remove no cookie: ignore and continuing on checking further flows", log.Fields{
 					"device-id": dh.deviceID})
 				retError = fmt.Errorf("flow-remove no cookie, device-id %s", dh.deviceID)
+				errorsList = append(errorsList, retError)
 				continue
 			}
 			flowInPort := flow.GetInPort(flowItem)
 			if flowInPort == uint32(of.OfpPortNo_OFPP_INVALID) {
 				logger.Warnw(ctx, "flow-remove inPort invalid: ignore and continuing on checking further flows", log.Fields{"device-id": dh.deviceID})
 				retError = fmt.Errorf("flow-remove inPort invalid, device-id %s", dh.deviceID)
+				errorsList = append(errorsList, retError)
 				continue
 				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
@@ -694,22 +715,43 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 						log.Fields{"device-id": dh.deviceID, "inPort": flowInPort})
 					retError = fmt.Errorf("flow-remove inPort not found in UniPorts, inPort %d, device-id %s",
 						flowInPort, dh.deviceID)
+					errorsList = append(errorsList, retError)
 					continue
 				}
 				flowOutPort := flow.GetOutPort(flowItem)
 				logger.Debugw(ctx, "flow-remove port indications", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
 					"uniPortName": loUniPort.name})
-				err := dh.removeFlowItemFromUniPort(ctx, flowItem, loUniPort)
-				//try next flow after processing error
-				if err != nil {
-					logger.Warnw(ctx, "flow-remove processing error: continuing on checking further flows",
-						log.Fields{"device-id": dh.deviceID, "error": err})
-					retError = err
-					continue
-					//return err
-				} else { // if last setting succeeds, overwrite possibly previously set error
-					retError = nil
+
+				if dh.getFlowMonitoringIsRunning() {
+					// Step1 : Fill flowControlBlock
+					// Step2 : Push the flowControlBlock to ONU channel
+					// Step3 : Wait on response channel for response
+					// Step4 : Return error value
+					startTime := time.Now()
+					logger.Infow(ctx, "process-flow", log.Fields{"device-id": dh.deviceID, "addFlow": false})
+					respChan := make(chan error)
+					flowCb := FlowCb{
+						ctx:          ctx,
+						addFlow:      false,
+						flowItem:     flowItem,
+						flowMetaData: nil,
+						uniPort:      loUniPort,
+						respChan:     &respChan,
+					}
+					dh.flowCbChan <- flowCb
+					// Wait on the channel for flow handlers return value
+					retError = <-respChan
+					logger.Infow(ctx, "process-flow--received-resp", log.Fields{"device-id": dh.deviceID, "err": retError, "totalTimeSeconds": time.Since(startTime).Seconds()})
+					if retError != nil {
+						logger.Warnw(ctx, "flow-delete processing error: continuing on checking further flows",
+							log.Fields{"device-id": dh.deviceID, "error": retError})
+						errorsList = append(errorsList, retError)
+						continue
+					}
+				} else {
+					retError = fmt.Errorf("flow-handler-routine-not-active-for-onu--device-id-%v", dh.deviceID)
+					errorsList = append(errorsList, retError)
 				}
 			}
 		}
@@ -720,12 +762,14 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				logger.Debugw(ctx, "incremental flow-add no cookie: ignore and continuing on checking further flows", log.Fields{
 					"device-id": dh.deviceID})
 				retError = fmt.Errorf("flow-add no cookie, device-id %s", dh.deviceID)
+				errorsList = append(errorsList, retError)
 				continue
 			}
 			flowInPort := flow.GetInPort(flowItem)
 			if flowInPort == uint32(of.OfpPortNo_OFPP_INVALID) {
 				logger.Warnw(ctx, "flow-add inPort invalid: ignore and continuing on checking further flows", log.Fields{"device-id": dh.deviceID})
 				retError = fmt.Errorf("flow-add inPort invalid, device-id %s", dh.deviceID)
+				errorsList = append(errorsList, retError)
 				continue
 				//return fmt.Errorf("flow inPort invalid: %s", dh.deviceID)
 			} else if flowInPort == dh.ponPortNumber {
@@ -743,6 +787,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 						log.Fields{"device-id": dh.deviceID, "inPort": flowInPort})
 					retError = fmt.Errorf("flow-add inPort not found in UniPorts, inPort %d, device-id %s",
 						flowInPort, dh.deviceID)
+					errorsList = append(errorsList, retError)
 					continue
 					//return fmt.Errorf("flow-parameter inPort %d not found in internal UniPorts", flowInPort)
 				}
@@ -762,21 +807,44 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 				logger.Debugw(ctx, "flow-add port indications", log.Fields{
 					"device-id": dh.deviceID, "inPort": flowInPort, "outPort": flowOutPort,
 					"uniPortName": loUniPort.name})
-				err := dh.addFlowItemToUniPort(ctx, flowItem, loUniPort, apFlowMetaData)
-				//try next flow after processing error
-				if err != nil {
-					logger.Warnw(ctx, "flow-add processing error: continuing on checking further flows",
-						log.Fields{"device-id": dh.deviceID, "error": err})
-					retError = err
-					continue
-					//return err
-				} else { // if last setting succeeds, overwrite possibly previously set error
-					retError = nil
+				if dh.getFlowMonitoringIsRunning() {
+					// Step1 : Fill flowControlBlock
+					// Step2 : Push the flowControlBlock to ONU channel
+					// Step3 : Wait on response channel for response
+					// Step4 : Return error value
+					startTime := time.Now()
+					logger.Infow(ctx, "process-flow", log.Fields{"device-id": dh.deviceID, "addFlow": true})
+					respChan := make(chan error)
+					flowCb := FlowCb{
+						ctx:          ctx,
+						addFlow:      true,
+						flowItem:     flowItem,
+						flowMetaData: apFlowMetaData,
+						uniPort:      loUniPort,
+						respChan:     &respChan,
+					}
+					dh.flowCbChan <- flowCb
+					// Wait on the channel for flow handlers return value
+					retError = <-respChan
+					logger.Infow(ctx, "process-flow--received-resp", log.Fields{"device-id": dh.deviceID, "err": retError, "totalTimeSeconds": time.Since(startTime).Seconds()})
+					if retError != nil {
+						logger.Warnw(ctx, "flow-add processing error: continuing on checking further flows",
+							log.Fields{"device-id": dh.deviceID, "error": retError})
+						errorsList = append(errorsList, retError)
+						continue
+					}
+				} else {
+					retError = fmt.Errorf("flow-handler-routine-not-active-for-onu--device-id-%v", dh.deviceID)
+					errorsList = append(errorsList, retError)
 				}
 			}
 		}
 	}
-	return retError
+	if len(errorsList) > 0 {
+		logger.Errorw(ctx, "error-processing-flow", log.Fields{"device-id": dh.deviceID, "errList": errorsList})
+		return fmt.Errorf("errors-installing-one-or-more-flows-groups, errors:%v", errorsList)
+	}
+	return nil
 }
 
 //disableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
@@ -1062,13 +1130,13 @@ func (dh *deviceHandler) reconcileDeviceFlowConfig(ctx context.Context) {
 			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
 				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
 					flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile, flowData.Meter); err != nil {
+					uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile, flowData.Meter, nil); err != nil {
 					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			} else {
 				if err := dh.createVlanFilterFsm(ctx, uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
 					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter); err != nil {
+					uint8(flowData.VlanRuleParams.SetPcp), OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
 					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.deviceID})
 				}
 			}
@@ -2116,6 +2184,10 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		dh.pSelfTestHdlr.stopSelfTestModule <- true
 	}
 
+	if dh.getFlowMonitoringIsRunning() {
+		dh.stopFlowMonitoringRoutine <- true
+	}
+
 	//reset a possibly running upgrade FSM
 	//  (note the Upgrade FSM may stay alive e.g. in state upgradeStWaitForCommit to endure the ONU reboot)
 	dh.lockUpgradeFsm.RLock()
@@ -2227,6 +2299,10 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	}
 	if !dh.getAlarmManagerIsRunning(ctx) {
 		go dh.startAlarmManager(ctx)
+	}
+
+	if !dh.getFlowMonitoringIsRunning() {
+		go dh.perOnuFlowHandlerRoutine()
 	}
 
 	// Initialize classical L2 PM Interval Counters
@@ -2966,7 +3042,7 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *ofp.Ofp
 
 //addFlowItemToUniPort parses the actual flow item to add it to the UniPort
 func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *ofp.OfpFlowStats, apUniPort *onuUniPort,
-	apFlowMetaData *voltha.FlowMetadata) error {
+	apFlowMetaData *voltha.FlowMetadata, respChan *chan error) {
 	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
 	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
 	var loAddPcp, loSetPcp uint8
@@ -2985,7 +3061,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	if metadata == 0 {
 		logger.Debugw(ctx, "flow-add invalid metadata - abort",
 			log.Fields{"device-id": dh.deviceID})
-		return fmt.Errorf("flow-add invalid metadata: %s", dh.deviceID)
+		*respChan <- fmt.Errorf("flow-add invalid metadata: %s", dh.deviceID)
 	}
 	loTpID := uint8(flow.GetTechProfileIDFromWriteMetaData(ctx, metadata))
 	loCookie := apFlowItem.GetCookie()
@@ -3012,7 +3088,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 			"match_vid": strconv.FormatInt(int64(loMatchVlan), 16)})
 		//TODO!!: Use DeviceId within the error response to rwCore
 		//  likewise also in other error response cases to calling components as requested in [VOL-3458]
-		return fmt.Errorf("flow-add Set/Match VlanId inconsistent: %s", dh.deviceID)
+		*respChan <- fmt.Errorf("flow-add Set/Match VlanId inconsistent: %s", dh.deviceID)
 	}
 	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) {
 		logger.Debugw(ctx, "flow-add vlan-any/copy", log.Fields{"device-id": dh.deviceID})
@@ -3040,23 +3116,26 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
 		//SetUniFlowParams() may block on some rule that is suspended-to-add
 		//  in order to allow for according flow removal lockVlanConfig may only be used with RLock here
-		err := dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
-			loMatchVlan, loSetVlan, loSetPcp, false, meter)
+		// Also the error is returned to caller via response channel
+		_ = dh.UniVlanConfigFsmMap[apUniPort.uniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
+			loMatchVlan, loSetVlan, loSetPcp, false, meter, respChan)
 		dh.lockVlanConfig.RUnlock()
 		dh.lockVlanAdd.Unlock() //re-admit new Add-flow-processing
-		return err
+		return
 	}
 	dh.lockVlanConfig.RUnlock()
 	dh.lockVlanConfig.Lock() //createVlanFilterFsm should always be a non-blocking operation and requires r+w lock
 	err := dh.createVlanFilterFsm(ctx, apUniPort, loTpID, loCookieSlice,
-		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone, false, meter)
+		loMatchVlan, loSetVlan, loSetPcp, OmciVlanFilterAddDone, false, meter, respChan)
 	dh.lockVlanConfig.Unlock()
 	dh.lockVlanAdd.Unlock() //re-admit new Add-flow-processing
-	return err
+	if err != nil {
+		*respChan <- err
+	}
 }
 
 //removeFlowItemFromUniPort parses the actual flow item to remove it from the UniPort
-func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowItem *ofp.OfpFlowStats, apUniPort *onuUniPort) error {
+func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowItem *ofp.OfpFlowStats, apUniPort *onuUniPort, respChan *chan error) {
 	//optimization and assumption: the flow cookie uniquely identifies the flow and with that the internal rule
 	//hence only the cookie is used here to find the relevant flow and possibly remove the rule
 	//no extra check is done on the rule parameters
@@ -3089,22 +3168,31 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 	defer dh.lockVlanConfig.RUnlock()
 	logger.Debugw(ctx, "flow-remove got RLock", log.Fields{"device-id": dh.deviceID, "uniID": apUniPort.uniID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.uniID]; exist {
-		return dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(ctx, loCookie)
+		_ = dh.UniVlanConfigFsmMap[apUniPort.uniID].RemoveUniFlowParams(ctx, loCookie, respChan)
+	} else {
+		logger.Debugw(ctx, "flow-remove called, but no flow is configured (no VlanConfigFsm, flow already removed) ",
+			log.Fields{"device-id": dh.deviceID})
+		//but as we regard the flow as not existing = removed we respond just ok
+		// and treat the reason accordingly (which in the normal removal procedure is initiated by the FSM)
+		// Push response on the response channel
+		if respChan != nil {
+			// Do it in a non blocking fashion, so that in case the flow handler routine has shutdown for any reason, we do not block here
+			select {
+			case *respChan <- nil:
+				logger.Debugw(ctx, "submitted-response-for-flow", log.Fields{"device-id": dh.deviceID, "err": nil})
+			default:
+			}
+		}
 	}
-	logger.Debugw(ctx, "flow-remove called, but no flow is configured (no VlanConfigFsm, flow already removed) ",
-		log.Fields{"device-id": dh.deviceID})
-	//but as we regard the flow as not existing = removed we respond just ok
-	// and treat the reason accordingly (which in the normal removal procedure is initiated by the FSM)
 	go dh.deviceProcStatusUpdate(ctx, OmciVlanFilterRemDone)
-
-	return nil
 }
 
 // createVlanFilterFsm initializes and runs the VlanFilter FSM to transfer OMCI related VLAN config
 // if this function is called from possibly concurrent processes it must be mutex-protected from the caller!
 // precondition: dh.lockVlanConfig is locked by the caller!
 func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onuUniPort, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent, lastFlowToReconcile bool, aMeter *voltha.OfpMeterConfig) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent OnuDeviceEvent, lastFlowToReconcile bool,
+	aMeter *voltha.OfpMeterConfig, respChan *chan error) error {
 	chVlanFilterFsm := make(chan Message, 2048)
 
 	pDevEntry := dh.getOnuDeviceEntry(ctx, true)
@@ -3115,7 +3203,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *onu
 
 	pVlanFilterFsm := NewUniVlanConfigFsm(ctx, dh, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
 		pDevEntry.pOnuDB, aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
-		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, lastFlowToReconcile, aMeter)
+		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, lastFlowToReconcile, aMeter, respChan)
 	if pVlanFilterFsm != nil {
 		//dh.lockVlanConfig is locked (by caller) throughout the state transition to 'starting'
 		// to prevent unintended (ignored) events to be sent there (from parallel processing)
@@ -3648,6 +3736,21 @@ func (dh *deviceHandler) getAlarmManagerIsRunning(ctx context.Context) bool {
 	return flagValue
 }
 
+func (dh *deviceHandler) getFlowMonitoringIsRunning() bool {
+	dh.mutexFlowMonitoringRoutineFlag.RLock()
+	defer dh.mutexFlowMonitoringRoutineFlag.RUnlock()
+	logger.Debugw(context.Background(), "get-flow-monitoring-routine",
+		log.Fields{"isFlowMonitoringRoutineActive": dh.isFlowMonitoringRoutineActive})
+	return dh.isFlowMonitoringRoutineActive
+}
+
+func (dh *deviceHandler) setFlowMonitoringIsRunning(flag bool) {
+	dh.mutexFlowMonitoringRoutineFlag.Lock()
+	defer dh.mutexFlowMonitoringRoutineFlag.Unlock()
+	logger.Debugw(context.Background(), "set-flow-monitoring-routine", log.Fields{"flag": flag})
+	dh.isFlowMonitoringRoutineActive = flag
+}
+
 func (dh *deviceHandler) startAlarmManager(ctx context.Context) {
 	logger.Debugf(ctx, "startingAlarmManager")
 
@@ -3822,5 +3925,31 @@ func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, device
 	if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.deviceID, connectStatus, voltha.OperStatus_RECONCILING_FAILED); err != nil {
 		logger.Errorw(ctx, "unable to update device state to core",
 			log.Fields{"device-id": dh.deviceID, "Err": err})
+	}
+}
+
+// This routine is unique per ONU ID and blocks on flowControlBlock channel for incoming flows
+// Each incoming flow is processed in a synchronous manner, i.e., the flow is processed to completion before picking another
+func (dh *deviceHandler) perOnuFlowHandlerRoutine() {
+	logger.Infow(context.Background(), "starting-flow-handler-routine", log.Fields{"device-id": dh.deviceID})
+	dh.setFlowMonitoringIsRunning(true)
+	for {
+		select {
+		// block on the channel to receive an incoming flow
+		// process the flow completely before proceeding to handle the next flow
+		case flowCb := <-dh.flowCbChan:
+			respChan := make(chan error)
+			if flowCb.addFlow {
+				go dh.addFlowItemToUniPort(flowCb.ctx, flowCb.flowItem, flowCb.uniPort, flowCb.flowMetaData, &respChan)
+			} else {
+				go dh.removeFlowItemFromUniPort(flowCb.ctx, flowCb.flowItem, flowCb.uniPort, &respChan)
+			}
+			// Block on response and tunnel it back to the caller
+			*flowCb.respChan <- <-respChan
+		case <-dh.stopFlowMonitoringRoutine:
+			logger.Infow(context.Background(), "stopping-flow-handler-routine", log.Fields{"device-id": dh.deviceID})
+			dh.setFlowMonitoringIsRunning(false)
+			return
+		}
 	}
 }
