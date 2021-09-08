@@ -421,6 +421,10 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 			handler.pSelfTestHdlr.stopSelfTestModule <- true
 			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
 		}
+		if handler.getFlowMonitoringIsRunning() {
+			handler.stopFlowMonitoringRoutine <- true
+			logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id})
+		}
 
 		// Clear PM data on the KV store
 		if handler.pOnuMetricsMgr != nil {
