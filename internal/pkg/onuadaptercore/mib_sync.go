@@ -317,6 +317,16 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if !oo.baseDeviceHandler.getAlarmManagerIsRunning(ctx) {
 			go oo.baseDeviceHandler.startAlarmManager(ctx)
 		}
+
+		for _, uniPort := range oo.baseDeviceHandler.uniEntityMap {
+			// only if this port was enabled for use by the operator at startup
+			if (1<<uniPort.uniID)&oo.pOpenOnuAc.config.UniPortMask == (1 << uniPort.uniID) {
+				if !oo.baseDeviceHandler.getFlowMonitoringIsRunning(uniPort.uniID) {
+					go oo.baseDeviceHandler.perOnuFlowHandlerRoutine(uniPort.uniID)
+				}
+			}
+		}
+
 		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
 
