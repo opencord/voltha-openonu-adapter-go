@@ -79,6 +79,7 @@ type OpenONUAC struct {
 	alarmAuditInterval         time.Duration
 	dlToOnuTimeout4M           time.Duration
 	rpcTimeout                 time.Duration
+	maxConcurrentFlowsPerUni   int
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -330,6 +331,12 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		if handler.pSelfTestHdlr.GetSelfTestHandlerIsRunning() {
 			handler.pSelfTestHdlr.StopSelfTestModule <- true
 			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
+		}
+		for i := 0; i < maxUnisPerOnu; i++ {
+			if handler.GetFlowMonitoringIsRunning(uint8(i)) {
+				handler.stopFlowMonitoringRoutine[i] <- true
+				logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id})
+			}
 		}
 
 		// Clear PM data on the KV store

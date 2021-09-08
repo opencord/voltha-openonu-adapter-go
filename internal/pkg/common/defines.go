@@ -314,6 +314,7 @@ type UniVlanFlowParams struct {
 	CookieSlice    []uint64               `json:"cookie_slice"`
 	VlanRuleParams UniVlanRuleParams      `json:"vlan_rule_params"`
 	Meter          *voltha.OfpMeterConfig `json:"flow_meter"`
+	RespChan       *chan error
 }
 
 ///////////////////////////////////////////////////////////
