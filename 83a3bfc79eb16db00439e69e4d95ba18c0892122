@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f88e3c87_c952478d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-09-09T06:19:49Z",
+      "side": 1,
+      "message": "This counter is not enough for multi UNI at TT workflow.",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
