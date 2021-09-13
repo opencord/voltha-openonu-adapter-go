@@ -1,6 +1,7 @@
 {
   "comments": [
     {
+      "unresolved": true,
       "key": {
         "uuid": "f88e3c87_c952478d",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
@@ -14,8 +15,144 @@
       "side": 1,
       "message": "This counter is not enough for multi UNI at TT workflow.",
       "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
-      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
-      "unresolved": true
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6e2bf496_dfb8f739",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "shall we have this per UNI ? would that be possible ? if not bring it to i think 60, which should be 15 * 4 UNIs. Also possibly make it a configurable startup property",
+      "parentUuid": "f88e3c87_c952478d",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dcb4da3f_793e373d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 741,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "might want to lower this to debug, otherwise a bit chatty.",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "be2d2321_0faefabf",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 755,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "same",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "569104d3_5e7f3aee",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 766,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "this can probably be removed",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9d216f1f_d19740c3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 840,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "same",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9d773495_065c9a7f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 854,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "same",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "77ee5975_a57c251f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 865,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "same",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0d3b4396_b9be15e0",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 3208,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-13T11:37:23Z",
+      "side": 1,
+      "message": "i\u0027m wondering if this will not cause unwanted behaviour, because the method will continue here instead of returning, which might not be desired",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
