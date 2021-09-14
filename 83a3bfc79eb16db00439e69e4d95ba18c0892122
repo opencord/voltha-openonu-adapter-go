@@ -38,6 +38,98 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a1182078_465b9b5b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-09-14T08:42:28Z",
+      "side": 1,
+      "message": "mutexFlowMonitoringRoutuneFlag  -\u003e mutexFlowMonitoringRoutineFlag",
+      "range": {
+        "startLine": 254,
+        "startChar": 1,
+        "endLine": 254,
+        "endChar": 32
+      },
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "38757270_8d436587",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 302,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-09-14T08:42:28Z",
+      "side": 1,
+      "message": "handling -\u003e handle",
+      "range": {
+        "startLine": 302,
+        "startChar": 28,
+        "endLine": 302,
+        "endChar": 37
+      },
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d11da368_ed426bf2",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 303,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-09-14T08:42:28Z",
+      "side": 1,
+      "message": "on -\u003e one",
+      "range": {
+        "startLine": 303,
+        "startChar": 18,
+        "endLine": 303,
+        "endChar": 21
+      },
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c943fa8c_b17a33c4",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 305,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-09-14T08:42:28Z",
+      "side": 1,
+      "message": "Why is the routine already started here - it will be called in deviceHandler::processMibDownloadDoneEvent() anyway?\nIf it would be removed here, shouldn\u0027t it be called in OnuDeviceEntry::enterExaminingMdsSuccessState() too?",
+      "range": {
+        "startLine": 305,
+        "startChar": 7,
+        "endLine": 305,
+        "endChar": 31
+      },
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "dcb4da3f_793e373d",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 4
