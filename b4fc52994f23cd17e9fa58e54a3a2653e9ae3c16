@@ -16,6 +16,23 @@
       "message": "hardware test\nfunctional tests",
       "revId": "b4fc52994f23cd17e9fa58e54a3a2653e9ae3c16",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1182e07e_0125c003",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-15T00:41:18Z",
+      "side": 1,
+      "message": "This patch https://gerrit.opencord.org/c/voltha-system-tests/+/27320 is needed to pass the Sanity tests with BBSIM for ATT workflow.\nBasically the ONU state will be at stopping-omci on ONU power off (until it comes back again on power on and flows pushed). The flow processing routine is shutdown on onu going down so we do not process any flows and hence do not update any states that are affected by flow processing.",
+      "revId": "b4fc52994f23cd17e9fa58e54a3a2653e9ae3c16",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
