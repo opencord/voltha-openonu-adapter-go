@@ -279,6 +279,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "2e2f1d11_3f1e10bf",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 741,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-15T02:31:47Z",
+      "side": 1,
+      "message": "correction -\u003e\n... it will *NOT take too much space (cpu/memory)",
+      "parentUuid": "869fd1a7_9af91967",
+      "revId": "83a3bfc79eb16db00439e69e4d95ba18c0892122",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "be2d2321_0faefabf",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 4
