@@ -85,6 +85,24 @@
       "message": "also this line was not done before if the return was achieve at line 3092, please check that it\u0027s ok to invoke this go routine in all cases",
       "revId": "b4fc52994f23cd17e9fa58e54a3a2653e9ae3c16",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "03246fa1_3e90c76f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 3187,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-15T21:46:00Z",
+      "side": 1,
+      "message": "I see what you mean. Will check the code a bit to account for this in next patch.",
+      "parentUuid": "2bca8d38_62ffbbd5",
+      "revId": "b4fc52994f23cd17e9fa58e54a3a2653e9ae3c16",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
