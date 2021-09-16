@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2360fbb1_05556790",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2512,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-16T20:12:17Z",
+      "side": 1,
+      "message": "just curious if the port naming conversion \u003conuserial\u003e-\u003cindex\u003e-P naming convention changes aren\u0027t required in this function? Also what about the port speed as OFPPF_COPPER, that is set somewhere else?",
+      "range": {
+        "startLine": 2512,
+        "startChar": 6,
+        "endLine": 2512,
+        "endChar": 16
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dc862aad_fa350e4d",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-16T20:12:17Z",
+      "side": 1,
+      "message": "Can you explain where this 4 comes from?",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
