@@ -2504,6 +2504,17 @@ func (dh *deviceHandler) addAllUniPorts(ctx context.Context) {
 	} else {
 		logger.Debugw(ctx, "No VEIP instances found", log.Fields{"device-id": dh.deviceID})
 	}
+	if potsInstKeys := pDevEntry.pOnuDB.getSortedInstKeys(
+		ctx, me.PhysicalPathTerminationPointPotsUniClassID); len(potsInstKeys) > 0 {
+		for _, mgmtEntityID := range potsInstKeys {
+			logger.Debugw(ctx, "Add PPTP Pots UNI for MIB-stored instance:", log.Fields{
+				"device-id": dh.deviceID, "PPTP Pots UNI EntityID": mgmtEntityID})
+			dh.addUniPort(ctx, mgmtEntityID, i, uniPPTPPots)
+			i++
+		}
+	} else {
+		logger.Debugw(ctx, "No PPTP Pots UNI instances found", log.Fields{"device-id": dh.deviceID})
+	}
 	if i == 0 {
 		logger.Warnw(ctx, "No UniG instances found", log.Fields{"device-id": dh.deviceID})
 	}
