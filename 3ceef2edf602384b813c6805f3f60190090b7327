@@ -16,6 +16,24 @@
       "message": "// IP host config data seems incorrect, please doublecheck",
       "revId": "3ceef2edf602384b813c6805f3f60190090b7327",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "27341f43_0e5a0c60",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-09-16T13:36:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "28973080_d2c1e6e1",
+      "revId": "3ceef2edf602384b813c6805f3f60190090b7327",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
