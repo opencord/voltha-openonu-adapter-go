@@ -42,6 +42,8 @@ const (
 	uniPPTP uniPortType = 1 // relates to PPTP
 	// uniVEIP relates to VEIP
 	uniVEIP uniPortType = 11 // relates to VEIP
+	// uniPPTPPots relates to PPTP POTS
+	uniPPTPPots uniPortType = 4
 )
 
 //onuUniPort structure holds information about the ONU attached Uni Ports

@@ -52,6 +52,7 @@ var supportedClassIds = []me.ClassID{
 	me.CircuitPackClassID,                             // 6
 	me.SoftwareImageClassID,                           // 7
 	me.PhysicalPathTerminationPointEthernetUniClassID, // 11
+	me.PhysicalPathTerminationPointPotsUniClassID,     // 53
 	me.OltGClassID,                                    // 131
 	me.OnuPowerSheddingClassID,                        // 133
 	me.IpHostConfigDataClassID,                        // 134
