@@ -36,12 +36,14 @@ import (
 
 type uniPortType uint8
 
-// UniPPTP Interface type - re-use values from G.988 TP type definition (directly used in OMCI!)
+// UniPPTP Interface type - re-use values from G.988 (Chapter 9.3.4)TP type definition (directly used in OMCI!)
 const (
 	// uniPPTP relates to PPTP
 	uniPPTP uniPortType = 1 // relates to PPTP
 	// uniVEIP relates to VEIP
 	uniVEIP uniPortType = 11 // relates to VEIP
+	// uniPPTPPots relates to PPTP POTS
+	uniPPTPPots uniPortType = 4 // relates to IP host config data (for Voice Services)
 )
 
 //onuUniPort structure holds information about the ONU attached Uni Ports
