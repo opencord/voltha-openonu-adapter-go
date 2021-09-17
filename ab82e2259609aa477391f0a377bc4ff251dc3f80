@@ -50,6 +50,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "0baea9e8_54868ab8",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-17T21:40:26Z",
+      "side": 1,
+      "message": "Can you add the OMCI spec chapter reference for these numbers and also add the additional comment that you described below.",
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "dc862aad_fa350e4d",
         "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
         "patchSetId": 2
