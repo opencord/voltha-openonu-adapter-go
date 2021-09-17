@@ -48,6 +48,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "bb377a9a_fe4bdb5e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2512,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-17T21:41:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a9d12ab6_78256aa3",
+      "range": {
+        "startLine": 2512,
+        "startChar": 6,
+        "endLine": 2512,
+        "endChar": 16
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "0baea9e8_54868ab8",
@@ -126,6 +150,30 @@
       "side": 1,
       "message": "please add this as a comment to the constant. so it\u0027s easier to understand the reference.",
       "parentUuid": "b066a517_27a3cf27",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "13cbc270_c10b51c1",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-17T21:41:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a24f2651_dbf54234",
       "range": {
         "startLine": 46,
         "startChar": 26,
