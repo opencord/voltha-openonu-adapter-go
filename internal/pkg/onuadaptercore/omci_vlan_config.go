@@ -339,6 +339,10 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 		"SetVid":    strconv.FormatInt(int64(loRuleParams.SetVid), 16),
 		"SetPcp":    loRuleParams.SetPcp,
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
+
+	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+		oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid))
+	}
 	oFsm.numUniFlows = 1
 	oFsm.uniRemoveFlowsSlice = make([]uniRemoveVlanFlowParams, 0) //initially nothing to remove
 
@@ -549,6 +553,9 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				"SetPcp":   loRuleParams.SetPcp, "numberofFlows": oFsm.numUniFlows + 1,
 				"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 
+			if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
+				oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid))
+			}
 			oFsm.numUniFlows++
 			pConfigVlanStateBaseFsm := oFsm.pAdaptFsm.pFsm
 
@@ -3104,4 +3111,19 @@ func (oFsm *UniVlanConfigFsm) IsFlowRemovePending(aFlowDeleteChannel chan<- bool
 		return true
 	}
 	return false
+}
+
+func (oFsm *UniVlanConfigFsm) reconcileVlanFilterList(ctx context.Context, aSetVid uint16) {
+	// VOL-4342 - reconcile vlanFilterList[] for possible later flow removal
+	if aSetVid == uint16(of.OfpVlanId_OFPVID_PRESENT) {
+		logger.Debugw(ctx, "reconciling - transparent setup: no VTFD config was required",
+			log.Fields{"device-id": oFsm.deviceID})
+	} else {
+		oFsm.vlanFilterList[oFsm.numVlanFilterEntries] = aSetVid
+		logger.Debugw(ctx, "reconciling - Vid of VTFD stored in list", log.Fields{
+			"index":     oFsm.numVlanFilterEntries,
+			"vid":       strconv.FormatInt(int64(oFsm.vlanFilterList[oFsm.numVlanFilterEntries]), 16),
+			"device-id": oFsm.deviceID})
+		oFsm.numVlanFilterEntries++
+	}
 }
