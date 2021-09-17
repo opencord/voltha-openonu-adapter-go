@@ -93,6 +93,30 @@
       },
       "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a24f2651_dbf54234",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-09-17T09:06:28Z",
+      "side": 1,
+      "message": "please add this as a comment to the constant. so it\u0027s easier to understand the reference.",
+      "parentUuid": "b066a517_27a3cf27",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
