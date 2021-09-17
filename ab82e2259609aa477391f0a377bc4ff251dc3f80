@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a9d12ab6_78256aa3",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2512,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-09-17T06:46:11Z",
+      "side": 1,
+      "message": "The naming convention for RW core. We don\u0027t add any names to this list. Yeap, In another patch We will add this naming for RW core.",
+      "parentUuid": "2360fbb1_05556790",
+      "range": {
+        "startLine": 2512,
+        "startChar": 6,
+        "endLine": 2512,
+        "endChar": 16
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "dc862aad_fa350e4d",
         "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
         "patchSetId": 2
@@ -37,6 +61,30 @@
       "writtenOn": "2021-09-16T20:12:17Z",
       "side": 1,
       "message": "Can you explain where this 4 comes from?",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "ab82e2259609aa477391f0a377bc4ff251dc3f80",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b066a517_27a3cf27",
+        "filename": "internal/pkg/onuadaptercore/onu_uni_port.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-09-17T06:46:11Z",
+      "side": 1,
+      "message": "Sure, This value means which tp is associated with MAC bridge port configuration data. In VoIP services, MAC bridge port conf data will associate IP Host Config Data. You can see the tp type list in MAC bridge port conf data ME (G988 Chapter 9.3.4).",
+      "parentUuid": "dc862aad_fa350e4d",
       "range": {
         "startLine": 46,
         "startChar": 26,
