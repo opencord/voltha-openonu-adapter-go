@@ -3306,6 +3306,7 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Contex
 	return nil, omciErr.GetError()
 }
 
+<<<<<<< HEAD:internal/pkg/common/omci_cc.go
 // RLockMutexMonReq lock read access to monitoredRequests
 func (oo *OmciCC) RLockMutexMonReq() {
 	oo.mutexMonReq.RLock()
@@ -3325,4 +3326,53 @@ func (oo *OmciCC) GetMonitoredRequest(omciTransID uint16) (value OmciTransferStr
 // SetChMonitoredRequest sets chSuccess to indicate whether response was received or not
 func (oo *OmciCC) SetChMonitoredRequest(omciTransID uint16, chVal bool) {
 	oo.monitoredRequests[omciTransID].chSuccess <- chVal
+}
+
+func (oo *OmciCC)  sendSetEthernetFrameExtendedPMME(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, entityID uint16, classID me.ClassID, controlBlock []uint16) (*me.ManagedEntity, error) {
+	tid := oo.getNextTid(highPrio)
+	logger.Debugw(ctx, "send-set-ethernet-frame-extended-pm-me-control-block:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),"InstId": strconv.FormatInt(int64(entityID), 16)})
+
+	meParams := me.ParamData{EntityID: entityID,
+		Attributes: me.AttributeValueMap{"ControlBlock": controlBlock},
+	}
+	var meInstance *me.ManagedEntity
+	var omciErr me.OmciErrors
+	if classID == me.EthernetFrameExtendedPmClassID {
+		meInstance, omciErr = me.NewEthernetFrameExtendedPm(meParams)
+	} else {
+		meInstance, omciErr = me.NewEthernetFrameExtendedPm64Bit(meParams)
+	}
+
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "cannot-encode-ethernet-frame-extended-pm-me",
+				log.Fields{"err": err, "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "cannot-serialize-ethernet-frame-extended-pm-me-set-msg",
+				log.Fields{"err": err, "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+		omciRxCallbackPair := callbackPair{
+			cbKey:   tid,
+			cbEntry: callbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.send(ctx, pkt, timeout, cDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send ethernet-frame-extended-pm-me",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+		logger.Debugw(ctx, "send-ethernet-frame-extended-pm-me-set-msg-done",
+			log.Fields{"device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "cannot-generate-ethernet-frame-extended-pm-me-instance",
+		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID,"inst-id": strconv.FormatInt(int64(entityID), 16)})
+	return nil, omciErr.GetError()
 }

@@ -1078,6 +1078,8 @@ func (mm *OnuMetricsManager) handleOmciMessage(ctx context.Context, msg cmn.Omci
 		_ = mm.handleOmciDeleteResponseMessage(ctx, msg)
 	case omci.GetCurrentDataResponseType:
 		_ = mm.handleOmciGetCurrentDataResponseMessage(ctx, msg)
+	case omci.SetResponseType:
+		_ = mm.handleOmciSetResponseMessage(ctx, msg)
 	default:
 		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
 
@@ -1209,6 +1211,30 @@ func (mm *OnuMetricsManager) handleOmciSynchronizeTimeResponseMessage(ctx contex
 	mm.syncTimeResponseChan <- false
 	logger.Errorf(ctx, "unhandled-omci-synchronize-time-response-message--error-code-%v", msgObj.Result)
 	return fmt.Errorf("unhandled-omci-synchronize-time-response-message--error-code-%v", msgObj.Result)
+}
+
+func (mm *onuMetricsManager) handleOmciSetResponseMessage(ctx context.Context, msg OmciMessage) error {
+	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeSetResponse)
+	if msgLayer == nil {
+		logger.Errorw(ctx, "omci Msg layer could not be detected for SetResponse - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return fmt.Errorf("omci Msg layer could not be detected for SetResponse - handling stopped: %s", mm.pDeviceHandler.deviceID)
+	}
+	msgObj, msgOk := msgLayer.(*omci.SetResponse)
+	if !msgOk {
+		logger.Errorw(ctx, "omci Msg layer could not be assigned for SetResponse - handling stopped", log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return fmt.Errorf("omci Msg layer could not be assigned for SetResponse - handling stopped: %s", mm.pDeviceHandler.deviceID)
+	}
+	logger.Debugw(ctx, "OMCI SetResponse Data", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "data-fields": msgObj, "result": msgObj.Result})
+	switch msgObj.EntityClass {
+	case me.EthernetFrameExtendedPmClassID,
+		me.EthernetFrameExtendedPm64BitClassID:
+		mm.extendedPMCreateOrDeleteResponseChan <- msgObj.Result
+		return nil
+	default:
+		logger.Errorw(ctx, "unhandled omci set response message",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "class-id": msgObj.EntityClass})
+	}
+	return fmt.Errorf("unhandled-omci-set-response-message-%v", mm.pDeviceHandler.deviceID)
 }
 
 // flushMetricCollectionChannels flushes all metric collection channels for any stale OMCI responses
@@ -3044,7 +3070,7 @@ func (mm *OnuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.Cla
 			}
 
 			// parent entity id will be same for both direction
-			controlBlock := mm.getControlBlockForExtendedPMDirection(ctx, direction, uniPort.EntityID)
+			controlBlock := mm.getControlBlockForExtendedPMDirection(ctx, direction, uniPort.EntityID, false)
 
 		inner1:
 			// retry ExtendedPmCreateAttempts times to create the instance of PM
@@ -3145,8 +3171,65 @@ func (mm *OnuMetricsManager) CreateEthernetFrameExtendedPMME(ctx context.Context
 	}
 }
 
-// CollectEthernetFrameExtendedPMCounters - TODO: add comment
-func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.Context) *extension.SingleGetValueResponse {
+func (mm *OnuMetricsManager) updateControlBlockEthernetFrameExtendedPMMe(ctx context.Context, upstream bool, entityID uint16) (error, extension.GetValueResponse_ErrorReason) {
+	uniPortEntityID := entityID
+	if upstream {
+		uniPortEntityID = entityID - 0x100
+	}
+	controlBlock := mm.getControlBlockForExtendedPMDirection(ctx, upstream, uniPortEntityID, true)
+	_, err := mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.sendSetEthernetFrameExtendedPMME(ctx,
+		mm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+		mm.pAdaptFsm.commChan, entityID, mm.supportedEthernetFrameExtendedPMClass, controlBlock)
+	if err != nil {
+		logger.Errorw(ctx, "EthernetFrameExtendedPMME-reset-pm-failed",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return err, extension.GetValueResponse_INTERNAL_ERROR
+	}
+
+	if resp := mm.waitForResetResponseOrTimeout(ctx, entityID, string(mm.supportedEthernetFrameExtendedPMClass)); resp {
+		return nil, extension.GetValueResponse_REASON_UNDEFINED
+	}
+	return fmt.Errorf("unable-to-reset-pm-counters"), extension.GetValueResponse_INTERNAL_ERROR
+}
+
+func (mm *OnuMetricsManager) waitForResetResponseOrTimeout(ctx context.Context, instID uint16, meClassName string) bool {
+	logger.Debugw(ctx, "wait-for-ethernet-frame-reset-counters-response-or-timeout", log.Fields{"instID": instID, "meClassName": meClassName})
+	select {
+	case resp := <-mm.extendedPMCreateOrDeleteResponseChan:
+		logger.Debugw(ctx, "received-extended-pm-me-reset-response",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": resp, "meClassName": meClassName, "instID": instID})
+		if resp == me.Success {
+			return true
+		}
+		return false
+	case <-time.After(mm.pDeviceHandler.pOnuOmciDevice.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
+		logger.Errorw(ctx, "timeout-waiting-for-ext-pm-me-reset-response",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID, "resp": false, "meClassName": meClassName, "instID": instID})
+	}
+	return false
+}
+
+func (mm *OnuMetricsManager) resetEthernetFrameExtendedPMCounters(ctx context.Context,
+	upstreamEntityMap map[uint16]*me.ManagedEntity, downstreamEntityMap map[uint16]*me.ManagedEntity) (error, extension.GetValueResponse_ErrorReason) {
+	// Reset the counters if option is specified
+	for entityID, _ := range upstreamEntityMap {
+		err, errReason := mm.updateControlBlockEthernetFrameExtendedPMMe(ctx, true, entityID)
+		if err != nil {
+			return err, errReason
+		}
+	}
+
+	for entityID, _ := range downstreamEntityMap {
+		err, errReason := mm.updateControlBlockEthernetFrameExtendedPMMe(ctx, false, entityID)
+		if err != nil {
+			return err, errReason
+		}
+	}
+	return nil, extension.GetValueResponse_REASON_UNDEFINED
+}
+
+// CollectEthernetFrameExtendedPMCounters - This method collects the ethernet frame extended pm counters from the device
+func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.Context, onuInfo *extension.GetOmciEthernetFrameExtendedPmRequest) *extension.SingleGetValueResponse {
 	errFunc := func(reason extension.GetValueResponse_ErrorReason) *extension.SingleGetValueResponse {
 		return &extension.SingleGetValueResponse{
 			Response: &extension.GetValueResponse{
@@ -3161,10 +3244,42 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 		return errFunc(extension.GetValueResponse_INTERNAL_ERROR)
 	}
 	mm.onuEthernetFrameExtendedPmLock.RUnlock()
+
+	upstreamEntityMap := make(map[uint16]*me.ManagedEntity)
+	downstreamEntityMap := make(map[uint16]*me.ManagedEntity)
+	if onuInfo.IsUniIndex != nil {
+		for _, uniPort := range mm.pDeviceHandler.uniEntityMap {
+			if uniPort.uniID == uint8(onuInfo.GetUniIndex()) {
+				upstreamEntityMap[uniPort.entityID+0x100] = mm.ethernetFrameExtendedPmUpStreamMEByEntityID[uniPort.entityID+0x100]
+				downstreamEntityMap[uniPort.entityID] = mm.ethernetFrameExtendedPmDownStreamMEByEntityID[uniPort.entityID]
+				break
+			}
+		}
+		if len(downstreamEntityMap) == 0 || len(upstreamEntityMap) == 0 {
+			logger.Errorw(ctx, "invalid-uni-index-provided-while-fetching-the-extended-pm", log.Fields{"device-id": mm.pDeviceHandler.deviceID, "uni-index": onuInfo.GetUniIndex()})
+			return errFunc(extension.GetValueResponse_INVALID_REQ_TYPE)
+		}
+	} else {
+		// make a copy of all downstream and upstream maps in the local ones
+		for entityID, meEnt := range mm.ethernetFrameExtendedPmUpStreamMEByEntityID {
+			upstreamEntityMap[entityID] = meEnt
+		}
+		for entityID, meEnt := range mm.ethernetFrameExtendedPmDownStreamMEByEntityID {
+			downstreamEntityMap[entityID] = meEnt
+		}
+	}
+	// Reset the metrics for all required me's
+	err, errReason := mm.resetEthernetFrameExtendedPMCounters(ctx, upstreamEntityMap, downstreamEntityMap)
+	if err != nil {
+		logger.Errorw(ctx, "unable-to-reset-ethernet-frame-extended-pm-counters",
+			log.Fields{"device-id": mm.pDeviceHandler.deviceID})
+		return errFunc(errReason)
+	}
 	// Collect metrics for upstream for all the PM Mes per uni port and aggregate
 	var pmUpstream extension.OmciEthernetFrameExtendedPm
 	var pmDownstream extension.OmciEthernetFrameExtendedPm
-	for entityID, meEnt := range mm.ethernetFrameExtendedPmUpStreamMEByEntityID {
+
+	for entityID, meEnt := range upstreamEntityMap {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
 			if receivedMask == 0 {
@@ -3191,7 +3306,7 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 		}
 	}
 
-	for entityID, meEnt := range mm.ethernetFrameExtendedPmDownStreamMEByEntityID {
+	for entityID, meEnt := range downstreamEntityMap {
 		var receivedMask uint16
 		if metricInfo, errResp := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, false, &receivedMask); metricInfo != nil { // downstream
 			// Aggregate the result for downstream
@@ -3668,7 +3783,7 @@ func (mm *OnuMetricsManager) aggregateEthernetFrameExtendedPM(pmDataIn map[strin
 	return pmDataOut
 }
 
-func (mm *OnuMetricsManager) getControlBlockForExtendedPMDirection(ctx context.Context, upstream bool, entityID uint16) []uint16 {
+func (mm *OnuMetricsManager) getControlBlockForExtendedPMDirection(ctx context.Context, upstream bool, entityID uint16, reset bool) []uint16 {
 	controlBlock := make([]uint16, 8)
 	// Control Block First two bytes are for threshold data 1/2 id - does not matter here
 	controlBlock[0] = 0
@@ -3677,7 +3792,11 @@ func (mm *OnuMetricsManager) getControlBlockForExtendedPMDirection(ctx context.C
 	// Next two bytes are for the parent me instance id
 	controlBlock[2] = entityID
 	// Next two bytes are for accumulation disable
-	controlBlock[3] = 0
+	if reset {
+		controlBlock[3] = 1 << 15 //Set the 16th bit of AD to reset the counters.
+	} else {
+		controlBlock[3] = 0
+	}
 	// Next two bytes are for tca disable
 	controlBlock[4] = 0x4000 //tca global disable
 	// Next two bytes are for control fields - bit 1(lsb) as 1 for continuous accumulation and bit 2(0 for upstream)
