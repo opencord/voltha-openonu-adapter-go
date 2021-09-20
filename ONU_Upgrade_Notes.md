@@ -72,7 +72,7 @@ The command output lists:
 
 This command exposes the status of operations in relation to an image on one or multiple devices.
 
-In above example output the given states indicate that for image software-image.img the download first to the openonu-go adapter 
+In above example output the given states indicate that for image software-image.img the download first to the openonu-go adapter
 and then to the ONU was correctly done. The image is in the inactive ONU partition (not yet activated).
 
 ## Image download from http(s) server to the Onu
@@ -119,7 +119,7 @@ The syntax of the complete voltctl command is:
 voltctl device onuimage activate <image-version> <commit-on-success> <onu-device-ids>
 ```
 with:
-- `<image-version>`: version of the image, the same identifier as used in the [download](#image-download-from-http(s)-server-to-the-OnuAdapter) and [activate](image-activation-on-the-onu) command
+- `<image-version>`: version of the image, the same identifier as used in the [download](#image-download-from-http(s)-server-to-the-OnuAdapter) and [activate](#image-activation-on-the-onu) command
 - `<commit-on-success>`: commits the image automatically if activation is successful.
 - `<onu-device-ids>`: set of devices on which to activate the given image.
 
@@ -130,10 +130,10 @@ DEVICEID                                IMAGESTATE.VERSION    IMAGESTATE.DOWNLOA
 420792c1-84fb-465a-a775-283e54247be9    090140.1.0.304        DOWNLOAD_SUCCEEDED          NO_ERROR             IMAGE_ACTIVATING
  ```
 
-This command activates the given image on one or multiple devices, if the requested image is in the inactive ONU partition. 
+This command activates the given image on one or multiple devices, if the requested image is in the inactive ONU partition.
 This implies the switching of the active partition and reboot of the ONU. Effectively moves the image from the `standby` to
 the `active` partition. The previously `standby` image will be active after the ONU re-start.
-If the image for which the `activate` request arrives is already in the `active` partition no action will be taken. 
+If the image for which the `activate` request arrives is already in the `active` partition no action will be taken.
 
 The processing of the command can be verified by checking the `IMAGESTATE` in the initial output of the command and then
 in result of the above given image [status](#image-status-display) command.
@@ -149,7 +149,7 @@ The syntax of the complete voltctl command is:
 voltctl device onuimage commit <image-version> <onu-device-ids>
 ```
 with:
-- `<image-version>`: version of the image, the same identifier as used in the [download](#image-download-from-http(s)-server-to-the-OnuAdapter) and [activate](image-activation-on-the-onu) command
+- `<image-version>`: version of the image, the same identifier as used in the [download](#image-download-from-http(s)-server-to-the-OnuAdapter) and [activate](#image-activation-on-the-onu) command
 - `<onu-device-ids>`: set of devices on which to commit the given image.
 
 A sample output of this command is:
@@ -164,7 +164,7 @@ to be the default one upon reboot.
 The processing of the command can be verified by checking the `IMAGESTATE` in the initial output of the command and then
 in result of the above given image [status](#image-status-display) command.
 
-The result of this command in the [list](#images-list-on-the-onu) should be that the desired image is also printed on the 
+The result of this command in the [list](#images-list-on-the-onu) should be that the desired image is also printed on the
 active partition and its `IsCommitted` and `IsActive` flags are set to true.
 
 ## Image activity abort
@@ -175,7 +175,7 @@ voltctl device onuimage abort <image-version> <onu-device-ids>
 ```
 with:
 - `<image-version>`: version of the image, the same identifier as used in the [download](#image-download-from-http(s)-server-to-the-OnuAdapter)
-  [activate](image-activation-on-the-onu) and [commit](image-commit-on-the-onu) commands
+  [activate](#image-activation-on-the-onu) and [commit](#image-commit-on-the-onu) commands
 - `<onu-device-ids>`: set of devices on which to abort image processing.
 
 A sample output of this command is:
@@ -186,7 +186,7 @@ DEVICEID                                IMAGESTATE.VERSION    IMAGESTATE.DOWNLOA
 ```
 
 This command aborts any upgrade related activity that the adapter is performing in relation to the given image for the one or multiple devices.
-This command does not imply any automated activity by the system to bring the ONU upgrade status to a previous or more consistent state. 
+This command does not imply any automated activity by the system to bring the ONU upgrade status to a previous or more consistent state.
 If required some further commands can be used to try to bring the ONU into the desired upgrade state.
 
 The processing of the command can be verified with above given image [status](#image-status-display) command,
