@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b38b4886_08b97e03",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-20T15:28:53Z",
+      "side": 1,
+      "message": "Change should be sufficient by now. But there is some existing smaller flaw in the existing and now also extended implementation: The vlanFilterList (and according activities) is possibly extended at multiple rule configuration for the VlanFsm if the SetVid is the same in different rules (possibly by different matching filter VID\u0027s)  (which is not really intended here and should be avoided). \nBut current known customer scenarios do not use such multiple rule configuration per UNI/TechProfile. So I\u0027d propose to correct that in case according requirements really turn up.",
+      "revId": "d3a251d019312864b383fd626f693345564088d1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
