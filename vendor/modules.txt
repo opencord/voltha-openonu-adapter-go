@@ -140,7 +140,7 @@ github.com/opencord/voltha-lib-go/v7/pkg/meters
 github.com/opencord/voltha-lib-go/v7/pkg/platform
 github.com/opencord/voltha-lib-go/v7/pkg/probe
 github.com/opencord/voltha-lib-go/v7/pkg/version
-# github.com/opencord/voltha-protos/v5 v5.0.1
+# github.com/opencord/voltha-protos/v5 v5.0.2
 ## explicit
 github.com/opencord/voltha-protos/v5/go/adapter_services
 github.com/opencord/voltha-protos/v5/go/common
