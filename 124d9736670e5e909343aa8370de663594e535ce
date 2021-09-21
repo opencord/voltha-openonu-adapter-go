@@ -16,6 +16,23 @@
       "message": "hardware tests\nfunctional tests",
       "revId": "124d9736670e5e909343aa8370de663594e535ce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "592c33ba_89f6c23f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-21T13:31:59Z",
+      "side": 1,
+      "message": "after-merge-comment: What is the purpose of this story/patch? Obviously the intention might be to indicate (additional) POTS ports to the system interface as voltha openflow ports (even though nothing is done with them afterwards?). But the values resulting from this patch might then be misleading (capacity, type, speed and so on). Moreover in general the patch may work as expected, but there also mide be some intended side effect in respect to accessing the uni_port data base. E.g. on enableUniPortStateUpdate() when checking the uni_port data base against the UniPortMask (I assume for POTS ports no oper state transition shall be communicated?)",
+      "revId": "124d9736670e5e909343aa8370de663594e535ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
