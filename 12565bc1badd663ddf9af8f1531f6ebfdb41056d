@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c1682507_92d56fb5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "I think it should basically work. But some of my comments may be worth to be considered before merging (or maybe also afterwards in a next step). So by now with my uncertainties I leave the review on 0.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4b337f53_d0ac96c5",
+        "filename": "internal/pkg/config/config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "15 parallel flows per ONU and UNI seem to be quite many to me (even if I do not know the number of flows currently used in the TT scenario). Is there some more accurate reasoning behind? Otherwise I personally would  prefer a more binary representation (like 16 or 8 ) - but that\u0027s probably really personal preference here.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e81c28c6_939dae9b",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "waiting here should have some timeout (less than rwCore timeout) to try to generate some error to rwCore also in this case. So probably this should be some select switch here.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ec442242_4967904a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "It\u0027s still possible that some flow configurations from this command have been already done (or have not been done due to some other error condition). So one could also consider to extend the errorsList here and return this. But that\u0027s surely a minor (and improbable) point.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a90393a8_9612e712",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 828,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "Same as above, timeout supervision recommended.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a1d5358d_e25b781d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3740,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "see below",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7a7b1eef_743633bc",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3748,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "I\u0027m not sure if the mutex is really required here. The write operation is only relevant at start after MibDownload and if the FSM\u0027s are reset. In my point of view these activities should not interfere with themsselves or any read activity to the status. So maybe the status can be used here in simple manner (which would then probabaly also make the usage of functions for that obsolete).",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8d076a68_986cceda",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3950,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "Maybe also use non-blocking sending to the channel here, especially in case above mentioned timeout at FlowUpdateIncremental() is implemented (receiver may not be waiting anymore).",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dad963ed_d8607792",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 1779,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "Pushing respChan here before having cleaned-up may result in interference with the next flow processing that may be started in parallel immediately (I\u0027m not sure).\nSo maybe better shift it to the end of processing here?\nThat may also concern persistency data (perhaps to be checked also on other response activities).",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1cd2a53f_4f2c66df",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 1872,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-09-22T15:00:03Z",
+      "side": 1,
+      "message": "That\u0027s probably a point for later-on code clear-up.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
