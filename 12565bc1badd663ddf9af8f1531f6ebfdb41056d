@@ -211,6 +211,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "99584dc7_60999cf8",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3950,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-28T21:18:26Z",
+      "side": 1,
+      "message": "responded to earlier comment.",
+      "parentUuid": "8d076a68_986cceda",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "dad963ed_d8607792",
         "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
         "patchSetId": 8
