@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "bb6865d1_45e08036",
+        "filename": "internal/pkg/config/config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-28T00:54:02Z",
+      "side": 1,
+      "message": "I think the number 15 came from a previous comment recommendation for TT workflow. I can make this 16, no problem.",
+      "parentUuid": "4b337f53_d0ac96c5",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e81c28c6_939dae9b",
@@ -54,6 +72,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "eeaed418_e69ff0f9",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-28T00:54:02Z",
+      "side": 1,
+      "message": "Haven\u0027t seen any issues on h/w with few ONUs or at scale with 1024 users in multiple runs. If ok, I would put keep things simple here and put the timeout here if we really see any issues.",
+      "parentUuid": "e81c28c6_939dae9b",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "ec442242_4967904a",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 8
@@ -65,6 +101,24 @@
       "writtenOn": "2021-09-22T15:00:03Z",
       "side": 1,
       "message": "It\u0027s still possible that some flow configurations from this command have been already done (or have not been done due to some other error condition). So one could also consider to extend the errorsList here and return this. But that\u0027s surely a minor (and improbable) point.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e39194de_e11214da",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-28T00:54:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ec442242_4967904a",
       "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -122,6 +176,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "02fad49c_93a45dab",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3748,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-28T00:54:02Z",
+      "side": 1,
+      "message": "While the flow arrives we check if the flow handler routine is active and then push the flow on the channel. When the flow monitoring routine is being shutdown, the flag is set to false. Since the processing of flow and a trigger to shutdown the routine are coming as a result of two different unrelated triggers we need the lock protection.",
+      "parentUuid": "7a7b1eef_743633bc",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "8d076a68_986cceda",
         "filename": "internal/pkg/onuadaptercore/device_handler.go",
         "patchSetId": 8
@@ -150,6 +222,24 @@
       "writtenOn": "2021-09-22T15:00:03Z",
       "side": 1,
       "message": "Pushing respChan here before having cleaned-up may result in interference with the next flow processing that may be started in parallel immediately (I\u0027m not sure).\nSo maybe better shift it to the end of processing here?\nThat may also concern persistency data (perhaps to be checked also on other response activities).",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "29e7aca5_3ead033a",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 1779,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-09-28T00:54:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "dad963ed_d8607792",
       "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
