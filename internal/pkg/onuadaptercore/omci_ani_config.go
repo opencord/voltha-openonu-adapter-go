@@ -88,6 +88,10 @@ const (
 )
 const cAniFsmIdleState = aniStConfigDone
 
+const (
+	bitTrafficSchedulerPtrSetPermitted = 0x0002 // Refer section 9.1.2 ONU-2G, table for "Quality of service (QoS) configuration flexibility" IE
+)
+
 type ponAniGemPortAttribs struct {
 	gemPortID      uint16
 	upQueueID      uint16
@@ -1642,6 +1646,33 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 		}
 	}
 
+	trafficSchedPtrSetSupported := false
+	loOnu2g := oFsm.pOnuDB.GetMe(me.Onu2GClassID, onu2gMeID)
+	if loOnu2g == nil {
+		logger.Errorw(ctx, "onu2g is nil, cannot read qos configuration flexibility parameter",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
+	returnVal := loOnu2g["QualityOfServiceQosConfigurationFlexibility"]
+	if returnVal != nil {
+		if qosCfgFlexParam, err := oFsm.pOnuDB.getUint16Attrib(returnVal); err == nil {
+			trafficSchedPtrSetSupported = qosCfgFlexParam&bitTrafficSchedulerPtrSetPermitted == bitTrafficSchedulerPtrSetPermitted
+			logger.Debugw(ctx, "trafficSchedPtrSetSupported set",
+				log.Fields{"qosCfgFlexParam": qosCfgFlexParam, "trafficSchedPtrSetSupported": trafficSchedPtrSetSupported})
+		} else {
+			logger.Errorw(ctx, "Cannot extract qos configuration flexibility parameter",
+				log.Fields{"device-id": oFsm.deviceID})
+			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+			return
+		}
+	} else {
+		logger.Errorw(ctx, "Cannot read qos configuration flexibility parameter",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
+
 	//TODO: assumption here is that ONU data uses SP setting in the T-Cont and WRR in the TrafficScheduler
 	//  if that is not the case, the reverse case could be checked and reacted accordingly or if the
 	//  complete chain is not valid, then some error should be thrown and configuration can be aborted
@@ -1659,19 +1690,37 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 			EntityID:   queueIndex,
 			Attributes: make(me.AttributeValueMap),
 		}
-		if (kv.Value).(uint16) == cu16StrictPrioWeight {
-			//StrictPrio indication
-			logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
-				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
-				"device-id": oFsm.deviceID})
-			meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
+		if trafficSchedPtrSetSupported {
+			if (kv.Value).(uint16) == cu16StrictPrioWeight {
+				//StrictPrio indication
+				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
+					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+					"device-id": oFsm.deviceID})
+				meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
+			} else {
+				//WRR indication
+				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
+					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+					"Weight":    kv.Value,
+					"device-id": oFsm.deviceID})
+				meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
+				meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
+			}
 		} else {
-			//WRR indication
-			logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
+			// setting Traffic Scheduler (TS) pointer is not supported unless we point to another TS that points to the same TCONT.
+			// For now lets use TS that is hardwired in the ONU and just update the weight in case of WRR, which in fact is all we need at the moment.
+			// The code could get unnecessarily convoluted if we provide the flexibility try to find and point to another TS that points to the same TCONT.
+			if (kv.Value).(uint16) == cu16StrictPrioWeight { // SP case, nothing to be done. Proceed to the next queue
+				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio, traffic sched ptr set unsupported", log.Fields{
+					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+					"device-id": oFsm.deviceID})
+				continue
+			}
+			// WRR case, update weight.
+			logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to WRR, traffic sched ptr set unsupported", log.Fields{
 				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 				"Weight":    kv.Value,
 				"device-id": oFsm.deviceID})
-			meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
 			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
