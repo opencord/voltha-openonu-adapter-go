@@ -3079,7 +3079,7 @@ func (oFsm *UniVlanConfigFsm) setTrafficDescriptorToGemPortNWCTP(ctx context.Con
 	meParams := me.ParamData{
 		EntityID: gemPortID,
 		Attributes: me.AttributeValueMap{
-			"TrafficManagementPointerForUpstream": gemPortID,
+			"TrafficDescriptorProfilePointerForUpstream": gemPortID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()

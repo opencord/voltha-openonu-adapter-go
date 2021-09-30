@@ -112,7 +112,6 @@ func (onuDeviceDB *onuDeviceDB) getUint32Attrib(meAttribute interface{}) (uint32
 	}
 }
 
-/*
 func (onuDeviceDB *onuDeviceDB) getUint16Attrib(meAttribute interface{}) (uint16, error) {
 
 	switch reflect.TypeOf(meAttribute).Kind() {
@@ -122,7 +121,6 @@ func (onuDeviceDB *onuDeviceDB) getUint16Attrib(meAttribute interface{}) (uint16
 		return uint16(0), fmt.Errorf(fmt.Sprintf("wrong interface-type received-%s", onuDeviceDB.pOnuDeviceEntry.deviceID))
 	}
 }
-*/
 
 func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
