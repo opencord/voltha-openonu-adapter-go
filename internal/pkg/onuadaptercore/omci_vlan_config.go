@@ -3064,7 +3064,8 @@ func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMete
 		return err
 	}
 
-	err = oFsm.setTrafficDescriptorToGemPortNWCTP(ctx, gemPortID)
+	// Note: in the below request the gemport entity id is same as the gemport id and the traffic descriptor entity id is also same as gemport id
+	err = oFsm.setTrafficDescriptorToGemPortNWCTP(ctx, gemPortID, gemPortID)
 	if err != nil {
 		logger.Errorw(ctx, "Traffic Descriptor set failed to Gem Port Network CTP, aborting VlanConfig FSM!", log.Fields{"device-id": oFsm.deviceID})
 		return err
@@ -3074,12 +3075,13 @@ func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMete
 	return nil
 }
 
-func (oFsm *UniVlanConfigFsm) setTrafficDescriptorToGemPortNWCTP(ctx context.Context, gemPortID uint16) error {
-	logger.Debugw(ctx, "Starting Set Traffic Descriptor to GemPortNWCTP", log.Fields{"device-id": oFsm.deviceID, "gem-port-id": gemPortID})
+func (oFsm *UniVlanConfigFsm) setTrafficDescriptorToGemPortNWCTP(ctx context.Context, gemPortEntityID uint16, trafficDescriptorEntityID uint16) error {
+	logger.Debugw(ctx, "Starting Set Traffic Descriptor to GemPortNWCTP",
+		log.Fields{"device-id": oFsm.deviceID, "gem-port-entity-id": gemPortEntityID, "traffic-descriptor-entity-id": trafficDescriptorEntityID})
 	meParams := me.ParamData{
-		EntityID: gemPortID,
+		EntityID: gemPortEntityID,
 		Attributes: me.AttributeValueMap{
-			"TrafficManagementPointerForUpstream": gemPortID,
+			"TrafficDescriptorProfilePointerForUpstream": trafficDescriptorEntityID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
