@@ -106,23 +106,24 @@ func (onuDeviceDB *onuDeviceDB) getUint32Attrib(meAttribute interface{}) (uint32
 		//JSON numbers by default are unmarshaled into values of float64 type if type information is not present
 		return uint32(meAttribute.(float64)), nil
 	case reflect.Uint32:
-		return uint32(meAttribute.(uint32)), nil
+		return meAttribute.(uint32), nil
 	default:
-		return uint32(0), fmt.Errorf(fmt.Sprintf("wrong interface-type received-%s", onuDeviceDB.pOnuDeviceEntry.deviceID))
+		return uint32(0), fmt.Errorf(fmt.Sprintf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), onuDeviceDB.pOnuDeviceEntry.deviceID))
 	}
 }
 
-/*
 func (onuDeviceDB *onuDeviceDB) getUint16Attrib(meAttribute interface{}) (uint16, error) {
 
 	switch reflect.TypeOf(meAttribute).Kind() {
+	case reflect.Float64:
+		//JSON numbers by default are unmarshaled into values of float64 type if type information is not present
+		return uint16(meAttribute.(float64)), nil
 	case reflect.Uint16:
 		return meAttribute.(uint16), nil
 	default:
-		return uint16(0), fmt.Errorf(fmt.Sprintf("wrong interface-type received-%s", onuDeviceDB.pOnuDeviceEntry.deviceID))
+		return uint16(0), fmt.Errorf(fmt.Sprintf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), onuDeviceDB.pOnuDeviceEntry.deviceID))
 	}
 }
-*/
 
 func (onuDeviceDB *onuDeviceDB) getSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
