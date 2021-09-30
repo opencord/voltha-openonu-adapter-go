@@ -1642,68 +1642,94 @@ func (oFsm *uniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 		}
 	}
 
-	//TODO: assumption here is that ONU data uses SP setting in the T-Cont and WRR in the TrafficScheduler
-	//  if that is not the case, the reverse case could be checked and reacted accordingly or if the
-	//  complete chain is not valid, then some error should be thrown and configuration can be aborted
-	//  or even be finished without correct SP/WRR setting
+	trafficSchedPtrSetSupported := false
+	loOnu2g := oFsm.pOnuDB.GetMe(me.Onu2GClassID, onu2gMeID)
+	if loOnu2g == nil {
+		logger.Errorw(ctx, "onu2g is nil, cannot read qos configuration flexibility parameter",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
+	returnVal := loOnu2g["QualityOfServiceQosConfigurationFlexibility"]
+	if returnVal != nil {
+		if qosCfgFlexParam, err := oFsm.pOnuDB.getUint16Attrib(returnVal); err == nil {
+			trafficSchedPtrSetSupported = qosCfgFlexParam&2 == 2
+			logger.Debugw(ctx, "trafficSchedPtrSetSupported set",
+				log.Fields{"qosCfgFlexParam": qosCfgFlexParam, "trafficSchedPtrSetSupported": trafficSchedPtrSetSupported})
+		}
+	} else {
+		logger.Errorw(ctx, "Cannot read qos configuration flexibility parameter",
+			log.Fields{"device-id": oFsm.deviceID})
+		_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+		return
+	}
 
-	//TODO: search for the (WRR)trafficScheduler related to the T-Cont of this queue
-	//By now assume fixed value 0x8000, which is the only announce BBSIM TrafficScheduler,
-	//  even though its T-Cont seems to be wrong ...
-	loTrafficSchedulerEID := 0x8000
-	//for all found queues
-	iter := loQueueMap.IterFunc()
-	for kv, ok := iter(); ok; kv, ok = iter() {
-		queueIndex := (kv.Key).(uint16)
-		meParams := me.ParamData{
-			EntityID:   queueIndex,
-			Attributes: make(me.AttributeValueMap),
-		}
-		if (kv.Value).(uint16) == cu16StrictPrioWeight {
-			//StrictPrio indication
-			logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
-				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
-				"device-id": oFsm.deviceID})
-			meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
-		} else {
-			//WRR indication
-			logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
-				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
-				"Weight":    kv.Value,
-				"device-id": oFsm.deviceID})
-			meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
-			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
-		}
-		oFsm.mutexPLastTxMeInstance.Lock()
-		meInstance, err := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
-			oFsm.pAdaptFsm.commChan, meParams)
-		if err != nil {
+	if trafficSchedPtrSetSupported {
+		//TODO: assumption here is that ONU data uses SP setting in the T-Cont and WRR in the TrafficScheduler
+		//  if that is not the case, the reverse case could be checked and reacted accordingly or if the
+		//  complete chain is not valid, then some error should be thrown and configuration can be aborted
+		//  or even be finished without correct SP/WRR setting
+
+		//TODO: search for the (WRR)trafficScheduler related to the T-Cont of this queue
+		//By now assume fixed value 0x8000, which is the only announce BBSIM TrafficScheduler,
+		//  even though its T-Cont seems to be wrong ...
+		loTrafficSchedulerEID := 0x8000
+		//for all found queues
+		iter := loQueueMap.IterFunc()
+		for kv, ok := iter(); ok; kv, ok = iter() {
+			queueIndex := (kv.Key).(uint16)
+			meParams := me.ParamData{
+				EntityID:   queueIndex,
+				Attributes: make(me.AttributeValueMap),
+			}
+			if (kv.Value).(uint16) == cu16StrictPrioWeight {
+				//StrictPrio indication
+				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
+					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+					"device-id": oFsm.deviceID})
+				meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
+			} else {
+				//WRR indication
+				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
+					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
+					"Weight":    kv.Value,
+					"device-id": oFsm.deviceID})
+				meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
+				meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
+			}
+			oFsm.mutexPLastTxMeInstance.Lock()
+			meInstance, err := oFsm.pOmciCC.sendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
+				oFsm.pAdaptFsm.commChan, meParams)
+			if err != nil {
+				oFsm.mutexPLastTxMeInstance.Unlock()
+				logger.Errorw(ctx, "PrioQueueVar set failed, aborting uniPonAniConfigFsm!",
+					log.Fields{"device-id": oFsm.deviceID})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
+			//accept also nil as (error) return value for writing to LastTx
+			//  - this avoids misinterpretation of new received OMCI messages
+			oFsm.pLastTxMeInstance = meInstance
 			oFsm.mutexPLastTxMeInstance.Unlock()
-			logger.Errorw(ctx, "PrioQueueVar set failed, aborting uniPonAniConfigFsm!",
-				log.Fields{"device-id": oFsm.deviceID})
-			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
-			return
-		}
-		//accept also nil as (error) return value for writing to LastTx
-		//  - this avoids misinterpretation of new received OMCI messages
-		oFsm.pLastTxMeInstance = meInstance
-		oFsm.mutexPLastTxMeInstance.Unlock()
 
-		//verify response
-		err = oFsm.waitforOmciResponse(ctx)
-		if err != nil {
-			logger.Errorw(ctx, "PrioQueue set failed, aborting AniConfig FSM!",
-				log.Fields{"device-id": oFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
-			_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
-			return
-		}
+			//verify response
+			err = oFsm.waitforOmciResponse(ctx)
+			if err != nil {
+				logger.Errorw(ctx, "PrioQueue set failed, aborting AniConfig FSM!",
+					log.Fields{"device-id": oFsm.deviceID, "QueueId": strconv.FormatInt(int64(queueIndex), 16)})
+				_ = oFsm.pAdaptFsm.pFsm.Event(aniEvReset)
+				return
+			}
 
-		//TODO: In case of WRR setting of the GemPort/PrioQueue it might further be necessary to
-		//  write the assigned trafficScheduler with the requested Prio to be considered in the StrictPrio scheduling
-		//  of the (next upstream) assigned T-Cont, which is f(prioQueue[priority]) - in relation to other SP prioQueues
-		//  not yet done because of BBSIM TrafficScheduler issues (and not done in py code as well)
+			//TODO: In case of WRR setting of the GemPort/PrioQueue it might further be necessary to
+			//  write the assigned trafficScheduler with the requested Prio to be considered in the StrictPrio scheduling
+			//  of the (next upstream) assigned T-Cont, which is f(prioQueue[priority]) - in relation to other SP prioQueues
+			//  not yet done because of BBSIM TrafficScheduler issues (and not done in py code as well)
 
-	} //for all upstream prioQueues
+		} //for all upstream prioQueues
+	} else {
+		logger.Debugw(ctx, "setting traffic scheduler pointer to pq not supported", log.Fields{"device-id": oFsm.deviceID})
+	}
 
 	// if Config has been done for all PrioQueue instances let the FSM proceed
 	logger.Debugw(ctx, "PrioQueue set loop finished", log.Fields{"device-id": oFsm.deviceID})
