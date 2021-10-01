@@ -34,6 +34,23 @@
       "parentUuid": "fad07369_c28e9ae1",
       "revId": "6a220b8e0027c42e6648ab663f7f28299eb32bfc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6436a612_b8be9e15",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-01T01:41:14Z",
+      "side": 1,
+      "message": "hardware test\nfunctional tests",
+      "revId": "6a220b8e0027c42e6648ab663f7f28299eb32bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
