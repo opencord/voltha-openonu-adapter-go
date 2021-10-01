@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f90a297a_0c6d1b4f",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-01T12:45:21Z",
+      "side": 0,
+      "message": "as I understand this is all taken care now by the channel ?",
+      "revId": "124d9736670e5e909343aa8370de663594e535ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
