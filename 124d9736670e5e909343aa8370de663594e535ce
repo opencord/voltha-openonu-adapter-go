@@ -16,6 +16,24 @@
       "message": "as I understand this is all taken care now by the channel ?",
       "revId": "124d9736670e5e909343aa8370de663594e535ce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "65d77293_573d39d6",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-01T14:09:07Z",
+      "side": 0,
+      "message": "Channel is not really the correct word here. The state indications are now more consistently tight to the state machine processing itself. Depending on how the state machine reacts on outside requests (in this caase EvAbort or EvReset) the states then better reflect what is really/actually done in the processing.",
+      "parentUuid": "f90a297a_0c6d1b4f",
+      "revId": "124d9736670e5e909343aa8370de663594e535ce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }

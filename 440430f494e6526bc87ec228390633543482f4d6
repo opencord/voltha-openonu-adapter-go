@@ -37,6 +37,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "268cf96c_ffb173d1",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2722,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-01T14:09:07Z",
+      "side": 1,
+      "message": "Here the last (recent) (stored) states within the device handler are cleared (as not anymore valid wih the new start of an upgrade). If the state machine exists (like in this case), the states on API are used from the sate machine.",
+      "parentUuid": "4985f1b0_25434000",
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e4520d9d_e224e735",
         "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
         "patchSetId": 1
@@ -48,6 +66,30 @@
       "writtenOn": "2021-10-01T12:45:21Z",
       "side": 1,
       "message": "flag",
+      "range": {
+        "startLine": 163,
+        "startChar": 50,
+        "endLine": 163,
+        "endChar": 54
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7e060826_efe945a6",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-01T14:09:07Z",
+      "side": 1,
+      "message": "Yes, should be corrected, let\u0027s wait what else may still be coming round.",
+      "parentUuid": "e4520d9d_e224e735",
       "range": {
         "startLine": 163,
         "startChar": 50,
