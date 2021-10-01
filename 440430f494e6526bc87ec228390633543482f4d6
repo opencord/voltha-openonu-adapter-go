@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8b334f39_de87bea1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-01T10:25:53Z",
+      "side": 1,
+      "message": "If in some Jenkins test the upgrade test suite is used, these tests will fail. Torsten is working on an acoording update of these tests, which are needed to pass with the changes done here.",
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
