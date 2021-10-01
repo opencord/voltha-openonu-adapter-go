@@ -1435,28 +1435,25 @@ func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifie
 	pDeviceImageState.ImageState.Version = aVersion
 	dh.lockUpgradeFsm.RLock()
 	if dh.pOnuUpradeFsm != nil {
-		if aVersion == dh.pOnuUpradeFsm.GetImageVersion(ctx) {
-			// so then we cancel the upgrade operation
-			// but before we still request the actual ImageState (which should not change with the cancellation)
-			pDeviceImageState.ImageState.ImageState = dh.pOnuUpradeFsm.GetSpecificImageState(ctx)
-			dh.lockUpgradeFsm.RUnlock()
-			pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_CANCELLED
-			pDeviceImageState.ImageState.Reason = voltha.ImageState_CANCELLED_ON_REQUEST
+		dh.lockUpgradeFsm.RUnlock()
+		// so then we cancel the upgrade operation
+		// but before we still request the actual upgrade states (which should not change with the cancellation)
+		pImageState := dh.pOnuUpradeFsm.GetImageStates(ctx, aImageIdentifier, aVersion)
+		pDeviceImageState.ImageState.DownloadState = pImageState.DownloadState
+		pDeviceImageState.ImageState.Reason = voltha.ImageState_CANCELLED_ON_REQUEST
+		pDeviceImageState.ImageState.ImageState = pImageState.ImageState
+		if pImageState.DownloadState != voltha.ImageState_DOWNLOAD_UNKNOWN {
+			//so here the imageIdentifier or version equals to what is used in the upgrade FSM
 			dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
-		} else { //nothing to cancel, states unknown
-			dh.lockUpgradeFsm.RUnlock()
-			pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
-			pDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
-			pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
-		}
+		} //nothing to cancel (upgrade FSM for different image stays alive)
 	} else {
+		dh.lockUpgradeFsm.RUnlock()
 		// if no upgrade is ongoing, nothing is canceled and accordingly the states of the requested image are unknown
 		// reset also the dh handler LastUpgradeImageState (not relevant anymore/cleared)
 		(*dh.pLastUpgradeImageState).DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 		(*dh.pLastUpgradeImageState).Reason = voltha.ImageState_NO_ERROR
 		(*dh.pLastUpgradeImageState).ImageState = voltha.ImageState_IMAGE_UNKNOWN
 		(*dh.pLastUpgradeImageState).Version = "" //reset to 'no (relevant) upgrade done' (like initial state)
-		dh.lockUpgradeFsm.RUnlock()
 		pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 		pDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
 		pDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
@@ -2721,8 +2718,8 @@ func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *On
 					return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be started for device-id: %s", dh.device.Id))
 				}
 				/***** LockStateFSM started */
-				//reset the last stored upgrade states
-				(*dh.pLastUpgradeImageState).DownloadState = voltha.ImageState_DOWNLOAD_STARTED //already with updated state
+				//reset the last stored upgrade states (which anyway should be don't care as long as the newly created FSM exists)
+				(*dh.pLastUpgradeImageState).DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 				(*dh.pLastUpgradeImageState).Reason = voltha.ImageState_NO_ERROR
 				(*dh.pLastUpgradeImageState).ImageState = voltha.ImageState_IMAGE_UNKNOWN
 				logger.Debugw(ctx, "OnuSwUpgradeFSM started", log.Fields{
