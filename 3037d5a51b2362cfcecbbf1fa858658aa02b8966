@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ea16290f_d43fcb07",
+        "filename": "VERSION",
+        "patchSetId": 10
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-01T07:56:22Z",
+      "side": 1,
+      "message": "Version number should be increased due to change of external interface: \"max_concurrent_flows_per_uni\"",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 12
+      },
+      "revId": "3037d5a51b2362cfcecbbf1fa858658aa02b8966",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a5296c5d_ef195e79",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 2201,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-01T07:56:22Z",
+      "side": 1,
+      "message": "To be deleted?",
+      "range": {
+        "startLine": 2192,
+        "startChar": 1,
+        "endLine": 2201,
+        "endChar": 3
+      },
+      "revId": "3037d5a51b2362cfcecbbf1fa858658aa02b8966",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "49beba9c_a7ca99ea",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1778,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-01T07:56:22Z",
+      "side": 1,
+      "message": "response",
+      "range": {
+        "startLine": 1778,
+        "startChar": 36,
+        "endLine": 1778,
+        "endChar": 45
+      },
+      "revId": "3037d5a51b2362cfcecbbf1fa858658aa02b8966",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
