@@ -74,6 +74,29 @@
       },
       "revId": "6a220b8e0027c42e6648ab663f7f28299eb32bfc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5c0c6d9d_dcf7d41e",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3077,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-01T17:45:31Z",
+      "side": 1,
+      "message": "We may think to change the signature of this function, get a gemPortEntityId and trafficDescriptorEntityId and set the attributes below accordingly.The caller can set both to gemPotID if he prefers.Just a cosmetic suggestion.",
+      "range": {
+        "startLine": 3077,
+        "startChar": 30,
+        "endLine": 3077,
+        "endChar": 64
+      },
+      "revId": "6a220b8e0027c42e6648ab663f7f28299eb32bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
