@@ -16,6 +16,23 @@
       "message": "hardware test\nfunctional tests",
       "revId": "729dcc170aeeda4b1f374d282424ac8be2d136c0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a98cca3a_07532626",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1676,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-04T10:10:56Z",
+      "side": 1,
+      "message": "I don\u0027t fully agree to this solution. \nIn my point of view this change completely destroys the WRR configuration as weights won\u0027t ever be set.\nAlso please note that the limitation of the traffic scheduler pointer configuration by the QosConfigurationFlexibility attribute bit 2 (PrioQueueTrafficSchedulerPointer) is not to completely forbid the configuration but to limit it to the schedulers that are indicated to be assigned to the same T-Cont as the queue itself. \nSo the problem with the concerned ONU may perhaps be, that we try to configure some traffic scheduler to the queue which is not assigned to the same T-Cont? Or maybe even no traffic scheduler exists?\nCould you please try to make a copy of the Iskratel X22 ONU DB (eg. Mib template file)?\nSo for me the problem looks more like we still work with the hardcoded value of the traffic scheduler 0x8000 instead of verifying the ONU setting (which may actually conflict with current BBSIM constellation as mentioned in the remarks - but long time not checked) - and this code change does not really change that.\n\nSo I would accept this solution onyl under to assumptions - which must be clarified and agreed first:\n1.) We relinquish the support of WRR by now (until further changes)\n2.) We accept this sultion to be temporary solution to have something working with the Iskratel X22 ONU until the real implementation is done",
+      "revId": "729dcc170aeeda4b1f374d282424ac8be2d136c0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
