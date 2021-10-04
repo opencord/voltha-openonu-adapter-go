@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c52b392f_8df88ddd",
+        "filename": "internal/pkg/onuadaptercore/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 576,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-04T08:43:39Z",
+      "side": 1,
+      "message": "Needs protection against parallel access from enqueuing. As already discussed, probably simply remove as the queue fill level is checked already within the function.",
+      "revId": "c8035fbd7e17813c5f52a55ab23f7f4bfa1e9bf8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
