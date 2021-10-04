@@ -98,6 +98,121 @@
       },
       "revId": "440430f494e6526bc87ec228390633543482f4d6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f6e8664b_de9a4b9c",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-04T11:45:38Z",
+      "side": 1,
+      "message": "Picky comment: Actually, it is not a \"mirror\", but a \"cache\". ;-)",
+      "range": {
+        "startLine": 185,
+        "startChar": 1,
+        "endLine": 185,
+        "endChar": 34
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9d4e61f4_b6ec40c6",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 719,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-04T11:45:38Z",
+      "side": 1,
+      "message": "\"states are\" or \"state is\"?",
+      "range": {
+        "startLine": 719,
+        "startChar": 5,
+        "endLine": 719,
+        "endChar": 11
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "060be00a_5c19cec5",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 968,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-04T11:45:38Z",
+      "side": 1,
+      "message": "commitment",
+      "range": {
+        "startLine": 968,
+        "startChar": 59,
+        "endLine": 968,
+        "endChar": 70
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a3f52086_4821e528",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1216,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-04T11:45:38Z",
+      "side": 1,
+      "message": "Following routine should be divided into subroutines to get rid of the SCA-exception.",
+      "range": {
+        "startLine": 1216,
+        "startChar": 0,
+        "endLine": 1216,
+        "endChar": 17
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9ae9d9b8_b9bbd3ae",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1431,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-10-04T11:45:38Z",
+      "side": 1,
+      "message": "keep",
+      "range": {
+        "startLine": 1431,
+        "startChar": 57,
+        "endLine": 1431,
+        "endChar": 62
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
