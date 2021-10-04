@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b79f5143_308d811d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-04T07:05:49Z",
+      "side": 1,
+      "message": "Instead of creating these for maxUnisPerONU UNIs, we may move this block into addAllUniPorts(), so create only for the number of UNIs this device have.",
+      "range": {
+        "startLine": 294,
+        "startChar": 1,
+        "endLine": 300,
+        "endChar": 2
+      },
+      "revId": "90884199aeea1a3977cb2447f355ac9beee3794e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "05a91c98_a7997489",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 851,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-04T07:05:49Z",
+      "side": 1,
+      "message": "What is the expected behavior in rw-core in case some of the flows in list are failed and some succeeded? We don\u0027t have the information about which are failed and which are succeeded in our response.",
+      "range": {
+        "startLine": 851,
+        "startChar": 0,
+        "endLine": 851,
+        "endChar": 88
+      },
+      "revId": "90884199aeea1a3977cb2447f355ac9beee3794e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
