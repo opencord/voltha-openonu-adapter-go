@@ -37,6 +37,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "6aa41649_aee2b884",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1684,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-05T18:35:00Z",
+      "side": 1,
+      "message": "created VOL-4378",
+      "parentUuid": "557f1e0b_19dc6cb9",
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "6d9117cf_3eb8176f",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 5
@@ -48,6 +66,24 @@
       "writtenOn": "2021-10-05T15:23:34Z",
       "side": 1,
       "message": "Previously we were setting the \"TrafficSchedulerPointer\" to 0 here - to be sure (it might be different from what the ONU indicates, even though I think it quite improbable that the ONU indicates values different from 0). But maybe we have to have an eye on this change in case something should go strange in SP mode.",
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "abe34076_69492b95",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1717,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-05T18:35:00Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6d9117cf_3eb8176f",
       "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
