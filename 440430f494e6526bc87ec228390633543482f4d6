@@ -123,6 +123,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "40956c71_992e1cc1",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T13:15:12Z",
+      "side": 1,
+      "message": "Ack, if you like that more ;-)",
+      "parentUuid": "f6e8664b_de9a4b9c",
+      "range": {
+        "startLine": 185,
+        "startChar": 1,
+        "endLine": 185,
+        "endChar": 34
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9d4e61f4_b6ec40c6",
@@ -136,6 +160,30 @@
       "writtenOn": "2021-10-04T11:45:38Z",
       "side": 1,
       "message": "\"states are\" or \"state is\"?",
+      "range": {
+        "startLine": 719,
+        "startChar": 5,
+        "endLine": 719,
+        "endChar": 11
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "93245942_3cd7dc2c",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 719,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T13:15:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9d4e61f4_b6ec40c6",
       "range": {
         "startLine": 719,
         "startChar": 5,
@@ -169,6 +217,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5abf64ef_cc53cc23",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 968,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T13:15:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "060be00a_5c19cec5",
+      "range": {
+        "startLine": 968,
+        "startChar": 59,
+        "endLine": 968,
+        "endChar": 70
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a3f52086_4821e528",
@@ -192,6 +264,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "3177efdb_980523c6",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1216,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T13:15:12Z",
+      "side": 1,
+      "message": "Ack - really :\u0027-|? Ok - breaking it up ...",
+      "parentUuid": "a3f52086_4821e528",
+      "range": {
+        "startLine": 1216,
+        "startChar": 0,
+        "endLine": 1216,
+        "endChar": 17
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9ae9d9b8_b9bbd3ae",
@@ -205,6 +301,30 @@
       "writtenOn": "2021-10-04T11:45:38Z",
       "side": 1,
       "message": "keep",
+      "range": {
+        "startLine": 1431,
+        "startChar": 57,
+        "endLine": 1431,
+        "endChar": 62
+      },
+      "revId": "440430f494e6526bc87ec228390633543482f4d6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5bfe7f4c_c413dedf",
+        "filename": "internal/pkg/onuadaptercore/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1431,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T13:15:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9ae9d9b8_b9bbd3ae",
       "range": {
         "startLine": 1431,
         "startChar": 57,
