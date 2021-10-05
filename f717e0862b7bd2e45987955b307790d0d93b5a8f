@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "eb70b971_2a709480",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T15:23:34Z",
+      "side": 1,
+      "message": "As given in code comments - we should create a separate story for the complete implementation.",
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "557f1e0b_19dc6cb9",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1684,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T15:23:34Z",
+      "side": 1,
+      "message": "I can live with this implementation for now. But it does not reflect the description, that \u0027trafficSchedPtrSetSupported \u003d\u003d false\u0027 just indicates, that we can only assign schedulers that reference to the same T-Cont as the current queue itself. I checked the Iskratel X22 ONU setting, and it includes available schedulers that could be assigned here. But - in respect to this implementation - this comes done on respecting the real ONU delivered scheduler entities instead of the hard coded value 0x8000. We should create a separate story for that.",
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6d9117cf_3eb8176f",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1717,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-05T15:23:34Z",
+      "side": 1,
+      "message": "Previously we were setting the \"TrafficSchedulerPointer\" to 0 here - to be sure (it might be different from what the ONU indicates, even though I think it quite improbable that the ONU indicates values different from 0). But maybe we have to have an eye on this change in case something should go strange in SP mode.",
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
