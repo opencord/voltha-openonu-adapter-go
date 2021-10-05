@@ -69,6 +69,24 @@
       "parentUuid": "befaa2e5_f1a7595c",
       "revId": "729dcc170aeeda4b1f374d282424ac8be2d136c0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "44d57fe7_cdc5276b",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1676,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-05T23:08:07Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "3bf6c1be_d3524a59",
+      "revId": "729dcc170aeeda4b1f374d282424ac8be2d136c0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }

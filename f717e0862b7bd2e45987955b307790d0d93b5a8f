@@ -60,6 +60,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "cb5c0378_0b055a6d",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1672,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-05T23:08:07Z",
+      "side": 1,
+      "message": "yes, we should always be able to read that param, otherwise something is wrong.",
+      "parentUuid": "ce4bdf69_90abd3af",
+      "range": {
+        "startLine": 1672,
+        "startChar": 2,
+        "endLine": 1672,
+        "endChar": 43
+      },
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "557f1e0b_19dc6cb9",
         "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
         "patchSetId": 5
@@ -89,6 +113,24 @@
       "side": 1,
       "message": "created VOL-4378",
       "parentUuid": "557f1e0b_19dc6cb9",
+      "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2b91ba87_a2417f74",
+        "filename": "internal/pkg/onuadaptercore/omci_ani_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1684,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-05T23:08:07Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6aa41649_aee2b884",
       "revId": "f717e0862b7bd2e45987955b307790d0d93b5a8f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
