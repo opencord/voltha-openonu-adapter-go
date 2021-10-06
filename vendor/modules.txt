@@ -125,7 +125,7 @@ github.com/looplab/fsm
 ## explicit
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v7 v7.0.0
+# github.com/opencord/voltha-lib-go/v7 v7.0.1
 ## explicit
 github.com/opencord/voltha-lib-go/v7/pkg/config
 github.com/opencord/voltha-lib-go/v7/pkg/db
@@ -137,6 +137,7 @@ github.com/opencord/voltha-lib-go/v7/pkg/grpc
 github.com/opencord/voltha-lib-go/v7/pkg/kafka
 github.com/opencord/voltha-lib-go/v7/pkg/log
 github.com/opencord/voltha-lib-go/v7/pkg/meters
+github.com/opencord/voltha-lib-go/v7/pkg/platform
 github.com/opencord/voltha-lib-go/v7/pkg/probe
 github.com/opencord/voltha-lib-go/v7/pkg/version
 # github.com/opencord/voltha-protos/v5 v5.0.0
