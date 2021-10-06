@@ -37,6 +37,7 @@ import (
 	flow "github.com/opencord/voltha-lib-go/v7/pkg/flows"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
+	platform "github.com/opencord/voltha-lib-go/v7/pkg/platform"
 	almgr "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/almgr"
 	avcfg "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/avcfg"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
@@ -913,7 +914,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 
 		var uniPort *cmn.OnuUniPort
 		var exist bool
-		uniNo := mkUniPortNum(ctx, dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
+		uniNo := platform.MkUniPortNum(ctx, dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(), uint32(uniData.PersUniID))
 		if uniPort, exist = dh.uniEntityMap[uniNo]; !exist {
 			logger.Errorw(ctx, "reconciling - OnuUniPort data not found  - terminate reconcilement",
 				log.Fields{"uniNo": uniNo, "device-id": dh.DeviceID})
@@ -2351,7 +2352,7 @@ func (dh *deviceHandler) DeviceProcStatusUpdate(ctx context.Context, devEvent cm
 
 func (dh *deviceHandler) addUniPort(ctx context.Context, aUniInstNo uint16, aUniID uint8, aPortType cmn.UniPortType) {
 	// parameters are IntfId, OnuId, uniId
-	uniNo := mkUniPortNum(ctx, dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(),
+	uniNo := platform.MkUniPortNum(ctx, dh.pOnuIndication.GetIntfId(), dh.pOnuIndication.GetOnuId(),
 		uint32(aUniID))
 	if _, present := dh.uniEntityMap[uniNo]; present {
 		logger.Warnw(ctx, "OnuUniPort-add: Port already exists", log.Fields{"for InstanceId": aUniInstNo})
