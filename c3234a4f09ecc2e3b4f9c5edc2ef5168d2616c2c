@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3931c005_b43a21a1",
+        "filename": "internal/pkg/core/platform.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-07T07:16:02Z",
+      "side": 1,
+      "message": "just out of curiosity, there is a 20 line difference between this (291) and the added one in voltha-lib-go (271), what are those ?",
+      "revId": "c3234a4f09ecc2e3b4f9c5edc2ef5168d2616c2c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
