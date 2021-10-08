@@ -24,6 +24,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "3fd47b09_c572ad4f",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T21:42:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b79f5143_308d811d",
+      "range": {
+        "startLine": 294,
+        "startChar": 1,
+        "endLine": 300,
+        "endChar": 2
+      },
+      "revId": "90884199aeea1a3977cb2447f355ac9beee3794e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "05a91c98_a7997489",
@@ -37,6 +61,30 @@
       "writtenOn": "2021-10-04T07:05:49Z",
       "side": 1,
       "message": "What is the expected behavior in rw-core in case some of the flows in list are failed and some succeeded? We don\u0027t have the information about which are failed and which are succeeded in our response.",
+      "range": {
+        "startLine": 851,
+        "startChar": 0,
+        "endLine": 851,
+        "endChar": 88
+      },
+      "revId": "90884199aeea1a3977cb2447f355ac9beee3794e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "73454b53_f9c7681e",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 851,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T21:42:21Z",
+      "side": 1,
+      "message": "Although the API seems to suggest that more than one flows could arrive in a single request, the core always serializes flow requests one by one. So there should be any issues. And if a flow fails to add, the flow is reverted per the usual logic.",
+      "parentUuid": "05a91c98_a7997489",
       "range": {
         "startLine": 851,
         "startChar": 0,
