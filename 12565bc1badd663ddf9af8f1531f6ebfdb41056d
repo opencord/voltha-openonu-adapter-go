@@ -88,6 +88,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5367ed0e_3a3bacbe",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 744,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T23:41:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "eeaed418_e69ff0f9",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ec442242_4967904a",
@@ -140,6 +158,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d24a00b5_4e54d477",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 828,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T23:41:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a90393a8_9612e712",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a1d5358d_e25b781d",
@@ -153,6 +189,24 @@
       "writtenOn": "2021-09-22T15:00:03Z",
       "side": 1,
       "message": "see below",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "21c85c39_ab7d4e7c",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3740,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T23:41:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a1d5358d_e25b781d",
       "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -192,6 +246,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c95073d4_9f03b71d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3748,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T23:41:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "02fad49c_93a45dab",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "8d076a68_986cceda",
@@ -223,6 +295,24 @@
       "side": 1,
       "message": "responded to earlier comment.",
       "parentUuid": "8d076a68_986cceda",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b3475121_de9828c5",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 3950,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T23:41:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "99584dc7_60999cf8",
       "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -275,6 +365,24 @@
       "writtenOn": "2021-09-22T15:00:03Z",
       "side": 1,
       "message": "That\u0027s probably a point for later-on code clear-up.",
+      "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a14a73e6_d97acf93",
+        "filename": "internal/pkg/onuadaptercore/omci_vlan_config.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 1872,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-08T23:41:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1cd2a53f_4f2c66df",
       "revId": "12565bc1badd663ddf9af8f1531f6ebfdb41056d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
