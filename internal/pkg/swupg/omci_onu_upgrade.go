@@ -563,38 +563,36 @@ func (oFsm *OnuUpgradeFsm) CancelProcessing(ctx context.Context, abCompleteAbort
 	// in any case (even if it might be automatically requested by above cancellation of waiting) ensure resetting the FSM
 	// specific here: See definition of state changes: some states are excluded from reset for possible later commit
 	pAdaptFsm := oFsm.PAdaptFsm
-	if pAdaptFsm != nil {
+	if pAdaptFsm != nil && pAdaptFsm.PFsm != nil {
 		// calling FSM events in background to avoid blocking of the caller
-		go func(aPAFsm *cmn.AdapterFsm) {
-			if aPAFsm.PFsm != nil {
-				if aPAFsm.PFsm.Is(UpgradeStWaitEndDL) {
-					oFsm.chReceiveExpectedResponse <- false //which aborts the FSM in WaitEndDL state
-				} else if aPAFsm.PFsm.Is(UpgradeStAbortingDL) {
-					oFsm.chReceiveAbortEndSwDlResponse <- cEndSwDlResponseAbort //abort waiting on EndDownloadResponse
-				}
+		go func(apFsm *fsm.FSM) {
+			if apFsm.Is(UpgradeStWaitEndDL) {
+				oFsm.chReceiveExpectedResponse <- false //which aborts the FSM in WaitEndDL state
+			} else if apFsm.Is(UpgradeStAbortingDL) {
+				oFsm.chReceiveAbortEndSwDlResponse <- cEndSwDlResponseAbort //abort waiting on EndDownloadResponse
+			}
 
-				var err error
-				if abCompleteAbort {
-					// in case of unconditional abort request the ImageState is set immediately
-					oFsm.mutexUpgradeParams.Lock()
-					//any previous lingering conditional cancelRequest is superseded by this abortion
-					oFsm.conditionalCancelRequested = false
-					oFsm.volthaDownloadReason = aReason
-					oFsm.mutexUpgradeParams.Unlock()
-					err = aPAFsm.PFsm.Event(UpgradeEvAbort) //as unconditional default FSM cancellation
-				} else {
-					//at conditional abort request the image states are set when reaching the reset state
-					oFsm.conditionalCancelRequested = true
-					err = aPAFsm.PFsm.Event(UpgradeEvReset) //as state-conditional default FSM cleanup
-				}
-				if err != nil {
-					//error return is expected in case of conditional request and no state transition
-					logger.Debugw(ctx, "onu upgrade fsm could not cancel with abort/reset event", log.Fields{
-						"device-id": oFsm.deviceID, "error": err})
-				}
-			} //else the FSM seems already to be in some released state
-		}(pAdaptFsm)
-	}
+			var err error
+			if abCompleteAbort {
+				// in case of unconditional abort request the ImageState is set immediately
+				oFsm.mutexUpgradeParams.Lock()
+				//any previous lingering conditional cancelRequest is superseded by this abortion
+				oFsm.conditionalCancelRequested = false
+				oFsm.volthaDownloadReason = aReason
+				oFsm.mutexUpgradeParams.Unlock()
+				err = apFsm.Event(UpgradeEvAbort) //as unconditional default FSM cancellation
+			} else {
+				//at conditional abort request the image states are set when reaching the reset state
+				oFsm.conditionalCancelRequested = true
+				err = apFsm.Event(UpgradeEvReset) //as state-conditional default FSM cleanup
+			}
+			if err != nil {
+				//error return is expected in case of conditional request and no state transition
+				logger.Debugw(ctx, "onu upgrade fsm could not cancel with abort/reset event", log.Fields{
+					"device-id": oFsm.deviceID, "error": err})
+			}
+		}(pAdaptFsm.PFsm)
+	} //else the FSM seems already to be in some released state
 }
 
 func (oFsm *OnuUpgradeFsm) enterStarting(ctx context.Context, e *fsm.Event) {

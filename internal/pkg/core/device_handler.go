@@ -26,8 +26,6 @@ import (
 	"time"
 
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
-	"github.com/opencord/voltha-protos/v5/go/openolt"
-	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/looplab/fsm"
@@ -50,7 +48,9 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/extension"
 	ic "github.com/opencord/voltha-protos/v5/go/inter_container"
 	of "github.com/opencord/voltha-protos/v5/go/openflow_13"
+	"github.com/opencord/voltha-protos/v5/go/openolt"
 	oop "github.com/opencord/voltha-protos/v5/go/openolt"
+	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
@@ -176,6 +176,7 @@ type deviceHandler struct {
 	UniVlanConfigFsmMap         map[uint8]*avcfg.UniVlanConfigFsm
 	lockUpgradeFsm              sync.RWMutex
 	pOnuUpradeFsm               *swupg.OnuUpgradeFsm
+	upgradeCanceled             bool
 	reconciling                 uint8
 	mutexReconcilingFlag        sync.RWMutex
 	chReconcilingFinished       chan bool //channel to indicate that reconciling has been finished
@@ -1065,9 +1066,11 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 		var inactiveImageID uint16
 		if inactiveImageID, err = pDevEntry.GetInactiveImageMeID(ctx); err == nil {
 			dh.lockUpgradeFsm.Lock()
-			defer dh.lockUpgradeFsm.Unlock()
+			//lockUpgradeFsm must be release before cancellation as this may implicitly request RemoveOnuUpgradeFsm()
+			//  but must be still locked at calling createOnuUpgradeFsm
 			if dh.pOnuUpradeFsm == nil {
 				err = dh.createOnuUpgradeFsm(ctx, pDevEntry, cmn.OmciOnuSwUpgradeDone)
+				dh.lockUpgradeFsm.Unlock()
 				if err == nil {
 					if err = dh.pOnuUpradeFsm.SetDownloadParams(ctx, inactiveImageID, apImageDsc, apDownloadManager); err != nil {
 						logger.Errorw(ctx, "onu upgrade fsm could not set parameters", log.Fields{
@@ -1078,12 +1081,12 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 						"device-id": dh.DeviceID, "error": err})
 				}
 			} else { //OnuSw upgrade already running - restart (with possible abort of running)
+				dh.lockUpgradeFsm.Unlock()
 				logger.Debugw(ctx, "Onu SW upgrade already running - abort", log.Fields{"device-id": dh.DeviceID})
-				dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
-				//no effort spent anymore for the old API to automatically cancel and restart the download
-				//  like done for the new API
-				logger.Debugw(ctx, "Onu SW upgrade already running - abort", log.Fields{"device-id": dh.DeviceID})
-				dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
+				if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+					dh.upgradeCanceled = true
+					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
+				}
 				//no effort spent anymore for the old API to automatically cancel and restart the download
 				//  like done for the new API
 			}
@@ -1115,11 +1118,12 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 		logger.Debugw(ctx, "onuSwUpgrade requested", log.Fields{
 			"device-id": dh.DeviceID, "image-version": apImageRequest.Image.Version, "to onu-image": inactiveImageID})
 
-		dh.lockUpgradeFsm.RLock()
-		lopOnuUpradeFsm := dh.pOnuUpradeFsm
+		dh.lockUpgradeFsm.Lock()
 		//lockUpgradeFsm must be release before cancellation as this may implicitly request RemoveOnuUpgradeFsm()
-		dh.lockUpgradeFsm.RUnlock()
-		if lopOnuUpradeFsm != nil {
+		//  but must be still locked at calling createOnuUpgradeFsm
+		//  (and working with a local pointer copy does not work here if asynchronous request are done to fast
+		//	[e.g.leaving the local pointer on nil even though a creation is already on the way])
+		if dh.pOnuUpradeFsm != nil {
 			//OnuSw upgrade already running on this device (e.g. with activate/commit not yet set)
 			// abort the current processing, running upgrades are always aborted by newer request
 			logger.Debugw(ctx, "Onu SW upgrade already running - abort previous activity", log.Fields{"device-id": dh.DeviceID})
@@ -1129,7 +1133,11 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 				logger.Debug(ctx, "flushed-upgrade-fsm-channel")
 			default:
 			}
-			lopOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
+			dh.lockUpgradeFsm.Unlock()
+			if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+				dh.upgradeCanceled = true
+				dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
+			}
 			select {
 			case <-time.After(cTimeOutRemoveUpgrade * time.Second):
 				logger.Errorw(ctx, "could not remove Upgrade FSM in time, aborting", log.Fields{"device-id": dh.DeviceID})
@@ -1138,12 +1146,14 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 			case <-dh.upgradeFsmChan:
 				logger.Debugw(ctx, "recent Upgrade FSM removed, proceed with new request", log.Fields{"device-id": dh.DeviceID})
 			}
+			dh.lockUpgradeFsm.Lock() //lock again for following creation
 		}
 
 		//here it can be assumed that no running upgrade processing exists (anymore)
-		//OmciOnuSwUpgradeDone could be used to create some Kafka event with information on upgrade completion,
+		//OmciOnuSwUpgradeDone could be used to create some event notification with information on upgrade completion,
 		//  but none yet defined
 		err = dh.createOnuUpgradeFsm(ctx, pDevEntry, cmn.OmciOnuSwUpgradeDone)
+		dh.lockUpgradeFsm.Unlock()
 		if err == nil {
 			if err = dh.pOnuUpradeFsm.SetDownloadParamsAfterDownload(ctx, inactiveImageID,
 				apImageRequest, apDownloadManager, aImageIdentifier); err != nil {
@@ -1181,6 +1191,10 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context,
 		if getErr != nil || onuVolthaDevice == nil {
 			logger.Errorw(ctx, "Failed to fetch Onu device for image activation", log.Fields{"device-id": dh.DeviceID, "err": getErr})
 			return nil, fmt.Errorf("could not fetch device for device-id: %s", dh.DeviceID)
+		}
+		if dh.upgradeCanceled { //avoid starting some new action in case it is already doing the cancelation
+			logger.Errorw(ctx, "Some upgrade procedure still runs cancelation - abort", log.Fields{"device-id": dh.DeviceID})
+			return nil, fmt.Errorf("request collides with some ongoing cancelation for device-id: %s", dh.DeviceID)
 		}
 		//  use the OnuVendor identification from this device for the internal unique name
 		imageIdentifier := onuVolthaDevice.VendorId + aVersion //head on vendor ID of the ONU
@@ -1244,6 +1258,10 @@ func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context,
 		if getErr != nil || onuVolthaDevice == nil {
 			logger.Errorw(ctx, "Failed to fetch Onu device for image commitment", log.Fields{"device-id": dh.DeviceID, "err": getErr})
 			return nil, fmt.Errorf("could not fetch device for device-id: %s", dh.DeviceID)
+		}
+		if dh.upgradeCanceled { //avoid starting some new action in case it is already doing the cancelation
+			logger.Errorw(ctx, "Some upgrade procedure still runs cancelation - abort", log.Fields{"device-id": dh.DeviceID})
+			return nil, fmt.Errorf("request collides with some ongoing cancelation for device-id: %s", dh.DeviceID)
 		}
 		//  use the OnuVendor identification from this device for the internal unique name
 		imageIdentifier := onuVolthaDevice.VendorId + aVersion //head on vendor ID of the ONU
@@ -1325,7 +1343,10 @@ func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifie
 		pDeviceImageState.ImageState.ImageState = pImageState.ImageState
 		if pImageState.DownloadState != voltha.ImageState_DOWNLOAD_UNKNOWN {
 			//so here the imageIdentifier or version equals to what is used in the upgrade FSM
-			dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
+			if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+				dh.upgradeCanceled = true
+				dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST) //complete abort
+			}
 		} //nothing to cancel (upgrade FSM for different image stays alive)
 	} else {
 		dh.lockUpgradeFsm.RUnlock()
@@ -2011,7 +2032,12 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	//lockUpgradeFsm must be release before cancellation as this may implicitly request RemoveOnuUpgradeFsm()
 	dh.lockUpgradeFsm.RUnlock()
 	if lopOnuUpradeFsm != nil {
-		lopOnuUpradeFsm.CancelProcessing(ctx, false, voltha.ImageState_CANCELLED_ON_ONU_STATE) //conditional cancel
+		if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+			//here we do not expect intermediate cancelation, we still allow for other commands on this FSM
+			//  (even though it may also run into direct cancellation, a bit hard to verify here)
+			//  so don't set 'dh.upgradeCanceled = true' here!
+			lopOnuUpradeFsm.CancelProcessing(ctx, false, voltha.ImageState_CANCELLED_ON_ONU_STATE) //conditional cancel
+		}
 	}
 
 	logger.Infow(ctx, "resetFsms done", log.Fields{"device-id": dh.DeviceID})
@@ -2615,8 +2641,8 @@ func (dh *deviceHandler) runUniLockFsm(ctx context.Context, aAdminState bool) {
 }
 
 // createOnuUpgradeFsm initializes and runs the Onu Software upgrade FSM
+// precondition: lockUpgradeFsm is already locked from caller of this function
 func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *mib.OnuDeviceEntry, aDevEvent cmn.OnuDeviceEvent) error {
-	//in here lockUpgradeFsm is already locked
 	chUpgradeFsm := make(chan cmn.Message, 2048)
 	var sFsmName = "OnuSwUpgradeFSM"
 	logger.Debugw(ctx, "create OnuSwUpgradeFSM", log.Fields{"device-id": dh.DeviceID})
@@ -2635,7 +2661,7 @@ func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *mi
 					// maybe try a FSM reset and then again ... - TODO!!!
 					return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be started for device-id: %s", dh.device.Id))
 				}
-				/***** LockStateFSM started */
+				/***** Upgrade FSM started */
 				//reset the last stored upgrade states (which anyway should be don't care as long as the newly created FSM exists)
 				(*dh.pLastUpgradeImageState).DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
 				(*dh.pLastUpgradeImageState).Reason = voltha.ImageState_NO_ERROR
@@ -2665,7 +2691,8 @@ func (dh *deviceHandler) RemoveOnuUpgradeFsm(ctx context.Context, apImageState *
 	logger.Debugw(ctx, "remove OnuSwUpgradeFSM StateMachine", log.Fields{
 		"device-id": dh.DeviceID})
 	dh.lockUpgradeFsm.Lock()
-	dh.pOnuUpradeFsm = nil //resource clearing is left to garbage collector
+	dh.pOnuUpradeFsm = nil     //resource clearing is left to garbage collector
+	dh.upgradeCanceled = false //cancelation done
 	dh.pLastUpgradeImageState = apImageState
 	dh.lockUpgradeFsm.Unlock()
 	//signal upgradeFsm removed using non-blocking channel send
@@ -2686,8 +2713,13 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 	}
 
 	dh.lockUpgradeFsm.RLock()
-	defer dh.lockUpgradeFsm.RUnlock()
+	//lockUpgradeFsm must be release before cancellation as this may implicitly request RemoveOnuUpgradeFsm()
 	if dh.pOnuUpradeFsm != nil {
+		if dh.upgradeCanceled { //avoid starting some new action in case it is already doing the cancelation
+			dh.lockUpgradeFsm.RUnlock()
+			logger.Errorw(ctx, "Some upgrade procedure still runs cancelation - abort", log.Fields{"device-id": dh.DeviceID})
+			return
+		}
 		pUpgradeStatemachine := dh.pOnuUpradeFsm.PAdaptFsm.PFsm
 		if pUpgradeStatemachine != nil {
 			// commit is only processed in case out upgrade FSM indicates the according state (for automatic commit)
@@ -2700,11 +2732,16 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 				if pDevEntry.IsImageToBeCommitted(ctx, dh.pOnuUpradeFsm.InactiveImageMeID) {
 					activeImageID, errImg := pDevEntry.GetActiveImageMeID(ctx)
 					if errImg != nil {
+						dh.lockUpgradeFsm.RUnlock()
 						logger.Errorw(ctx, "OnuSwUpgradeFSM abort - could not get active image after reboot",
 							log.Fields{"device-id": dh.DeviceID})
-						dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+						if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+							dh.upgradeCanceled = true
+							dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+						}
 						return
 					}
+					dh.lockUpgradeFsm.RUnlock()
 					if activeImageID == dh.pOnuUpradeFsm.InactiveImageMeID {
 						if (UpgradeState == swupg.UpgradeStRequestingActivate) && !dh.pOnuUpradeFsm.GetCommitFlag(ctx) {
 							// if FSM was waiting on activateResponse, new image is active, but FSM shall not commit, then:
@@ -2726,30 +2763,32 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 					} else {
 						logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit/on ActivateResponse, but load did not start with expected image Id",
 							log.Fields{"device-id": dh.DeviceID})
+						dh.upgradeCanceled = true
 						dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
-						return
 					}
-				} else {
-					logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit, but nothing to commit on ONU - abort upgrade",
-						log.Fields{"device-id": dh.DeviceID})
-					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
 					return
 				}
-			} else {
-				//upgrade FSM is active but not waiting for commit: maybe because commit flag is not set
-				// upgrade FSM is to be informed if the current active image is the one that was used in upgrade for the download
-				if activeImageID, err := pDevEntry.GetActiveImageMeID(ctx); err == nil {
-					if dh.pOnuUpradeFsm.InactiveImageMeID == activeImageID {
-						logger.Debugw(ctx, "OnuSwUpgradeFSM image state set to activated", log.Fields{
-							"state": pUpgradeStatemachine.Current(), "device-id": dh.DeviceID})
-						dh.pOnuUpradeFsm.SetImageStateActive(ctx)
-					}
+				dh.lockUpgradeFsm.RUnlock()
+				logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit, but nothing to commit on ONU - abort upgrade",
+					log.Fields{"device-id": dh.DeviceID})
+				dh.upgradeCanceled = true
+				dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+				return
+			}
+			//upgrade FSM is active but not waiting for commit: maybe because commit flag is not set
+			// upgrade FSM is to be informed if the current active image is the one that was used in upgrade for the download
+			if activeImageID, err := pDevEntry.GetActiveImageMeID(ctx); err == nil {
+				if dh.pOnuUpradeFsm.InactiveImageMeID == activeImageID {
+					logger.Debugw(ctx, "OnuSwUpgradeFSM image state set to activated", log.Fields{
+						"state": pUpgradeStatemachine.Current(), "device-id": dh.DeviceID})
+					dh.pOnuUpradeFsm.SetImageStateActive(ctx)
 				}
 			}
 		}
 	} else {
 		logger.Debugw(ctx, "no ONU image to be committed", log.Fields{"device-id": dh.DeviceID})
 	}
+	dh.lockUpgradeFsm.RUnlock()
 }
 
 //SetBackend provides a DB backend for the specified path on the existing KV client
