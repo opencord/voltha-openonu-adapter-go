@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "135ea26d_d7ad48f1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 17
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-11T19:05:47Z",
+      "side": 1,
+      "message": "Created VOL-4387 for simplification of vlan config fsm. ",
+      "revId": "e95687aaab839bc84fca3daa984004652b399337",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
