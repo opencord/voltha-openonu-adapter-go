@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7524636f_84179a05",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-11T07:41:15Z",
+      "side": 1,
+      "message": "please change this link to be [docs](./docs) so it\u0027s pinned to the version of the adapter and does not use `master` all the time.",
+      "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9e892f2d_eb1c041b",
+        "filename": "docs/Specific_Logging_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-11T07:41:15Z",
+      "side": 1,
+      "message": "Generic note, is there a way to set these packages via helm charts ?",
+      "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7436e3f9_edb6e032",
+        "filename": "docs/Specific_Logging_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-11T07:41:15Z",
+      "side": 1,
+      "message": "I\u0027d change this frase to a more generic The following sections provide some examples on how to use the API to set logs.",
+      "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "65af174e_4cf2474d",
+        "filename": "docs/Specific_Logging_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-11T07:41:15Z",
+      "side": 1,
+      "message": "please remove ### \nalso, can you set the whole high level log to cancel all of them ?",
+      "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
