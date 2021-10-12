@@ -3589,29 +3589,45 @@ func (dh *deviceHandler) isFsmInOmciIdleState(ctx context.Context, PFsm *fsm.FSM
 }
 
 func (dh *deviceHandler) isFsmInOmciIdleStateDefault(ctx context.Context, omciFsm cmn.UsedOmciConfigFsms, wantedState string) bool {
-	var PFsm *fsm.FSM
-	//note/TODO!!: might be that access to all these specific FSM; pointers need a semaphore protection as well, cmp lockUpgradeFsm
+	var pAdapterFsm *cmn.AdapterFsm
+	//note/TODO!!: might be that access to all these specific FSM pointers need a semaphore protection as well, cmp lockUpgradeFsm
 	switch omciFsm {
 	case cmn.CUploadFsm:
 		{
-			PFsm = dh.pOnuOmciDevice.PMibUploadFsm.PFsm
+			if dh.pOnuOmciDevice != nil {
+				pAdapterFsm = dh.pOnuOmciDevice.PMibUploadFsm
+			} else {
+				return true //FSM not active - so there is no activity on omci
+			}
 		}
 	case cmn.CDownloadFsm:
 		{
-			PFsm = dh.pOnuOmciDevice.PMibDownloadFsm.PFsm
+			if dh.pOnuOmciDevice != nil {
+				pAdapterFsm = dh.pOnuOmciDevice.PMibDownloadFsm
+			} else {
+				return true //FSM not active - so there is no activity on omci
+			}
 		}
 	case cmn.CUniLockFsm:
 		{
-			PFsm = dh.pLockStateFsm.PAdaptFsm.PFsm
+			if dh.pLockStateFsm != nil {
+				pAdapterFsm = dh.pLockStateFsm.PAdaptFsm
+			} else {
+				return true //FSM not active - so there is no activity on omci
+			}
 		}
 	case cmn.CUniUnLockFsm:
 		{
-			PFsm = dh.pUnlockStateFsm.PAdaptFsm.PFsm
+			if dh.pUnlockStateFsm != nil {
+				pAdapterFsm = dh.pUnlockStateFsm.PAdaptFsm
+			} else {
+				return true //FSM not active - so there is no activity on omci
+			}
 		}
 	case cmn.CL2PmFsm:
 		{
-			if dh.pOnuMetricsMgr != nil && dh.pOnuMetricsMgr.PAdaptFsm != nil {
-				PFsm = dh.pOnuMetricsMgr.PAdaptFsm.PFsm
+			if dh.pOnuMetricsMgr != nil {
+				pAdapterFsm = dh.pOnuMetricsMgr.PAdaptFsm
 			} else {
 				return true //FSM not active - so there is no activity on omci
 			}
@@ -3620,7 +3636,11 @@ func (dh *deviceHandler) isFsmInOmciIdleStateDefault(ctx context.Context, omciFs
 		{
 			dh.lockUpgradeFsm.RLock()
 			defer dh.lockUpgradeFsm.RUnlock()
-			PFsm = dh.pOnuUpradeFsm.PAdaptFsm.PFsm
+			if dh.pOnuUpradeFsm != nil {
+				pAdapterFsm = dh.pOnuUpradeFsm.PAdaptFsm
+			} else {
+				return true //FSM not active - so there is no activity on omci
+			}
 		}
 	default:
 		{
@@ -3629,7 +3649,10 @@ func (dh *deviceHandler) isFsmInOmciIdleStateDefault(ctx context.Context, omciFs
 			return false //logical error in FSM check, do not not indicate 'idle' - we can't be sure
 		}
 	}
-	return dh.isFsmInOmciIdleState(ctx, PFsm, wantedState)
+	if pAdapterFsm != nil && pAdapterFsm.PFsm != nil {
+		return dh.isFsmInOmciIdleState(ctx, pAdapterFsm.PFsm, wantedState)
+	}
+	return true //FSM not active - so there is no activity on omci
 }
 
 func (dh *deviceHandler) isAniConfigFsmInOmciIdleState(ctx context.Context, omciFsm cmn.UsedOmciConfigFsms, idleState string) bool {
