@@ -356,6 +356,8 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	}
 	//logger.Debug(ctx,"RxMsg is a Omci Response Message: try to schedule it to the requester")
 	oo.mutexRxSchedMap.Lock()
+	logger.Debugw(ctx, "RxOmciResponse scheduling", log.Fields{"device-id": oo.deviceID, "objectAddr": &(*oo),
+		"LenRxSched": len(oo.rxSchedulerMap)})
 	rxCallbackEntry, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
 	if ok && rxCallbackEntry.CbFunction != nil {
 		if rxCallbackEntry.FramePrint {
@@ -377,6 +379,8 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.mutexRxSchedMap.Unlock()
 		return nil
 	}
+	logger.Debugw(ctx, "RxOmciResponse scheduling error", log.Fields{"device-id": oo.deviceID,
+		"Ok": ok, "CbEntry": rxCallbackEntry})
 	oo.mutexRxSchedMap.Unlock()
 	logger.Errorw(ctx, "omci-message-response for not registered transCorrId", log.Fields{"device-id": oo.deviceID})
 	oo.printRxMessage(ctx, rxMsg)
@@ -503,7 +507,8 @@ func (oo *OmciCC) Send(ctx context.Context, txFrame []byte, timeout int, retry i
 	receiveCallbackPair CallbackPair) error {
 
 	if timeout != 0 {
-		logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.CbKey})
+		logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.CbKey,
+			"device-id": oo.deviceID, "objectAddr": &(*oo), "LenRxSched": len(oo.rxSchedulerMap)})
 		oo.mutexRxSchedMap.Lock()
 		// it could be checked, if the callback key is already registered - but simply overwrite may be acceptable ...
 		oo.rxSchedulerMap[receiveCallbackPair.CbKey] = receiveCallbackPair.CbEntry
