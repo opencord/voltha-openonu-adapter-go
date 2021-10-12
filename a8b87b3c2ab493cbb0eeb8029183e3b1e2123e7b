@@ -16,6 +16,24 @@
       "message": "please update with latest protos",
       "revId": "a8b87b3c2ab493cbb0eeb8029183e3b1e2123e7b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cccc1a22_d7032831",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-12T08:11:06Z",
+      "side": 1,
+      "message": "Does not require the protos to be updated.",
+      "parentUuid": "228fc6c3_ec3e6529",
+      "revId": "a8b87b3c2ab493cbb0eeb8029183e3b1e2123e7b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
