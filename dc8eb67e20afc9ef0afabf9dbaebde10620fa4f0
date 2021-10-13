@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dd750a2c_41aafc2d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-13T09:59:03Z",
+      "side": 1,
+      "message": "I\u0027d recommend a logging extension then.",
+      "revId": "dc8eb67e20afc9ef0afabf9dbaebde10620fa4f0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c52426d8_7222e9e3",
+        "filename": "internal/pkg/common/onu_uni_port.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-13T09:59:03Z",
+      "side": 1,
+      "message": "you could add the capacity into the log then",
+      "revId": "dc8eb67e20afc9ef0afabf9dbaebde10620fa4f0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
