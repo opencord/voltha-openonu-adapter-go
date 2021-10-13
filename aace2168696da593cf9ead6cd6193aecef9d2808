@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cd2867f4_e530c2d6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-13T04:47:11Z",
+      "side": 1,
+      "message": "Apart from the comments from Andrea that needs to be addressed, everything else looks good.\n",
+      "revId": "aace2168696da593cf9ead6cd6193aecef9d2808",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
