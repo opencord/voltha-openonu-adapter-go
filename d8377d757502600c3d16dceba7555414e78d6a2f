@@ -18,6 +18,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "134b884c_f7cfc66e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-13T09:23:36Z",
+      "side": 1,
+      "message": "Currently I have tested this with bbsim. The counter type value is defined in protos and the value for counter type is assigned on the basis of the supported class by the device. The supported class test is already tested on the real device as well as bbsim.",
+      "parentUuid": "60610457_3686b5e9",
+      "revId": "d8377d757502600c3d16dceba7555414e78d6a2f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "12caeca1_0b184c41",
@@ -31,6 +49,30 @@
       "writtenOn": "2021-10-12T14:09:19Z",
       "side": 1,
       "message": "for my education, why does this equality check mean that it is 32 bit as opposed to 64 bit",
+      "range": {
+        "startLine": 3168,
+        "startChar": 0,
+        "endLine": 3168,
+        "endChar": 83
+      },
+      "revId": "d8377d757502600c3d16dceba7555414e78d6a2f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "163a967e_95e4bffd",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 3168,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-13T09:23:36Z",
+      "side": 1,
+      "message": "Firstly when we check for the supported class, we check for the 64bit ClassID, if that is not supported we check for 32bit one. So by default I have kept the counter format as 64 bit. But if the supported class is 32 bit one, I will assign 32 bit to the counter format.",
+      "parentUuid": "12caeca1_0b184c41",
       "range": {
         "startLine": 3168,
         "startChar": 0,
