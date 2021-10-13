@@ -33,6 +33,24 @@
       "message": "you could add the capacity into the log then",
       "revId": "dc8eb67e20afc9ef0afabf9dbaebde10620fa4f0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "72c4e4e8_862a5909",
+        "filename": "internal/pkg/common/onu_uni_port.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2021-10-13T10:22:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c52426d8_7222e9e3",
+      "revId": "dc8eb67e20afc9ef0afabf9dbaebde10620fa4f0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
