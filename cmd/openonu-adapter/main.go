@@ -66,16 +66,12 @@ type adapter struct {
 	grpcServer  *vgrpc.GrpcServer
 	onuAdapter  *ac.OpenONUAC
 	coreClient  *vgrpc.Client
-	halted      bool
-	exitChannel chan int
 }
 
 func newAdapter(cf *config.AdapterFlags) *adapter {
 	var a adapter
 	a.instanceID = cf.InstanceID
 	a.config = cf
-	a.halted = false
-	a.exitChannel = make(chan int, 1)
 	return &a
 }
 
@@ -182,12 +178,6 @@ func setAndTestCoreServiceHandler(ctx context.Context, conn *grpc.ClientConn) in
 }
 
 func (a *adapter) stop(ctx context.Context) {
-	// Stop leadership tracking
-	a.halted = true
-
-	// send exit signal
-	a.exitChannel <- 0
-
 	// Cleanup - applies only if we had a kvClient
 	if a.kvClient != nil {
 		// Release all reservations
@@ -566,6 +556,9 @@ func main() {
 
 	code := waitForExit(ctx)
 	logger.Infow(ctx, "received-a-closing-signal", log.Fields{"code": code})
+
+	// Set the ONU adapter GRPC service as not ready. This will prevent any request from coming to this adapter instance
+	probe.UpdateStatusFromContext(probeCtx, onuAdapterService, probe.ServiceStatusStopped)
 
 	// Cleanup before leaving
 	ad.stop(ctx)
