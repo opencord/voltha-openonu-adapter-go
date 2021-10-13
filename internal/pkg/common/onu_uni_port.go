@@ -61,7 +61,16 @@ func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler Idev
 		"device-id": apDeviceHandler.GetDevice().Id, "portNo": oo.PortNo})
 	//200630: per [VOL-3202] OF port info is now to be delivered within UniPort create
 	//  not doing so crashes rw_core processing (at least still in 200630 version)
-	name := apDeviceHandler.GetDevice().SerialNumber + "-" + strconv.FormatUint(uint64(oo.MacBpNo), 10)
+	var name string
+	var capacity uint32
+	// In the future, We'll add port type into if case
+	if oo.PortType == UniPPTPPots {
+		name = apDeviceHandler.GetDevice().SerialNumber + "-P-" + strconv.FormatUint(uint64(oo.MacBpNo), 10)
+		capacity = uint32(of.OfpPortFeatures_OFPPF_COPPER | of.OfpPortFeatures_OFPPF_OTHER)
+	} else {
+		name = apDeviceHandler.GetDevice().SerialNumber + "-" + strconv.FormatUint(uint64(oo.MacBpNo), 10)
+		capacity = uint32(of.OfpPortFeatures_OFPPF_COPPER | of.OfpPortFeatures_OFPPF_1GB_FD)
+	}
 	var macOctets [6]uint8
 	macOctets[5] = 0x08
 	macOctets[4] = uint8(*apDeviceHandler.GetPonPortNumber() >> 8)
@@ -71,7 +80,6 @@ func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler Idev
 	macOctets[0] = uint8(oo.PortNo)
 	hwAddr := genMacFromOctets(macOctets)
 	ofHwAddr := macAddressToUint32Array(hwAddr)
-	capacity := uint32(of.OfpPortFeatures_OFPPF_1GB_FD | of.OfpPortFeatures_OFPPF_FIBER)
 	ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
 	/* as the VOLTHA port create is only called directly after Uni Port create
 	   the OfPortOperState is always Down
