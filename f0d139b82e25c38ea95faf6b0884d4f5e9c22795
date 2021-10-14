@@ -16,6 +16,74 @@
       "message": "verified to be working on the h/w",
       "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4109e712_d8ce96aa",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-14T06:50:20Z",
+      "side": 1,
+      "message": "maybe some questions ...",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8f2e8911_272e74c3",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 317,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-14T06:50:20Z",
+      "side": 1,
+      "message": "Is \u0027StatusRunning\u0027 here required for being able to start the service? It is a bit confusing as the ServiceStatus reads a bit like \u0027operational state\u0027, not like \u0027requested state\u0027. I\u0027d expect something more like \u0027ServiceStatusPreparing\u0027 here.",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5f5a8e2a_c064c37f",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-14T06:50:20Z",
+      "side": 1,
+      "message": "Similar to above. ServiceStatus was tried to start, while the operation is later checked from within registerWithCore(). So here I\u0027d rather expect something like \u0027ServiceStatusPrepared\u0027.",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "42cb9566_2322df89",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 560,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-14T06:50:20Z",
+      "side": 1,
+      "message": "There is nothing adequate in the grpc server to stop the service, adequate to \u0027server.Start(ctx)\u0027 in startGRPCService()? So I would expect something like \u0027a.grpcServer.Stop(ctx)\u0027 here ...",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
