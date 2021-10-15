@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/opencord/voltha-lib-go/v5/pkg/log"
-	"github.com/opencord/voltha-protos/v4/go/voltha"
 )
 
 const cDefaultLocalDir = "/tmp" //this is the default local dir to download to
@@ -48,10 +47,12 @@ const (
 )
 
 type downloadImageParams struct {
-	downloadImageName  string
-	downloadImageState fileState
-	downloadImageLen   int64
-	downloadImageCrc   uint32
+	downloadImageName       string
+	downloadImageState      fileState
+	downloadImageLen        int64
+	downloadImageCrc        uint32
+	downloadActive          bool
+	downloadContextCancelFn context.CancelFunc
 }
 
 type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map for easier (unique) element appending
@@ -113,11 +114,13 @@ func (dm *fileDownloadManager) StartDownload(ctx context.Context, aImageName str
 	loDownloadImageParams := downloadImageParams{
 		downloadImageName: aImageName, downloadImageState: cFileStateDlStarted,
 		downloadImageLen: 0, downloadImageCrc: 0}
-	dm.mutexDownloadImageDsc.Lock()
-	dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, loDownloadImageParams)
-	dm.mutexDownloadImageDsc.Unlock()
 	//try to download from http
-	err := dm.downloadFile(ctx, aURLCommand, cDefaultLocalDir, aImageName)
+	var err error
+	if err = dm.downloadFile(ctx, aURLCommand, cDefaultLocalDir, aImageName); err == nil {
+		dm.mutexDownloadImageDsc.Lock()
+		dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, loDownloadImageParams)
+		dm.mutexDownloadImageDsc.Unlock()
+	}
 	//return the result of the start-request to comfort the core processing even though the complete download may go on in background
 	return err
 }
@@ -164,6 +167,12 @@ func (dm *fileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFile
 
 //RequestDownloadReady receives a channel that has to be used to inform the requester in case the concerned file is downloaded
 func (dm *fileDownloadManager) RequestDownloadReady(ctx context.Context, aFileName string, aWaitChannel chan<- bool) {
+	//mutexDownloadImageDsc must already be locked here to avoid an update of the dnldImgReadyWaiting map
+	//  just after returning false on imageLocallyDownloaded() (not found) and immediate handling of the
+	//  download success (within updateFileState())
+	//  so updateFileState() can't interfere here just after imageLocallyDownloaded() before setting the requester map
+	dm.mutexDownloadImageDsc.Lock()
+	defer dm.mutexDownloadImageDsc.Unlock()
 	if dm.imageLocallyDownloaded(ctx, aFileName) {
 		//image found (by name) and fully downloaded
 		logger.Debugw(ctx, "file ready - immediate response", log.Fields{"image-name": aFileName})
@@ -172,8 +181,6 @@ func (dm *fileDownloadManager) RequestDownloadReady(ctx context.Context, aFileNa
 	}
 	//when we are here the image was not yet found or not fully downloaded -
 	//  add the device specific channel to the list of waiting requesters
-	dm.mutexDownloadImageDsc.Lock()
-	defer dm.mutexDownloadImageDsc.Unlock()
 	if loRequesterChannelMap, ok := dm.dnldImgReadyWaiting[aFileName]; ok {
 		//entry for the file name already exists
 		if _, exists := loRequesterChannelMap[aWaitChannel]; !exists {
@@ -215,11 +222,9 @@ func (dm *fileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName
 // FileDownloadManager private (unexported) methods -- start
 
 //imageLocallyDownloaded returns true if the requested image already exists within the adapter
+//  requires mutexDownloadImageDsc to be locked (at least RLocked)
 func (dm *fileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImageName string) bool {
 	logger.Debugw(ctx, "checking if image is fully downloaded to adapter", log.Fields{"image-name": aImageName})
-	dm.mutexDownloadImageDsc.RLock()
-	defer dm.mutexDownloadImageDsc.RUnlock()
-
 	for _, dnldImgDsc := range dm.downloadImageDscSlice {
 		if dnldImgDsc.downloadImageName == aImageName {
 			//image found (by name)
@@ -234,6 +239,51 @@ func (dm *fileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImag
 	//image not found (by name)
 	logger.Errorw(ctx, "image does not exist", log.Fields{"image-name": aImageName})
 	return false
+}
+
+//updateDownloadCancel sets context cancel function to be used in case the download is to be aborted
+func (dm *fileDownloadManager) updateDownloadCancel(ctx context.Context,
+	aImageName string, aCancelFn context.CancelFunc) {
+	dm.mutexDownloadImageDsc.Lock()
+	defer dm.mutexDownloadImageDsc.Unlock()
+	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - need to write changes on the original map
+			dm.downloadImageDscSlice[imgKey].downloadContextCancelFn = aCancelFn
+			dm.downloadImageDscSlice[imgKey].downloadActive = true
+			logger.Debugw(ctx, "downloadContextCancelFn set", log.Fields{
+				"image-name": aImageName})
+			return //can leave directly
+		}
+	}
+}
+
+//updateFileState sets the new active (downloaded) file state and informs possibly waiting requesters on this change
+func (dm *fileDownloadManager) updateFileState(ctx context.Context, aImageName string, aFileSize int64) {
+	dm.mutexDownloadImageDsc.Lock()
+	defer dm.mutexDownloadImageDsc.Unlock()
+	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - need to write changes on the original map
+			dm.downloadImageDscSlice[imgKey].downloadActive = false
+			dm.downloadImageDscSlice[imgKey].downloadImageState = cFileStateDlSucceeded
+			dm.downloadImageDscSlice[imgKey].downloadImageLen = aFileSize
+			logger.Debugw(ctx, "imageState download succeeded", log.Fields{
+				"image-name": aImageName, "image-size": aFileSize})
+			//in case upgrade process(es) was/were waiting for the file, inform them
+			for imageName, channelMap := range dm.dnldImgReadyWaiting {
+				if imageName == aImageName {
+					for channel := range channelMap {
+						// use all found channels to inform possible requesters about the existence of the file
+						channel <- true
+						delete(dm.dnldImgReadyWaiting[imageName], channel) //requester served
+					}
+					return //can leave directly
+				}
+			}
+			return //can leave directly
+		}
+	}
 }
 
 //downloadFile downloads the specified file from the given http location
@@ -260,6 +310,12 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 	_ = reqExist.WithContext(ctxExist)
 	respExist, errExist3 := http.DefaultClient.Do(reqExist)
 	if errExist3 != nil || respExist.StatusCode != http.StatusOK {
+		if respExist == nil {
+			logger.Errorw(ctx, "http head from url error - no status, aborting", log.Fields{"url": urlBase.String(),
+				"error": errExist3})
+			return fmt.Errorf("http head from url error - no status, aborting: %s, error: %s",
+				aURLCommand, errExist3)
+		}
 		logger.Infow(ctx, "could not http head from url", log.Fields{"url": urlBase.String(),
 			"error": errExist3, "status": respExist.StatusCode})
 		//if head is not supported by server we cannot use this test and just try to continue
@@ -267,7 +323,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 			logger.Errorw(ctx, "http head from url: file does not exist here, aborting", log.Fields{"url": urlBase.String(),
 				"error": errExist3, "status": respExist.StatusCode})
 			return fmt.Errorf("http head from url: file does not exist here, aborting: %s, error: %s, status: %d",
-				aURLCommand, errExist2, respExist.StatusCode)
+				aURLCommand, errExist3, respExist.StatusCode)
 		}
 	}
 	defer func() {
@@ -282,15 +338,23 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		req, err2 := http.NewRequest("GET", urlBase.String(), nil)
 		if err2 != nil {
 			logger.Errorw(ctx, "could not generate http request", log.Fields{"url": urlBase.String(), "error": err2})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
 		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
+		dm.updateDownloadCancel(ctx, aFileName, cancel)
 		defer cancel()
 		_ = req.WithContext(ctx)
 		resp, err3 := http.DefaultClient.Do(req)
-		if err3 != nil || respExist.StatusCode != http.StatusOK {
-			logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(),
-				"error": err3, "status": respExist.StatusCode})
+		if err3 != nil || resp.StatusCode != http.StatusOK {
+			if resp == nil {
+				logger.Errorw(ctx, "http get error - no status, aborting", log.Fields{"url": urlBase.String(),
+					"error": err3})
+			} else {
+				logger.Errorw(ctx, "could not http get from url", log.Fields{"url": urlBase.String(),
+					"error": err3, "status": resp.StatusCode})
+			}
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
 		defer func() {
@@ -305,6 +369,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		file, err := os.Create(aLocalPathName)
 		if err != nil {
 			logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
 		defer func() {
@@ -318,83 +383,70 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		_, err = io.Copy(file, resp.Body)
 		if err != nil {
 			logger.Errorw(ctx, "could not copy file content", log.Fields{"url": urlBase.String(), "file": aLocalPathName, "error": err})
+			dm.removeImage(ctx, aFileName, true)
 			return
 		}
 
 		fileStats, statsErr := file.Stat()
 		if err != nil {
 			logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
+			return
 		}
 		fileSize := fileStats.Size()
 		logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileSize})
 
-		dm.mutexDownloadImageDsc.Lock()
-		defer dm.mutexDownloadImageDsc.Unlock()
-		for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
-			if dnldImgDsc.downloadImageName == aFileName {
-				//image found (by name) - need to write changes on the original map
-				dm.downloadImageDscSlice[imgKey].downloadImageState = cFileStateDlSucceeded
-				dm.downloadImageDscSlice[imgKey].downloadImageLen = fileSize
-				//in case upgrade process(es) was/were waiting for the file, inform them
-				for imageName, channelMap := range dm.dnldImgReadyWaiting {
-					if imageName == aFileName {
-						for channel := range channelMap {
-							// use all found channels to inform possible requesters about the existence of the file
-							channel <- true
-							delete(dm.dnldImgReadyWaiting[imageName], channel) //requester served
-						}
-						return //can leave directly
-					}
-				}
-				return //can leave directly
-			}
-		}
+		dm.updateFileState(ctx, aFileName, fileSize)
 		//TODO:!!! further extension could be provided here, e.g. already computing and possibly comparing the CRC, vendor check
 	}()
 	return nil
 }
 
-func (dm *fileDownloadManager) RequestDownloadState(ctx context.Context, aImageName string,
-	apDlToAdapterImageState *voltha.ImageState) {
-	logger.Debugw(ctx, "request download state for image to Adapter", log.Fields{"image-name": aImageName})
-	dm.mutexDownloadImageDsc.RLock()
-	defer dm.mutexDownloadImageDsc.RUnlock()
-
-	for _, dnldImgDsc := range dm.downloadImageDscSlice {
-		if dnldImgDsc.downloadImageName == aImageName {
-			//image found (by name)
-			apDlToAdapterImageState.DownloadState = voltha.ImageState_DOWNLOAD_REQUESTED
-			apDlToAdapterImageState.Reason = voltha.ImageState_NO_ERROR
-			return
-		}
-	}
-	//image not found (by name)
-	apDlToAdapterImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN
-	apDlToAdapterImageState.Reason = voltha.ImageState_NO_ERROR
-}
-
-func (dm *fileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
-	logger.Debugw(ctx, "Cancel the download to Adapter", log.Fields{"image-name": aImageName})
-	// for the moment that would only support to wait for the download end and remove the image then
-	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)
+//removeImage deletes the given image according to the Image name from filesystem and downloadImageDscSlice
+func (dm *fileDownloadManager) removeImage(ctx context.Context, aImageName string, aDelFs bool) {
+	logger.Debugw(ctx, "remove the image from Adapter", log.Fields{"image-name": aImageName})
 	dm.mutexDownloadImageDsc.RLock()
 	defer dm.mutexDownloadImageDsc.RUnlock()
 
 	tmpSlice := dm.downloadImageDscSlice[:0]
 	for _, dnldImgDsc := range dm.downloadImageDscSlice {
 		if dnldImgDsc.downloadImageName == aImageName {
-			//image found (by name) - remove the image from filesystem
+			//image found (by name)
 			logger.Debugw(ctx, "removing image", log.Fields{"image-name": aImageName})
-			aLocalPathName := cDefaultLocalDir + "/" + aImageName
-			if err := os.Remove(aLocalPathName); err != nil {
-				logger.Debugw(ctx, "image not removed from filesystem", log.Fields{
-					"image-name": aImageName, "error": err})
+			if aDelFs {
+				//remove the image from filesystem
+				aLocalPathName := cDefaultLocalDir + "/" + aImageName
+				if err := os.Remove(aLocalPathName); err != nil {
+					// might be a temporary situation, when the file was not yet (completely) written
+					logger.Debugw(ctx, "image not removed from filesystem", log.Fields{
+						"image-name": aImageName, "error": err})
+				}
 			}
-			// and in the imageDsc slice by just not appending
+			// and remove from the imageDsc slice by just not appending
 		} else {
 			tmpSlice = append(tmpSlice, dnldImgDsc)
 		}
 	}
 	dm.downloadImageDscSlice = tmpSlice
 	//image not found (by name)
+}
+
+//CancelDownload stops the download and clears all entires concerning this aimageName
+func (dm *fileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
+	// for the moment that would only support to wait for the download end and remove the image then
+	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)
+	dm.mutexDownloadImageDsc.RLock()
+	for imgKey, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name) - need to to check on ongoing download
+			if dm.downloadImageDscSlice[imgKey].downloadActive {
+				//then cancel the download using the context cancel function
+				dm.downloadImageDscSlice[imgKey].downloadContextCancelFn()
+			}
+			//and remove possibly stored traces of this image
+			dm.mutexDownloadImageDsc.RUnlock()
+			go dm.removeImage(ctx, aImageName, true) //including the chance that nothing was yet written to FS, should not matter
+			return                                   //can leave directly
+		}
+	}
+	dm.mutexDownloadImageDsc.RUnlock()
 }

@@ -210,8 +210,8 @@ const ( //definitions as per G.988 softwareImage::IsCommitted
 	swIsCommitted   = 1
 )
 const ( //definitions as per G.988 softwareImage::IsActive
-	//swIsInactive = 0  not yet used
-	swIsActive = 1
+	swIsInactive = 0
+	swIsActive   = 1
 )
 const ( //definitions as per G.988 softwareImage::IsValid
 	//swIsInvalid = 0  not yet used
@@ -891,6 +891,26 @@ func (oo *OnuDeviceEntry) incrementMibDataSync(ctx context.Context) {
 		oo.sOnuPersistentData.PersMibDataSyncAdpt = 1
 	}
 	logger.Debugf(ctx, "mibDataSync updated - mds: %d - device-id: %s", oo.sOnuPersistentData.PersMibDataSyncAdpt, oo.deviceID)
+}
+
+// ModifySwImageInactiveVersion - updates the inactive SW image version stored
+func (oo *OnuDeviceEntry) ModifySwImageInactiveVersion(ctx context.Context, aImageVersion string) {
+	oo.mutexOnuSwImageIndications.Lock()
+	defer oo.mutexOnuSwImageIndications.Unlock()
+	logger.Debugw(ctx, "software-image set inactive version", log.Fields{
+		"device-id": oo.deviceID, "version": aImageVersion})
+	oo.onuSwImageIndications.inactiveEntityEntry.version = aImageVersion
+	//inactive SW version is not part of persistency data (yet) - no need to update that
+}
+
+// ModifySwImageActiveCommit - updates the active SW commit flag stored
+func (oo *OnuDeviceEntry) ModifySwImageActiveCommit(ctx context.Context, aCommitted uint8) {
+	oo.mutexOnuSwImageIndications.Lock()
+	defer oo.mutexOnuSwImageIndications.Unlock()
+	logger.Debugw(ctx, "software-image set active entity commit flag", log.Fields{
+		"device-id": oo.deviceID, "committed": aCommitted})
+	oo.onuSwImageIndications.activeEntityEntry.isCommitted = aCommitted
+	//commit flag is not part of persistency data (yet) - no need to update that
 }
 
 func (oo *OnuDeviceEntry) getActiveImageVersion(ctx context.Context) string {
