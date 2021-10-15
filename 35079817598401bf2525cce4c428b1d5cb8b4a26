@@ -52,6 +52,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0b16e478_30f62e82",
+        "filename": "docs/Specific_Logging_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-15T12:05:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7436e3f9_edb6e032",
+      "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "65af174e_4cf2474d",
@@ -65,6 +83,24 @@
       "writtenOn": "2021-10-11T07:41:15Z",
       "side": 1,
       "message": "please remove ### \nalso, can you set the whole high level log to cancel all of them ?",
+      "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0ef246f5_54db4ddf",
+        "filename": "docs/Specific_Logging_Notes.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-15T12:05:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "65af174e_4cf2474d",
       "revId": "35079817598401bf2525cce4c428b1d5cb8b4a26",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
