@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "84d50e21_c68f5b8f",
+        "filename": "docs/ONU_Upgrade_Notes.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-15T12:25:16Z",
+      "side": 1,
+      "message": "The link to OnuUpgradeStatesOvw.pdf is destroyed by moving this file to docs as well.",
+      "revId": "f8cfdc7c800aa059950ba8e6f389b2914475fbaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
