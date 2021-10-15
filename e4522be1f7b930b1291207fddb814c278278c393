@@ -16,6 +16,23 @@
       "message": "The ONU upgrade robot test will certainly fail with this patch if invoked from the R2.8 branch. Needs merge back from master. (perhaps waiting on Torsten)",
       "revId": "e4522be1f7b930b1291207fddb814c278278c393",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6a286d8b_05030d83",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-15T19:49:40Z",
+      "side": 1,
+      "message": "hardware test\nfunctional tests",
+      "revId": "e4522be1f7b930b1291207fddb814c278278c393",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
