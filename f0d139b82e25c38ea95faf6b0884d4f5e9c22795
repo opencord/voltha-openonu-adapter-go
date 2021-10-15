@@ -107,6 +107,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "dbc177ad_1648eca0",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 317,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2021-10-15T14:01:48Z",
+      "side": 1,
+      "message": "Let me offer some clarifications:\n1) The startGRPCService() is invoked in its own go routine\n2) server.Start(ctx) invokes the Serve() method on the grpc server.  This method blocks, i.e. serves all grpc requests until it dies or gets kills.   Therefore, a call to server.Start() blocks until the process is terminated.\n3) If server.Start() fails for whatever reason it is a fatal exception, hence the process is terminated right away.\n4) Therefore, before invoking server.Start(), the service is set to running.  And after server.Start(), the service has stopped, hence the stopped status.",
+      "parentUuid": "38f979da_ee6382de",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "5f5a8e2a_c064c37f",
         "filename": "cmd/openonu-adapter/main.go",
         "patchSetId": 1
@@ -160,6 +178,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "f276d76c_6dea118a",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 321,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2021-10-15T14:01:48Z",
+      "side": 1,
+      "message": "See prior comment",
+      "parentUuid": "547a0338_9ff61a3e",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "42cb9566_2322df89",
         "filename": "cmd/openonu-adapter/main.go",
         "patchSetId": 1
@@ -207,6 +243,24 @@
       "side": 1,
       "message": "Where in the code is the grpcServer.Stop() invocation? Couldn\u0027t find it. It is somehow implicitly done?",
       "parentUuid": "6b284ba2_4cea2d80",
+      "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "588f2a0d_094bb80e",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 560,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2021-10-15T14:01:48Z",
+      "side": 1,
+      "message": "It is implicit.  See above comments.  As a side note, process termination in voltha (across components) is something to be revised across board.",
+      "parentUuid": "ede1f6a3_3a627a99",
       "revId": "f0d139b82e25c38ea95faf6b0884d4f5e9c22795",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
