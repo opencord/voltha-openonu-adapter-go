@@ -1,0 +1,9 @@
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Code-Review+1: khenaidoo Nursimulu <knursimu@ciena.com>
+Code-Review+1: David Bainbridge <dbainbri@ciena.com>
+Code-Review+2: Andrea Campanella <andrea@opennetworking.org>
+Submitted-by: Andrea Campanella <andrea@opennetworking.org>
+Submitted-at: Mon, 18 Oct 2021 15:25:31 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/26957
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
