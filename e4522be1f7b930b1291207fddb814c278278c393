@@ -67,6 +67,23 @@
       "message": "hardware test\nfunctional tests",
       "revId": "e4522be1f7b930b1291207fddb814c278278c393",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4c166890_86b3cdc9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-18T09:34:47Z",
+      "side": 1,
+      "message": "Merge of  [VOL-4336] is still missing (the not yet merged review https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/27172)",
+      "revId": "e4522be1f7b930b1291207fddb814c278278c393",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
