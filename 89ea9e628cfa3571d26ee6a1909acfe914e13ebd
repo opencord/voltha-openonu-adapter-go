@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a68d8a78_0adb88cf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 9
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-18T14:08:03Z",
+      "side": 1,
+      "message": "Tested with latest omci lib support patch in bbsim.\nubuntu@cto-lab-09:~/src/voltctl$ ./voltctl device getextval ethernet_frame_extended_pm 44cf0962-9338-45f3-b7b4-c2d86f0fe3e7\nHandling connection for 55555\nUpstream_Drop_Events:\t        247\nUpstream_Octets:\t        232\nUFrames:\t                292\nUBroadcastFrames:\t        243\nUMulticastFrames:\t        338\nUCrcErroredFrames:\t        200\nUUndersizeFrames:\t        63\nUOversizeFrames:\t        144\nUFrames_64Octets:\t        199\nUFrames_65To_127Octets:\t        251\nUFrames_128To_255Octets:\t236\nUFrames_256To_511Octets:\t198\nUFrames_512To_1023Octets:\t95\nUFrames_1024To_1518Octets:\t145\nDDropEvents:\t                172\nDOctets:\t                289\nDFrames:\t                239\nDBroadcastFrames:\t        323\nDMulticastFrames:\t        243\nDCrcErroredFrames:\t        239\nDUndersizeFrames:\t        252\nDOversizeFrames:\t        187\nDFrames_64Octets:\t        228\nDFrames_65To_127Octets:\t        189\nDFrames_128To_255Octets:\t216\nDFrames_256To_511Octets:\t212\nDFrames_512To_1023Octets:\t169\nDFrames_1024To_1518Octets:\t263\nPmFormat:\t                SIXTY_FOUR_BIT\n",
+      "revId": "89ea9e628cfa3571d26ee6a1909acfe914e13ebd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
