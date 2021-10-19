@@ -153,3 +153,11 @@ func GenerateMcastANISideMBPCDEID(uniPortMacBpNo uint16) (uint16, error) {
 	}
 	return (MacBridgePortAniMcastBaseEID + uniPortMacBpNo), nil
 }
+
+// GenerateVoipUNISideMEID return VoipUNISideMEEntityID
+func GenerateVoipUNISideMEID(uniPortMacBpNo uint16) (uint16, error) {
+	if uniPortMacBpNo > maxUni {
+		return 0, fmt.Errorf("uni macbpno out of range - %d", uniPortMacBpNo)
+	}
+	return (VoipUniBaseEID + uniPortMacBpNo), nil
+}

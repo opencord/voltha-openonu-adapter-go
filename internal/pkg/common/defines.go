@@ -295,6 +295,7 @@ const (
 	MacBridgePortAniBaseEID       = uint16(0x1001)
 	MacBridgePortUniBaseEID       = uint16(0x201)
 	MacBridgePortAniMcastBaseEID  = uint16(0xA01)
+	VoipUniBaseEID                = uint16(0x2001)
 	GalEthernetEID                = uint16(1)
 	MacBridgeServiceProfileEID    = uint16(0x201)
 )
