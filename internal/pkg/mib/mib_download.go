@@ -27,9 +27,6 @@ import (
 	"github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
-	//ic "github.com/opencord/voltha-protos/v5/go/inter_container"
-	//"github.com/opencord/voltha-protos/v5/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v5/go/voltha"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 )
 

@@ -37,12 +37,9 @@ import (
 
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 
-	"github.com/opencord/voltha-protos/v5/go/common"
-	//"github.com/opencord/voltha-lib-go/v7/pkg/kafka"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
-	ic "github.com/opencord/voltha-protos/v5/go/inter_container"
-	//"github.com/opencord/voltha-protos/v5/go/openflow_13"
-	//"github.com/opencord/voltha-protos/v5/go/voltha"
+	"github.com/opencord/voltha-protos/v5/go/common"
+	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 )
 
 // ### OMCI related definitions - retrieved from Python adapter code/trace ####
@@ -611,7 +608,7 @@ func (oo *OmciCC) sendOMCIRequest(ctx context.Context, omciTxRequest OmciTransfe
 			"proxyDeviceID": oo.pBaseDeviceHandler.GetProxyAddressID(),
 			"proxyAddress":  oo.pBaseDeviceHandler.GetProxyAddress()})
 	}
-	omciMsg := &ic.OmciMessage{
+	omciMsg := &ia.OmciMessage{
 		ParentDeviceId: oo.pBaseDeviceHandler.GetProxyAddressID(),
 		ChildDeviceId:  oo.deviceID,
 		Message:        omciTxRequest.txFrame,
