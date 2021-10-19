@@ -16,6 +16,24 @@
       "message": "In general the changes look good to me. When I tested on hw the reset was not working as intended. I am not sure it was something in the code or the ONU. Did you take a look at the logs I shared earlier.",
       "revId": "afcbb36fd6e4407a9bf46f0a947ff5cb36918087",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d84cc774_b1b303b1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 12
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-19T15:47:26Z",
+      "side": 1,
+      "message": "yes I have analysed the logs. I could not find anything in the logs which could fix this. What I find weird is after reset when we do get, we do not pass the reset bit as 1, the control bit is again set to 0 in get operation. But is that happening in the background is what I am unsure of.",
+      "parentUuid": "05ef6baf_0346650e",
+      "revId": "afcbb36fd6e4407a9bf46f0a947ff5cb36918087",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
