@@ -2444,7 +2444,7 @@ func (oo *OmciCC) SendCreateMulticastOperationProfileVar(ctx context.Context, ti
 func (oo *OmciCC) SendSetMulticastOperationProfileVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw(ctx, "send MulticastOperationProfile-create-msg:", log.Fields{"device-id": oo.deviceID,
+	logger.Debugw(ctx, "send MulticastOperationProfile-set-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 
@@ -2521,6 +2521,1363 @@ func (oo *OmciCC) SendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 	}
 	logger.Errorw(ctx, "Cannot generate MulticastSubConfigInfo Instance", log.Fields{"Err": omciErr.GetError(),
 		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateVoipVoiceCTP nolint: unused
+func (oo *OmciCC) SendCreateVoipVoiceCTP(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipVoiceCTP-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoipVoiceCtp(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipVoiceCTP for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipVoiceCTP create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipVoiceCTP create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipVoiceCTP-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipVoiceCTP Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetVoipVoiceCTP nolint: unused
+func (oo *OmciCC) SendSetVoipVoiceCTP(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipVoiceCTP-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoipVoiceCtp(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipVoiceCTP for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipVoiceCTP set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipVoiceCTP set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipVoiceCTP-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipVoiceCTP Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteVoipVoiceCTP nolint: unused
+func (oo *OmciCC) SendDeleteVoipVoiceCTP(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipVoiceCTP-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewVoipVoiceCtp(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipVoiceCTP for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipVoiceCTP delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipVoiceCTP delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipVoiceCTP-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipVoiceCTP Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateVoipMediaProfile nolint: unused
+func (oo *OmciCC) SendCreateVoipMediaProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipMediaProfile-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoipMediaProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipMediaProfile for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipMediaProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipMediaProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipMediaProfile-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipMediaProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetVoipMediaProfile nolint: unused
+func (oo *OmciCC) SendSetVoipMediaProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipMediaProfile-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoipMediaProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipMediaProfile for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipMediaProfile set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipMediaProfile set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipMediaProfile-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipMediaProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteVoipMediaProfile nolint: unused
+func (oo *OmciCC) SendDeleteVoipMediaProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipMediaProfile-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewVoipMediaProfile(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipMediaProfile for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipMediaProfile delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipMediaProfile delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipMediaProfile-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipMediaProfile Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateVoiceServiceProfile nolint: unused
+func (oo *OmciCC) SendCreateVoiceServiceProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoiceServiceProfile-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoiceServiceProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoiceServiceProfile for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoiceServiceProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoiceServiceProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoiceServiceProfile-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoiceServiceProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetVoiceServiceProfile nolint: unused
+func (oo *OmciCC) SendSetVoiceServiceProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoiceServiceProfile-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoiceServiceProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoiceServiceProfile for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoiceServiceProfile set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoiceServiceProfile set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoiceServiceProfile-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoiceServiceProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteVoiceServiceProfile nolint: unused
+func (oo *OmciCC) SendDeleteVoiceServiceProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoiceServiceProfile-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewVoiceServiceProfile(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoiceServiceProfile for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoiceServiceProfile delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoiceServiceProfile delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoiceServiceProfile-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoiceServiceProfile Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateSIPUserData nolint: unused
+func (oo *OmciCC) SendCreateSIPUserData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPUserData-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewSipUserData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPUserData for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPUserData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPUserData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPUserData-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPUserData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetSIPUserData nolint: unused
+func (oo *OmciCC) SendSetSIPUserData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPUserData-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewSipUserData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPUserData for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPUserData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPUserData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPUserData-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPUserData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteSIPUserData nolint: unused
+func (oo *OmciCC) SendDeleteSIPUserData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPUserData-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewSipUserData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPUserData for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPUserData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPUserData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPUserData-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPUserData Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateVoipApplicationServiceProfile nolint: unused
+func (oo *OmciCC) SendCreateVoipApplicationServiceProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipApplicationServiceProfile-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoipApplicationServiceProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipApplicationServiceProfile for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipApplicationServiceProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipApplicationServiceProfile create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipApplicationServiceProfile-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipApplicationServiceProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetVoipApplicationServiceProfile nolint: unused
+func (oo *OmciCC) SendSetVoipApplicationServiceProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send VoipApplicationServiceProfile-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewVoipApplicationServiceProfile(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode VoipApplicationServiceProfile for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize VoipApplicationServiceProfile set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send VoipApplicationServiceProfile set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send VoipApplicationServiceProfile-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate VoipApplicationServiceProfile Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteVoipApplicationServiceProfile nolint: unused
+func (oo *OmciCC) SendDeleteVoipApplicationServiceProfile(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPVoipApplicationServiceProfile-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewVoipApplicationServiceProfile(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPVoipApplicationServiceProfile for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPVoipApplicationServiceProfile delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPVoipApplicationServiceProfile delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPVoipApplicationServiceProfile-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPVoipApplicationServiceProfile Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateSIPAgentConfigData nolint: unused
+func (oo *OmciCC) SendCreateSIPAgentConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPAgentConfigData-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewSipAgentConfigData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPAgentConfigData for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPAgentConfigData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPAgentConfigData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPAgentConfigData-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPAgentConfigData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetSIPAgentConfigData nolint: unused
+func (oo *OmciCC) SendSetSIPAgentConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPAgentConfigData-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewSipAgentConfigData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPAgentConfigData for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPAgentConfigData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPAgentConfigData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPAgentConfigData-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPAgentConfigData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteSIPAgentConfigData nolint: unused
+func (oo *OmciCC) SendDeleteSIPAgentConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send SIPAgentConfigData-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewSipAgentConfigData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode SIPAgentConfigData for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize SIPAgentConfigData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send SIPAgentConfigData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send SIPAgentConfigData-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPAgentConfigData Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateTCPUDPConfigData nolint: unused
+func (oo *OmciCC) SendCreateTCPUDPConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send TCPUDPConfigData-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewTcpUdpConfigData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode TCPUDPConfigData for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize TCPUDPConfigData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send TCPUDPConfigData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send TCPUDPConfigData-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate TCPUDPConfigData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetTCPUDPConfigData nolint: unused
+func (oo *OmciCC) SendSetTCPUDPConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send TCPUDPConfigData-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewTcpUdpConfigData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode TCPUDPConfigData for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize TCPUDPConfigData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send TCPUDPConfigData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send TCPUDPConfigData-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate TCPUDPConfigData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteTCPUDPConfigData nolint: unused
+func (oo *OmciCC) SendDeleteTCPUDPConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send TCPUDPConfigData-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewTcpUdpConfigData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode TCPUDPConfigData for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize TCPUDPConfigData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send TCPUDPConfigData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send TCPUDPConfigData-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate SIPAgentConfigData Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateIPHostConfigData nolint: unused
+func (oo *OmciCC) SendCreateIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send IPHostConfigData-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewIpHostConfigData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode IPHostConfigData for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize IPHostConfigData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send IPHostConfigData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send IPHostConfigData-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate IPHostConfigData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetIPHostConfigData nolint: unused
+func (oo *OmciCC) SendSetIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send IPHostConfigData-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewIpHostConfigData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode IPHostConfigData for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize IPHostConfigData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send IPHostConfigData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send IPHostConfigData-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate IPHostConfigData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendGetIPHostConfigData nolint: unused
+func (oo *OmciCC) SendGetIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, instID uint16, macAddress []uint32, domainName string, hostName string) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"MacAddress": macAddress,
+			"DomainName": domainName,
+			"HostName": hostName,
+		},
+	}
+	meInstance, omciErr := me.NewIpHostConfigData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid), omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode IPHostConfigData for get", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize IPHostConfigData get", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send IPHostConfigData get", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+	}
+	return meInstance, nil
+}
+
+// SendDeleteIPHostConfigData nolint: unused
+func (oo *OmciCC) SendDeleteIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send IPHostConfigData-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewIpHostConfigData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode IPHostConfigData for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize IPHostConfigData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send IPHostConfigData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send IPHostConfigData-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate IPHostConfigData Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateRTPProfileData nolint: unused
+func (oo *OmciCC) SendCreateRTPProfileData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send RTPProfileData-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewRtpProfileData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode RTPProfileData for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize RTPProfileData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send RTPProfileData create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send RTPProfileData-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate RTPProfileData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetRTPProfileData nolint: unused
+func (oo *OmciCC) SendSetRTPProfileData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send RTPProfileData-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewRtpProfileData(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode RTPProfileData for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize RTPProfileData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send RTPProfileData set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send RTPProfileData-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate RTPProfileData Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendDeleteRTPProfileData nolint: unused
+func (oo *OmciCC) SendDeleteRTPProfileData(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send RTPProfileData-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewRtpProfileData(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode RTPProfileData for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize RTPProfileData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send RTPProfileData delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send RTPProfileData-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate RTPProfileData Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendCreateNetworkDialPlanTable nolint: unused
+func (oo *OmciCC) SendCreateNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send NetworkDialPlanTable-create-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewNetworkDialPlanTable(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send NetworkDialPlanTable create", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send NetworkDialPlanTable-create-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate NetworkDialPlanTable Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendSetNetworkDialPlanTable nolint: unused
+func (oo *OmciCC) SendSetNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send NetworkDialPlanTable-set-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
+
+	meInstance, omciErr := me.NewNetworkDialPlanTable(params[0])
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
+			omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send NetworkDialPlanTable set", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send NetworkDialPlanTable-set-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate NetworkDialPlanTable Instance", log.Fields{"Err": omciErr.GetError(),
+		"device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
+// SendGetNetworkDialPlanTable nolint: unused
+func (oo *OmciCC) SendGetNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, instID uint16, dialPlanNumber uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	meParams := me.ParamData{
+		EntityID: instID,
+		Attributes: me.AttributeValueMap{
+			"DialPlanNumber": dialPlanNumber,
+		},
+	}
+	meInstance, omciErr := me.NewNetworkDialPlanTable(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid), omci.AddDefaults(true))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for get", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable get", log.Fields{"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send NetworkDialPlanTable get", log.Fields{"Err": err,
+				"device-id": oo.deviceID})
+			return nil, err
+		}
+	}
+	return meInstance, nil
+}
+
+// SendDeleteNetworkDialPlanTable nolint: unused
+func (oo *OmciCC) SendDeleteNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send NetworkDialPlanTable-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewNetworkDialPlanTable(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
+			omci.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send NetworkDialPlanTable delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send NetworkDialPlanTable-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate NetworkDialPlanTable Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
 	return nil, omciErr.GetError()
 }
 
