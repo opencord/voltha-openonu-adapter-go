@@ -126,7 +126,7 @@ type FlowCb struct {
 	addFlow      bool            // if true flow to be added, else removed
 	flowItem     *of.OfpFlowStats
 	uniPort      *cmn.OnuUniPort
-	flowMetaData *voltha.FlowMetadata
+	flowMetaData *of.FlowMetadata
 	respChan     *chan error // channel to report the Flow handling error
 }
 
@@ -546,7 +546,7 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 //FlowUpdateIncremental removes and/or adds the flow changes on a given device
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *of.FlowChanges,
-	apOfGroupChanges *of.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
+	apOfGroupChanges *of.FlowGroupChanges, apFlowMetaData *of.FlowMetadata) error {
 	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.DeviceID, "flow": apOfFlowChanges, "metadata": apFlowMetaData})
 	var errorsList []error
 	var retError error
@@ -3018,7 +3018,7 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *of.OfpF
 
 //addFlowItemToUniPort parses the actual flow item to add it to the UniPort
 func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *of.OfpFlowStats, apUniPort *cmn.OnuUniPort,
-	apFlowMetaData *voltha.FlowMetadata, respChan *chan error) {
+	apFlowMetaData *of.FlowMetadata, respChan *chan error) {
 	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
 	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
 	var loAddPcp, loSetPcp uint8
@@ -3078,7 +3078,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		logger.Debugw(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.DeviceID})
 	}
 
-	var meter *voltha.OfpMeterConfig
+	var meter *of.OfpMeterConfig
 	if apFlowMetaData != nil {
 		meter = apFlowMetaData.Meters[0]
 	}
@@ -3167,7 +3167,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 // if this function is called from possibly concurrent processes it must be mutex-protected from the caller!
 // precondition: dh.lockVlanConfig is locked by the caller!
 func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn.OnuUniPort, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *voltha.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	chVlanFilterFsm := make(chan cmn.Message, 2048)
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)

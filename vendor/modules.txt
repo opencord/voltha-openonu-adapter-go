@@ -125,7 +125,7 @@ github.com/looplab/fsm
 ## explicit
 github.com/opencord/omci-lib-go
 github.com/opencord/omci-lib-go/generated
-# github.com/opencord/voltha-lib-go/v7 v7.0.1
+# github.com/opencord/voltha-lib-go/v7 v7.0.1 => ../voltha-lib-go
 ## explicit
 github.com/opencord/voltha-lib-go/v7/pkg/config
 github.com/opencord/voltha-lib-go/v7/pkg/db
@@ -140,11 +140,12 @@ github.com/opencord/voltha-lib-go/v7/pkg/meters
 github.com/opencord/voltha-lib-go/v7/pkg/platform
 github.com/opencord/voltha-lib-go/v7/pkg/probe
 github.com/opencord/voltha-lib-go/v7/pkg/version
-# github.com/opencord/voltha-protos/v5 v5.0.1
+# github.com/opencord/voltha-protos/v5 v5.0.1 => ../voltha-protos
 ## explicit
 github.com/opencord/voltha-protos/v5/go/adapter_services
 github.com/opencord/voltha-protos/v5/go/common
 github.com/opencord/voltha-protos/v5/go/core
+github.com/opencord/voltha-protos/v5/go/core_services
 github.com/opencord/voltha-protos/v5/go/ext/config
 github.com/opencord/voltha-protos/v5/go/extension
 github.com/opencord/voltha-protos/v5/go/inter_container
@@ -303,5 +304,7 @@ google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
 # github.com/coreos/bbolt v1.3.4 => go.etcd.io/bbolt v1.3.4
+# github.com/opencord/voltha-lib-go/v7 => ../voltha-lib-go
+# github.com/opencord/voltha-protos/v5 => ../voltha-protos
 # go.etcd.io/bbolt v1.3.4 => github.com/coreos/bbolt v1.3.4
 # google.golang.org/grpc => google.golang.org/grpc v1.25.1

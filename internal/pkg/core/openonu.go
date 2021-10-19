@@ -37,6 +37,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	"github.com/opencord/voltha-protos/v5/go/extension"
 	ic "github.com/opencord/voltha-protos/v5/go/inter_container"
+	"github.com/opencord/voltha-protos/v5/go/omci"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
@@ -1062,7 +1063,7 @@ func (oo *OpenONUAC) SetSingleValue(context.Context, *extension.SingleSetValueRe
 }
 
 //StartOmciTest not implemented
-func (oo *OpenONUAC) StartOmciTest(ctx context.Context, test *ic.OMCITest) (*voltha.TestResponse, error) {
+func (oo *OpenONUAC) StartOmciTest(ctx context.Context, test *ic.OMCITest) (*omci.TestResponse, error) {
 	return nil, errors.New("unImplemented")
 }
 
@@ -1117,7 +1118,7 @@ func (oo *OpenONUAC) DisablePort(ctx context.Context, port *voltha.Port) (*empty
 }
 
 // GetExtValue - unimplemented
-func (oo *OpenONUAC) GetExtValue(ctx context.Context, extInfo *ic.GetExtValueMessage) (*voltha.ReturnValues, error) {
+func (oo *OpenONUAC) GetExtValue(ctx context.Context, extInfo *ic.GetExtValueMessage) (*extension.ReturnValues, error) {
 	return nil, errors.New("unImplemented")
 }
 
