@@ -1,6 +1,23 @@
 {
   "comments": [
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "37f43626_023f02a7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-19T21:32:37Z",
+      "side": 1,
+      "message": "Apart from the comments that Mahir has, it looks good to me. We will know more when we actually integrate these utilities to voip service configuration in some future patch set.\n",
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "5e331472_f7c32356",
