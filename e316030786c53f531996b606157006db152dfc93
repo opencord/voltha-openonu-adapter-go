@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "44bef620_09d605b6",
+        "filename": "docker/Dockerfile.openonu",
+        "patchSetId": 11
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-19T08:23:54Z",
+      "side": 1,
+      "message": "Sorry changed by mistake, was experimenting with something",
+      "parentUuid": "55f6b1f0_5a8677ab",
+      "revId": "e316030786c53f531996b606157006db152dfc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c5e704b1_16908eb5",
         "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
         "patchSetId": 11
@@ -31,6 +49,30 @@
       "writtenOn": "2021-10-19T06:13:50Z",
       "side": 1,
       "message": "change name to setControlBlockResetFlagForEthernetExtendedPMME and also take another argument which is the reset flag.",
+      "range": {
+        "startLine": 3174,
+        "startChar": 29,
+        "endLine": 3174,
+        "endChar": 72
+      },
+      "revId": "e316030786c53f531996b606157006db152dfc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "84d57134_17902ebb",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 3174,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-19T08:23:54Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c5e704b1_16908eb5",
       "range": {
         "startLine": 3174,
         "startChar": 29,
@@ -54,6 +96,30 @@
       "writtenOn": "2021-10-19T06:13:50Z",
       "side": 1,
       "message": "The reset flag could be passed as argument here",
+      "range": {
+        "startLine": 3179,
+        "startChar": 90,
+        "endLine": 3179,
+        "endChar": 94
+      },
+      "revId": "e316030786c53f531996b606157006db152dfc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fdec1f8c_cb92551f",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 3179,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-19T08:23:54Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a8face64_7b6c741f",
       "range": {
         "startLine": 3179,
         "startChar": 90,
