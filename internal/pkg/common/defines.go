@@ -25,6 +25,7 @@ import (
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	vc "github.com/opencord/voltha-protos/v5/go/common"
+	ofp "github.com/opencord/voltha-protos/v5/go/openflow_13"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
@@ -311,10 +312,10 @@ type UniVlanRuleParams struct {
 
 // UniVlanFlowParams - TODO: add comment
 type UniVlanFlowParams struct {
-	CookieSlice    []uint64               `json:"cookie_slice"`
-	VlanRuleParams UniVlanRuleParams      `json:"vlan_rule_params"`
-	Meter          *voltha.OfpMeterConfig `json:"flow_meter"`
-	RespChan       *chan error            `json:"-"`
+	CookieSlice    []uint64            `json:"cookie_slice"`
+	VlanRuleParams UniVlanRuleParams   `json:"vlan_rule_params"`
+	Meter          *ofp.OfpMeterConfig `json:"flow_meter"`
+	RespChan       *chan error         `json:"-"`
 }
 
 ///////////////////////////////////////////////////////////

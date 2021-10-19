@@ -105,9 +105,17 @@ var controllerPorts = []uint32{0xfffd, 0x7ffffffd, 0xfffffffd}
 
 //MkUniPortNum returns new UNIportNum based on intfID, inuID and uniID
 func MkUniPortNum(ctx context.Context, intfID, onuID, uniID uint32) uint32 {
-	var limit = int(onuID)
+	var limit = int(intfID)
+	if limit > MaxPonsPerOlt {
+		logger.Warn(ctx, "Warning: exceeded the MAX pons per OLT")
+	}
+	limit = int(onuID)
 	if limit > MaxOnusPerPon {
-		logger.Warn(ctx, "exceeded-the-max-onus-per-pon")
+		logger.Warn(ctx, "Warning: exceeded the MAX ONUS per PON")
+	}
+	limit = int(uniID)
+	if limit > MaxUnisPerOnu {
+		logger.Warn(ctx, "Warning: exceeded the MAX UNIS per ONU")
 	}
 	return (intfID << (bitsForUniID + bitsForONUID)) | (onuID << bitsForUniID) | uniID
 }

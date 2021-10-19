@@ -39,7 +39,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/probe"
 	"github.com/opencord/voltha-lib-go/v7/pkg/version"
 	"github.com/opencord/voltha-protos/v5/go/adapter_services"
-	"github.com/opencord/voltha-protos/v5/go/core"
+	"github.com/opencord/voltha-protos/v5/go/core_services"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 	"google.golang.org/grpc"
 
@@ -170,7 +170,7 @@ func (a *adapter) coreRestarted(ctx context.Context, endPoint string) error {
 
 // setAndTestCoreServiceHandler is used to test whether the remote gRPC service is up
 func setAndTestCoreServiceHandler(ctx context.Context, conn *grpc.ClientConn) interface{} {
-	svc := core.NewCoreServiceClient(conn)
+	svc := core_services.NewCoreServiceClient(conn)
 	if h, err := svc.GetHealthStatus(ctx, &empty.Empty{}); err != nil || h.State != voltha.HealthStatus_HEALTHY {
 		return nil
 	}
