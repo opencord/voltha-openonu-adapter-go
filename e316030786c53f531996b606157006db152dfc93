@@ -128,6 +128,30 @@
       },
       "revId": "e316030786c53f531996b606157006db152dfc93",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c6b98080_040e96d2",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 3179,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-19T10:15:49Z",
+      "side": 1,
+      "message": "Its already getting passed as an argument",
+      "parentUuid": "fdec1f8c_cb92551f",
+      "range": {
+        "startLine": 3179,
+        "startChar": 90,
+        "endLine": 3179,
+        "endChar": 94
+      },
+      "revId": "e316030786c53f531996b606157006db152dfc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
