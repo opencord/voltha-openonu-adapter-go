@@ -1,0 +1,395 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5e331472_f7c32356",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2582,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2582,
+        "startChar": 54,
+        "endLine": 2582,
+        "endChar": 60
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4a889645_a4236cbe",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2589,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2589,
+        "startChar": 53,
+        "endLine": 2589,
+        "endChar": 59
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9e4cb59a_3271cd4e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2599,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2599,
+        "startChar": 48,
+        "endLine": 2599,
+        "endChar": 54
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a43d8b6f_4373be1d",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2603,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2603,
+        "startChar": 39,
+        "endLine": 2603,
+        "endChar": 45
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a77542fa_9cf4a224",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2606,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "\"Cannot generate VoipVoiceCTP Instance for set\"",
+      "range": {
+        "startLine": 2606,
+        "startChar": 58,
+        "endLine": 2606,
+        "endChar": 59
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4aa086d8_1dc141bd",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2713,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2713,
+        "startChar": 58,
+        "endLine": 2713,
+        "endChar": 64
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7e3ea7c1_2dd46b6f",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2720,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2720,
+        "startChar": 57,
+        "endLine": 2720,
+        "endChar": 63
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9abcc93e_f29ad73e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2730,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 2730,
+        "startChar": 52,
+        "endLine": 2730,
+        "endChar": 58
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3e1607b4_86f84261",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2737,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "for set",
+      "range": {
+        "startLine": 2737,
+        "startChar": 62,
+        "endLine": 2737,
+        "endChar": 63
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1c293c7e_8cc73b5d",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2841,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set. Same comments applicable for lines below.",
+      "range": {
+        "startLine": 2841,
+        "startChar": 61,
+        "endLine": 2841,
+        "endChar": 67
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6824a2bb_e594477d",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2969,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set. same below few lines.",
+      "range": {
+        "startLine": 2969,
+        "startChar": 53,
+        "endLine": 2969,
+        "endChar": 59
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4caf8c56_bc6d2eb5",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3097,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set. Same in below lines.",
+      "range": {
+        "startLine": 3097,
+        "startChar": 71,
+        "endLine": 3097,
+        "endChar": 77
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1709baff_bd3838da",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3225,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set. Same in below lines also.",
+      "range": {
+        "startLine": 3225,
+        "startChar": 60,
+        "endLine": 3225,
+        "endChar": 66
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47cf2ac1_46767aca",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3353,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set again.",
+      "range": {
+        "startLine": 3353,
+        "startChar": 58,
+        "endLine": 3353,
+        "endChar": 64
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "07fe1d70_b44a5789",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3481,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 3481,
+        "startChar": 58,
+        "endLine": 3481,
+        "endChar": 64
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e8a1b1ed_eee2e37e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3642,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 3642,
+        "startChar": 56,
+        "endLine": 3642,
+        "endChar": 62
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a8324b3e_f79ecaf8",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3770,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-19T18:18:25Z",
+      "side": 1,
+      "message": "set",
+      "range": {
+        "startLine": 3770,
+        "startChar": 62,
+        "endLine": 3770,
+        "endChar": 68
+      },
+      "revId": "9b19f513045fd87cfb1e24e77668be31bb10ad97",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
