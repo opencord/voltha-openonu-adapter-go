@@ -21,11 +21,10 @@ import (
 	"context"
 	"time"
 
-	//"github.com/opencord/voltha-lib-go/v5/pkg/adapters/adapterif"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
-	ic "github.com/opencord/voltha-protos/v5/go/inter_container"
+	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	"github.com/opencord/voltha-protos/v5/go/openolt"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
@@ -112,7 +111,7 @@ type IdeviceHandler interface {
 	RUnlockMutexDeletionInProgressFlag()
 	GetDeletionInProgress() bool
 
-	SendOMCIRequest(context.Context, string, *ic.OmciMessage) error
+	SendOMCIRequest(context.Context, string, *ia.OmciMessage) error
 	CreatePortInCore(context.Context, *voltha.Port) error
 
 	PerOnuFlowHandlerRoutine(uniID uint8)

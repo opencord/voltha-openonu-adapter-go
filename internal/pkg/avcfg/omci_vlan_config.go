@@ -28,7 +28,6 @@ import (
 	"time"
 
 	meters "github.com/opencord/voltha-lib-go/v7/pkg/meters"
-	"github.com/opencord/voltha-protos/v5/go/voltha"
 
 	gp "github.com/google/gopacket"
 	"github.com/looplab/fsm"
@@ -189,7 +188,7 @@ type UniVlanConfigFsm struct {
 func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, apDevOmciCC *cmn.OmciCC, apUniPort *cmn.OnuUniPort,
 	apUniTechProf *OnuUniTechProf, apOnuDB *devdb.OnuDeviceDB, aTechProfileID uint8,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message, aAcceptIncrementalEvto bool,
-	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToRec bool, aMeter *voltha.OfpMeterConfig, respChan *chan error) *UniVlanConfigFsm {
+	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToRec bool, aMeter *of.OfpMeterConfig, respChan *chan error) *UniVlanConfigFsm {
 	instFsm := &UniVlanConfigFsm{
 		pDeviceHandler:              apDeviceHandler,
 		pOnuDeviceEntry:             apOnuDeviceEntry,
@@ -282,7 +281,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 
 //initUniFlowParams is a simplified form of SetUniFlowParams() used for first flow parameters configuration
 func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aMeter *voltha.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	loRuleParams := cmn.UniVlanRuleParams{
 		TpID:     aTpID,
 		MatchVid: uint32(aMatchVlan),
@@ -399,7 +398,7 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
 // ignore complexity by now
 // nolint: gocyclo
 func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool, aMeter *voltha.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	if oFsm == nil {
 		logger.Error(ctx, "no valid UniVlanConfigFsm!")
 		return fmt.Errorf("no-valid-UniVlanConfigFsm")
@@ -3097,7 +3096,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 	return nil
 }
 
-func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMeter *voltha.OfpMeterConfig,
+func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMeter *of.OfpMeterConfig,
 	tpID uint8, uniID uint8, gemPortID uint16) error {
 	logger.Infow(ctx, "Starting create traffic descriptor", log.Fields{"device-id": oFsm.deviceID, "uniID": uniID, "tpID": tpID})
 	// uniTPKey  generate id to Traffic Descriptor ME. We need to create two of them. They should be unique. Because of that

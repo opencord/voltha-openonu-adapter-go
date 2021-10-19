@@ -59,4 +59,5 @@ issues:
     - "Error return value of `oo.sendNextRequest` is not checked"
     - "Error return value of `oo.pDevOmciCC.send` is not checked"
     - "Error return value of `onuDeviceEntry.mibDbClass` is not checked"
+    - "SA1019: voltha.ImageDownload is deprecated"
   exclude-use-default: false

@@ -45,8 +45,9 @@ import (
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/swupg"
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
 	vc "github.com/opencord/voltha-protos/v5/go/common"
+	ca "github.com/opencord/voltha-protos/v5/go/core_adapter"
 	"github.com/opencord/voltha-protos/v5/go/extension"
-	ic "github.com/opencord/voltha-protos/v5/go/inter_container"
+	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	of "github.com/opencord/voltha-protos/v5/go/openflow_13"
 	"github.com/opencord/voltha-protos/v5/go/openolt"
 	oop "github.com/opencord/voltha-protos/v5/go/openolt"
@@ -126,7 +127,7 @@ type FlowCb struct {
 	addFlow      bool            // if true flow to be added, else removed
 	flowItem     *of.OfpFlowStats
 	uniPort      *cmn.OnuUniPort
-	flowMetaData *voltha.FlowMetadata
+	flowMetaData *of.FlowMetadata
 	respChan     *chan error // channel to report the Flow handling error
 }
 
@@ -313,7 +314,7 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 
 }
 
-func (dh *deviceHandler) handleOMCIIndication(ctx context.Context, msg *ic.OmciMessage) error {
+func (dh *deviceHandler) handleOMCIIndication(ctx context.Context, msg *ia.OmciMessage) error {
 	/* msg print moved symmetrically to omci_cc, if wanted here as additional debug, than perhaps only based on additional debug setting!
 	//assuming omci message content is hex coded!
 	// with restricted output of 16(?) bytes would be ...omciMsg.Message[:16]
@@ -331,7 +332,7 @@ func (dh *deviceHandler) handleOMCIIndication(ctx context.Context, msg *ic.OmciM
 	return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
 }
 
-func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, techProfMsg *ic.TechProfileDownloadMessage) error {
+func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, techProfMsg *ia.TechProfileDownloadMessage) error {
 	logger.Infow(ctx, "tech-profile-download-request", log.Fields{"device-id": dh.DeviceID})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
@@ -375,7 +376,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 	if bTpModify := pDevEntry.UpdateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.TpInstancePath); bTpModify {
 
 		switch tpInst := techProfMsg.TechTpInstance.(type) {
-		case *ic.TechProfileDownloadMessage_TpInstance:
+		case *ia.TechProfileDownloadMessage_TpInstance:
 			logger.Debugw(ctx, "onu-uni-tp-path-modified", log.Fields{"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 			//	if there has been some change for some uni TechProfilePath
 			//in order to allow concurrent calls to other dh instances we do not wait for execution here
@@ -421,7 +422,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 	return nil
 }
 
-func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemPortMsg *ic.DeleteGemPortMessage) error {
+func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemPortMsg *ia.DeleteGemPortMessage) error {
 	logger.Infow(ctx, "delete-gem-port-request start", log.Fields{"device-id": dh.DeviceID})
 
 	if dh.pOnuTP == nil {
@@ -456,7 +457,7 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 
 }
 
-func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontMsg *ic.DeleteTcontMessage) error {
+func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontMsg *ia.DeleteTcontMessage) error {
 	logger.Infow(ctx, "delete-tcont-request start", log.Fields{"device-id": dh.DeviceID})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
@@ -553,7 +554,7 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 //FlowUpdateIncremental removes and/or adds the flow changes on a given device
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *of.FlowChanges,
-	apOfGroupChanges *of.FlowGroupChanges, apFlowMetaData *voltha.FlowMetadata) error {
+	apOfGroupChanges *of.FlowGroupChanges, apFlowMetaData *of.FlowMetadata) error {
 	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.DeviceID, "flow": apOfFlowChanges, "metadata": apFlowMetaData})
 	var errorsList []error
 	var retError error
@@ -749,7 +750,7 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 		} else {
 			logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 				"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.DeviceID})
-			if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+			if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 				DeviceId:   dh.DeviceID,
 				ConnStatus: voltha.ConnectStatus_REACHABLE,
 				OperStatus: voltha.OperStatus_UNKNOWN,
@@ -862,7 +863,7 @@ outerLoop:
 			// Request the TpInstance again from the openolt adapter in case of reconcile
 			iaTechTpInst, err := dh.getTechProfileInstanceFromParentAdapter(ctx,
 				dh.device.ProxyAddress.AdapterEndpoint,
-				&ic.TechProfileInstanceRequestMessage{
+				&ia.TechProfileInstanceRequestMessage{
 					DeviceId:       dh.device.Id,
 					TpInstancePath: uniData.PersTpPathMap[tpID],
 					ParentDeviceId: dh.parentID,
@@ -878,7 +879,7 @@ outerLoop:
 			}
 			var tpInst tech_profile.TechProfileInstance
 			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
-			case *ic.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
+			case *ia.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
 				tpInst = *techTpInst.TpInstance
 				logger.Debugw(ctx, "received-tp-instance-successfully-after-reconcile", log.Fields{
 					"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
@@ -1102,7 +1103,7 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 
 	logger.Debugw(ctx, "call DeviceStateUpdate upon reboot", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.DeviceID})
-	if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
 		ConnStatus: voltha.ConnectStatus_REACHABLE,
 		OperStatus: voltha.OperStatus_DISCOVERED,
@@ -1687,7 +1688,7 @@ func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
 			// Update onu state as down in onu adapter
 			onuInd := oop.OnuIndication{}
 			onuInd.OperState = "down"
-			er := dh.adapterProxy.SendInterAdapterMessage(ctx, &onuInd, ic.InterAdapterMessageType_ONU_IND_REQUEST,
+			er := dh.adapterProxy.SendInterAdapterMessage(ctx, &onuInd, ca.InterAdapterMessageType_ONU_IND_REQUEST,
 				"openolt", onuDevice.Type, onuDevice.Id, onuDevice.ProxyAddress.DeviceId, "")
 			if er != nil {
 				logger.Errorw("Failed to send inter-adapter-message", log.Fields{"OnuInd": onuInd,
@@ -1794,7 +1795,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Debugw(ctx, "call DeviceStateUpdate upon create interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 			"OperStatus": voltha.OperStatus_ACTIVATING, "device-id": dh.DeviceID})
 
-		if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+		if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 			DeviceId:   dh.DeviceID,
 			OperStatus: voltha.OperStatus_ACTIVATING,
 			ConnStatus: voltha.ConnectStatus_REACHABLE,
@@ -2014,7 +2015,7 @@ func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuInd
 		}
 		logger.Debugw(ctx, "call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
 			"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.DeviceID})
-		if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+		if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 			DeviceId:   dh.DeviceID,
 			ConnStatus: voltha.ConnectStatus_UNREACHABLE,
 			OperStatus: voltha.OperStatus_DISCOVERED,
@@ -2198,7 +2199,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		// in case of adapter restart connected to an ONU upgrade I would not rely on the image quality
 		// maybe some 'forced' commitment can be done in this situation from system management (or upgrade restarted)
 		dh.checkOnOnuImageCommit(ctx)
-		if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+		if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 			DeviceId:   dh.DeviceID,
 			ConnStatus: voltha.ConnectStatus_REACHABLE,
 			OperStatus: voltha.OperStatus_ACTIVE,
@@ -2296,7 +2297,7 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, de
 	logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 		"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.DeviceID})
 
-	if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
 		ConnStatus: voltha.ConnectStatus_REACHABLE,
 		OperStatus: voltha.OperStatus_UNKNOWN,
@@ -2329,7 +2330,7 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, de
 func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "DeviceStateUpdate upon re-enable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 		"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.DeviceID})
-	if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
 		ConnStatus: voltha.ConnectStatus_REACHABLE,
 		OperStatus: voltha.OperStatus_ACTIVE,
@@ -2363,7 +2364,7 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, dev
 func (dh *deviceHandler) processUniEnableStateFailedEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "DeviceStateUpdate upon re-enable failure. ", log.Fields{
 		"OperStatus": voltha.OperStatus_FAILED, "device-id": dh.DeviceID})
-	if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
 		OperStatus: voltha.OperStatus_FAILED,
 	}); err != nil {
@@ -2572,7 +2573,7 @@ func (dh *deviceHandler) EnableUniPortStateUpdate(ctx context.Context) {
 			if !dh.IsReconciling() {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go func(port *cmn.OnuUniPort) {
-					if err := dh.updatePortStateInCore(ctx, &ic.PortState{
+					if err := dh.updatePortStateInCore(ctx, &ca.PortState{
 						DeviceId:   dh.DeviceID,
 						PortType:   voltha.Port_ETHERNET_UNI,
 						PortNo:     port.PortNo,
@@ -2601,7 +2602,7 @@ func (dh *deviceHandler) DisableUniPortStateUpdate(ctx context.Context) {
 			if !dh.IsReconciling() {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go func(port *cmn.OnuUniPort) {
-					if err := dh.updatePortStateInCore(ctx, &ic.PortState{
+					if err := dh.updatePortStateInCore(ctx, &ca.PortState{
 						DeviceId:   dh.DeviceID,
 						PortType:   voltha.Port_ETHERNET_UNI,
 						PortNo:     port.PortNo,
@@ -3045,7 +3046,7 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *of.OfpF
 
 //addFlowItemToUniPort parses the actual flow item to add it to the UniPort
 func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *of.OfpFlowStats, apUniPort *cmn.OnuUniPort,
-	apFlowMetaData *voltha.FlowMetadata, respChan *chan error) {
+	apFlowMetaData *of.FlowMetadata, respChan *chan error) {
 	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
 	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
 	var loAddPcp, loSetPcp uint8
@@ -3105,7 +3106,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		logger.Debugw(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.DeviceID})
 	}
 
-	var meter *voltha.OfpMeterConfig
+	var meter *of.OfpMeterConfig
 	if apFlowMetaData != nil {
 		meter = apFlowMetaData.Meters[0]
 	}
@@ -3194,7 +3195,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 // if this function is called from possibly concurrent processes it must be mutex-protected from the caller!
 // precondition: dh.lockVlanConfig is locked by the caller!
 func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn.OnuUniPort, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *voltha.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	chVlanFilterFsm := make(chan cmn.Message, 2048)
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
@@ -3379,7 +3380,7 @@ func (dh *deviceHandler) deviceReasonUpdate(ctx context.Context, deviceReason ui
 	dh.SetDeviceReason(deviceReason)
 	if notifyCore {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing at calling position
-		if err := dh.updateDeviceReasonInCore(ctx, &ic.DeviceReason{
+		if err := dh.updateDeviceReasonInCore(ctx, &ca.DeviceReason{
 			DeviceId: dh.DeviceID,
 			Reason:   cmn.DeviceReasonMap[deviceReason],
 		}); err != nil {
@@ -3582,7 +3583,7 @@ func (dh *deviceHandler) StartCollector(ctx context.Context) {
 					}
 					dh.pOnuMetricsMgr.OnuMetricsManagerLock.Unlock()
 				} /* else { // metrics are not managed as a group
-					// TODO: We currently do not have standalone metrics. When available, add code here to fetch the metric.
+					// TODO: We currently do not have standalone metrics. When available, add code here to fetch the metrca.
 				} */
 			}
 		}
@@ -3835,7 +3836,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 					}
 					logger.Debugw(ctx, "reconciling has been finished in time",
 						log.Fields{"device-id": dh.DeviceID})
-					if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+					if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 						DeviceId:   dh.DeviceID,
 						ConnStatus: connectStatus,
 						OperStatus: operState,
@@ -3941,7 +3942,7 @@ func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, device
 	}
 
 	logger.Debugw(ctx, "Core DeviceStateUpdate", log.Fields{"connectStatus": connectStatus, "operState": voltha.OperStatus_RECONCILING_FAILED})
-	if err := dh.updateDeviceStateInCore(ctx, &ic.DeviceStateFilter{
+	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
 		ConnStatus: connectStatus,
 		OperStatus: voltha.OperStatus_RECONCILING_FAILED,
@@ -3966,7 +3967,7 @@ func (dh *deviceHandler) getDeviceFromCore(ctx context.Context, deviceID string)
 	return cClient.GetDevice(subCtx, &vc.ID{Id: deviceID})
 }
 
-func (dh *deviceHandler) updateDeviceStateInCore(ctx context.Context, deviceStateFilter *ic.DeviceStateFilter) error {
+func (dh *deviceHandler) updateDeviceStateInCore(ctx context.Context, deviceStateFilter *ca.DeviceStateFilter) error {
 	cClient, err := dh.coreClient.GetCoreServiceClient()
 	if err != nil || cClient == nil {
 		return err
@@ -4014,7 +4015,7 @@ func (dh *deviceHandler) CreatePortInCore(ctx context.Context, port *voltha.Port
 	return err
 }
 
-func (dh *deviceHandler) updatePortStateInCore(ctx context.Context, portState *ic.PortState) error {
+func (dh *deviceHandler) updatePortStateInCore(ctx context.Context, portState *ca.PortState) error {
 	cClient, err := dh.coreClient.GetCoreServiceClient()
 	if err != nil || cClient == nil {
 		return err
@@ -4026,7 +4027,7 @@ func (dh *deviceHandler) updatePortStateInCore(ctx context.Context, portState *i
 	return err
 }
 
-func (dh *deviceHandler) updateDeviceReasonInCore(ctx context.Context, reason *ic.DeviceReason) error {
+func (dh *deviceHandler) updateDeviceReasonInCore(ctx context.Context, reason *ca.DeviceReason) error {
 	cClient, err := dh.coreClient.GetCoreServiceClient()
 	if err != nil || cClient == nil {
 		return err
@@ -4043,7 +4044,7 @@ Helper functions to communicate with parent adapter
 */
 
 func (dh *deviceHandler) getTechProfileInstanceFromParentAdapter(ctx context.Context, parentEndpoint string,
-	request *ic.TechProfileInstanceRequestMessage) (*ic.TechProfileDownloadMessage, error) {
+	request *ia.TechProfileInstanceRequestMessage) (*ia.TechProfileDownloadMessage, error) {
 	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
 	if err != nil || pgClient == nil {
 		return nil, err
@@ -4084,7 +4085,7 @@ func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
 	}
 }
 
-func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint string, request *ic.OmciMessage) error {
+func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint string, request *ia.OmciMessage) error {
 	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
 	if err != nil || pgClient == nil {
 		return err

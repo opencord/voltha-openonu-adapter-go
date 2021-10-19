@@ -126,7 +126,7 @@ github.com/looplab/fsm
 github.com/opencord/omci-lib-go/v2
 github.com/opencord/omci-lib-go/v2/generated
 github.com/opencord/omci-lib-go/v2/meframe
-# github.com/opencord/voltha-lib-go/v7 v7.0.4
+# github.com/opencord/voltha-lib-go/v7 v7.0.4 => ../voltha-lib-go
 ## explicit
 github.com/opencord/voltha-lib-go/v7/pkg/config
 github.com/opencord/voltha-lib-go/v7/pkg/db
@@ -141,15 +141,19 @@ github.com/opencord/voltha-lib-go/v7/pkg/meters
 github.com/opencord/voltha-lib-go/v7/pkg/platform
 github.com/opencord/voltha-lib-go/v7/pkg/probe
 github.com/opencord/voltha-lib-go/v7/pkg/version
-# github.com/opencord/voltha-protos/v5 v5.0.2
+# github.com/opencord/voltha-protos/v5 v5.0.2 => ../voltha-protos
 ## explicit
-github.com/opencord/voltha-protos/v5/go/adapter_services
+github.com/opencord/voltha-protos/v5/go/adapter_service
 github.com/opencord/voltha-protos/v5/go/common
-github.com/opencord/voltha-protos/v5/go/core
+github.com/opencord/voltha-protos/v5/go/core_adapter
+github.com/opencord/voltha-protos/v5/go/core_service
 github.com/opencord/voltha-protos/v5/go/ext/config
 github.com/opencord/voltha-protos/v5/go/extension
-github.com/opencord/voltha-protos/v5/go/inter_container
+github.com/opencord/voltha-protos/v5/go/health
+github.com/opencord/voltha-protos/v5/go/inter_adapter
+github.com/opencord/voltha-protos/v5/go/olt_inter_adapter_service
 github.com/opencord/voltha-protos/v5/go/omci
+github.com/opencord/voltha-protos/v5/go/onu_inter_adapter_service
 github.com/opencord/voltha-protos/v5/go/openflow_13
 github.com/opencord/voltha-protos/v5/go/openolt
 github.com/opencord/voltha-protos/v5/go/tech_profile
@@ -225,7 +229,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/genproto v0.0.0-20210924002016-3dee208752a0
+# google.golang.org/genproto v0.0.0-20211101144312-62acf1d99145
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.41.0 => google.golang.org/grpc v1.25.1
@@ -304,5 +308,7 @@ google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
 # github.com/coreos/bbolt v1.3.4 => go.etcd.io/bbolt v1.3.4
+# github.com/opencord/voltha-lib-go/v7 => ../voltha-lib-go
+# github.com/opencord/voltha-protos/v5 => ../voltha-protos
 # go.etcd.io/bbolt v1.3.4 => github.com/coreos/bbolt v1.3.4
 # google.golang.org/grpc => google.golang.org/grpc v1.25.1
