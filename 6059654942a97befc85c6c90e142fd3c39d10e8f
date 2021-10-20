@@ -33,6 +33,40 @@
       "message": "recheck",
       "revId": "6059654942a97befc85c6c90e142fd3c39d10e8f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "95ed1eb1_f1737ec6",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3510,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-20T13:57:01Z",
+      "side": 1,
+      "message": "A get with only the EntityId does not mae much sense.\nWhy not using the existing general sendGetMeWithAttributeMask()",
+      "revId": "6059654942a97befc85c6c90e142fd3c39d10e8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5214ef84_1053d1ed",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3799,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-20T13:57:01Z",
+      "side": 1,
+      "message": "A get with only the EntityId does not mae much sense.\nWhy not using the existing general sendGetMeWithAttributeMask()",
+      "revId": "6059654942a97befc85c6c90e142fd3c39d10e8f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
