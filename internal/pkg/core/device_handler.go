@@ -1286,7 +1286,9 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context,
 			"device-id": dh.DeviceID, "err": err, "image-id": inactiveImageID})
 		return nil, fmt.Errorf("no valid inactive image found for device-id: %s", dh.DeviceID)
 	}
+	dh.lockUpgradeFsm.Lock() //lock again for following creation
 	err = dh.createOnuUpgradeFsm(ctx, pDevEntry, cmn.OmciOnuSwUpgradeDone)
+	dh.lockUpgradeFsm.Unlock()
 	if err == nil {
 		if err = dh.pOnuUpradeFsm.SetActivationParamsStart(ctx, aVersion,
 			inactiveImageID, aCommitRequest); err != nil {
@@ -1354,7 +1356,9 @@ func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context,
 			"device-id": dh.DeviceID, "err": err, "image-id": activeImageID})
 		return nil, fmt.Errorf("no valid active image found for device-id: %s", dh.DeviceID)
 	}
+	dh.lockUpgradeFsm.Lock() //lock again for following creation
 	err = dh.createOnuUpgradeFsm(ctx, pDevEntry, cmn.OmciOnuSwUpgradeDone)
+	dh.lockUpgradeFsm.Unlock()
 	if err == nil {
 		if err = dh.pOnuUpradeFsm.SetCommitmentParamsStart(ctx, aVersion, activeImageID); err != nil {
 			logger.Errorw(ctx, "onu upgrade fsm did not accept commitment to start", log.Fields{
@@ -1402,7 +1406,7 @@ func (dh *deviceHandler) cancelOnuSwUpgrade(ctx context.Context, aImageIdentifie
 	if dh.pOnuUpradeFsm != nil {
 		dh.lockUpgradeFsm.RUnlock()
 		// so then we cancel the upgrade operation
-		// but before we still request the actual upgrade states (which should not change with the cancellation)
+		// but before we still request the actual upgrade states for the direct response
 		pImageState := dh.pOnuUpradeFsm.GetImageStates(ctx, aImageIdentifier, aVersion)
 		pDeviceImageState.ImageState.DownloadState = pImageState.DownloadState
 		pDeviceImageState.ImageState.Reason = voltha.ImageState_CANCELLED_ON_REQUEST
@@ -2850,16 +2854,20 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 					} else {
 						logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit/on ActivateResponse, but load did not start with expected image Id",
 							log.Fields{"device-id": dh.DeviceID})
-						dh.upgradeCanceled = true
-						dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+						if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+							dh.upgradeCanceled = true
+							dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+						}
 					}
 					return
 				}
 				dh.lockUpgradeFsm.RUnlock()
 				logger.Errorw(ctx, "OnuSwUpgradeFSM waiting to commit, but nothing to commit on ONU - abort upgrade",
 					log.Fields{"device-id": dh.DeviceID})
-				dh.upgradeCanceled = true
-				dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+				if !dh.upgradeCanceled { //avoid double cancelation in case it is already doing the cancelation
+					dh.upgradeCanceled = true
+					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_ONU_STATE) //complete abort
+				}
 				return
 			}
 			//upgrade FSM is active but not waiting for commit: maybe because commit flag is not set
