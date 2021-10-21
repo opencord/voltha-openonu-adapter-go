@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6d5727ae_c4526000",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 20
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-21T22:54:38Z",
+      "side": 1,
+      "message": "Apart from minor comment below reset looks good. Verified to be working on Sercomm Glasfaser modem.",
+      "revId": "901f9638ea7e0ce6c5dc2e2f333cd61ff2b53b0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ba2344a7_25b1a5c7",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 3287,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-21T22:54:38Z",
+      "side": 1,
+      "message": "Better log error before returning otherwise there is no way to get error context from just INTERNAL_ERROR code. OR Even better, make errorFunc take an additional error string which you use to log.\n\nBasically change like this. \n\n\terrFunc :\u003d func(reason extension.GetValueResponse_ErrorReason, ctx context.Context, err string) *extension.SingleGetValueResponse {\n                logger.Debug(ctx, err)\n\t\treturn \u0026extension.SingleGetValueResponse{\n\t\t\tResponse: \u0026extension.GetValueResponse{\n\t\t\t\tStatus:    extension.GetValueResponse_ERROR,\n\t\t\t\tErrReason: reason,\n\t\t\t},\n\t\t}\n\t}\n\n\nAt the caller you do below.\n\nreturn errFunc(extension.GetValueResponse_INTERNAL_ERROR, ctx, fmt.Sprintf(\"some-error-for-device-%v\", mm.deviceID)\n\nChange this at all places in this function.",
+      "revId": "901f9638ea7e0ce6c5dc2e2f333cd61ff2b53b0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
