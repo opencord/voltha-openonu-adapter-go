@@ -18,6 +18,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c2283c1f_96a88918",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-21T16:19:23Z",
+      "side": 1,
+      "message": "Yes agreed. The problem is the while doing the tests, it was found out that the counters were all 0 after the first reset on sending the traffic. So we have added this check to test once so that we can confirm whether there is some issue with device or code.",
+      "parentUuid": "7db7e42e_1567cf03",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90928a03_68a6f4f7",
@@ -31,6 +49,24 @@
       "writtenOn": "2021-10-21T14:30:20Z",
       "side": 1,
       "message": "Wouldn\u0027t it be sufficient to check just down or up? I mean both are set one after another in above loop ...",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "89041915_17f56435",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3303,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-21T16:19:23Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "90928a03_68a6f4f7",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -70,6 +106,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "80c63af7_ae0c7d9c",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3321,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-21T16:19:23Z",
+      "side": 1,
+      "message": "if the extended pm me has not been created, there is a check at the beginning of CollectEthernetFrameExtendedPMCounters which will fail the request.",
+      "parentUuid": "0b1f4bb8_258c0cf1",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "c895d997_54b14808",
@@ -83,6 +137,24 @@
       "writtenOn": "2021-10-21T15:33:44Z",
       "side": 1,
       "message": "In the end you request Pm data here immediately after the reset (if it was active before).  So you may receive some just low values, which in my point of view are not really of interest (and maybe a bit confusing).\nSo I would favour a simplified mechanism here that either does the reset (and perhaps just delivers assumed 0 values to maybe commit the protobuf response expectation [pro forma]).\nThen the operator may request the next get activity from management system at a time of his selection (without having reset bit set) and then will get all the values accumulated from the time of the reset.\nSo my approach here would be to either request the reset of PM data or the PM data from the ONU here.",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9095a259_c058f816",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3338,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-21T16:19:23Z",
+      "side": 1,
+      "message": "Actually the reset option is in the same command as get. But the reset is optional. So we can do a get with reset flag and then we can do a get without reset as well.",
+      "parentUuid": "c895d997_54b14808",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
