@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "7db7e42e_1567cf03",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-21T15:03:16Z",
+      "side": 1,
+      "message": "I don\u0027t think it is required to \u0027unset\u0027 the reset bit again. The write (set) operation of the control block just resets PM data and TCA\u0027s as immediate activity",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "90928a03_68a6f4f7",
         "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
         "patchSetId": 15
