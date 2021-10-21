@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "90928a03_68a6f4f7",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3303,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-21T14:30:20Z",
+      "side": 1,
+      "message": "Wouldn\u0027t it be sufficient to check just down or up? I mean both are set one after another in above loop ...",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "514e6aa0_3235f68b",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-21T14:30:20Z",
+      "side": 1,
+      "message": "My question here is, when this is really called? For me it looks like at start of the metrics collector. So here I suppose no PmExtended object has been created so far on the ONU. Accordingly a set operation on it (as I asume to be invoked from here) would fail. So a create with reset flag would be the correct choice.\nOn the other hand I would suposse it should be possible to reset the PM data at any time on request, and not just at start (in which case a set request would be a good choice) ...\nMaybe I do not oversee this just from looking at the diffs...",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
