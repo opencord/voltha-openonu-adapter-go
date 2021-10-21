@@ -50,6 +50,41 @@
       "message": "My question here is, when this is really called? For me it looks like at start of the metrics collector. So here I suppose no PmExtended object has been created so far on the ONU. Accordingly a set operation on it (as I asume to be invoked from here) would fail. So a create with reset flag would be the correct choice.\nOn the other hand I would suposse it should be possible to reset the PM data at any time on request, and not just at start (in which case a set request would be a good choice) ...\nMaybe I do not oversee this just from looking at the diffs...",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0b1f4bb8_258c0cf1",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-21T15:33:44Z",
+      "side": 1,
+      "message": "Checked the code a bit more, so: ExtendedPm objects are created from dh.StartCollector (which is called from MibDownload event) - so they basically should exist. Compared to that the \u0027data requests\u0027 are called from openonu::GetSingleValue via dh.getOnuOMCICounters(). This one now checks existence of pOnuMetricsMgr - which does not necessarily mean that StartCollector has been called before. So during startup there might be a short time, when an external request comes in, where the ExtendedPm objects have not been created. This maybe improved a bit, but the general handling using the set-rquest for the reset bit should be ok here.",
+      "parentUuid": "514e6aa0_3235f68b",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c895d997_54b14808",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3338,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-21T15:33:44Z",
+      "side": 1,
+      "message": "In the end you request Pm data here immediately after the reset (if it was active before).  So you may receive some just low values, which in my point of view are not really of interest (and maybe a bit confusing).\nSo I would favour a simplified mechanism here that either does the reset (and perhaps just delivers assumed 0 values to maybe commit the protobuf response expectation [pro forma]).\nThen the operator may request the next get activity from management system at a time of his selection (without having reset bit set) and then will get all the values accumulated from the time of the reset.\nSo my approach here would be to either request the reset of PM data or the PM data from the ONU here.",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
