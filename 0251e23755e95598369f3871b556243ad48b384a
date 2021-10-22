@@ -36,6 +36,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "53b605bd_7e13f0ba",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-22T09:55:19Z",
+      "side": 1,
+      "message": "don\u0027t really understand you comment here, perhaps also see my comment below (for the expectation of pm data results)",
+      "parentUuid": "c2283c1f_96a88918",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90928a03_68a6f4f7",
@@ -124,6 +142,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "59f38925_46293131",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3321,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-22T09:55:19Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "80c63af7_ae0c7d9c",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "c895d997_54b14808",
@@ -155,6 +191,24 @@
       "side": 1,
       "message": "Actually the reset option is in the same command as get. But the reset is optional. So we can do a get with reset flag and then we can do a get without reset as well.",
       "parentUuid": "c895d997_54b14808",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6415cfbe_e62688ad",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3338,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-22T09:55:19Z",
+      "side": 1,
+      "message": "Yes, understand that. But the current proceeding in respect to the ONU (to my understanding) for \"get with reset-bit set\" is (by the way - a stand-alone operation on operator side for a \u0027reset-only\u0027 request would be more clear):\n- extendedPm set-request with P-Bit set\n- extendedPm set-request with P-Bit cleared (which I still would recommend to remove)\n- extendedPm get-request with some fairly undefined time between the reset and get operation -\u003e with the result on running traffic, that the counters will be quite random and do not provide any useful information\n\nSo my proposal for the \"get with reset-bit set\" operation would just be:\n- extendedPm set-request with P-Bit set\n- respond to operator with a PmData set with all counters cleared (without any get request from the ONU)\nOngoing real PM data can then be fetched by the operator according to his further \"get without reset-bit\" requests",
+      "parentUuid": "9095a259_c058f816",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
