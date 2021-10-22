@@ -218,6 +218,10 @@ func (oFsm *LockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	meInstance, err := oFsm.pOmciCC.SendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
 		requestedAttributes, oFsm.PAdaptFsm.CommChan)
 	if err != nil {
+		//Indicate the failure in UnLock case
+		if omciAdminState == 0 {
+			oFsm.SetSuccessEvent(cmn.UniEnableStateFailed)
+		}
 		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "OnuGLS set failed, aborting LockStateFSM", log.Fields{"device-id": oFsm.deviceID})
 		pLockStateAFsm := oFsm.PAdaptFsm
@@ -234,6 +238,10 @@ func (oFsm *LockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
 	if oFsm.pLastTxMeInstance == nil {
+		//Indicate the failure in UnLock case
+		if omciAdminState == 0 {
+			oFsm.SetSuccessEvent(cmn.UniEnableStateFailed)
+		}
 		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "could not send OMCI message from LockStateFsm", log.Fields{
 			"device-id": oFsm.deviceID})
@@ -280,6 +288,13 @@ func (oFsm *LockStateFsm) enterAdminDoneState(ctx context.Context, e *fsm.Event)
 
 func (oFsm *LockStateFsm) enterResettingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "LockStateFSM resetting", log.Fields{"device-id": oFsm.deviceID})
+	//If the fsm is reseted because of a failure during reenable, then issue the fail event.
+	if oFsm.requestEvent == cmn.UniEnableStateFailed {
+		logger.Debugw(ctx, "LockStateFSM send notification to core", log.Fields{"state": e.FSM.Current(), "device-id": oFsm.deviceID})
+		//use DeviceHandler event notification directly, no need/support to update DeviceEntryState for lock/unlock
+		oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, oFsm.requestEvent)
+	}
+
 	pLockStateAFsm := oFsm.PAdaptFsm
 	if pLockStateAFsm != nil {
 		// abort running message processing
@@ -434,6 +449,10 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 					oFsm.mutexPLastTxMeInstance.Unlock()
 					logger.Errorw(ctx, "SetPptpEthUniLS set failed, aborting LockStateFsm!",
 						log.Fields{"device-id": oFsm.deviceID})
+					//Indicate the failure in UnLock case
+					if omciAdminState == 0 {
+						oFsm.SetSuccessEvent(cmn.UniEnableStateFailed)
+					}
 					_ = oFsm.PAdaptFsm.PFsm.Event(UniEvReset)
 					return
 				}
@@ -450,12 +469,17 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 					oFsm.mutexPLastTxMeInstance.Unlock()
 					logger.Errorw(ctx, "SetVeipLS set failed, aborting LockStateFsm!",
 						log.Fields{"device-id": oFsm.deviceID})
+					//Indicate the failure in UnLock case
+					if omciAdminState == 0 {
+						oFsm.SetSuccessEvent(cmn.UniEnableStateFailed)
+					}
 					_ = oFsm.PAdaptFsm.PFsm.Event(UniEvReset)
 					return
 				}
 				oFsm.pLastTxMeInstance = meInstance
 				oFsm.mutexPLastTxMeInstance.Unlock()
 			} else {
+				//TODO: Discuss on the uni port type POTS .
 				logger.Warnw(ctx, "Unsupported UniTP type - skip",
 					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
 				continue
@@ -465,6 +489,10 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				oFsm.mutexPLastTxMeInstance.RUnlock()
 				logger.Errorw(ctx, "could not send PortAdmin OMCI message from LockStateFsm", log.Fields{
 					"device-id": oFsm.deviceID, "Port": uniNo})
+				//Indicate the failure in UnLock case
+				if omciAdminState == 0 {
+					oFsm.SetSuccessEvent(cmn.UniEnableStateFailed)
+				}
 				//some more sophisticated approach is possible, e.g. repeating once, by now let's reset the state machine in order to release all resources now
 				_ = oFsm.PAdaptFsm.PFsm.Event(UniEvReset)
 				return
@@ -476,6 +504,10 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 			if err != nil {
 				logger.Errorw(ctx, "UniTP Admin State set failed, aborting LockState set!",
 					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
+				//Indicate the failure in UnLock case
+				if omciAdminState == 0 {
+					oFsm.SetSuccessEvent(cmn.UniEnableStateFailed)
+				}
 				_ = oFsm.PAdaptFsm.PFsm.Event(UniEvReset)
 				return
 			}
