@@ -161,6 +161,8 @@ const (
 	UniDisableStateDone
 	// UniEnableStateDone - Uni ports admin set to unlock based on device re-enable
 	UniEnableStateDone
+	// UniEnableStateFailed - Uni ports admin set to unlock failure based on device re-enable
+	UniEnableStateFailed
 	// PortLinkUp - Port link state change
 	PortLinkUp
 	// PortLinkDw - Port link state change
