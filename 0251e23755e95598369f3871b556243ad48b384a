@@ -90,6 +90,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "1b61a03b_4c10376c",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-22T12:32:15Z",
+      "side": 1,
+      "message": "This was an alpha ONU if I\u0027m not mistaken, Girish knows more. \nI woudl agree that this is not ideal for everybody but also this is idempotent if I understand correctly, meaning that if the ONU already properly set it to 0 we just do a useless operation, which true, is costly but not an issue. \nUnless this is a major issue with all the other onus I\u0027d go for this change.",
+      "parentUuid": "b0813e5a_9ab5c50f",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90928a03_68a6f4f7",
@@ -263,6 +281,24 @@
       "side": 1,
       "message": "Yes that would be good. Let me discuss this with others also.",
       "parentUuid": "6415cfbe_e62688ad",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d55b967b_8daad28d",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3338,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-10-22T12:32:15Z",
+      "side": 1,
+      "message": "I\u0027m ok with the change that Michael is suggesting.",
+      "parentUuid": "d87dca55_ac978d38",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
