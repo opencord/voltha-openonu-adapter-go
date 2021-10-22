@@ -217,6 +217,7 @@ func (oFsm *LockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.SendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
 		requestedAttributes, oFsm.PAdaptFsm.CommChan)
+
 	if err != nil {
 		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "OnuGLS set failed, aborting LockStateFSM", log.Fields{"device-id": oFsm.deviceID})
@@ -280,6 +281,12 @@ func (oFsm *LockStateFsm) enterAdminDoneState(ctx context.Context, e *fsm.Event)
 
 func (oFsm *LockStateFsm) enterResettingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "LockStateFSM resetting", log.Fields{"device-id": oFsm.deviceID})
+	//If the fsm is reseted because of a failure during reenable, then issue the fail event.
+	if oFsm.requestEvent == cmn.UniEnableStateFailed {
+		//use DeviceHandler event notification directly, no need/support to update DeviceEntryState for lock/unlock
+		oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, oFsm.requestEvent)
+	}
+
 	pLockStateAFsm := oFsm.PAdaptFsm
 	if pLockStateAFsm != nil {
 		// abort running message processing
@@ -430,6 +437,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				meInstance, err := oFsm.pOmciCC.SendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx),
 					uniPort.EntityID, oFsm.pDeviceHandler.GetOmciTimeout(),
 					true, requestedAttributes, oFsm.PAdaptFsm.CommChan)
+
 				if err != nil {
 					oFsm.mutexPLastTxMeInstance.Unlock()
 					logger.Errorw(ctx, "SetPptpEthUniLS set failed, aborting LockStateFsm!",
@@ -484,6 +492,10 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 	// if Config has been done for all UNI related instances let the FSM proceed
 	// while we did not check here, if there is some port at all - !?
 	logger.Infow(ctx, "UniTP adminState loop finished", log.Fields{"device-id": oFsm.deviceID})
+
+	if omciAdminState == 0 && oFsm.requestEvent == cmn.UniEnableStateFailed {
+		oFsm.SetSuccessEvent(cmn.UniEnableStateDone)
+	}
 	_ = oFsm.PAdaptFsm.PFsm.Event(UniEvRxUnisResp)
 }
 
