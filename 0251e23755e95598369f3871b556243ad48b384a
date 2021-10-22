@@ -72,6 +72,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b0813e5a_9ab5c50f",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-22T11:43:29Z",
+      "side": 1,
+      "message": "What ONU was it (vendor, type, software version)?  In this case I would prefer a ONU type specific workaround and not to apply this kind of extra effort generally. Is the supplier of the ONU informed about it? Maybe with an updated software version of this ONU the workaround can completely be removed again then. At least there should be according comments in the code.",
+      "parentUuid": "3f40ae2f_e83c2352",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90928a03_68a6f4f7",
