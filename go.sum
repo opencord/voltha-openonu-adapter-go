@@ -195,6 +195,10 @@ github.com/opencord/omci-lib-go v1.3.3 h1:BzywkXVHSphhpl9hHHOJxc9IQ7MrzIB3aY3LG1
 github.com/opencord/omci-lib-go v1.3.3/go.mod h1:moNk4j00XaM3olsu4a8lRAqGmcZJoyIbxtSr+VERLq4=
 github.com/opencord/voltha-lib-go/v7 v7.0.1 h1:3rwfJL+IalcWp/JzH0yDXv+tkPKBjz9b6GA5q0s16TQ=
 github.com/opencord/voltha-lib-go/v7 v7.0.1/go.mod h1:iZueJRS4XJ3rpm3iy0Zdnhz1lG5bWx2pZoPormwgUKk=
+github.com/opencord/voltha-lib-go/v7 v7.0.3 h1:it4huJELLzFAilzurLPBsq3ymKpcA8Z8FLQAv9tj83A=
+github.com/opencord/voltha-lib-go/v7 v7.0.3/go.mod h1:iZueJRS4XJ3rpm3iy0Zdnhz1lG5bWx2pZoPormwgUKk=
+github.com/opencord/voltha-lib-go/v7 v7.0.4 h1:nVVRkEZyfEkGYewfgmO3NzIAIVdm8G/vVyEaCUwYW6g=
+github.com/opencord/voltha-lib-go/v7 v7.0.4/go.mod h1:iZueJRS4XJ3rpm3iy0Zdnhz1lG5bWx2pZoPormwgUKk=
 github.com/opencord/voltha-protos/v5 v5.0.0/go.mod h1:uVKXQB499Ir6G+rc47dSThNja1S4Vy3h9JLSDuJGmzI=
 github.com/opencord/voltha-protos/v5 v5.0.1 h1:mHpCEqPy0CRMn4plrZ2XAktn8P6UGWkWIQoCUJa6+PE=
 github.com/opencord/voltha-protos/v5 v5.0.1/go.mod h1:uVKXQB499Ir6G+rc47dSThNja1S4Vy3h9JLSDuJGmzI=
