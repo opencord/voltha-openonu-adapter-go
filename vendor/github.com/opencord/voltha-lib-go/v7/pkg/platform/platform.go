@@ -32,19 +32,20 @@ Logical (OF) UNI port number
 
     OpenFlow port number corresponding to PON UNI
 
-     20        12              4      0
-    +--+--------+--------------+------+
-    |0 | pon id |    onu id    |uni id|
-    +--+--------+--------------+------+
+     24        16          8          0
+    +--+--------+----------+----------+
+    |0 | pon id |  onu id  |  uni id  |
+    +--+--------+----------+----------+
 
     pon id = 8 bits = 256 PON ports
     onu id = 8 bits = 256 ONUs per PON port
+    uni id = 8 bits = 256 UNIs per ONU
 
 Logical (OF) NNI port number
 
     OpenFlow port number corresponding to PON NNI
 
-     20                             0
+     24                             0
     +--+----------------------------+
     |1 |                    intf_id |
     +--+----------------------------+
@@ -64,7 +65,7 @@ PON OLT (OF) port number
 
 const (
 	// Number of bits for the physical UNI of the ONUs
-	bitsForUniID = 4
+	bitsForUniID = 8
 	// Number of bits for the ONU ID
 	bitsForONUID = 8
 	// Number of bits for PON ID
@@ -81,33 +82,39 @@ const (
 	ponIntfMarkerPos = 28
 	// Value of marker used to distinguish PON port type of OF port
 	ponIntfMarkerValue = 0x2
-	// Number of bits for NNI ID
-	bitsforNNIID = 20
-	// minNniIntPortNum is used to store start range of nni port number (1 << 20) 1048576
-	minNniIntPortNum = (1 << bitsforNNIID)
-	// maxNniPortNum is used to store the maximum range of nni port number ((1 << 21)-1) 2097151
-	maxNniPortNum = ((1 << (bitsforNNIID + 1)) - 1)
-	// minPonIntfPortNum stores the minimum pon port number
+	// minNniPortNum is used to store start range of nni port number (1 << 24) 16777216
+	minNniPortNum = (1 << nniUniDiffPos)
+	// maxNniPortNum is used to store the maximum range of nni port number ((1 << 25)-1) 33554431
+	maxNniPortNum = ((1 << (nniUniDiffPos + 1)) - 1)
+	// minPonIntfPortNum stores the minimum pon port number (536870912)
 	minPonIntfPortNum = ponIntfMarkerValue << ponIntfMarkerPos
-	// maxPonIntfPortNum stores the maximum pon port number
-	maxPonIntfPortNum = (ponIntfMarkerValue << ponIntfMarkerPos) | (1 << bitsForPONID)
+	// maxPonIntfPortNum stores the maximum pon port number (536871167)
+	maxPonIntfPortNum = ((ponIntfMarkerValue << ponIntfMarkerPos) | (1 << bitsForPONID)) - 1
 	upstream          = "upstream"
 	downstream        = "downstream"
+	//Technology Profiles ID start value
+	TpIDStart = 64
+	//Technology Profiles ID end value
+	TpIDEnd = 256
+	//Number of Technology Profiles can be defined.
+	TpRange = TpIDEnd - TpIDStart
 )
-
-//MinUpstreamPortID value
-var MinUpstreamPortID = 0xfffd
-
-//MaxUpstreamPortID value
-var MaxUpstreamPortID = 0xfffffffd
 
 var controllerPorts = []uint32{0xfffd, 0x7ffffffd, 0xfffffffd}
 
 //MkUniPortNum returns new UNIportNum based on intfID, inuID and uniID
 func MkUniPortNum(ctx context.Context, intfID, onuID, uniID uint32) uint32 {
-	var limit = int(onuID)
+	var limit = int(intfID)
+	if limit > MaxPonsPerOlt {
+		logger.Warn(ctx, "Warning: exceeded the MAX pons per OLT")
+	}
+	limit = int(onuID)
 	if limit > MaxOnusPerPon {
-		logger.Warn(ctx, "exceeded-the-max-onus-per-pon")
+		logger.Warn(ctx, "Warning: exceeded the MAX ONUS per PON")
+	}
+	limit = int(uniID)
+	if limit > MaxUnisPerOnu {
+		logger.Warn(ctx, "Warning: exceeded the MAX UNIS per ONU")
 	}
 	return (intfID << (bitsForUniID + bitsForONUID)) | (onuID << bitsForUniID) | uniID
 }
@@ -151,11 +158,11 @@ func PortNoToIntfID(portno uint32, intfType voltha.Port_PortType) uint32 {
 
 //IntfIDFromNniPortNum returns Intf ID derived from portNum
 func IntfIDFromNniPortNum(ctx context.Context, portNum uint32) (uint32, error) {
-	if portNum < minNniIntPortNum || portNum > maxNniPortNum {
+	if portNum < minNniPortNum || portNum > maxNniPortNum {
 		logger.Errorw(ctx, "nniportnumber-is-not-in-valid-range", log.Fields{"portnum": portNum})
 		return uint32(0), status.Errorf(codes.InvalidArgument, "nni-port-number-out-of-range:%d", portNum)
 	}
-	return (portNum & 0xFFFF), nil
+	return (portNum & (minNniPortNum - 1)), nil
 }
 
 //IntfIDFromPonPortNum returns Intf ID derived from portNum
@@ -164,7 +171,7 @@ func IntfIDFromPonPortNum(ctx context.Context, portNum uint32) (uint32, error) {
 		logger.Errorw(ctx, "ponportnumber-is-not-in-valid-range", log.Fields{"portnum": portNum})
 		return uint32(0), status.Errorf(codes.InvalidArgument, "invalid-pon-port-number:%d", portNum)
 	}
-	return (portNum & 0x7FFF), nil
+	return (portNum & ((1 << ponIntfMarkerPos) - 1)), nil
 }
 
 //IntfIDToPortTypeName returns port type derived from the intfId
