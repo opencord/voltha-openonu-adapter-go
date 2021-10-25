@@ -34,6 +34,24 @@
       "parentUuid": "14ed33cb_8bf0f695",
       "revId": "65851abfc7cd799f833226a53442b723377e7405",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7f034c4c_aa4eb513",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-25T17:43:51Z",
+      "side": 1,
+      "message": "As stated, perhaps I did not fully understand, but: \nYou start the admin processing now with the request \u0027UniEnableStateFailed\". This is now what is delivered also in success case from \u0027enterAdminDoneState()\u0027. And moreover you insered in enterResettingState() another ProcStatusUpdate. Note, that this state is also reached in case of error-free execution. So in the good case two times \u0027UniEnableStateFailed\u0027 will be delivered - in my point of view.\n\nI\u0027d prefer to keep requesting the expected \u0027good\u0027 result, and deliver the error really only in error case. As stated, for that you must insert an internal flag that is to be set for the error case in case you want to keep the event notification collected in the resetting state (or you do it always on each error exit directly). \n\u0027Simpy aborting\u0027 meant to leave/abort the processing without any event notification.",
+      "parentUuid": "62814a32_66b6f73a",
+      "revId": "65851abfc7cd799f833226a53442b723377e7405",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
