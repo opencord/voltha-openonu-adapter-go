@@ -52,6 +52,24 @@
       "parentUuid": "62814a32_66b6f73a",
       "revId": "65851abfc7cd799f833226a53442b723377e7405",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c1a29abb_0fd706d3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-25T20:24:24Z",
+      "side": 1,
+      "message": "I set the request to \u0027UniEnableStateFailed\u0027 in start, but set it \u0027UniEnableStateDone\u0027 after unLock sent to all UNIs, which means all the OMCI requests are sent successfully. So it is not  the \u0027UniEnableStateFailed\u0027 delivered in success case. \nI put the ProcStatusUpdate() in enterResettingState() because in failure cases(e.g an omci message is failed) FSM enters in reseting state but does not send a status update to device_handler and I didn\u0027t see a transition to enterAdminDoneState() after resetting. \n\nI can change the implementation to keep the initial request as success and set it failed in failure cases, but I guess I still need to call ProcStatusUpdate() in enterResettingState() to ensure that the update is sent to device_handler or make a state transition to  adminDoneState.",
+      "parentUuid": "7f034c4c_aa4eb513",
+      "revId": "65851abfc7cd799f833226a53442b723377e7405",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
