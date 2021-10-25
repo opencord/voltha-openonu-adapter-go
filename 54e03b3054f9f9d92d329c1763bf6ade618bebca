@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "54d2f30a_df6521ac",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-25T18:17:48Z",
+      "side": 1,
+      "message": "has a dependency on https://gerrit.opencord.org/c/voltha-openolt-adapter/+/28511 to generate the correct NNI port number. So overriding the jenkins -1.",
+      "revId": "54e03b3054f9f9d92d329c1763bf6ade618bebca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
