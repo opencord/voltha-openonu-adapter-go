@@ -16,6 +16,24 @@
       "message": "Maybe I don\u0027t understand the real intention, but this way it does not make much sense to me.\nSo if the intention was really to provide the \u0027failed\u0027 state if the enabling cannot be done correctly, then within the FSM some additional means must be implemented to detect (and collect) the error condition (instead of simply aborting) and that can be used in the end to generate an according event.\nPerhaps the implicit enumeration increment can be used for that similar to what was done for OmciAniConfigDone/OmciAniResourceRemoved (here UniEnableStateDone/UniEnableStateFailed) [UniEnableStateFailed used within the FSM as implicit +1 event]. But it does not make much sense to me to start the FSM with the Failed indication as request event.",
       "revId": "65851abfc7cd799f833226a53442b723377e7405",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "62814a32_66b6f73a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-25T13:42:39Z",
+      "side": 1,
+      "message": "There are several places where the enable fails and FSM is reseted but only one place where it succeeds(where all OMCI messages are successfully responded). So I chose to set the initial value of request event as UniEnableStateFailed and set it UniEnableStateDone when the last omci message responded, instead of setting the initial value Done and set it Failed in several places in the FSM. Not a problem to change if you insist. I thought this is a cleaner way to implement. Maybe I\u0027m missing something else here.\n\nFor your \"simply aborting\" term could you elaborate it a bit? \n\nBy the incrementing implicit enumeration mention, do you mean to call processUniEnableStateDoneEvent() function instead of defining new processUniEnableStateFailedEvent() function?",
+      "parentUuid": "14ed33cb_8bf0f695",
+      "revId": "65851abfc7cd799f833226a53442b723377e7405",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
