@@ -33,6 +33,23 @@
       "message": "recheck",
       "revId": "97ffe9360cf09ced4ff0f7df59460c5b66f6cc1c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c17ac804_33abf463",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-25T16:23:41Z",
+      "side": 1,
+      "message": "I\u0027m not sure if the test succeed without Girish\u0027s patch Andrea.",
+      "revId": "97ffe9360cf09ced4ff0f7df59460c5b66f6cc1c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
