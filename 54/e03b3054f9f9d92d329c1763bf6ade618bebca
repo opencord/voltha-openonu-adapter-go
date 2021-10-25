@@ -1,0 +1,8 @@
+Verified+1: Girish Gowdra <girish@opennetworking.org>
+Code-Review+1: khenaidoo Nursimulu <knursimu@ciena.com>
+Code-Review+2: Girish Gowdra <girish@opennetworking.org>
+Submitted-by: Girish Gowdra <girish@opennetworking.org>
+Submitted-at: Mon, 25 Oct 2021 19:06:39 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/28513
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
