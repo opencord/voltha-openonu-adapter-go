@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4b0f5e31_b26fe783",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 23
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T08:25:44Z",
+      "side": 1,
+      "message": "Looks good to me now, but let me put two questions for code that was existing already before this patch then (anyway related to this change as well).",
+      "revId": "ee10b546da46c8c4eee94b10837cecfbcfe27a60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}

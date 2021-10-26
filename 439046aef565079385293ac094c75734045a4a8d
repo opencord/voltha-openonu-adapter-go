@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4514be9_23bf2528",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 3348,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T08:25:44Z",
+      "side": 1,
+      "message": "Question for the previously existing code: What is the purpose of this command?\nSyntactically it may well be that pmUpstream includes some (not all expected) counters here in the error case (have not checked that in aggregateEthernetFrameExtendedPM(), but theoretically possible. So you would copy theses values to downstream? I\u0027d guess this is not really needed here.",
+      "revId": "439046aef565079385293ac094c75734045a4a8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7869e5f2_032a8ff8",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 3373,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T08:25:44Z",
+      "side": 1,
+      "message": "Also question for previously existing code: Looks a bit \u0027asymmetrical\u0027 compared to upstream handling. So here you don\u0027t expect anymore that downstream collection delivers receivedMask \u003d 0 (in which case you could abourt the downstream collection)? Is it not an option that ONU\u0027s may indicate downstream values as unsupported (at least theoretically)? So may be use the \u0027all-or nothing\u0027 scheme here, which might be acceptable. But perhaps you can make an according comment on that.",
+      "revId": "439046aef565079385293ac094c75734045a4a8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
