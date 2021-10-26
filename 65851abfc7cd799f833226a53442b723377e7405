@@ -70,6 +70,24 @@
       "parentUuid": "7f034c4c_aa4eb513",
       "revId": "65851abfc7cd799f833226a53442b723377e7405",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5f7a2117_be3a43de",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T06:33:35Z",
+      "side": 1,
+      "message": "Seems I have missed that fragment n previous version that sets the event to UniEnableStateDone again. Anyway this way around now is really my preferred approach.",
+      "parentUuid": "c1a29abb_0fd706d3",
+      "revId": "65851abfc7cd799f833226a53442b723377e7405",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
