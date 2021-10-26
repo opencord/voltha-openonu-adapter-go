@@ -51,6 +51,24 @@
       "parentUuid": "9f0b665f_f4b632ba",
       "revId": "50ddea62f80c05e61269c7b433f4b8aec98df232",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "661e7414_edfeac28",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2364,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T08:00:34Z",
+      "side": 1,
+      "message": "Ack, I don\u0027t know how this is working technically, but well ...",
+      "parentUuid": "9e75e82e_4970f44d",
+      "revId": "50ddea62f80c05e61269c7b433f4b8aec98df232",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
