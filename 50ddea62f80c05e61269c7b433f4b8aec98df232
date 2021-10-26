@@ -33,6 +33,24 @@
       "message": "So you are deliberately (?) not setting the connection state here. Just to be sure about it: Will it have the effect that the the ConnStatus will be set to default value \u0027UNKNOWN\u0027 (which might be ok here)? Or will it somehow stay untouched? (we haven\u0027t used the API so far without having set all states).",
       "revId": "50ddea62f80c05e61269c7b433f4b8aec98df232",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9e75e82e_4970f44d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2364,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-10-26T07:17:45Z",
+      "side": 1,
+      "message": "We decided to change the Operstate only in TST meeting. That is why I didn\u0027t touch the connect state. In my tests I saw that the connect state remains unchanged.",
+      "parentUuid": "9f0b665f_f4b632ba",
+      "revId": "50ddea62f80c05e61269c7b433f4b8aec98df232",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
