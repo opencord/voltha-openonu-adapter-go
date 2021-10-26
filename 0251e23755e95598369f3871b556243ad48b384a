@@ -126,6 +126,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "cac3b443_e2dad598",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T07:03:22Z",
+      "side": 1,
+      "message": "We don\u0027t have such kind if Mib audit implemented and if yes I would prefer to not set the Reset bit in the local DB, so not really an argument here for me.\nOtherwise ok, but at least a comment should be done with the ONU/Version as a reminder that we could possibly remove this workaround occasionally (and explaining, why it was implemented).",
+      "parentUuid": "1b61a03b_4c10376c",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90928a03_68a6f4f7",
@@ -317,6 +335,24 @@
       "side": 1,
       "message": "I\u0027m ok with the change that Michael is suggesting.",
       "parentUuid": "d87dca55_ac978d38",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ab4074bc_f87512d6",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3338,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T07:03:22Z",
+      "side": 1,
+      "message": "So what\u0027s the decision on that now?",
+      "parentUuid": "d55b967b_8daad28d",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
