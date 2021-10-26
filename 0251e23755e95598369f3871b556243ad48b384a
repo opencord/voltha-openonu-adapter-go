@@ -144,6 +144,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "538d1b76_13138965",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3237,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-26T07:20:41Z",
+      "side": 1,
+      "message": "I have put it as comment",
+      "parentUuid": "cac3b443_e2dad598",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90928a03_68a6f4f7",
@@ -353,6 +371,24 @@
       "side": 1,
       "message": "So what\u0027s the decision on that now?",
       "parentUuid": "d55b967b_8daad28d",
+      "revId": "0251e23755e95598369f3871b556243ad48b384a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "16176d62_63642602",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 3338,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-26T07:20:41Z",
+      "side": 1,
+      "message": "Changed as per your comments.",
+      "parentUuid": "ab4074bc_f87512d6",
       "revId": "0251e23755e95598369f3871b556243ad48b384a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
