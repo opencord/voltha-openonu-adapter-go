@@ -36,6 +36,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0fa44cdb_7d110a7e",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 3348,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T12:15:00Z",
+      "side": 1,
+      "message": "Yes, I see. But that might be a bit far going shortage:\n1.) you might have received valid upstream values for a specific mask, that you now copy to downstream values -\u003e quite misleading\n2.) even if some masked get request may fail for upstream counters they do not necessarily need to fail for downstream counters -\u003e which you assume here per definition\nSo for me a better solution would be run the downstream request in the same way as the upstream and fill the counters there.\nBut I think we are discussing a quite strange corner case that might not be that important. So my proposal would be to submit this patch and if wanted, this not so important issue may be handled in a separate story/patch.",
+      "parentUuid": "7ed0831c_db9c5c08",
+      "revId": "439046aef565079385293ac094c75734045a4a8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "7869e5f2_032a8ff8",
@@ -67,6 +85,24 @@
       "side": 1,
       "message": "if the received mask is 0, it will be 0 for upstream also in which case we would have already aborted and returned the counters. So thats why for the earlier comment we have copied the upstream values in downstream as well.",
       "parentUuid": "7869e5f2_032a8ff8",
+      "revId": "439046aef565079385293ac094c75734045a4a8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c16bb62a_79a7d4b1",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 3373,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T12:15:00Z",
+      "side": 1,
+      "message": "See comment above. I\u0027d also consider the possibility that some downstream mask is \u0027not supported\u0027 while the corresponding upstream one is.",
+      "parentUuid": "e24e5577_cd3047f3",
       "revId": "439046aef565079385293ac094c75734045a4a8d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }

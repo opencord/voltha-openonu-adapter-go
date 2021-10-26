@@ -16,6 +16,23 @@
       "message": "Looks good to me now, but let me put two questions for code that was existing already before this patch then (anyway related to this change as well).",
       "revId": "ee10b546da46c8c4eee94b10837cecfbcfe27a60",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c4163246_5289845b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 23
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-26T12:15:00Z",
+      "side": 1,
+      "message": "If wanted, last discussed comments may be handled in a separate patch (if wanted/needed). This one looks generally good to me.",
+      "revId": "ee10b546da46c8c4eee94b10837cecfbcfe27a60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
