@@ -18,6 +18,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "7ed0831c_db9c5c08",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 3348,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-26T10:37:39Z",
+      "side": 1,
+      "message": "this is just to copy all error counter values i.e. max 32 bit or max 64 bit so that voltctl can still show that all counter values are unsupported. Since it is not an error case, so we need to reply with success and still report all counters as unsupported.",
+      "parentUuid": "f4514be9_23bf2528",
+      "revId": "439046aef565079385293ac094c75734045a4a8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "7869e5f2_032a8ff8",
@@ -31,6 +49,24 @@
       "writtenOn": "2021-10-26T08:25:44Z",
       "side": 1,
       "message": "Also question for previously existing code: Looks a bit \u0027asymmetrical\u0027 compared to upstream handling. So here you don\u0027t expect anymore that downstream collection delivers receivedMask \u003d 0 (in which case you could abourt the downstream collection)? Is it not an option that ONU\u0027s may indicate downstream values as unsupported (at least theoretically)? So may be use the \u0027all-or nothing\u0027 scheme here, which might be acceptable. But perhaps you can make an according comment on that.",
+      "revId": "439046aef565079385293ac094c75734045a4a8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e24e5577_cd3047f3",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 22
+      },
+      "lineNbr": 3373,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-26T10:37:39Z",
+      "side": 1,
+      "message": "if the received mask is 0, it will be 0 for upstream also in which case we would have already aborted and returned the counters. So thats why for the earlier comment we have copied the upstream values in downstream as well.",
+      "parentUuid": "7869e5f2_032a8ff8",
       "revId": "439046aef565079385293ac094c75734045a4a8d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
