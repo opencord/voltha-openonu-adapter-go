@@ -3344,21 +3344,10 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 			if metricInfo, errResp, err := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
 				if receivedMask == 0 {
 					pmUpstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmUpstream, false)
-					logger.Error(ctx, "all-the-attributes-of-ethernet-frame-extended-pm-counters-are-unsupported")
-					pmDownstream = pmUpstream
-					singleValResp := extension.SingleGetValueResponse{
-						Response: &extension.GetValueResponse{
-							Status: extension.GetValueResponse_OK,
-							Response: &extension.GetValueResponse_OnuCounters{
-								OnuCounters: &extension.GetOmciEthernetFrameExtendedPmResponse{
-									Upstream:                          &pmUpstream,
-									Downstream:                        &pmDownstream,
-									OmciEthernetFrameExtendedPmFormat: counterFormat,
-								},
-							},
-						},
-					}
-					return &singleValResp
+					logger.Error(ctx, "all-the-attributes-of-ethernet-frame-extended-pm-counters-for-upstream-are-unsupported")
+					// It might be possible that still some downstream pms are supported and hence we need to continue
+					// further to collect the downstream stats but stop collecting upstream stats for other ME's.
+					break
 				}
 				// Aggregate the result for upstream
 				pmUpstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmUpstream, true)
@@ -3371,6 +3360,12 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 			logger.Debugw(ctx, "collect-downstream-pm-counters-for-entity-id", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 			var receivedMask uint16
 			if metricInfo, errResp, err := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, false, &receivedMask); metricInfo != nil { // downstream
+				if receivedMask == 0 {
+					pmDownstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmDownstream, false)
+					logger.Error(ctx, "all-the-attributes-of-ethernet-frame-extended-pm-counters-for-downstream-are-unsupported")
+					// Stop collecting downstream counters for other ME's.
+					break
+				}
 				// Aggregate the result for downstream
 				pmDownstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmDownstream, true)
 			} else {
