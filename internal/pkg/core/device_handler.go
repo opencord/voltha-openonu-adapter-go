@@ -2076,7 +2076,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 				dh.lockVlanConfig.RUnlock()
 				//reset of all Fsm is always accompanied by global persistency data removal
 				//  no need to remove specific data
-				pVlanFilterFsm.RequestClearPersistency(false)
+				pVlanFilterFsm.RequestClearPersistency(ctx, false)
 				//ensure the FSM processing is stopped in case waiting for some response
 				pVlanFilterFsm.CancelProcessing(ctx)
 			} else {
@@ -3268,7 +3268,7 @@ func (dh *deviceHandler) VerifyUniVlanConfigRequest(ctx context.Context, apUniPo
 		pVlanFilterStatemachine := pVlanFilterFsm.PAdaptFsm.PFsm
 		if pVlanFilterStatemachine != nil {
 			//if this was an event of the TP processing that was waited for in the VlanFilterFsm
-			if pVlanFilterFsm.GetWaitingTpID() == aTpID {
+			if pVlanFilterFsm.GetWaitingTpID(ctx) == aTpID {
 				if pVlanFilterStatemachine.Is(avcfg.VlanStWaitingTechProf) {
 					if err := pVlanFilterStatemachine.Event(avcfg.VlanEvContinueConfig); err != nil {
 						logger.Warnw(ctx, "UniVlanConfigFsm: can't continue processing", log.Fields{"err": err,
@@ -4147,7 +4147,10 @@ func (dh *deviceHandler) GetPonPortNumber() *uint32 {
 
 // GetUniVlanConfigFsm - TODO: add comment
 func (dh *deviceHandler) GetUniVlanConfigFsm(uniID uint8) cmn.IuniVlanConfigFsm {
-	return dh.UniVlanConfigFsmMap[uniID]
+	dh.lockVlanConfig.RLock()
+	value := dh.UniVlanConfigFsmMap[uniID]
+	dh.lockVlanConfig.RUnlock()
+	return value
 }
 
 // GetOnuAlarmManager - TODO: add comment

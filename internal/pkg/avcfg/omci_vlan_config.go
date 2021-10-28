@@ -213,7 +213,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 		logger.Errorw(ctx, "UniVlanConfigFsm's cmn.AdapterFsm could not be instantiated!!", log.Fields{
 			"device-id": instFsm.deviceID})
 		// Push response on the response channel
-		instFsm.PushReponseOnFlowResponseChannel(ctx, respChan, fmt.Errorf("adapter-fsm-could-not-be-instantiated"))
+		instFsm.pushReponseOnFlowResponseChannel(ctx, respChan, fmt.Errorf("adapter-fsm-could-not-be-instantiated"))
 		return nil
 	}
 	instFsm.PAdaptFsm.PFsm = fsm.NewFSM(
@@ -271,7 +271,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 		logger.Errorw(ctx, "UniVlanConfigFsm's Base FSM could not be instantiated!!", log.Fields{
 			"device-id": instFsm.deviceID})
 		// Push response on the response channel
-		instFsm.PushReponseOnFlowResponseChannel(ctx, respChan, fmt.Errorf("adapter-base-fsm-could-not-be-instantiated"))
+		instFsm.pushReponseOnFlowResponseChannel(ctx, respChan, fmt.Errorf("adapter-base-fsm-could-not-be-instantiated"))
 		return nil
 	}
 
@@ -339,6 +339,8 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 	if oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
 		oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid))
 	}
+	//cmp also usage in EVTOCDE create in omci_cc
+	oFsm.evtocdID = cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo)
 	oFsm.NumUniFlows = 1
 	oFsm.uniRemoveFlowsSlice = make([]uniRemoveVlanFlowParams, 0) //initially nothing to remove
 
@@ -354,6 +356,10 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
+	if oFsm == nil {
+		logger.Error(ctx, "no valid UniVlanConfigFsm!")
+		return
+	}
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexIsAwaitingResponse.Lock()
 	oFsm.isCanceled = true
@@ -378,7 +384,11 @@ func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 }
 
 //GetWaitingTpID returns the TpId that the FSM might be waiting for continuation (0 if none)
-func (oFsm *UniVlanConfigFsm) GetWaitingTpID() uint8 {
+func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
+	if oFsm == nil {
+		logger.Error(ctx, "no valid UniVlanConfigFsm!")
+		return 0
+	}
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.RLock()
 	defer oFsm.mutexFlowParams.RUnlock()
@@ -386,7 +396,11 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID() uint8 {
 }
 
 //RequestClearPersistency sets the internal flag to not clear persistency data (false=NoClear)
-func (oFsm *UniVlanConfigFsm) RequestClearPersistency(aClear bool) {
+func (oFsm *UniVlanConfigFsm) RequestClearPersistency(ctx context.Context, aClear bool) {
+	if oFsm == nil {
+		logger.Error(ctx, "no valid UniVlanConfigFsm!")
+		return
+	}
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
 	defer oFsm.mutexFlowParams.Unlock()
@@ -400,6 +414,10 @@ func (oFsm *UniVlanConfigFsm) RequestClearPersistency(aClear bool) {
 // nolint: gocyclo
 func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
 	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool, aMeter *voltha.OfpMeterConfig, respChan *chan error) error {
+	if oFsm == nil {
+		logger.Error(ctx, "no valid UniVlanConfigFsm!")
+		return fmt.Errorf("no-valid-UniVlanConfigFsm")
+	}
 	loRuleParams := cmn.UniVlanRuleParams{
 		TpID:     aTpID,
 		MatchVid: uint32(aMatchVlan),
@@ -449,7 +467,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 						"device-id": oFsm.deviceID, "slice length": len(oFsm.uniRemoveFlowsSlice)})
 					oFsm.mutexFlowParams.RUnlock()
 					err = fmt.Errorf("abort UniVlanConfigFsm flow add - inconsistent RemoveFlowsSlice %s", oFsm.deviceID)
-					oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+					oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 					return err
 
 				}
@@ -459,7 +477,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 					logger.Errorw(ctx, "UniVlanConfigFsm suspension on add aborted - abort complete add-request", log.Fields{
 						"device-id": oFsm.deviceID, "cookie": removeUniFlowParams.cookie})
 					err = fmt.Errorf("abort UniVlanConfigFsm suspension on add %s", oFsm.deviceID)
-					oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+					oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 					return err
 				}
 				oFsm.mutexFlowParams.RLock()
@@ -506,7 +524,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 							logger.Errorw(ctx, "UniVlanConfigFsm suspended add-cookie-to-rule aborted", log.Fields{
 								"device-id": oFsm.deviceID, "cookie": delayedCookie})
 							err = fmt.Errorf(" UniVlanConfigFsm suspended add-cookie-to-rule aborted %s", oFsm.deviceID)
-							oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+							oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 							return err
 						}
 						flowCookieModify, requestAppendRule = oFsm.reviseFlowConstellation(ctx, delayedCookie, loRuleParams)
@@ -532,7 +550,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 			logger.Errorw(ctx, "UniVlanConfigFsm suspended add-new-rule aborted", log.Fields{
 				"device-id": oFsm.deviceID, "cookie": delayedCookie})
 			err = fmt.Errorf(" UniVlanConfigFsm suspended add-new-rule aborted %s", oFsm.deviceID)
-			oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+			oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 			return err
 		}
 		requestAppendRule = true //default assumption here is that rule is to be appended
@@ -576,7 +594,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 						logger.Errorw(ctx, "error in FsmEvent handling UniVlanConfigFsm!",
 							log.Fields{"fsmState": oFsm.PAdaptFsm.PFsm.Current(), "error": fsmErr, "device-id": oFsm.deviceID})
 						err = fsmErr
-						oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+						oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 						return err
 					}
 				}
@@ -609,7 +627,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 								"sliceLen": len(oFsm.uniVlanFlowParamsSlice), "device-id": oFsm.deviceID})
 						oFsm.mutexFlowParams.Unlock()
 						err = fmt.Errorf("abort UniVlanConfigFsm on add due to internal counter mismatch %s", oFsm.deviceID)
-						oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+						oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 						return err
 					}
 
@@ -639,7 +657,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 					if fsmErr != nil {
 						logger.Errorw(ctx, "error in FsmEvent handling UniVlanConfigFsm!",
 							log.Fields{"fsmState": pConfigVlanStateBaseFsm.Current(), "error": fsmErr, "device-id": oFsm.deviceID})
-						oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, fsmErr)
+						oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, fsmErr)
 						return fsmErr
 					}
 				}
@@ -653,14 +671,14 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				"device-id": oFsm.deviceID, "flow-number": oFsm.NumUniFlows})
 			oFsm.mutexFlowParams.Unlock()
 			err = fmt.Errorf(" UniVlanConfigFsm flow limit exceeded %s", oFsm.deviceID)
-			oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, err)
+			oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
 			return err
 		}
 	} else {
 		// no activity within the FSM for OMCI processing, the deviceReason may be updated immediately
 		kvStoreWrite = true // ensure actual data write to kvStore immediately (no FSM activity)
 		// push response on response channel as there is nothing to be done for this flow
-		oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, nil)
+		oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, nil)
 
 		oFsm.mutexFlowParams.RLock()
 		if oFsm.NumUniFlows == oFsm.ConfiguredUniFlow {
@@ -820,6 +838,10 @@ func (oFsm *UniVlanConfigFsm) reviseFlowConstellation(ctx context.Context, aCook
 // if found removes cookie from flow cookie list and if this is empty
 // initiates removal of the flow related configuration from the ONU (via OMCI)
 func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(ctx context.Context, aCookie uint64, respChan *chan error) error {
+	if oFsm == nil {
+		logger.Error(ctx, "no valid UniVlanConfigFsm!")
+		return fmt.Errorf("no-valid-UniVlanConfigFsm")
+	}
 	var deletedCookie uint64
 	flowCookieMatch := false
 	//mutex protection is required for possible concurrent access to FSM members
@@ -860,7 +882,7 @@ remove_loop:
 							"device-id": oFsm.deviceID, "cookie": oFsm.delayNewRuleCookie})
 					}
 					// Push response on the response channel
-					oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, nil)
+					oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, nil)
 					//permanently store the modified flow config for reconcile case and immediately write to KvStore
 					if oFsm.pDeviceHandler != nil {
 						if err := oFsm.pDeviceHandler.StorePersUniFlowConfig(ctx, oFsm.pOnuUniPort.UniID,
@@ -885,7 +907,7 @@ remove_loop:
 			go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetRemoveNoKvStore))
 		}
 		// Push response on the response channel
-		oFsm.PushReponseOnFlowResponseChannel(ctx, respChan, nil)
+		oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, nil)
 		return nil
 	} //unknown cookie
 
@@ -1037,7 +1059,7 @@ removeFromSlice_loop:
 				if !aWasConfigured {
 					// We did not actually process this flow but was removed before that.
 					// Indicate success response for the flow to caller who is blocking on a response
-					oFsm.PushReponseOnFlowResponseChannel(ctx, storedUniFlowParams.RespChan, nil)
+					oFsm.pushReponseOnFlowResponseChannel(ctx, storedUniFlowParams.RespChan, nil)
 				}
 
 				//cut off the requested flow by slicing out this element
@@ -1145,8 +1167,6 @@ func (oFsm *UniVlanConfigFsm) enterConfigStarting(ctx context.Context, e *fsm.Ev
 		oFsm.actualUniFlowParam = oFsm.uniVlanFlowParamsSlice[0]
 		tpID := oFsm.actualUniFlowParam.VlanRuleParams.TpID
 		oFsm.TpIDWaitingFor = tpID
-		//cmp also usage in EVTOCDE create in omci_cc
-		oFsm.evtocdID = cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo)
 		loSetVlan := oFsm.actualUniFlowParam.VlanRuleParams.SetVid
 		//attention: take care to release the mutexFlowParams when calling the FSM directly -
 		//  synchronous FSM 'event/state' functions may rely on this mutex
@@ -1297,7 +1317,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 		"device-id":         oFsm.deviceID,
 		"overall-uni-rules": oFsm.NumUniFlows, "configured-uni-rules": oFsm.ConfiguredUniFlow})
 	if len(oFsm.uniVlanFlowParamsSlice) > 0 {
-		oFsm.PushReponseOnFlowResponseChannel(ctx, oFsm.actualUniFlowParam.RespChan, nil)
+		oFsm.pushReponseOnFlowResponseChannel(ctx, oFsm.actualUniFlowParam.RespChan, nil)
 	}
 
 	pConfigVlanStateAFsm := oFsm.PAdaptFsm
@@ -1812,7 +1832,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(ctx context.Context, e *fsm.E
 	oFsm.mutexFlowParams.Unlock()
 
 	// send response on the response channel for the removed flow.
-	oFsm.PushReponseOnFlowResponseChannel(ctx, flowRespChan, nil)
+	oFsm.pushReponseOnFlowResponseChannel(ctx, flowRespChan, nil)
 }
 
 func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) {
@@ -1863,7 +1883,7 @@ func (oFsm *UniVlanConfigFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 				oFsm.mutexFlowParams.RLock()
 			}
 			// Send response on response channel if the caller is waiting on it.
-			oFsm.PushReponseOnFlowResponseChannel(ctx, removeUniFlowParams.respChan, fmt.Errorf("internal-error"))
+			oFsm.pushReponseOnFlowResponseChannel(ctx, removeUniFlowParams.respChan, fmt.Errorf("internal-error"))
 		}
 	}
 
@@ -1877,7 +1897,7 @@ func (oFsm *UniVlanConfigFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 			if len(oFsm.uniVlanFlowParamsSlice) > 0 {
 				for _, vlanRule := range oFsm.uniVlanFlowParamsSlice {
 					// Send response on response channel if the caller is waiting on it.
-					oFsm.PushReponseOnFlowResponseChannel(ctx, vlanRule.RespChan, fmt.Errorf("internal-error"))
+					oFsm.pushReponseOnFlowResponseChannel(ctx, vlanRule.RespChan, fmt.Errorf("internal-error"))
 				}
 				var emptySlice = make([]cmn.UniVlanFlowParams, 0)
 				_ = oFsm.pDeviceHandler.StorePersUniFlowConfig(ctx, oFsm.pOnuUniPort.UniID, &emptySlice, true) //ignore errors
@@ -3146,7 +3166,11 @@ func (oFsm *UniVlanConfigFsm) setTrafficDescriptorToGemPortNWCTP(ctx context.Con
 }
 
 // IsFlowRemovePending returns true if there are pending flows to remove, else false.
-func (oFsm *UniVlanConfigFsm) IsFlowRemovePending(aFlowDeleteChannel chan<- bool) bool {
+func (oFsm *UniVlanConfigFsm) IsFlowRemovePending(ctx context.Context, aFlowDeleteChannel chan<- bool) bool {
+	if oFsm == nil {
+		logger.Error(ctx, "no valid UniVlanConfigFsm!")
+		return false
+	}
 	oFsm.mutexFlowParams.Lock()
 	defer oFsm.mutexFlowParams.Unlock()
 	if len(oFsm.uniRemoveFlowsSlice) > 0 {
@@ -3173,8 +3197,8 @@ func (oFsm *UniVlanConfigFsm) reconcileVlanFilterList(ctx context.Context, aSetV
 	}
 }
 
-// PushReponseOnFlowResponseChannel pushes response on the response channel if available
-func (oFsm *UniVlanConfigFsm) PushReponseOnFlowResponseChannel(ctx context.Context, respChan *chan error, err error) {
+// pushReponseOnFlowResponseChannel pushes response on the response channel if available
+func (oFsm *UniVlanConfigFsm) pushReponseOnFlowResponseChannel(ctx context.Context, respChan *chan error, err error) {
 	if respChan != nil {
 		// Do it in a non blocking fashion, so that in case the flow handler routine has shutdown for any reason, we do not block here
 		select {
