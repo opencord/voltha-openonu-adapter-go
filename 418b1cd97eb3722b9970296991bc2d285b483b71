@@ -139,6 +139,24 @@
       "parentUuid": "300bd502_b8b62759",
       "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "923925a4_ccd07d54",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3756,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-28T17:24:47Z",
+      "side": 1,
+      "message": "? Maybe I don\u0027t understand it correctly. So my recommendation was to set it to \u0027unsupported\u0027 if at least one sample delivers \u0027unsupported\u0027.\nNow here as a concrete example to illustrate my doubts for current code:\npmData.DropEvents \u003d 200 //from some previously correctly requested sample (if you want UNI)\npmDataIn[\"drop_events\"] \u003d errorCounterValue //because last collected value is indicated as NotSupported (without having declared the complete sample as NotSupported)\nand accordingly new pmDataOut.DropEvents \u003d something that does not make sense",
+      "parentUuid": "8d1e68d8_7aa9ad4c",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
