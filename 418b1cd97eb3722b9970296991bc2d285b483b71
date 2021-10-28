@@ -18,6 +18,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "adde0e17_ac699090",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-10-28T19:26:41Z",
+      "side": 1,
+      "message": "Pending Michael\u0027s comments +1 from me. Once his comments are addressed we can merge.",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "69324541_9b7aafa6",
