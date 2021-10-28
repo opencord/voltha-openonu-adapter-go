@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "1557e5a1_08b05eca",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3353,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-28T12:36:58Z",
+      "side": 1,
+      "message": "Yes that is possible. While testing it was found out that not all params are supported.",
+      "parentUuid": "69324541_9b7aafa6",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "45b3c80b_1476fba7",
@@ -52,6 +70,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "74041ce5_dcebe41e",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3364,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-28T12:36:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "45b3c80b_1476fba7",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "8009e380_28f2caf9",
@@ -65,6 +101,24 @@
       "writtenOn": "2021-10-28T09:58:13Z",
       "side": 1,
       "message": "Here it still might be that the new value from pmDataIn indicates \u0027unsupported\u0027 while the \u0027actual\u0027 counter value, here e.g. pmData.DropEvents,  may already be set to some non-zero value. Simply adding both of them may have some unintended result. Guess checking of pmDataIn on \u0027unsupported\u0027 is needed as well.\nOr your assumption is that requests on this counter (type) are always only delivered with \u0027unsupported\u0027 (if once unsupported) for the various requested instances - I am not sure if this assumption can be regarded as valid. And may the extra overhead to protect the \u0027overflow\u0027 here is not that high.",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "300bd502_b8b62759",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3756,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-28T12:36:58Z",
+      "side": 1,
+      "message": "I assumed as you mentioned above that once a counter is unsupported for an instance, it will be unsupported for all the unis. But do you suggest that if a counter reported value for one uni but say it reported unsupported for other uni, should I make that counter type as supported or unsupported",
+      "parentUuid": "8009e380_28f2caf9",
       "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
