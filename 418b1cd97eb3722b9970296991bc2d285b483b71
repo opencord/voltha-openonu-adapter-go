@@ -121,6 +121,24 @@
       "parentUuid": "8009e380_28f2caf9",
       "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8d1e68d8_7aa9ad4c",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3756,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-10-28T14:01:42Z",
+      "side": 1,
+      "message": "As discussed I will keep it as it is because the assumption is valid.",
+      "parentUuid": "300bd502_b8b62759",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
