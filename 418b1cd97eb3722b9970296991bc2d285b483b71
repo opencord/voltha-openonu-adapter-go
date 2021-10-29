@@ -192,6 +192,24 @@
       "parentUuid": "923925a4_ccd07d54",
       "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f28dfb00_ea6ee8e5",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3756,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-10-29T08:40:51Z",
+      "side": 1,
+      "message": "Ok, based on the improbable scenario we are discussing here I agree to this solution.",
+      "parentUuid": "427e415f_c902cf68",
+      "revId": "418b1cd97eb3722b9970296991bc2d285b483b71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
