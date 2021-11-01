@@ -28,8 +28,8 @@ import (
 
 	"github.com/cevaris/ordered_map"
 	"github.com/looplab/fsm"
-	"github.com/opencord/omci-lib-go"
-	me "github.com/opencord/omci-lib-go/generated"
+	"github.com/opencord/omci-lib-go/v2"
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 
 	//ic "github.com/opencord/voltha-protos/v5/go/inter_container"

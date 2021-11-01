@@ -24,7 +24,7 @@ import (
 	"sort"
 	"sync"
 
-	me "github.com/opencord/omci-lib-go/generated"
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 )
 

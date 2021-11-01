@@ -23,7 +23,7 @@ import (
 
 	gp "github.com/google/gopacket"
 	"github.com/looplab/fsm"
-	"github.com/opencord/omci-lib-go"
+	"github.com/opencord/omci-lib-go/v2"
 	vc "github.com/opencord/voltha-protos/v5/go/common"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )

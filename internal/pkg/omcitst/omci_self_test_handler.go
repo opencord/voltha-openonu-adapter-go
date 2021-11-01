@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/looplab/fsm"
-	"github.com/opencord/omci-lib-go"
-	"github.com/opencord/omci-lib-go/generated"
-	me "github.com/opencord/omci-lib-go/generated"
+	"github.com/opencord/omci-lib-go/v2"
+	"github.com/opencord/omci-lib-go/v2/generated"
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-protos/v5/go/extension"

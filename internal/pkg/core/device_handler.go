@@ -29,7 +29,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/looplab/fsm"
-	me "github.com/opencord/omci-lib-go/generated"
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	flow "github.com/opencord/voltha-lib-go/v7/pkg/flows"

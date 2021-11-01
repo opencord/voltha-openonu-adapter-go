@@ -30,8 +30,8 @@ import (
 
 	"time"
 
-	"github.com/opencord/omci-lib-go"
-	me "github.com/opencord/omci-lib-go/generated"
+	"github.com/opencord/omci-lib-go/v2"
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
@@ -551,6 +551,28 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		meClassID := msgObj.ReportedME.GetClassID()
 		meEntityID := msgObj.ReportedME.GetEntityID()
 		meAttributes := msgObj.ReportedME.GetAttributeValueMap()
+
+		//with relaxed decoding set in the OMCI-LIB we have the chance to detect if there are some unknown attributes appended which we cannot decode
+		if unknownAttrLayer := (*msg.OmciPacket).Layer(omci.LayerTypeUnknownAttributes); unknownAttrLayer != nil {
+			logger.Warnw(ctx, "MibUploadNextResponse contains unknown attributes", log.Fields{"device-id": oo.deviceID})
+			if unknownAttributes, ok := unknownAttrLayer.(*omci.UnknownAttributes); ok {
+				// provide a loop over several ME's here already in preparation of OMCI extended message format
+				for _, unknown := range unknownAttributes.Attributes {
+					unknownAttrClassID := unknown.EntityClass // ClassID
+					unknownAttrInst := unknown.EntityInstance // uint16
+					unknownAttrMask := unknown.AttributeMask  // ui
+					unknownAttrBlob := unknown.AttributeData  // []byte
+					logger.Warnw(ctx, "unknown attributes detected for", log.Fields{"device-id": oo.deviceID,
+						"Me-ClassId": unknownAttrClassID, "Me-InstId": unknownAttrInst, "unknown mask": unknownAttrMask,
+						"unknown attributes": unknownAttrBlob})
+					//TODO!!! We have to find a way to put this extra information into the (MIB)DB, see below pOnuDB.PutMe
+					//  this probably requires an (add-on) extension in the DB, that should not harm any other (get) processing -> later as a second step
+				} // for all included ME's with unknown attributes
+			} else {
+				logger.Errorw(ctx, "unknownAttrLayer could not be decoded", log.Fields{"device-id": oo.deviceID})
+			}
+		}
+
 		oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, meAttributes)
 	}
 	if oo.PDevOmciCC.UploadSequNo < oo.PDevOmciCC.UploadNoOfCmds {
