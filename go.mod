@@ -15,7 +15,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/gopacket v1.1.17
 	github.com/looplab/fsm v0.2.0
-	github.com/opencord/omci-lib-go v1.3.3
+	github.com/opencord/omci-lib-go/v2 v2.1.2
 	github.com/opencord/voltha-lib-go/v7 v7.0.4
 	github.com/opencord/voltha-protos/v5 v5.0.2
 	github.com/stretchr/testify v1.7.0

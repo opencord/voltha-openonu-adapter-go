@@ -121,10 +121,11 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/looplab/fsm v0.2.0
 ## explicit
 github.com/looplab/fsm
-# github.com/opencord/omci-lib-go v1.3.3
+# github.com/opencord/omci-lib-go/v2 v2.1.2
 ## explicit
-github.com/opencord/omci-lib-go
-github.com/opencord/omci-lib-go/generated
+github.com/opencord/omci-lib-go/v2
+github.com/opencord/omci-lib-go/v2/generated
+github.com/opencord/omci-lib-go/v2/meframe
 # github.com/opencord/voltha-lib-go/v7 v7.0.4
 ## explicit
 github.com/opencord/voltha-lib-go/v7/pkg/config

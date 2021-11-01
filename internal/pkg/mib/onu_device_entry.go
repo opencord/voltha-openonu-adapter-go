@@ -26,8 +26,8 @@ import (
 	"time"
 
 	"github.com/looplab/fsm"
-	"github.com/opencord/omci-lib-go"
-	me "github.com/opencord/omci-lib-go/generated"
+	"github.com/opencord/omci-lib-go/v2"
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"

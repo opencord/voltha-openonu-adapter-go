@@ -31,8 +31,9 @@ import (
 	// TODO!!! Some references could be resolved auto, but some need specific context ....
 	gp "github.com/google/gopacket"
 
-	"github.com/opencord/omci-lib-go"
-	me "github.com/opencord/omci-lib-go/generated"
+	"github.com/opencord/omci-lib-go/v2"
+	me "github.com/opencord/omci-lib-go/v2/generated"
+	oframe "github.com/opencord/omci-lib-go/v2/meframe"
 
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 
@@ -332,6 +333,18 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.printRxMessage(ctx, rxMsg)
 		return fmt.Errorf("could not decode omci layer %s", oo.deviceID)
 	}
+	// insert some check on detected OMCI decoding issues and log them
+	// e.g. should indicate problems when detecting some unknown attribute mask content (independent from message type)
+	//   even though allowed from omci-lib due to set relaxed decoding
+	// application may dig into further details if wanted/needed on their own [but info is not transferred from here so far]
+	//   (compare mib_sync.go unknownAttrLayer)
+	errLayer := packet.Layer(gopacket.LayerTypeDecodeFailure)
+	if failure, decodeOk := errLayer.(*gopacket.DecodeFailure); decodeOk {
+		errMsg := failure.Error()
+		logger.Warnw(ctx, "Detected decode issue on received OMCI frame", log.Fields{
+			"device-id": oo.deviceID, "issue": errMsg})
+	}
+	//anyway try continue OMCI decoding further on message type layer
 	omciMsg, ok := omciLayer.(*omci.OMCI)
 	if !ok {
 		logger.Errorw(ctx, "omci-message could not assign omci layer", log.Fields{"device-id": oo.deviceID})
@@ -340,6 +353,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	}
 	logger.Debugw(ctx, "omci-message-decoded:", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "DeviceIdent": omciMsg.DeviceIdentifier})
+
 	// TestResult is asynchronous indication that carries the same TID as the TestResponse.
 	// We expect to find the TID in the oo.rxSchedulerMap
 	if byte(omciMsg.MessageType)&me.AK == 0 && omciMsg.MessageType != omci.TestResultType {
@@ -885,7 +899,7 @@ func (oo *OmciCC) SendCreateGalEthernetProfile(ctx context.Context, timeout int,
 	meInstance, omciErr := me.NewGalEthernetProfile(meParams)
 	if omciErr.GetError() == nil {
 		//all setByCreate parameters already set, no default option required ...
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode GalEnetProfileInstance for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -934,7 +948,7 @@ func (oo *OmciCC) SendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 	}
 	meInstance, omciErr := me.NewOnu2G(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode ONU2-G instance for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -988,8 +1002,8 @@ func (oo *OmciCC) SendCreateMBServiceProfile(ctx context.Context,
 	meInstance, omciErr := me.NewMacBridgeServiceProfile(meParams)
 	if omciErr.GetError() == nil {
 		//obviously we have to set all 'untouched' parameters to default by some additional option parameter!!
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid), omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MBSP for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1046,8 +1060,8 @@ func (oo *OmciCC) SendCreateMBPConfigDataUniSide(ctx context.Context,
 	meInstance, omciErr := me.NewMacBridgePortConfigurationData(meParams)
 	if omciErr.GetError() == nil {
 		//obviously we have to set all 'untouched' parameters to default by some additional option parameter!!
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid), omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MBPCD for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1100,12 +1114,14 @@ func (oo *OmciCC) SendCreateEVTOConfigData(ctx context.Context,
 		Attributes: me.AttributeValueMap{
 			"AssociationType":     assType,
 			"AssociatedMePointer": aPUniPort.EntityID,
+			//EnhancedMode not yet supported, used with default options
 		},
 	}
 	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(meParams)
 	if omciErr.GetError() == nil {
 		//all setByCreate parameters already set, no default option required ...
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode EVTOCD for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1151,7 +1167,7 @@ func (oo *OmciCC) SendSetOnuGLS(ctx context.Context, timeout int,
 	}
 	meInstance, omciErr := me.NewOnuG(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode ONU-G instance for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1197,7 +1213,7 @@ func (oo *OmciCC) SendSetPptpEthUniLS(ctx context.Context, aInstNo uint16, timeo
 	}
 	meInstance, omciErr := me.NewPhysicalPathTerminationPointEthernetUni(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode PPTPEthUni instance for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1244,7 +1260,7 @@ func (oo *omciCC) sendSetUniGLS(ctx context.Context, aInstNo uint16, timeout int
 	}
 	meInstance, omciErr := me.NewUniG(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx,"Cannot encode UNI-G instance for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1291,7 +1307,7 @@ func (oo *OmciCC) SendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 	}
 	meInstance, omciErr := me.NewVirtualEthernetInterfacePoint(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VEIP instance for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1338,7 +1354,7 @@ func (oo *OmciCC) SendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 	meInstance, omciErr := me.LoadManagedEntityDefinition(classID, meParams)
 	if omciErr.GetError() == nil {
 		meClassIDName := meInstance.GetName()
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.GetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.GetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorf(ctx, "Cannot encode instance for get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -1423,8 +1439,8 @@ func (oo *OmciCC) SendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 	meInstance, omciErr := me.NewIeee8021PMapperServiceProfile(meParams)
 	if omciErr.GetError() == nil {
 		//we have to set all 'untouched' parameters to default by some additional option parameter!!
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid), omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode .1pMapper for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1467,8 +1483,8 @@ func (oo *OmciCC) SendCreateMBPConfigDataVar(ctx context.Context, timeout int, h
 	meInstance, omciErr := me.NewMacBridgePortConfigurationData(params[0])
 	if omciErr.GetError() == nil {
 		//obviously we have to set all 'untouched' parameters to default by some additional option parameter!!
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid), omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MBPCD for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1511,8 +1527,8 @@ func (oo *OmciCC) SendCreateGemNCTPVar(ctx context.Context, timeout int, highPri
 	meInstance, omciErr := me.NewGemPortNetworkCtp(params[0])
 	if omciErr.GetError() == nil {
 		//obviously we have to set all 'untouched' parameters to default by some additional option parameter!!
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid), omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode GemNCTP for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1554,8 +1570,8 @@ func (oo *OmciCC) SendSetGemNCTPVar(ctx context.Context, timeout int, highPrio b
 	meInstance, omciErr := me.NewGemPortNetworkCtp(params[0])
 	if omciErr.GetError() == nil {
 		//obviously we have to set all 'untouched' parameters to default by some additional option parameter!!
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType,
-			omci.TransactionID(tid), omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode GemNCTP for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1598,8 +1614,8 @@ func (oo *OmciCC) SendCreateGemIWTPVar(ctx context.Context, timeout int, highPri
 	meInstance, omciErr := me.NewGemInterworkingTerminationPoint(params[0])
 	if omciErr.GetError() == nil {
 		//all SetByCreate Parameters (assumed to be) set here, for optimisation no 'AddDefaults'
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode GemIwTp for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1641,7 +1657,7 @@ func (oo *OmciCC) SendSetTcontVar(ctx context.Context, timeout int, highPrio boo
 
 	meInstance, omciErr := me.NewTCont(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TCont for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1683,7 +1699,7 @@ func (oo *OmciCC) SendSetPrioQueueVar(ctx context.Context, timeout int, highPrio
 
 	meInstance, omciErr := me.NewPriorityQueue(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode PrioQueue for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1725,7 +1741,7 @@ func (oo *OmciCC) SendSetDot1PMapperVar(ctx context.Context, timeout int, highPr
 
 	meInstance, omciErr := me.NewIeee8021PMapperServiceProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode 1PMapper for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1768,8 +1784,8 @@ func (oo *OmciCC) SendCreateVtfdVar(ctx context.Context, timeout int, highPrio b
 	meInstance, omciErr := me.NewVlanTaggingFilterData(params[0])
 	if omciErr.GetError() == nil {
 		//all SetByCreate Parameters (assumed to be) set here, for optimisation no 'AddDefaults'
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VTFD for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1814,8 +1830,8 @@ func (oo *OmciCC) sendSetVtfdVar(ctx context.Context, timeout int, highPrio bool
 
 	meInstance, omciErr := me.NewVlanTaggingFilterData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VTFD for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1860,7 +1876,9 @@ func (oo *OmciCC) SendCreateEvtocdVar(ctx context.Context, timeout int, highPrio
 
 	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
+		//EnhancedMode not yet supported, used with default options
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType,
+			oframe.TransactionID(tid), oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode EVTOCD for create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1902,7 +1920,7 @@ func (oo *OmciCC) SendSetEvtocdVar(ctx context.Context, timeout int, highPrio bo
 
 	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode EVTOCD for set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1944,7 +1962,7 @@ func (oo *OmciCC) SendDeleteEvtocd(ctx context.Context, timeout int, highPrio bo
 
 	meInstance, omciErr := me.NewExtendedVlanTaggingOperationConfigurationData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode EVTOCD for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1987,8 +2005,8 @@ func (oo *OmciCC) SendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewVlanTaggingFilterData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VTFD for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2031,7 +2049,7 @@ func (oo *OmciCC) SendCreateTDVar(ctx context.Context, timeout int, highPrio boo
 		"InstId": strconv.FormatInt(int64(params[0].EntityID), 16)})
 	meInstance, omciErr := me.NewTrafficDescriptor(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TD for create", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2067,7 +2085,7 @@ func (oo *OmciCC) sendSetTDVar(ctx context.Context, timeout int, highPrio bool,
 
 	meInstance, omciErr := me.NewTrafficDescriptor(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TD for set", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2105,7 +2123,7 @@ func (oo *OmciCC) SendDeleteTD(ctx context.Context, timeout int, highPrio bool,
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewTrafficDescriptor(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TD for delete", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2143,8 +2161,8 @@ func (oo *OmciCC) SendDeleteGemIWTP(ctx context.Context, timeout int, highPrio b
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewGemInterworkingTerminationPoint(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode GemIwTp for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2190,8 +2208,8 @@ func (oo *OmciCC) SendDeleteGemNCTP(ctx context.Context, timeout int, highPrio b
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewGemPortNetworkCtp(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode GemNCtp for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2237,8 +2255,8 @@ func (oo *OmciCC) SendDeleteDot1PMapper(ctx context.Context, timeout int, highPr
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewIeee8021PMapperServiceProfile(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode .1pMapper for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2284,8 +2302,8 @@ func (oo *OmciCC) SendDeleteMBPConfigData(ctx context.Context, timeout int, high
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewMacBridgePortConfigurationData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MBPCD for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2330,8 +2348,8 @@ func (oo *OmciCC) SendCreateMulticastGemIWTPVar(ctx context.Context, timeout int
 
 	meInstance, omciErr := me.NewMulticastGemInterworkingTerminationPoint(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MulticastGEMIWTP for create", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2369,8 +2387,8 @@ func (oo *OmciCC) SendSetMulticastGemIWTPVar(ctx context.Context, timeout int, h
 
 	meInstance, omciErr := me.NewMulticastGemInterworkingTerminationPoint(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MulticastGEMIWTP for set", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2408,8 +2426,8 @@ func (oo *OmciCC) SendCreateMulticastOperationProfileVar(ctx context.Context, ti
 
 	meInstance, omciErr := me.NewMulticastOperationsProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MulticastOperationProfile for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2450,8 +2468,8 @@ func (oo *OmciCC) SendSetMulticastOperationProfileVar(ctx context.Context, timeo
 
 	meInstance, omciErr := me.NewMulticastOperationsProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MulticastOperationProfile for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2492,8 +2510,8 @@ func (oo *OmciCC) SendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 
 	meInstance, omciErr := me.NewMulticastSubscriberConfigInfo(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode MulticastSubConfigInfo for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2534,8 +2552,8 @@ func (oo *OmciCC) SendCreateVoipVoiceCTP(ctx context.Context, timeout int, highP
 
 	meInstance, omciErr := me.NewVoipVoiceCtp(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipVoiceCTP for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2576,8 +2594,8 @@ func (oo *OmciCC) SendSetVoipVoiceCTP(ctx context.Context, timeout int, highPrio
 
 	meInstance, omciErr := me.NewVoipVoiceCtp(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipVoiceCTP for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2619,8 +2637,8 @@ func (oo *OmciCC) SendDeleteVoipVoiceCTP(ctx context.Context, timeout int, highP
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewVoipVoiceCtp(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipVoiceCTP for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2665,8 +2683,8 @@ func (oo *OmciCC) SendCreateVoipMediaProfile(ctx context.Context, timeout int, h
 
 	meInstance, omciErr := me.NewVoipMediaProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipMediaProfile for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2707,8 +2725,8 @@ func (oo *OmciCC) SendSetVoipMediaProfile(ctx context.Context, timeout int, high
 
 	meInstance, omciErr := me.NewVoipMediaProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipMediaProfile for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2750,8 +2768,8 @@ func (oo *OmciCC) SendDeleteVoipMediaProfile(ctx context.Context, timeout int, h
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewVoipMediaProfile(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipMediaProfile for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2793,8 +2811,8 @@ func (oo *OmciCC) SendCreateVoiceServiceProfile(ctx context.Context, timeout int
 
 	meInstance, omciErr := me.NewVoiceServiceProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoiceServiceProfile for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2835,8 +2853,8 @@ func (oo *OmciCC) SendSetVoiceServiceProfile(ctx context.Context, timeout int, h
 
 	meInstance, omciErr := me.NewVoiceServiceProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoiceServiceProfile for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2878,8 +2896,8 @@ func (oo *OmciCC) SendDeleteVoiceServiceProfile(ctx context.Context, timeout int
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewVoiceServiceProfile(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoiceServiceProfile for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2921,8 +2939,8 @@ func (oo *OmciCC) SendCreateSIPUserData(ctx context.Context, timeout int, highPr
 
 	meInstance, omciErr := me.NewSipUserData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPUserData for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2963,8 +2981,8 @@ func (oo *OmciCC) SendSetSIPUserData(ctx context.Context, timeout int, highPrio 
 
 	meInstance, omciErr := me.NewSipUserData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPUserData for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3006,8 +3024,8 @@ func (oo *OmciCC) SendDeleteSIPUserData(ctx context.Context, timeout int, highPr
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewSipUserData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPUserData for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3049,8 +3067,8 @@ func (oo *OmciCC) SendCreateVoipApplicationServiceProfile(ctx context.Context, t
 
 	meInstance, omciErr := me.NewVoipApplicationServiceProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipApplicationServiceProfile for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3091,8 +3109,8 @@ func (oo *OmciCC) SendSetVoipApplicationServiceProfile(ctx context.Context, time
 
 	meInstance, omciErr := me.NewVoipApplicationServiceProfile(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode VoipApplicationServiceProfile for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3134,8 +3152,8 @@ func (oo *OmciCC) SendDeleteVoipApplicationServiceProfile(ctx context.Context, t
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewVoipApplicationServiceProfile(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPVoipApplicationServiceProfile for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3177,8 +3195,8 @@ func (oo *OmciCC) SendCreateSIPAgentConfigData(ctx context.Context, timeout int,
 
 	meInstance, omciErr := me.NewSipAgentConfigData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPAgentConfigData for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3219,8 +3237,8 @@ func (oo *OmciCC) SendSetSIPAgentConfigData(ctx context.Context, timeout int, hi
 
 	meInstance, omciErr := me.NewSipAgentConfigData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPAgentConfigData for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3262,8 +3280,8 @@ func (oo *OmciCC) SendDeleteSIPAgentConfigData(ctx context.Context, timeout int,
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewSipAgentConfigData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode SIPAgentConfigData for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3305,8 +3323,8 @@ func (oo *OmciCC) SendCreateTCPUDPConfigData(ctx context.Context, timeout int, h
 
 	meInstance, omciErr := me.NewTcpUdpConfigData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TCPUDPConfigData for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3347,8 +3365,8 @@ func (oo *OmciCC) SendSetTCPUDPConfigData(ctx context.Context, timeout int, high
 
 	meInstance, omciErr := me.NewTcpUdpConfigData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TCPUDPConfigData for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3390,8 +3408,8 @@ func (oo *OmciCC) SendDeleteTCPUDPConfigData(ctx context.Context, timeout int, h
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewTcpUdpConfigData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode TCPUDPConfigData for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3433,8 +3451,8 @@ func (oo *OmciCC) SendCreateIPHostConfigData(ctx context.Context, timeout int, h
 
 	meInstance, omciErr := me.NewIpHostConfigData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode IPHostConfigData for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3475,8 +3493,8 @@ func (oo *OmciCC) SendSetIPHostConfigData(ctx context.Context, timeout int, high
 
 	meInstance, omciErr := me.NewIpHostConfigData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode IPHostConfigData for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3518,8 +3536,8 @@ func (oo *OmciCC) SendDeleteIPHostConfigData(ctx context.Context, timeout int, h
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewIpHostConfigData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode IPHostConfigData for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3561,8 +3579,8 @@ func (oo *OmciCC) SendCreateRTPProfileData(ctx context.Context, timeout int, hig
 
 	meInstance, omciErr := me.NewRtpProfileData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode RTPProfileData for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3603,8 +3621,8 @@ func (oo *OmciCC) SendSetRTPProfileData(ctx context.Context, timeout int, highPr
 
 	meInstance, omciErr := me.NewRtpProfileData(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode RTPProfileData for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3646,8 +3664,8 @@ func (oo *OmciCC) SendDeleteRTPProfileData(ctx context.Context, timeout int, hig
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewRtpProfileData(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode RTPProfileData for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3689,8 +3707,8 @@ func (oo *OmciCC) SendCreateNetworkDialPlanTable(ctx context.Context, timeout in
 
 	meInstance, omciErr := me.NewNetworkDialPlanTable(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3731,8 +3749,8 @@ func (oo *OmciCC) SendSetNetworkDialPlanTable(ctx context.Context, timeout int, 
 
 	meInstance, omciErr := me.NewNetworkDialPlanTable(params[0])
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid),
-			omci.AddDefaults(true))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid),
+			oframe.AddDefaults(true))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3774,8 +3792,8 @@ func (oo *OmciCC) SendDeleteNetworkDialPlanTable(ctx context.Context, timeout in
 	meParams := me.ParamData{EntityID: aInstID}
 	meInstance, omciErr := me.NewNetworkDialPlanTable(meParams)
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.DeleteRequestType,
-			omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode NetworkDialPlanTable for delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3872,11 +3890,11 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(ctx c
 		var msgLayer gopacket.SerializableLayer
 		var err error
 		if create {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		} else {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		}
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode ethernet frame performance monitoring history data ME",
@@ -3925,11 +3943,11 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetUniHistoryME(ctx context.Context, ti
 		var msgLayer gopacket.SerializableLayer
 		var err error
 		if create {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		} else {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		}
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode ethernet uni history data ME",
@@ -3978,11 +3996,11 @@ func (oo *OmciCC) SendCreateOrDeleteFecHistoryME(ctx context.Context, timeout in
 		var msgLayer gopacket.SerializableLayer
 		var err error
 		if create {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		} else {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		}
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode fec history data ME",
@@ -4031,11 +4049,11 @@ func (oo *OmciCC) SendCreateOrDeleteGemPortHistoryME(ctx context.Context, timeou
 		var msgLayer gopacket.SerializableLayer
 		var err error
 		if create {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		} else {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		}
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode gemport history data ME",
@@ -4552,11 +4570,11 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Contex
 		var msgLayer gopacket.SerializableLayer
 		var err error
 		if create {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.CreateRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		} else {
-			omciLayer, msgLayer, err = omci.EncodeFrame(meInstance, omci.DeleteRequestType, omci.TransactionID(tid),
-				omci.AddDefaults(true))
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
 		}
 		if err != nil {
 			logger.Errorw(ctx, "cannot-encode-ethernet-frame-extended-pm-me",
@@ -4629,7 +4647,7 @@ func (oo *OmciCC) SendSetEthernetFrameExtendedPMME(ctx context.Context, timeout 
 	}
 
 	if omciErr.GetError() == nil {
-		omciLayer, msgLayer, err := omci.EncodeFrame(meInstance, omci.SetRequestType, omci.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.SetRequestType, oframe.TransactionID(tid))
 		if err != nil {
 			logger.Errorw(ctx, "cannot-encode-ethernet-frame-extended-pm-me",
 				log.Fields{"err": err, "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
