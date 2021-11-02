@@ -50,6 +50,24 @@
       "message": "I was thinking of something along the following code fragement and put it before line 336.\n\n\terrLayer :\u003d packet.Layer(gopacket.LayerTypeDecodeFailure)\n\tif failure, decodeOk :\u003d errLayer.(*gopacket.DecodeFailure); decodeOk {\n\t\terrMsg :\u003d failure.Error()\n\t\t... do logger.Warnw or other log level as appropriate\n\t}\n\nthen fall through to line 336.  If it is a relaxed decode failure that is enabled, you keep on processing and have a log message knowing that some ONU may have an issue (or OMCI-LIB-GO needs to be updated to support a new attribute).\n\nIf line 336 also is successful, but it is a bad decode of the Message Type layer, then you also will have a bit more info of what OMCI-LIB-GO thought was bad.\n\nIf line 336 fails, you have a bit more info at the OMCI layer as well.",
       "revId": "ec7ba42aff7260ebd29967afa175063a981361dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "69b8d407_7ab95907",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-02T08:47:02Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "3066cc8a_65a404b6",
+      "revId": "ec7ba42aff7260ebd29967afa175063a981361dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
