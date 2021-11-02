@@ -116,7 +116,6 @@ const (
 	// NOTE that this hardcoded to service/voltha as the MIB template is shared across stacks
 	cBasePathMibTemplateKvStore = "service/voltha/omci_mibs/go_templates"
 	cSuffixMibTemplateKvStore   = "%s/%s/%s"
-	cBasePathOnuKVStore         = "%s/openonu"
 )
 
 const cEmptyMacAddrString = "000000000000"
@@ -394,7 +393,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	}
 
 	onuDeviceEntry.onuKVStorePath = onuDeviceEntry.deviceID
-	baseKvStorePath := fmt.Sprintf(cBasePathOnuKVStore, dh.GetBackendPathPrefix())
+	baseKvStorePath := fmt.Sprintf(cmn.CBasePathOnuKVStore, dh.GetBackendPathPrefix())
 	onuDeviceEntry.onuKVStore = onuDeviceEntry.baseDeviceHandler.SetBackend(ctx, baseKvStorePath)
 	if onuDeviceEntry.onuKVStore == nil {
 		logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service",

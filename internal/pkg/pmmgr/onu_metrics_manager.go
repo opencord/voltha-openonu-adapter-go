@@ -255,9 +255,12 @@ const (
 	GemPortHistoryFrequency = L2PmCollectionInterval
 )
 
+// CPmKvStorePrefixBase - kv store base path of ONU specific PM data
+const CPmKvStorePrefixBase = cmn.CBasePathOnuKVStore + "/pm-data" // <some-base-path>/openonu/pm-data
+
 // KV Store related constants
 const (
-	cPmKvStorePrefix    = "%s/openonu/pm-data/%s" // <some-base-path>/openonu/pm-data/<onu-device-id>
+	cPmKvStorePrefix    = CPmKvStorePrefixBase + "/%s" // <some-base-path>/openonu/pm-data/<onu-device-id>
 	cPmAdd              = "add"
 	cPmAdded            = "added"
 	cPmRemove           = "remove"
