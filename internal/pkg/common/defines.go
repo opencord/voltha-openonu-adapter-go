@@ -331,3 +331,8 @@ const (
 	OnugSerialNumberLen  = 8
 	OmciMacAddressLen    = 6
 )
+
+///////////////////////////////////////////////////////////
+
+// CBasePathOnuKVStore - kv store path of ONU specific data
+const CBasePathOnuKVStore = "%s/openonu"

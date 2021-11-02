@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 	"github.com/opencord/voltha-protos/v5/go/adapter_services"
 
@@ -41,9 +42,12 @@ import (
 
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
+	pmmgr "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/pmmgr"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/swupg"
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
 )
+
+var onuKvStorePathPrefixes = []string{cmn.CBasePathOnuKVStore, pmmgr.CPmKvStorePrefixBase}
 
 //OpenONUAC structure holds the ONU core information
 type OpenONUAC struct {
@@ -80,6 +84,7 @@ type OpenONUAC struct {
 	dlToOnuTimeout4M           time.Duration
 	rpcTimeout                 time.Duration
 	maxConcurrentFlowsPerUni   int
+	mutexDeleteOnuKvStoreData  sync.RWMutex
 }
 
 //NewOpenONUAC returns a new instance of OpenONU_AC
@@ -311,33 +316,25 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		var errorsList []error
 
+		handler.StopReconciling(ctx, false)
+
 		handler.mutexDeletionInProgressFlag.Lock()
 		handler.deletionInProgress = true
 		handler.mutexDeletionInProgressFlag.Unlock()
 
-		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
-			errorsList = append(errorsList, err)
-		}
-
-		// Stop PM, Alarm and Self Test event handler routines
-		if handler.GetCollectorIsRunning() {
-			handler.stopCollector <- true
-			logger.Debugw(ctx, "sent stop signal to metric collector routine", log.Fields{"device-id": device.Id})
-
-		}
-		if handler.GetAlarmManagerIsRunning(ctx) {
-			handler.stopAlarmManager <- true
-			logger.Debugw(ctx, "sent stop signal to alarm manager", log.Fields{"device-id": device.Id})
-		}
-		if handler.pSelfTestHdlr.GetSelfTestHandlerIsRunning() {
-			handler.pSelfTestHdlr.StopSelfTestModule <- true
-			logger.Debugw(ctx, "sent stop signal to self test handler module", log.Fields{"device-id": device.Id})
-		}
 		for _, uni := range handler.uniEntityMap {
 			if handler.GetFlowMonitoringIsRunning(uni.UniID) {
 				handler.stopFlowMonitoringRoutine[uni.UniID] <- true
 				logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id})
 			}
+		}
+
+		if err := handler.resetFsms(ctx, true); err != nil {
+			errorsList = append(errorsList, err)
+		}
+
+		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
+			errorsList = append(errorsList, err)
 		}
 
 		// Clear PM data on the KV store
@@ -355,8 +352,33 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		}
 		return &empty.Empty{}, nil
 	}
-	logger.Warnw(ctx, "no handler found for device-deletion", log.Fields{"device-id": device.Id})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+
+	logger.Infow(ctx, "no handler found for device-deletion - trying to delete remaining data in the kv-store ", log.Fields{"device-id": device.Id})
+
+	// delete ONU specific avcfg and pm data in kv store
+	oo.mutexDeleteOnuKvStoreData.Lock()
+	defer oo.mutexDeleteOnuKvStoreData.Unlock()
+	for i := range onuKvStorePathPrefixes {
+		baseKvStorePath := fmt.Sprintf(onuKvStorePathPrefixes[i], oo.cm.Backend.PathPrefix)
+		logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": baseKvStorePath})
+		kvbackend := &db.Backend{
+			Client:     oo.kvClient,
+			StoreType:  oo.KVStoreType,
+			Address:    oo.KVStoreAddress,
+			Timeout:    oo.KVStoreTimeout,
+			PathPrefix: baseKvStorePath}
+
+		if kvbackend == nil {
+			logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service", log.Fields{"service": baseKvStorePath, "device-id": device.Id})
+			return nil, fmt.Errorf("can-not-access-onuKVStore-no-backend-connection-to-service")
+		}
+		err := kvbackend.Delete(ctx, device.Id)
+		if err != nil {
+			logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": baseKvStorePath, "device-id": device.Id, "err": err})
+			return nil, fmt.Errorf("unable-to-delete-in-KVstore")
+		}
+	}
+	return &empty.Empty{}, nil
 }
 
 //UpdateFlowsIncrementally updates (add/remove) the flows on a given device
