@@ -422,7 +422,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 }
 
 func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemPortMsg *ic.DeleteGemPortMessage) error {
-	logger.Infow(ctx, "delete-gem-port-request", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "delete-gem-port-request start", log.Fields{"device-id": dh.DeviceID})
 
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
@@ -434,17 +434,21 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
 
-	if delGemPortMsg.UniId > 255 {
+	if delGemPortMsg.UniId >= platform.MaxUnisPerOnu {
+		logger.Errorw(ctx, "delete-gem-port UniId exceeds range", log.Fields{
+			"device-id": dh.DeviceID, "uni-id": delGemPortMsg.UniId})
 		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
 			delGemPortMsg.UniId, dh.DeviceID))
 	}
 	uniID := uint8(delGemPortMsg.UniId)
 	tpID, err := cmn.GetTpIDFromTpPath(delGemPortMsg.TpInstancePath)
 	if err != nil {
-		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": delGemPortMsg.TpInstancePath})
+		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{
+			"device-id": dh.DeviceID, "err": err, "tp-path": delGemPortMsg.TpInstancePath})
 		return err
 	}
-	logger.Infow(ctx, "delete-gem-port-request", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId})
+	logger.Infow(ctx, "delete-gem-port-request", log.Fields{
+		"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID, "gem": delGemPortMsg.GemPortId})
 	//a removal of some GemPort would never remove the complete TechProfile entry (done on T-Cont)
 
 	return dh.deleteTechProfileResource(ctx, uniID, tpID, delGemPortMsg.TpInstancePath,
@@ -453,7 +457,7 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 }
 
 func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontMsg *ic.DeleteTcontMessage) error {
-	logger.Infow(ctx, "delete-tcont-request", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "delete-tcont-request start", log.Fields{"device-id": dh.DeviceID})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
@@ -471,7 +475,9 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
 
-	if delTcontMsg.UniId > 255 {
+	if delTcontMsg.UniId >= platform.MaxUnisPerOnu {
+		logger.Errorw(ctx, "delete-tcont UniId exceeds range", log.Fields{
+			"device-id": dh.DeviceID, "uni-id": delTcontMsg.UniId})
 		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
 			delTcontMsg.UniId, dh.DeviceID))
 	}
@@ -479,7 +485,8 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 	tpPath := delTcontMsg.TpInstancePath
 	tpID, err := cmn.GetTpIDFromTpPath(tpPath)
 	if err != nil {
-		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"err": err, "tp-path": tpPath})
+		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{
+			"device-id": dh.DeviceID, "err": err, "tp-path": tpPath})
 		return err
 	}
 	logger.Infow(ctx, "delete-tcont-request", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID, "tcont": delTcontMsg.AllocId})
@@ -2074,9 +2081,6 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 			if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniPort.UniID]; exist {
 				//VlanFilterFsm exists and was already started
 				dh.lockVlanConfig.RUnlock()
-				//reset of all Fsm is always accompanied by global persistency data removal
-				//  no need to remove specific data
-				pVlanFilterFsm.RequestClearPersistency(ctx, false)
 				//ensure the FSM processing is stopped in case waiting for some response
 				pVlanFilterFsm.CancelProcessing(ctx)
 			} else {

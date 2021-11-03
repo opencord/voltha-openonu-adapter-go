@@ -157,7 +157,6 @@ type UniVlanConfigFsm struct {
 	omciMIdsResponseReceived    chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	PAdaptFsm                   *cmn.AdapterFsm
 	acceptIncrementalEvtoOption bool
-	clearPersistency            bool
 	isCanceled                  bool
 	isAwaitingResponse          bool
 	mutexIsAwaitingResponse     sync.RWMutex
@@ -204,7 +203,6 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 		NumUniFlows:                 0,
 		ConfiguredUniFlow:           0,
 		numRemoveFlows:              0,
-		clearPersistency:            true,
 		lastFlowToReconcile:         lastFlowToRec,
 	}
 
@@ -393,18 +391,6 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
 	oFsm.mutexFlowParams.RLock()
 	defer oFsm.mutexFlowParams.RUnlock()
 	return oFsm.TpIDWaitingFor
-}
-
-//RequestClearPersistency sets the internal flag to not clear persistency data (false=NoClear)
-func (oFsm *UniVlanConfigFsm) RequestClearPersistency(ctx context.Context, aClear bool) {
-	if oFsm == nil {
-		logger.Error(ctx, "no valid UniVlanConfigFsm!")
-		return
-	}
-	//mutex protection is required for possible concurrent access to FSM members
-	oFsm.mutexFlowParams.Lock()
-	defer oFsm.mutexFlowParams.Unlock()
-	oFsm.clearPersistency = aClear
 }
 
 //SetUniFlowParams verifies on existence of flow parameters to be configured,
@@ -1838,6 +1824,10 @@ func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(ctx context.Context, e *fsm.E
 func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniVlanConfigFsm resetting", log.Fields{"device-id": oFsm.deviceID})
 
+	oFsm.mutexPLastTxMeInstance.Lock()
+	oFsm.pLastTxMeInstance = nil //to avoid misinterpretation in case of some lingering frame reception processing
+	oFsm.mutexPLastTxMeInstance.Unlock()
+
 	pConfigVlanStateAFsm := oFsm.PAdaptFsm
 	if pConfigVlanStateAFsm != nil {
 		// abort running message processing
@@ -1849,68 +1839,98 @@ func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) 
 		}
 		pConfigVlanStateAFsm.CommChan <- fsmAbortMsg
 
-		//try to restart the FSM to 'disabled'
-		// Can't call FSM Event directly, decoupling it
-		go func(a_pAFsm *cmn.AdapterFsm) {
-			if a_pAFsm != nil && a_pAFsm.PFsm != nil {
-				_ = a_pAFsm.PFsm.Event(VlanEvRestart)
+		//internal data is not explicitly removed, this is left to garbage collection after complete FSM removal
+		//  but some channels have to be cleared to avoid unintended waiting for events, that have no meaning anymore now
+
+		oFsm.mutexFlowParams.RLock()
+		if oFsm.delayNewRuleCookie != 0 {
+			// looks like the waiting AddFlow is stuck
+			oFsm.mutexFlowParams.RUnlock()
+			//use asynchronous channel sending to avoid stucking on non-waiting receiver
+			select {
+			case oFsm.chCookieDeleted <- false: // let the waiting AddFlow thread terminate
+			default:
 			}
-		}(pConfigVlanStateAFsm)
+			oFsm.mutexFlowParams.RLock()
+		}
+		if len(oFsm.uniRemoveFlowsSlice) > 0 {
+			for _, removeUniFlowParams := range oFsm.uniRemoveFlowsSlice {
+				if removeUniFlowParams.isSuspendedOnAdd {
+					removeChannel := removeUniFlowParams.removeChannel
+					logger.Debugw(ctx, "UniVlanConfigFsm flow clear-up - abort suspended rule-add", log.Fields{
+						"device-id": oFsm.deviceID, "cookie": removeUniFlowParams.cookie})
+					oFsm.mutexFlowParams.RUnlock()
+					//use asynchronous channel sending to avoid stucking on non-waiting receiver
+					select {
+					case removeChannel <- false:
+					default:
+					}
+					oFsm.mutexFlowParams.RLock()
+				}
+				// Send response on response channel if the caller is waiting on it.
+				var err error = nil
+				if !oFsm.isCanceled {
+					//only if the FSM is not canceled on external request use some error indication for the respChan
+					//  so only at real internal FSM abortion some error code is sent back
+					//  on the deleteFlow with the hope the system may handle such error situation (possibly retrying)
+					err = fmt.Errorf("internal-error")
+				}
+				//if the FSM was cancelled on external request the assumption is, that all processing has to be stopped
+				//  assumed in connection with some ONU down/removal indication in which case all flows can be considered as removed
+				oFsm.pushReponseOnFlowResponseChannel(ctx, removeUniFlowParams.respChan, err)
+			}
+		}
+
+		if oFsm.pDeviceHandler != nil {
+			if len(oFsm.uniVlanFlowParamsSlice) > 0 {
+				if !oFsm.isCanceled {
+					//if the FSM is not canceled on external request use "internal-error" for the respChan
+					for _, vlanRule := range oFsm.uniVlanFlowParamsSlice {
+						// Send response on response channel if the caller is waiting on it with according error indication.
+						oFsm.pushReponseOnFlowResponseChannel(ctx, vlanRule.RespChan, fmt.Errorf("internal-error"))
+					}
+					//permanently remove possibly stored persistent data
+					var emptySlice = make([]cmn.UniVlanFlowParams, 0)
+					_ = oFsm.pDeviceHandler.StorePersUniFlowConfig(ctx, oFsm.pOnuUniPort.UniID, &emptySlice, true) //ignore errors
+				} else {
+					// reset (cancel) of all Fsm is always accompanied by global persistency data removal
+					//  no need to remove specific data in this case here
+					//  TODO: cancelation may also abort a running flowAdd activity in which case it would be better
+					//     to also resopnd on the respChan with some error ("config canceled"), but that is a bit hard to decide here
+					//     so just left open by now
+					logger.Debugw(ctx, "UniVlanConfigFsm persistency data not cleared", log.Fields{"device-id": oFsm.deviceID})
+				}
+			}
+			oFsm.mutexFlowParams.RUnlock()
+
+			//try to let the FSM proceed to 'disabled'
+			// Can't call FSM Event directly, decoupling it
+			go func(a_pAFsm *cmn.AdapterFsm) {
+				if a_pAFsm != nil && a_pAFsm.PFsm != nil {
+					_ = a_pAFsm.PFsm.Event(VlanEvRestart)
+				}
+			}(pConfigVlanStateAFsm)
+			return
+		}
+		oFsm.mutexFlowParams.RUnlock()
+		logger.Warnw(ctx, "UniVlanConfigFsm - device handler already vanished",
+			log.Fields{"device-id": oFsm.deviceID})
+		return
 	}
+	logger.Warnw(ctx, "UniVlanConfigFsm - FSM pointer already vanished",
+		log.Fields{"device-id": oFsm.deviceID})
 }
 
 func (oFsm *UniVlanConfigFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniVlanConfigFsm enters disabled state", log.Fields{"device-id": oFsm.deviceID})
-	oFsm.mutexPLastTxMeInstance.Lock()
-	oFsm.pLastTxMeInstance = nil
-	oFsm.mutexPLastTxMeInstance.Unlock()
-
-	oFsm.mutexFlowParams.RLock()
-	if oFsm.delayNewRuleCookie != 0 {
-		// looks like the waiting AddFlow is stuck
-		oFsm.mutexFlowParams.RUnlock()
-		oFsm.chCookieDeleted <- false // let the waiting AddFlow thread terminate
-		oFsm.mutexFlowParams.RLock()
-	}
-	if len(oFsm.uniRemoveFlowsSlice) > 0 {
-		for _, removeUniFlowParams := range oFsm.uniRemoveFlowsSlice {
-			if removeUniFlowParams.isSuspendedOnAdd {
-				removeChannel := removeUniFlowParams.removeChannel
-				logger.Debugw(ctx, "UniVlanConfigFsm flow clear-up - abort suspended rule-add", log.Fields{
-					"device-id": oFsm.deviceID, "cookie": removeUniFlowParams.cookie})
-				oFsm.mutexFlowParams.RUnlock()
-				removeChannel <- false
-				oFsm.mutexFlowParams.RLock()
-			}
-			// Send response on response channel if the caller is waiting on it.
-			oFsm.pushReponseOnFlowResponseChannel(ctx, removeUniFlowParams.respChan, fmt.Errorf("internal-error"))
-		}
-	}
 
 	if oFsm.pDeviceHandler != nil {
-		//TODO: to clarify with improved error treatment for VlanConfigFsm (timeout,reception) errors
-		//  current code removes the complete FSM including all flow/rule configuration done so far
-		//  this might be a bit to much, it would require fully new flow config from rwCore (at least on OnuDown/up)
-		//  maybe a more sophisticated approach is possible without clearing the data
-		if oFsm.clearPersistency {
-			//permanently remove possibly stored persistent data
-			if len(oFsm.uniVlanFlowParamsSlice) > 0 {
-				for _, vlanRule := range oFsm.uniVlanFlowParamsSlice {
-					// Send response on response channel if the caller is waiting on it.
-					oFsm.pushReponseOnFlowResponseChannel(ctx, vlanRule.RespChan, fmt.Errorf("internal-error"))
-				}
-				var emptySlice = make([]cmn.UniVlanFlowParams, 0)
-				_ = oFsm.pDeviceHandler.StorePersUniFlowConfig(ctx, oFsm.pOnuUniPort.UniID, &emptySlice, true) //ignore errors
-			}
-		} else {
-			logger.Debugw(ctx, "UniVlanConfigFsm persistency data not cleared", log.Fields{"device-id": oFsm.deviceID})
-		}
-		oFsm.mutexFlowParams.RUnlock()
 		//request removal of 'reference' in the Handler (completely clear the FSM and its data)
 		go oFsm.pDeviceHandler.RemoveVlanFilterFsm(ctx, oFsm.pOnuUniPort)
 		return
 	}
-	oFsm.mutexFlowParams.RUnlock()
+	logger.Warnw(ctx, "UniVlanConfigFsm - device handler already vanished",
+		log.Fields{"device-id": oFsm.deviceID})
 }
 
 func (oFsm *UniVlanConfigFsm) processOmciVlanMessages(ctx context.Context) { //ctx context.Context?
