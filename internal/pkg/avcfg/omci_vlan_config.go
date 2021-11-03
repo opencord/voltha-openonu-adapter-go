@@ -2977,14 +2977,14 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 			"IgmpVersion":  2,
 			"IgmpFunction": 0,
 			//0 means false
-			"ImmediateLeave":         0,
-			"Robustness":             2,
-			"QuerierIp":              0,
-			"QueryInterval":          125,
-			"QuerierMaxResponseTime": 100,
-			"LastMemberResponseTime": 10,
+			"ImmediateLeave":          0,
+			"Robustness":              2,
+			"QuerierIpAddress":        0,
+			"QueryInterval":           125,
+			"QueryMaxResponseTime":    100,
+			"LastMemberQueryInterval": 10,
 			//0 means false
-			"UnauthorizedJoinBehaviour": 0,
+			"UnauthorizedJoinRequestBehaviour": 0,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
