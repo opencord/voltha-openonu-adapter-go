@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d246a624_c108096b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-04T08:26:08Z",
+      "side": 1,
+      "message": "Just a typo ...",
+      "revId": "0f54322305779d1cc6371a8f4e6debdd44b39c3b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b3138ce4_f44ee3f6",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1899,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-04T08:26:08Z",
+      "side": 1,
+      "message": "respond",
+      "range": {
+        "startLine": 1899,
+        "startChar": 20,
+        "endLine": 1899,
+        "endChar": 27
+      },
+      "revId": "0f54322305779d1cc6371a8f4e6debdd44b39c3b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
