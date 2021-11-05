@@ -2122,7 +2122,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 				dh.lockVlanConfig.RUnlock()
 				//reset of all Fsm is always accompanied by global persistency data removal
 				//  no need to remove specific data
-				pVlanFilterFsm.RequestClearPersistency(false)
+				pVlanFilterFsm.RequestClearPersistency(ctx, false)
 				//ensure the FSM processing is stopped in case waiting for some response
 				pVlanFilterFsm.CancelProcessing(ctx)
 			} else {
@@ -3227,7 +3227,7 @@ func (dh *deviceHandler) verifyUniVlanConfigRequest(ctx context.Context, apUniPo
 		pVlanFilterStatemachine := pVlanFilterFsm.pAdaptFsm.pFsm
 		if pVlanFilterStatemachine != nil {
 			//if this was an event of the TP processing that was waited for in the VlanFilterFsm
-			if pVlanFilterFsm.GetWaitingTpID() == aTpID {
+			if pVlanFilterFsm.GetWaitingTpID(ctx) == aTpID {
 				if pVlanFilterStatemachine.Is(vlanStWaitingTechProf) {
 					if err := pVlanFilterStatemachine.Event(vlanEvContinueConfig); err != nil {
 						logger.Warnw(ctx, "UniVlanConfigFsm: can't continue processing", log.Fields{"err": err,
@@ -3891,4 +3891,12 @@ func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, device
 		logger.Errorw(ctx, "unable to update device state to core",
 			log.Fields{"device-id": dh.deviceID, "Err": err})
 	}
+}
+
+// GetUniVlanConfigFsm - returns pointer to UniVlanConfigFsm
+func (dh *deviceHandler) GetUniVlanConfigFsm(uniID uint8) *UniVlanConfigFsm {
+	dh.lockVlanConfig.RLock()
+	value := dh.UniVlanConfigFsmMap[uniID]
+	dh.lockVlanConfig.RUnlock()
+	return value
 }

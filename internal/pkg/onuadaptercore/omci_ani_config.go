@@ -771,9 +771,10 @@ func (oFsm *uniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	default:
 	}
 
-	if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID] != nil {
+	uniVlanConfigFsm := oFsm.pDeviceHandler.GetUniVlanConfigFsm(oFsm.pOnuUniPort.uniID)
+	if uniVlanConfigFsm != nil {
 		// ensure mutexTPState not locked before calling some VlanConfigFsm activity (that might already be pending on it)
-		if oFsm.pDeviceHandler.UniVlanConfigFsmMap[oFsm.pOnuUniPort.uniID].IsFlowRemovePending(oFsm.waitFlowDeleteChannel) {
+		if uniVlanConfigFsm.IsFlowRemovePending(ctx, oFsm.waitFlowDeleteChannel) {
 			logger.Debugw(ctx, "flow remove pending - wait before processing gem port delete",
 				log.Fields{"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID, "techProfile-id": oFsm.techProfileID})
 			// if flow remove is pending then wait for flow remove to finish first before proceeding with gem port delete
