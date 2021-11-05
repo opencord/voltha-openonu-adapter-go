@@ -30,6 +30,8 @@ import (
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/common"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
@@ -45,13 +47,19 @@ import (
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
 )
 
+type remoteEndpoint struct {
+	client           *vgrpc.Client
+	streamConnActive bool
+}
+
 //OpenONUAC structure holds the ONU core information
 type OpenONUAC struct {
-	deviceHandlers              map[string]*deviceHandler
-	deviceHandlersCreateChan    map[string]chan bool //channels for deviceHandler create events
-	mutexDeviceHandlersMap      sync.RWMutex
-	coreClient                  *vgrpc.Client
-	parentAdapterClients        map[string]*vgrpc.Client
+	deviceHandlers           map[string]*deviceHandler
+	deviceHandlersCreateChan map[string]chan bool //channels for deviceHandler create events
+	mutexDeviceHandlersMap   sync.RWMutex
+	coreClient               *vgrpc.Client
+	// parentAdapterClients        map[string]*vgrpc.Client
+	parentAdapterClients        map[string]*remoteEndpoint
 	lockParentAdapterClients    sync.RWMutex
 	eventProxy                  eventif.EventProxy
 	kvClient                    kvstore.Client
@@ -63,7 +71,7 @@ type OpenONUAC struct {
 	KVStoreTimeout              time.Duration
 	mibTemplatesGenerated       map[string]bool
 	mutexMibTemplateGenerated   sync.RWMutex
-	exitChannel                 chan int
+	exitChannel                 chan struct{}
 	HeartbeatCheckInterval      time.Duration
 	HeartbeatFailReportInterval time.Duration
 	AcceptIncrementalEvto       bool
@@ -86,10 +94,10 @@ type OpenONUAC struct {
 func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy eventif.EventProxy,
 	kvClient kvstore.Client, cfg *config.AdapterFlags, cm *conf.ConfigManager) *OpenONUAC {
 	var openOnuAc OpenONUAC
-	openOnuAc.exitChannel = make(chan int, 1)
+	openOnuAc.exitChannel = make(chan struct{})
 	openOnuAc.deviceHandlers = make(map[string]*deviceHandler)
 	openOnuAc.deviceHandlersCreateChan = make(map[string]chan bool)
-	openOnuAc.parentAdapterClients = make(map[string]*vgrpc.Client)
+	openOnuAc.parentAdapterClients = make(map[string]*remoteEndpoint)
 	openOnuAc.mutexDeviceHandlersMap = sync.RWMutex{}
 	openOnuAc.config = cfg
 	openOnuAc.cm = cm
@@ -148,15 +156,13 @@ func (oo *OpenONUAC) Start(ctx context.Context) error {
 	return nil
 }
 
-/*
 //stop terminates the session
-func (oo *OpenONUAC) stop(ctx context.Context) error {
-	logger.Info(ctx,"stopping-device-manager")
-	oo.exitChannel <- 1
-	logger.Info(ctx,"device-manager-stopped")
+func (oo *OpenONUAC) Stop(ctx context.Context) error {
+	logger.Info(ctx, "stopping-device-manager")
+	close(oo.exitChannel)
+	logger.Info(ctx, "device-manager-stopped")
 	return nil
 }
-*/
 
 func (oo *OpenONUAC) addDeviceHandlerToMap(ctx context.Context, agent *deviceHandler) {
 	oo.mutexDeviceHandlersMap.Lock()
@@ -243,6 +249,11 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 		return nil, errors.New("nil-device")
 	}
 	logger.Infow(ctx, "reconcile-device", log.Fields{"device-id": device.Id})
+	// Check whether the adapter of the parent device can reach us yet
+	if !oo.isParentStreamUp(device.ProxyAddress.AdapterEndpoint) {
+		return nil, status.Errorf(codes.Unavailable, "parent-endpoint-not-ready-%s", device.ProxyAddress.AdapterEndpoint)
+	}
+
 	var handler *deviceHandler
 	if handler = oo.getDeviceHandler(ctx, device.Id, false); handler == nil {
 		handler := newDeviceHandler(ctx, oo.coreClient, oo.eventProxy, device, oo)
@@ -951,15 +962,45 @@ func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ic.DeleteTcontMessa
  * Parent GRPC clients
  */
 
+func (oo *OpenONUAC) updateParentStreamConnection(endpoint string, status bool) {
+	logger.Debugw(context.Background(), "updating-parent-connection-status", log.Fields{"endpoint": endpoint, "status": status})
+	oo.lockParentAdapterClients.Lock()
+	defer oo.lockParentAdapterClients.Unlock()
+	if _, ok := oo.parentAdapterClients[endpoint]; ok {
+		oo.parentAdapterClients[endpoint].streamConnActive = status
+		return
+	}
+	// Not found (parent has not connected yet), so just create a new entry and update if
+	logger.Debugw(context.Background(), "parent-client-conn-not-set-yet", log.Fields{"endpoint": endpoint, "status": status})
+	oo.parentAdapterClients[endpoint] = &remoteEndpoint{client: nil, streamConnActive: status}
+}
+
+func (oo *OpenONUAC) isParentStreamUp(endpoint string) bool {
+	oo.lockParentAdapterClients.Lock()
+	defer oo.lockParentAdapterClients.Unlock()
+	if _, ok := oo.parentAdapterClients[endpoint]; ok {
+		return oo.parentAdapterClients[endpoint].streamConnActive
+	}
+	return false
+}
+
 func (oo *OpenONUAC) setupParentInterAdapterClient(ctx context.Context, endpoint string) error {
 	logger.Infow(ctx, "setting-parent-adapter-connection", log.Fields{"parent-endpoint": endpoint})
 	oo.lockParentAdapterClients.Lock()
 	defer oo.lockParentAdapterClients.Unlock()
+	parentStreamConn := false
 	if _, ok := oo.parentAdapterClients[endpoint]; ok {
-		return nil
+		parentStreamConn = oo.parentAdapterClients[endpoint].streamConnActive
+		if oo.parentAdapterClients[endpoint].client != nil {
+			// Already setup
+			return nil
+		}
 	}
 
-	childClient, err := vgrpc.NewClient(endpoint,
+	childClient, err := vgrpc.NewClient(
+		oo.config.AdapterEndpoint,
+		endpoint,
+		"voltha.OltInterAdapterService",
 		oo.oltAdapterRestarted,
 		vgrpc.ActivityCheck(true))
 
@@ -967,16 +1008,16 @@ func (oo *OpenONUAC) setupParentInterAdapterClient(ctx context.Context, endpoint
 		return err
 	}
 
-	oo.parentAdapterClients[endpoint] = childClient
+	oo.parentAdapterClients[endpoint] = &remoteEndpoint{client: childClient, streamConnActive: parentStreamConn}
 
-	go oo.parentAdapterClients[endpoint].Start(log.WithSpanFromContext(context.TODO(), ctx), setAndTestAdapterServiceHandler)
+	go oo.parentAdapterClients[endpoint].client.Start(log.WithSpanFromContext(context.TODO(), ctx), setAndTestAdapterServiceHandler)
 
 	// Wait until we have a connection to the child adapter.
 	// Unlimited retries or until context expires
 	subCtx := log.WithSpanFromContext(context.TODO(), ctx)
 	backoff := vgrpc.NewBackoff(oo.config.MinBackoffRetryDelay, oo.config.MaxBackoffRetryDelay, 0)
 	for {
-		client, err := oo.parentAdapterClients[endpoint].GetOltInterAdapterServiceClient()
+		client, err := oo.parentAdapterClients[endpoint].client.GetOltInterAdapterServiceClient()
 		if err == nil && client != nil {
 			logger.Infow(subCtx, "connected-to-parent-adapter", log.Fields{"parent-endpoint": endpoint})
 			break
@@ -996,7 +1037,7 @@ func (oo *OpenONUAC) getParentAdapterServiceClient(endpoint string) (adapter_ser
 	oo.lockParentAdapterClients.RLock()
 	if pgClient, ok := oo.parentAdapterClients[endpoint]; ok {
 		oo.lockParentAdapterClients.RUnlock()
-		return pgClient.GetOltInterAdapterServiceClient()
+		return pgClient.client.GetOltInterAdapterServiceClient()
 	}
 	oo.lockParentAdapterClients.RUnlock()
 
@@ -1012,7 +1053,7 @@ func (oo *OpenONUAC) getParentAdapterServiceClient(endpoint string) (adapter_ser
 	oo.lockParentAdapterClients.RLock()
 	defer oo.lockParentAdapterClients.RUnlock()
 	if pgClient, ok := oo.parentAdapterClients[endpoint]; ok {
-		return pgClient.GetOltInterAdapterServiceClient()
+		return pgClient.client.GetOltInterAdapterServiceClient()
 	}
 
 	return nil, fmt.Errorf("no-client-for-endpoint-%s", endpoint)
@@ -1031,6 +1072,31 @@ func setAndTestAdapterServiceHandler(ctx context.Context, conn *grpc.ClientConn)
 		return nil
 	}
 	return svc
+}
+
+func (oo *OpenONUAC) KeepAliveConnection(conn *common.Connection, remote adapter_services.AdapterService_KeepAliveConnectionServer) error {
+	logger.Debugw(context.Background(), "receive-stream-connection", log.Fields{"connection": conn})
+
+	if conn == nil {
+		return fmt.Errorf("conn-is-nil %v", conn)
+	}
+	var err error
+loop:
+	for {
+		keepAliveTimer := time.NewTimer(time.Duration(conn.KeepAliveInterval))
+		select {
+		case <-keepAliveTimer.C:
+			logger.Debugw(context.Background(), "before-sending-keep-alive", log.Fields{"remote": conn.Endpoint})
+			if err = remote.Send(&common.Connection{Endpoint: oo.config.AdapterEndpoint}); err != nil {
+				break loop
+			}
+		case <-oo.exitChannel:
+			logger.Warnw(context.Background(), "received-stop", log.Fields{"remote": conn.Endpoint})
+			break loop
+		}
+	}
+	logger.Errorw(context.Background(), "connection-down", log.Fields{"remote": conn.Endpoint, "error": err})
+	return err
 }
 
 /*
