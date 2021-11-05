@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "15073d6a_55d58e46",
+        "filename": "go.mod",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2021-11-05T20:31:44Z",
+      "side": 1,
+      "message": "Why forcing to local paths?",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 8,
+        "endChar": 57
+      },
+      "revId": "538eff3242375ba72fd20ac07539da64e1c92090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
