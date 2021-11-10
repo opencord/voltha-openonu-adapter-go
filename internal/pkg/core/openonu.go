@@ -947,9 +947,11 @@ func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortM
 		if err := handler.handleDeleteGemPortRequest(log.WithSpanFromContext(context.Background(), ctx), gPort); err != nil {
 			return nil, err
 		}
-		return &empty.Empty{}, nil
+	} else {
+		logger.Debugw(ctx, "deviceHandler not found", log.Fields{"device-id": gPort.DeviceId})
+		// delete requests for objects of an already deleted ONU should be acknowledged positively - continue
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", gPort.DeviceId))
+	return &empty.Empty{}, nil
 }
 
 // DeleteTCont is part of the ONU Inter-adapter service API.
@@ -960,9 +962,11 @@ func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessa
 		if err := handler.handleDeleteTcontRequest(log.WithSpanFromContext(context.Background(), ctx), tConf); err != nil {
 			return nil, err
 		}
-		return &empty.Empty{}, nil
+	} else {
+		logger.Debugw(ctx, "deviceHandler not found", log.Fields{"device-id": tConf.DeviceId})
+		// delete requests for objects of an already deleted ONU should be acknowledged positively - continue
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", tConf.DeviceId))
+	return &empty.Empty{}, nil
 }
 
 /*
