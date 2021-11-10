@@ -34,6 +34,24 @@
       "parentUuid": "4f6e82f8_74ba4b2f",
       "revId": "5b77406728b286ab0da4cfa30bf60fd10e9e94b3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cfc672b6_d82a282e",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-10T11:36:46Z",
+      "side": 1,
+      "message": "I see your point and agree to that. +1 \nregarding the MIb Reset that\u0027s actually a good point. let\u0027s bring it up. we might not get confirmation from girish due to OCP.",
+      "parentUuid": "5b9bf12d_5e08e6da",
+      "revId": "5b77406728b286ab0da4cfa30bf60fd10e9e94b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
