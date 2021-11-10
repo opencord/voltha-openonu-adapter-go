@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4f6e82f8_74ba4b2f",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-10T10:41:01Z",
+      "side": 1,
+      "message": "but in this way we are not actually making sure that the elements we are asking to remove are actually removed, correct ? is there a way we can do that without the handler ?",
+      "revId": "5b77406728b286ab0da4cfa30bf60fd10e9e94b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
