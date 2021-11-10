@@ -16,6 +16,24 @@
       "message": "but in this way we are not actually making sure that the elements we are asking to remove are actually removed, correct ? is there a way we can do that without the handler ?",
       "revId": "5b77406728b286ab0da4cfa30bf60fd10e9e94b3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5b9bf12d_5e08e6da",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-10T11:32:23Z",
+      "side": 1,
+      "message": "All ONU-specific transient and kv-store data should have been deleted in the course of deleting the deviceHandler. This leaves only any configurations directly on the ONU itself. However, since our expectation is that the ONU will be reset on the PON side in the case of delete_device(), we have no way of doing OMCI configurations on this ONU anymore. \nShould we possibly consider again to send a mib reset in the course of the delete_device() processing or is the communication path already blocked when we get the RPC? \nMaybe we can discuss this in today\u0027s ONU adapter meeting?",
+      "parentUuid": "4f6e82f8_74ba4b2f",
+      "revId": "5b77406728b286ab0da4cfa30bf60fd10e9e94b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
