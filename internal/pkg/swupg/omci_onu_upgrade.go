@@ -626,7 +626,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	} else {
 		fileLen, err = oFsm.pDownloadManager.getImageBufferLen(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
 	}
-	if err != nil || fileLen > int64(cMaxUint32) {
+	if err != nil || fileLen == 0 || fileLen > int64(cMaxUint32) {
 		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //something like 'LOCAL_FILE_ERROR' would be better (proto)
 		oFsm.mutexUpgradeParams.Unlock()
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: problems getting image buffer length", log.Fields{
@@ -640,11 +640,11 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 
 	//copy file content to buffer
-	oFsm.imageBuffer = make([]byte, fileLen)
+	var imageBuffer []byte
 	if oFsm.useAPIVersion43 {
-		oFsm.imageBuffer, err = oFsm.pFileManager.GetDownloadImageBuffer(ctx, oFsm.imageIdentifier)
+		imageBuffer, err = oFsm.pFileManager.GetDownloadImageBuffer(ctx, oFsm.imageIdentifier)
 	} else {
-		oFsm.imageBuffer, err = oFsm.pDownloadManager.getDownloadImageBuffer(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
+		imageBuffer, err = oFsm.pDownloadManager.getDownloadImageBuffer(ctx, oFsm.pImageDsc.Name, oFsm.pImageDsc.LocalDir)
 	}
 	if err != nil {
 		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR //something like 'LOCAL_FILE_ERROR' would be better (proto)
@@ -658,12 +658,17 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		}(pBaseFsm)
 		return
 	}
+	//provide slice capacity already with the reserve of one section to avoid inflation of the slice to double size at append
+	oFsm.imageBuffer = make([]byte, fileLen, fileLen+cOmciDownloadSectionSize)
+	//better use a copy of the read image buffer in case the buffer/file is modified from outside,
+	//  this also limits the slice len to the expected maximum fileLen
+	copy(oFsm.imageBuffer, imageBuffer)
 
 	oFsm.noOfSections = uint32(fileLen / cOmciDownloadSectionSize)
 	if fileLen%cOmciDownloadSectionSize > 0 {
 		bufferPadding := make([]byte, cOmciDownloadSectionSize-uint32((fileLen)%cOmciDownloadSectionSize))
 		//expand the imageBuffer to exactly fit multiples of cOmciDownloadSectionSize with padding
-		oFsm.imageBuffer = append(oFsm.imageBuffer[:(fileLen)], bufferPadding...)
+		oFsm.imageBuffer = append(oFsm.imageBuffer, bufferPadding...)
 		oFsm.noOfSections++
 	}
 	oFsm.origImageLength = uint32(fileLen)
