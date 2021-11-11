@@ -51,6 +51,52 @@
       "parentUuid": "0fb8f9e0_d9077423",
       "revId": "f8c3d4db52a530c5672aa1f0b55673f0d5537357",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "deb6691d_0ba3d2fe",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-11T09:55:53Z",
+      "side": 1,
+      "message": "Should be 2.1.1-dev247",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 12
+      },
+      "revId": "f8c3d4db52a530c5672aa1f0b55673f0d5537357",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8c023e6e_8391f900",
+        "filename": "internal/pkg/swupg/file_download_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-11T09:55:53Z",
+      "side": 1,
+      "message": "Do we perhaps need an audit to detect outdated image files that need to be deleted?",
+      "range": {
+        "startLine": 133,
+        "startChar": 2,
+        "endLine": 134,
+        "endChar": 50
+      },
+      "revId": "f8c3d4db52a530c5672aa1f0b55673f0d5537357",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
