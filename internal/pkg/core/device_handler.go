@@ -748,11 +748,11 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 				dh.runUniLockFsm(ctx, true)
 			}
 		} else {
-			logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+			logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{
 				"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.DeviceID})
+			// disable device should have no impact on ConnStatus
 			if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 				DeviceId:   dh.DeviceID,
-				ConnStatus: voltha.ConnectStatus_REACHABLE,
 				OperStatus: voltha.OperStatus_UNKNOWN,
 			}); err != nil {
 				//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -1101,11 +1101,11 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 	//transfer the possibly modified logical uni port state
 	dh.DisableUniPortStateUpdate(ctx)
 
-	logger.Debugw(ctx, "call DeviceStateUpdate upon reboot", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+	logger.Debugw(ctx, "call DeviceStateUpdate upon reboot", log.Fields{
 		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.DeviceID})
+	// do not set the ConnStatus here as it may conflict with the parallel setting from ONU down indication (updateInterface())
 	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
-		ConnStatus: voltha.ConnectStatus_REACHABLE,
 		OperStatus: voltha.OperStatus_DISCOVERED,
 	}); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
@@ -1986,8 +1986,7 @@ func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuInd
 		_ = dh.deleteDevicePersistencyData(ctx) //ignore possible errors here and continue, hope is that data is synchronized with new ONU-Up
 
 		//deviceEntry stop without omciCC reset here, regarding the OMCI_CC still valid for this ONU
-		// - in contrary to disableDevice - compare with processUniDisableStateDoneEvent
-		//stop the device entry which resets the attached omciCC
+		//stop the device entry to allow for all system event transfers again
 		pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 		if pDevEntry == nil {
 			logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.DeviceID})
@@ -2294,12 +2293,12 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 }
 
 func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
-	logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+	logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{
 		"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.DeviceID})
 
+	// disable device should have no impact on ConnStatus
 	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 		DeviceId:   dh.DeviceID,
-		ConnStatus: voltha.ConnectStatus_REACHABLE,
 		OperStatus: voltha.OperStatus_UNKNOWN,
 	}); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
