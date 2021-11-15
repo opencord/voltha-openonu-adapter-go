@@ -368,7 +368,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 			logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service", log.Fields{"service": baseKvStorePath, "device-id": device.Id})
 			return nil, fmt.Errorf("can-not-access-onuKVStore-no-backend-connection-to-service")
 		}
-		err := kvbackend.Delete(ctx, device.Id)
+		err := kvbackend.DeleteWithPrefix(ctx, device.Id)
 		if err != nil {
 			logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": baseKvStorePath, "device-id": device.Id, "err": err})
 			return nil, fmt.Errorf("unable-to-delete-in-KVstore")
