@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d449331e_19dffdd2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-15T16:57:13Z",
+      "side": 1,
+      "message": "@Mahir: Not setting the ConnState in the deviceStateFilter for DeviceStateUpdate() in order to not change it does not work. My tests have shown that the ConnState is then (unintentionally) set to ConnectStatus_UNKNOWN (0). So I had to implement some (dirty) workaround. A better solution would require changes in the libs....Until then that should work ...",
+      "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
