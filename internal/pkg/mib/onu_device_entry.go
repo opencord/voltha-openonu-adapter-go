@@ -979,7 +979,11 @@ func (oo *OnuDeviceEntry) SetReconcilingFlows(value bool) {
 
 // SetChReconcilingFlowsFinished - TODO: add comment
 func (oo *OnuDeviceEntry) SetChReconcilingFlowsFinished(value bool) {
-	oo.chReconcilingFlowsFinished <- value
+	//use asynchronous channel sending to avoid stucking on non-waiting receiver
+	select {
+	case oo.chReconcilingFlowsFinished <- value:
+	default:
+	}
 }
 
 // IsReconcilingFlows - TODO: add comment
