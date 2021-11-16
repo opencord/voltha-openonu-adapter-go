@@ -33,6 +33,23 @@
       "message": "please rebase on master",
       "revId": "acfb9683757241daa01c31057481e1bace08c19c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f6924647_6248ebf3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-16T16:47:24Z",
+      "side": 1,
+      "message": "While this change should be sufficient for multi-rule scenarios, it turns out to be still insufficient for multi-uni scenarios (at a similar point, not anymore blocking, but not behaving as intended). So I would propose to update that as part of this review as well.",
+      "revId": "acfb9683757241daa01c31057481e1bace08c19c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
