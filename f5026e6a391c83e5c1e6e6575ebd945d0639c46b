@@ -51,6 +51,24 @@
       "parentUuid": "780b309c_2561c5dd",
       "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a2fd7843_bb36b723",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-16T18:49:03Z",
+      "side": 1,
+      "message": "I see, understood, thanks. I\u0027ll ask Khen\u0027s thoughts on this.",
+      "parentUuid": "ca523fb2_6d402655",
+      "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
