@@ -50,6 +50,24 @@
       "message": "While this change should be sufficient for multi-rule scenarios, it turns out to be still insufficient for multi-uni scenarios (at a similar point, not anymore blocking, but not behaving as intended). So I would propose to update that as part of this review as well.",
       "revId": "acfb9683757241daa01c31057481e1bace08c19c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "601d6e5e_3b975bc9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-16T18:37:41Z",
+      "side": 1,
+      "message": "yes, please do",
+      "parentUuid": "f6924647_6248ebf3",
+      "revId": "acfb9683757241daa01c31057481e1bace08c19c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
