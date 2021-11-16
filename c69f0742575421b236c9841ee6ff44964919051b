@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "87542365_ad19852c",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2021-11-16T14:31:14Z",
+      "side": 1,
+      "message": "Since this is a force delete, would it be helpful in deleting as much as possible?  Not sure what course of action can be taken on error because in the Core the ONU is gone meaning an operator won\u0027t see that there is a problem.",
+      "revId": "c69f0742575421b236c9841ee6ff44964919051b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
