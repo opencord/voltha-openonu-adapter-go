@@ -16,6 +16,24 @@
       "message": "Since this is a force delete, would it be helpful in deleting as much as possible?  Not sure what course of action can be taken on error because in the Core the ONU is gone meaning an operator won\u0027t see that there is a problem.",
       "revId": "c69f0742575421b236c9841ee6ff44964919051b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6afda215_b07dcb59",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-16T16:48:53Z",
+      "side": 1,
+      "message": "The question is how likely it is that these serious KV store problems will be gone a few milliseconds later when the next deletion attempt is made. But in principle you are right.",
+      "parentUuid": "87542365_ad19852c",
+      "revId": "c69f0742575421b236c9841ee6ff44964919051b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
