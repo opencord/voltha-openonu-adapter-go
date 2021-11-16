@@ -89,12 +89,12 @@ type IdeviceHandler interface {
 	StorePersUniFlowConfig(context.Context, uint8, *[]UniVlanFlowParams, bool) error
 
 	StartReconciling(context.Context, bool)
-	StopReconciling(context.Context, bool)
 	IsReconciling() bool
 	IsSkipOnuConfigReconciling() bool
 	PrepareReconcilingWithActiveAdapter(context.Context)
 	ReconcileDeviceTechProf(context.Context)
 	ReconcileDeviceFlowConfig(context.Context)
+	SendChUniVlanConfigFinished(value uint16)
 
 	VerifyUniVlanConfigRequest(context.Context, *OnuUniPort, uint8)
 	VerifyVlanConfigRequest(context.Context, uint8, uint8)
@@ -149,9 +149,6 @@ type IonuDeviceEntry interface {
 
 	LockMutexPersOnuConfig()
 	UnlockMutexPersOnuConfig()
-
-	SetReconcilingFlows(bool)
-	SetChReconcilingFlowsFinished(bool)
 }
 
 // IonuMetricsManager interface to onuMetricsManager
