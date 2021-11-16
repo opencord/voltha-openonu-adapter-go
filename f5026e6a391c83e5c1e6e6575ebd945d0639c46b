@@ -33,6 +33,24 @@
       "message": "I\u0027m wondering why do we need the connectStatusINVALID in the first place ? can we just use dh.device.ConnectStatus ? the whole point is not to change this correct ? so we can just use the previous value.",
       "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ca523fb2_6d402655",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-16T07:43:20Z",
+      "side": 1,
+      "message": "No, we can\u0027t use something like dh.device.ConnectStatus. dh.device is just a copy of the real device exitsing in rwCore taken at some point in the life time of the device. If it would be considered to use then dh.device.ConnectStatus must e kept up to date with at least the changes the device handler itself is doing to the ConnState, something that is not done for the moment. And even then there is a risk that based on parallel processing some wrong state will be taken out of this copy in the case that there is a just some state change form the parallel processing. An alternative could be to first request the state from rwCore but also this proceeding has high risk of getting some previous state in case of a just ongoing state change.\nSo I think this is the easiest and most effective solution to cirumvent these issue, of course it should later be replaced by a specific method supplied by the voltha libraries/proto definition. Also targeting at such change code replacement should be straight forward then, which is not anymore the case if you implement workarounds like mentioned above.",
+      "parentUuid": "780b309c_2561c5dd",
+      "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
