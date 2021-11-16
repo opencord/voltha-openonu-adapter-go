@@ -55,8 +55,41 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
-// Constants for timeouts
+//******
+//definitions to have waitGroup functionality with timeout
+type waitGroupWithTimeOut struct {
+	sync.WaitGroup
+}
+
+//waitTimeout of waitGroupWithTimeOut is blocking
+//  returns true, if the wg request was executed successfully, false on timeout
+func (wg *waitGroupWithTimeOut) waitTimeout(timeout time.Duration) bool {
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		wg.Wait()
+	}()
+
+	select {
+	case <-done:
+		return true
+
+	case <-time.After(timeout):
+		return false
+	}
+}
+
+//******
+
 const (
+	cWaitReconcileFlowAbortOnSuccess = 0xFFFD
+	cWaitReconcileFlowAbortOnError   = 0xFFFE
+	cWaitReconcileFlowNoActivity     = 0xFFFF
+)
+
+const (
+	// Constants for timeouts
 	cTimeOutRemoveUpgrade = 1 //for usage in seconds
 )
 
@@ -197,7 +230,8 @@ type deviceHandler struct {
 	upgradeCanceled             bool
 	reconciling                 uint8
 	mutexReconcilingFlag        sync.RWMutex
-	chReconcilingFinished       chan bool //channel to indicate that reconciling has been finished
+	chUniVlanConfigDone         chan uint16 //channel to indicate that VlanConfig reconciling for a specific UNI has been finished
+	chReconcilingFinished       chan bool   //channel to indicate that reconciling has been finished
 	mutexReadyForOmciConfig     sync.RWMutex
 	readyForOmciConfig          bool
 	deletionInProgress          bool
@@ -239,6 +273,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.lockUpgradeFsm = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
+	dh.chUniVlanConfigDone = make(chan uint16)
 	dh.chReconcilingFinished = make(chan bool)
 	dh.readyForOmciConfig = false
 	dh.deletionInProgress = false
@@ -812,7 +847,7 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 		} else {
 			logger.Errorw(ctx, "reconciling - restoring OnuTp-data failed - abort", log.Fields{"err": err, "device-id": dh.DeviceID})
 		}
-		dh.StopReconciling(ctx, false)
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return
 	}
 	var onuIndication oop.OnuIndication
@@ -832,7 +867,7 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) {
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, false)
+			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		}
 		return
 	}
@@ -846,7 +881,7 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, true)
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		}
 		return
 	}
@@ -934,13 +969,13 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 		logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, true)
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		}
 		return
 	}
 	if abTechProfInstLoadFailed {
 		dh.SetDeviceReason(cmn.DrTechProfileConfigDownloadFailed)
-		dh.StopReconciling(ctx, false)
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return
 	} else if dh.IsSkipOnuConfigReconciling() {
 		dh.SetDeviceReason(cmn.DrTechProfileConfigDownloadSuccess)
@@ -949,7 +984,7 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, true)
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		}
 	}
 }
@@ -961,7 +996,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, false)
+			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		}
 		return
 	}
@@ -972,11 +1007,14 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, true)
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		}
 		return
 	}
 	flowsFound := false
+	var uniVlanConfigEntries []uint8
+	var loWaitGroupWTO waitGroupWithTimeOut
+
 	for _, uniData := range pDevEntry.SOnuPersistentData.PersUniConfig {
 		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
 		if len(uniData.PersFlowParams) == 0 {
@@ -985,7 +1023,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 			continue
 		}
 		if len(uniData.PersTpPathMap) == 0 {
-			logger.Warnw(ctx, "reconciling - flows but no TPs stored for uniID",
+			logger.Warnw(ctx, "reconciling flows - but no TPs stored for uniID, abort",
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 			// It doesn't make sense to configure any flows if no TPs are available
 			continue
@@ -1002,46 +1040,20 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 			logger.Errorw(ctx, "reconciling - OnuUniPort data not found  - terminate reconcilement",
 				log.Fields{"uniNo": uniNo, "device-id": dh.DeviceID})
 			if !dh.IsSkipOnuConfigReconciling() {
-				dh.StopReconciling(ctx, false)
+				dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 			}
 			return
 		}
-		flowsFound = true
-		lastFlowToReconcile := false
-		flowsProcessed := 0
-		pDevEntry.SetReconcilingFlows(true)
-		for _, flowData := range uniData.PersFlowParams {
-			logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{
-				"device-id": dh.DeviceID, "uni-id": uniData.PersUniID, "cookies": flowData.CookieSlice})
-			if flowsProcessed == len(uniData.PersFlowParams)-1 {
-				lastFlowToReconcile = true
-			}
-			//the slice can be passed 'by value' here, - which internally passes its reference copy
-			dh.lockVlanConfig.Lock()
-			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
-				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
-					flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile, flowData.Meter, nil); err != nil {
-					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
-				}
-			} else {
-				if err := dh.createVlanFilterFsm(ctx, uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
-					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-					uint8(flowData.VlanRuleParams.SetPcp), cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
-					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
-				}
-			}
-			dh.lockVlanConfig.Unlock()
-			flowsProcessed++
-		} //for all flows of this UNI
+		//needed to split up function due to sca complexity
+		dh.updateReconcileFlowConfig(ctx, uniPort, uniData.PersFlowParams, uniVlanConfigEntries, &loWaitGroupWTO, &flowsFound)
+
 		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{
-			"device-id": dh.DeviceID, "uni-id": uniData.PersUniID, "flowsProcessed": flowsProcessed,
+			"device-id": dh.DeviceID, "uni-id": uniData.PersUniID,
 			"NumUniFlows":       dh.UniVlanConfigFsmMap[uniData.PersUniID].NumUniFlows,
 			"ConfiguredUniFlow": dh.UniVlanConfigFsmMap[uniData.PersUniID].ConfiguredUniFlow})
 		// this can't be used as global finished reconciling flag because
 		// assumes is getting called before the state machines for the last flow is completed,
 		// while this is not guaranteed.
-		//dh.SetReconcilingFlows(false)
 		pDevEntry.MutexPersOnuConfig.RLock() //set protection again for loop test on SOnuPersistentData
 	} // for all UNI entries from SOnuPersistentData
 	pDevEntry.MutexPersOnuConfig.RUnlock()
@@ -1050,18 +1062,166 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
 		if !dh.IsSkipOnuConfigReconciling() {
-			dh.StopReconciling(ctx, true)
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		}
 		return
 	}
+	// In multi-UNI environment stopping reconcilement has to be delayed until
+	// we get all signals that the processing of the last step to rebuild the adapter internal
+	// flow data is finished on all UNI's.
+	if executed := loWaitGroupWTO.waitTimeout(400 * time.Millisecond); executed {
+		logger.Debugw(ctx, "reconciling flows for all UNI's has been finished in time",
+			log.Fields{"device-id": dh.DeviceID})
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowAbortOnSuccess)
+		if pDevEntry != nil {
+			pDevEntry.SendChReconcilingFlowsFinished(true)
+		}
+	} else {
+		logger.Errorw(ctx, "timeout waiting for reconciling flows for all UNI's to be finished!",
+			log.Fields{"device-id": dh.DeviceID})
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
+		if pDevEntry != nil {
+			pDevEntry.SendChReconcilingFlowsFinished(false)
+		}
+		return
+	}
+
 	if dh.IsSkipOnuConfigReconciling() {
 		dh.SetDeviceReason(cmn.DrOmciFlowsPushed)
 	}
 }
 
+func (dh *deviceHandler) updateReconcileFlowConfig(ctx context.Context, apUniPort *cmn.OnuUniPort,
+	aPersFlowParam []cmn.UniVlanFlowParams, aUniVlanConfigEntries []uint8,
+	apWaitGroup *waitGroupWithTimeOut, apFlowsFound *bool) {
+	flowsProcessed := 0
+	lastFlowToReconcile := false
+	loUniID := apUniPort.UniID
+	for _, flowData := range aPersFlowParam {
+		if !(*apFlowsFound) {
+			*apFlowsFound = true
+			syncChannel := make(chan struct{})
+			// start go routine with select() on reconciling vlan config channel before
+			// starting vlan config reconciling process to prevent loss of any signal
+			// this routine just collects all the received 'flow-reconciled' signals - possibly from different UNI's
+			go dh.waitOnUniVlanConfigReady(ctx, syncChannel, apWaitGroup)
+			//block until the wait routine is really blocked on channel input
+			//  in order to prevent to early ready signal from VlanConfig processing
+			<-syncChannel
+		}
+		if flowsProcessed == len(aPersFlowParam)-1 {
+			var uniAdded bool
+			lastFlowToReconcile = true
+			if aUniVlanConfigEntries, uniAdded = dh.appendIfMissing(aUniVlanConfigEntries, loUniID); uniAdded {
+				apWaitGroup.Add(1) //increment the waiting group
+			}
+		}
+		logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{
+			"device-id": dh.DeviceID, "uni-id": loUniID,
+			"flowsProcessed": flowsProcessed, "cookies": flowData.CookieSlice})
+		dh.lockVlanConfig.Lock()
+		//the CookieSlice can be passed 'by value' here, - which internally passes its reference
+		if _, exist := dh.UniVlanConfigFsmMap[loUniID]; exist {
+			if err := dh.UniVlanConfigFsmMap[loUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
+				flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
+				uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile, flowData.Meter, nil); err != nil {
+				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+			}
+		} else {
+			if err := dh.createVlanFilterFsm(ctx, apUniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
+				uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
+				uint8(flowData.VlanRuleParams.SetPcp), cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
+				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+			}
+		}
+		dh.lockVlanConfig.Unlock()
+		flowsProcessed++
+	} //for all flows of this UNI
+}
+
+//waitOnUniVlanConfigReady collects all VlanConfigReady signals from VlanConfig FSM processing in reconciling
+//  and decrements the according handler wait group waiting for these indications
+func (dh *deviceHandler) waitOnUniVlanConfigReady(ctx context.Context, aSyncChannel chan<- struct{},
+	waitGroup *waitGroupWithTimeOut) {
+	var reconciledUniVlanConfigEntries []uint8
+	var appended bool
+	logger.Debugw(ctx, "started waiting on reconcile vlanConfig ready indications", log.Fields{
+		"device-id": dh.DeviceID})
+	// indicate blocking on channel now to the caller
+	aSyncChannel <- struct{}{}
+	for {
+		select {
+		case uniIndication := <-dh.chUniVlanConfigDone:
+			switch uniIndication {
+			// no activity requested (should normally not be received) - just continue waiting
+			case cWaitReconcileFlowNoActivity:
+			// waiting on channel inputs from VlanConfig for all UNI's to be aborted on error condition
+			case cWaitReconcileFlowAbortOnError:
+				logger.Debugw(ctx, "waitReconcileFlow aborted on error",
+					log.Fields{"device-id": dh.DeviceID, "rxEntries": reconciledUniVlanConfigEntries})
+				return
+			// waiting on channel inputs from VlanConfig for all UNI's to be aborted on success condition
+			case cWaitReconcileFlowAbortOnSuccess:
+				logger.Debugw(ctx, "waitReconcileFlow aborted on success",
+					log.Fields{"device-id": dh.DeviceID, "rxEntries": reconciledUniVlanConfigEntries})
+				return
+			// this should be a valid UNI vlan config done indication
+			default:
+				if uniIndication < platform.MaxUnisPerOnu {
+					logger.Debugw(ctx, "reconciling flows has been finished in time for this UNI",
+						log.Fields{"device-id": dh.DeviceID, "uni-id": uniIndication})
+					if reconciledUniVlanConfigEntries, appended =
+						dh.appendIfMissing(reconciledUniVlanConfigEntries, uint8(uniIndication)); appended {
+						waitGroup.Done()
+					}
+				} else {
+					logger.Errorw(ctx, "received unexpected UNI flowConfig done indication - is ignored",
+						log.Fields{"device-id": dh.DeviceID, "uni-id": uniIndication})
+				}
+			} //switch uniIndication
+
+		case <-time.After(500 * time.Millisecond):
+			logger.Errorw(ctx, "timeout waiting for reconciling all UNI flows to be finished!",
+				log.Fields{"device-id": dh.DeviceID})
+			return
+		}
+	}
+}
+
+func (dh *deviceHandler) appendIfMissing(slice []uint8, val uint8) ([]uint8, bool) {
+	for _, ele := range slice {
+		if ele == val {
+			return slice, false
+		}
+	}
+	return append(slice, val), true
+}
+
+// sendChReconcileFinished - sends true or false on reconcileFinish channel
+func (dh *deviceHandler) sendChReconcileFinished(success bool) {
+	if dh != nil { //if the object still exists (might have been already deleted in background)
+		//use asynchronous channel sending to avoid stucking on non-waiting receiver
+		select {
+		case dh.chReconcilingFinished <- success:
+		default:
+		}
+	}
+}
+
+// SendChUniVlanConfigFinished - sends the Uni number on channel if the flow reconcilement for this UNI is finished
+func (dh *deviceHandler) SendChUniVlanConfigFinished(value uint16) {
+	if dh != nil { //if the object still exists (might have been already deleted in background)
+		//use asynchronous channel sending to avoid stucking on non-waiting receiver
+		select {
+		case dh.chUniVlanConfigDone <- value:
+		default:
+		}
+	}
+}
+
 func (dh *deviceHandler) reconcileEnd(ctx context.Context) {
 	logger.Debugw(ctx, "reconciling - completed!", log.Fields{"device-id": dh.DeviceID})
-	dh.StopReconciling(ctx, true)
+	dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 }
 
 func (dh *deviceHandler) deleteDevicePersistencyData(ctx context.Context) error {
@@ -1821,7 +1981,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			pDevEntry.MutexPersOnuConfig.RUnlock()
 			logger.Debugw(ctx, "reconciling - uni-ports were not unlocked before adapter restart - resume with a normal start-up",
 				log.Fields{"device-id": dh.DeviceID})
-			dh.StopReconciling(ctx, true)
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		} else {
 			pDevEntry.MutexPersOnuConfig.RUnlock()
 		}
@@ -2068,6 +2228,8 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	if pMibDlFsm != nil {
 		_ = pMibDlFsm.Event(mib.DlEvReset)
 	}
+	//stop any deviceHandler reconcile processing (if running)
+	dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
 	//port lock/unlock FSM's may be active
 	if dh.pUnlockStateFsm != nil {
 		_ = dh.pUnlockStateFsm.PAdaptFsm.PFsm.Event(uniprt.UniEvReset)
@@ -3895,12 +4057,15 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 	dh.mutexReconcilingFlag.Unlock()
 }
 
-func (dh *deviceHandler) StopReconciling(ctx context.Context, success bool) {
+func (dh *deviceHandler) stopReconciling(ctx context.Context, success bool, reconcileFlowResult uint16) {
 	logger.Debugw(ctx, "stop reconciling", log.Fields{"device-id": dh.DeviceID, "success": success})
 	if dh.IsReconciling() {
-		dh.chReconcilingFinished <- success
+		dh.sendChReconcileFinished(success)
+		if reconcileFlowResult != cWaitReconcileFlowNoActivity {
+			dh.SendChUniVlanConfigFinished(reconcileFlowResult)
+		}
 	} else {
-		logger.Infow(ctx, "reconciling is not running", log.Fields{"device-id": dh.DeviceID})
+		logger.Debugw(ctx, "nothing to stop - reconciling is not running", log.Fields{"device-id": dh.DeviceID})
 	}
 }
 

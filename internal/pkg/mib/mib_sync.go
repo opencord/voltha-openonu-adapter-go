@@ -333,25 +333,24 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 			// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
 			// we get a signal that the processing of the last step to rebuild the adapter internal
 			// flow data is finished.
+			oo.setReconcilingFlows(true)
 			select {
 			case success := <-oo.chReconcilingFlowsFinished:
 				if success {
 					logger.Debugw(ctx, "reconciling flows has been finished in time",
 						log.Fields{"device-id": oo.deviceID})
-					oo.baseDeviceHandler.StopReconciling(ctx, true)
 					_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
 
 				} else {
 					logger.Debugw(ctx, "wait for reconciling flows aborted",
 						log.Fields{"device-id": oo.deviceID})
-					oo.SetReconcilingFlows(false)
 				}
-			case <-time.After(500 * time.Millisecond):
+			case <-time.After(600 * time.Millisecond):
 				logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
 					log.Fields{"device-id": oo.deviceID})
-				oo.SetReconcilingFlows(false)
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
 			}
+			oo.setReconcilingFlows(false)
 		}()
 		oo.baseDeviceHandler.ReconcileDeviceFlowConfig(ctx)
 
@@ -1120,11 +1119,8 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 //CancelProcessing terminates potentially running reconciling processes and stops the FSM
 func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 
-	if oo.IsReconcilingFlows() {
-		oo.chReconcilingFlowsFinished <- false
-	}
-	if oo.baseDeviceHandler.IsReconciling() {
-		oo.baseDeviceHandler.StopReconciling(ctx, false)
+	if oo.isReconcilingFlows() {
+		oo.SendChReconcilingFlowsFinished(false)
 	}
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally

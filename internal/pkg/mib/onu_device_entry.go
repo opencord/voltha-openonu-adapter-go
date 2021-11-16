@@ -970,20 +970,26 @@ func (oo *OnuDeviceEntry) SetPersActiveSwVersion(value string) {
 	oo.SOnuPersistentData.PersActiveSwVersion = value
 }
 
-// SetReconcilingFlows - TODO: add comment
-func (oo *OnuDeviceEntry) SetReconcilingFlows(value bool) {
+// setReconcilingFlows - TODO: add comment
+func (oo *OnuDeviceEntry) setReconcilingFlows(value bool) {
 	oo.mutexReconcilingFlowsFlag.Lock()
 	oo.reconcilingFlows = value
 	oo.mutexReconcilingFlowsFlag.Unlock()
 }
 
-// SetChReconcilingFlowsFinished - TODO: add comment
-func (oo *OnuDeviceEntry) SetChReconcilingFlowsFinished(value bool) {
-	oo.chReconcilingFlowsFinished <- value
+// SendChReconcilingFlowsFinished - TODO: add comment
+func (oo *OnuDeviceEntry) SendChReconcilingFlowsFinished(value bool) {
+	if oo != nil { //if the object still exists (might have been already deleted in background)
+		//use asynchronous channel sending to avoid stucking on non-waiting receiver
+		select {
+		case oo.chReconcilingFlowsFinished <- value:
+		default:
+		}
+	}
 }
 
-// IsReconcilingFlows - TODO: add comment
-func (oo *OnuDeviceEntry) IsReconcilingFlows() bool {
+// isReconcilingFlows - TODO: add comment
+func (oo *OnuDeviceEntry) isReconcilingFlows() bool {
 	oo.mutexReconcilingFlowsFlag.RLock()
 	value := oo.reconcilingFlows
 	oo.mutexReconcilingFlowsFlag.RUnlock()

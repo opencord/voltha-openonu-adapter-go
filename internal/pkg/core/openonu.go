@@ -318,8 +318,6 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		var errorsList []error
 
-		handler.StopReconciling(ctx, false)
-
 		handler.mutexDeletionInProgressFlag.Lock()
 		handler.deletionInProgress = true
 		handler.mutexDeletionInProgressFlag.Unlock()
