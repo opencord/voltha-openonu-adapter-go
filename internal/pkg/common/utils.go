@@ -27,6 +27,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/looplab/fsm"
 	me "github.com/opencord/omci-lib-go/v2/generated"
@@ -160,4 +161,23 @@ func GenerateVoipUNISideMEID(uniPortMacBpNo uint16) (uint16, error) {
 		return 0, fmt.Errorf("uni macbpno out of range - %d", uniPortMacBpNo)
 	}
 	return (VoipUniBaseEID + uniPortMacBpNo), nil
+}
+
+//WaitTimeout of waitGroupWithTimeOut is blocking
+//  returns true, if the wg request was executed successfully, false on timeout
+func (wg *WaitGroupWithTimeOut) WaitTimeout(timeout time.Duration) bool {
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		wg.Wait()
+	}()
+
+	select {
+	case <-done:
+		return true
+
+	case <-time.After(timeout):
+		return false
+	}
 }

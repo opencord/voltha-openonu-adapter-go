@@ -19,6 +19,7 @@ package common
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	gp "github.com/google/gopacket"
@@ -337,3 +338,10 @@ const (
 
 // CBasePathOnuKVStore - kv store path of ONU specific data
 const CBasePathOnuKVStore = "%s/openonu"
+
+///////////////////////////////////////////////////////////
+
+//WaitGroupWithTimeOut definitions to have waitGroup functionality with timeout
+type WaitGroupWithTimeOut struct {
+	sync.WaitGroup
+}
