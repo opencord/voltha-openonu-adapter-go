@@ -313,8 +313,8 @@ func (oo *OpenONUAC) RebootDevice(ctx context.Context, device *voltha.Device) (*
 // DeleteDevice deletes the given device
 func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	nctx := log.WithSpanFromContext(context.Background(), ctx)
-
 	logger.Infow(ctx, "delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber, "ctx": ctx, "nctx": nctx})
+
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		var errorsList []error
 
@@ -327,14 +327,20 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}
-		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
-			errorsList = append(errorsList, err)
-		}
+		forceKvDelete := false
+
 		// Clear PM data on the KV store
 		if handler.pOnuMetricsMgr != nil {
 			if err := handler.pOnuMetricsMgr.ClearAllPmData(ctx); err != nil {
 				errorsList = append(errorsList, err)
+				forceKvDelete = true
 			}
+		} else {
+			forceKvDelete = true
+		}
+		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
+			errorsList = append(errorsList, err)
+			forceKvDelete = true
 		}
 		for _, uni := range handler.uniEntityMap {
 			if handler.GetFlowMonitoringIsRunning(uni.UniID) {
@@ -344,6 +350,11 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		}
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
+		if forceKvDelete {
+			if err := oo.forceDeleteDeviceKvData(ctx, device.Id); err != nil {
+				errorsList = append(errorsList, err)
+			}
+		}
 
 		if len(errorsList) > 0 {
 			logger.Errorw(ctx, "one-or-more-error-during-device-delete", log.Fields{"device-id": device.Id})
@@ -353,26 +364,8 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 	}
 	logger.Infow(ctx, "no handler found for device-deletion - trying to delete remaining data in the kv-store ", log.Fields{"device-id": device.Id})
 
-	// delete ONU specific avcfg and pm data in kv store
-	for i := range onuKvStorePathPrefixes {
-		baseKvStorePath := fmt.Sprintf(onuKvStorePathPrefixes[i], oo.cm.Backend.PathPrefix)
-		logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": baseKvStorePath})
-		kvbackend := &db.Backend{
-			Client:     oo.kvClient,
-			StoreType:  oo.KVStoreType,
-			Address:    oo.KVStoreAddress,
-			Timeout:    oo.KVStoreTimeout,
-			PathPrefix: baseKvStorePath}
-
-		if kvbackend == nil {
-			logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service", log.Fields{"service": baseKvStorePath, "device-id": device.Id})
-			return nil, fmt.Errorf("can-not-access-onuKVStore-no-backend-connection-to-service")
-		}
-		err := kvbackend.DeleteWithPrefix(ctx, device.Id)
-		if err != nil {
-			logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": baseKvStorePath, "device-id": device.Id, "err": err})
-			return nil, fmt.Errorf("unable-to-delete-in-KVstore")
-		}
+	if err := oo.forceDeleteDeviceKvData(ctx, device.Id); err != nil {
+		return nil, err
 	}
 	return &empty.Empty{}, nil
 }
@@ -1053,6 +1046,33 @@ func setAndTestAdapterServiceHandler(ctx context.Context, conn *grpc.ClientConn)
 		return nil
 	}
 	return svc
+}
+
+func (oo *OpenONUAC) forceDeleteDeviceKvData(ctx context.Context, aDeviceID string) error {
+	logger.Debugw(ctx, "force deletion of ONU device specific data in kv store", log.Fields{"device-id": aDeviceID})
+
+	for i := range onuKvStorePathPrefixes {
+		baseKvStorePath := fmt.Sprintf(onuKvStorePathPrefixes[i], oo.cm.Backend.PathPrefix)
+		logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": baseKvStorePath,
+			"device-id": aDeviceID})
+		kvbackend := &db.Backend{
+			Client:     oo.kvClient,
+			StoreType:  oo.KVStoreType,
+			Address:    oo.KVStoreAddress,
+			Timeout:    oo.KVStoreTimeout,
+			PathPrefix: baseKvStorePath}
+
+		if kvbackend == nil {
+			logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service", log.Fields{"service": baseKvStorePath, "device-id": aDeviceID})
+			return fmt.Errorf("can-not-access-onuKVStore-no-backend-connection-to-service")
+		}
+		err := kvbackend.DeleteWithPrefix(ctx, aDeviceID)
+		if err != nil {
+			logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": baseKvStorePath, "device-id": aDeviceID, "err": err})
+			return fmt.Errorf("unable-to-delete-in-KVstore")
+		}
+	}
+	return nil
 }
 
 /*
