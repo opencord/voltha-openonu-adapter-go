@@ -87,6 +87,23 @@
       "parentUuid": "ca523fb2_6d402655",
       "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2118170c_f76608bc",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-16T21:02:38Z",
+      "side": 1,
+      "message": "Isn\u0027t ConnStatus an enum? I have not tried this, but it seems like we can set any integer value to an enum - Is that correct? Also what would be the behavior of the rw-core when it sees this?",
+      "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
