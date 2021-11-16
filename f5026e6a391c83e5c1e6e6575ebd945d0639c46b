@@ -16,6 +16,23 @@
       "message": "@Mahir: Not setting the ConnState in the deviceStateFilter for DeviceStateUpdate() in order to not change it does not work. My tests have shown that the ConnState is then (unintentionally) set to ConnectStatus_UNKNOWN (0). So I had to implement some (dirty) workaround. A better solution would require changes in the libs....Until then that should work ...",
       "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "780b309c_2561c5dd",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-16T00:04:39Z",
+      "side": 1,
+      "message": "I\u0027m wondering why do we need the connectStatusINVALID in the first place ? can we just use dh.device.ConnectStatus ? the whole point is not to change this correct ? so we can just use the previous value.",
+      "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
