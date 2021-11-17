@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f28d12f5_e1782e0d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2021-11-17T20:25:09Z",
+      "side": 1,
+      "message": "Please raise a Jira to have two APIs in the rw-core for connection and operational status updates.  It can be done as part of this change or separately. ",
+      "revId": "44bd836e99531966158649b99f52e85646d81a53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
