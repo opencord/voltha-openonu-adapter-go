@@ -19,9 +19,11 @@ package devdb
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"sync"
 
 	me "github.com/opencord/omci-lib-go/v2/generated"
@@ -30,12 +32,28 @@ import (
 
 type meDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
 
-//OnuDeviceDB structure holds information about known ME's
+// UnknownMeName type to be used for unknown ME names
+type UnknownMeName string
+
+// allowed values for type UnknownMeName
+const (
+	CUnknownItuG988ManagedEntity        = "UnknownItuG988ManagedEntity"
+	CUnknownVendorSpecificManagedEntity = "UnknownVendorSpecificManagedEntity"
+)
+
+type unknownMeAttribs struct {
+	AttribMask  string `json:"AttributeMask"`
+	AttribBytes string `json:"AttributeBytes"`
+}
+type unknownMeDbMap map[UnknownMeName]map[me.ClassID]map[uint16]unknownMeAttribs
+
+//OnuDeviceDB structure holds information about ME's
 type OnuDeviceDB struct {
-	ctx      context.Context
-	deviceID string
-	MeDb     meDbMap
-	meDbLock sync.RWMutex
+	ctx         context.Context
+	deviceID    string
+	MeDb        meDbMap
+	meDbLock    sync.RWMutex
+	UnknownMeDb unknownMeDbMap
 }
 
 //NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
@@ -45,6 +63,7 @@ func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	OnuDeviceDB.ctx = ctx
 	OnuDeviceDB.deviceID = aDeviceID
 	OnuDeviceDB.MeDb = make(meDbMap)
+	OnuDeviceDB.UnknownMeDb = make(unknownMeDbMap)
 
 	return &OnuDeviceDB
 }
@@ -57,32 +76,22 @@ func (OnuDeviceDB *OnuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID,
 	if me.OnuDataClassID == meClassID {
 		return
 	}
-
-	//logger.Debugw(ctx,"Search for key data :", log.Fields{"deviceId": OnuDeviceDB.deviceID, "meClassID": meClassID, "meEntityID": meEntityID})
-	meInstMap, ok := OnuDeviceDB.MeDb[meClassID]
+	_, ok := OnuDeviceDB.MeDb[meClassID]
 	if !ok {
 		logger.Debugw(ctx, "meClassID not found - add to db :", log.Fields{"device-id": OnuDeviceDB.deviceID})
-		meInstMap = make(map[uint16]me.AttributeValueMap)
-		OnuDeviceDB.MeDb[meClassID] = meInstMap
+		OnuDeviceDB.MeDb[meClassID] = make(map[uint16]me.AttributeValueMap)
+		OnuDeviceDB.MeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
 		OnuDeviceDB.MeDb[meClassID][meEntityID] = meAttributes
 	} else {
-		meAttribs, ok := meInstMap[meEntityID]
+		meAttribs, ok := OnuDeviceDB.MeDb[meClassID][meEntityID]
 		if !ok {
-			/* verbose logging, avoid in >= debug level
-			logger.Debugw(ctx,"meEntityId not found - add to db :", log.Fields{"device-id": OnuDeviceDB.deviceID})
-			*/
-			meInstMap[meEntityID] = meAttributes
+			OnuDeviceDB.MeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
+			OnuDeviceDB.MeDb[meClassID][meEntityID] = meAttributes
 		} else {
-			/* verbose logging, avoid in >= debug level
-			logger.Debugw(ctx,"ME-Instance exists already: merge attribute data :", log.Fields{"device-id": OnuDeviceDB.deviceID, "meAttribs": meAttribs})
-			*/
 			for k, v := range meAttributes {
 				meAttribs[k] = v
 			}
-			meInstMap[meEntityID] = meAttribs
-			/* verbose logging, avoid in >= debug level
-			logger.Debugw(ctx,"ME-Instance updated :", log.Fields{"device-id": OnuDeviceDB.deviceID, "meAttribs": meAttribs})
-			*/
+			OnuDeviceDB.MeDb[meClassID][meEntityID] = meAttribs
 		}
 	}
 }
@@ -151,7 +160,34 @@ func (OnuDeviceDB *OnuDeviceDB) LogMeDb(ctx context.Context) {
 	logger.Debugw(ctx, "ME instances stored for :", log.Fields{"device-id": OnuDeviceDB.deviceID})
 	for meClassID, meInstMap := range OnuDeviceDB.MeDb {
 		for meEntityID, meAttribs := range meInstMap {
-			logger.Debugw(ctx, "ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs, "device-id": OnuDeviceDB.deviceID})
+			logger.Debugw(ctx, "ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs,
+				"device-id": OnuDeviceDB.deviceID})
+		}
+	}
+}
+
+//PutUnknownMe puts an unknown ME instance into internal ONU DB
+func (OnuDeviceDB *OnuDeviceDB) PutUnknownMe(ctx context.Context, aMeName UnknownMeName, aMeClassID me.ClassID, aMeEntityID uint16,
+	aMeAttributeMask uint16, aMePayload []byte) {
+
+	meAttribMaskStr := strconv.FormatUint(uint64(aMeAttributeMask), 16)
+	attribs := unknownMeAttribs{meAttribMaskStr, hex.EncodeToString(aMePayload)}
+
+	_, ok := OnuDeviceDB.UnknownMeDb[aMeName]
+	if !ok {
+		OnuDeviceDB.UnknownMeDb[aMeName] = make(map[me.ClassID]map[uint16]unknownMeAttribs)
+		OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID] = make(map[uint16]unknownMeAttribs)
+		OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
+	} else {
+		_, ok := OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID]
+		if !ok {
+			OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID] = make(map[uint16]unknownMeAttribs)
+			OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
+		} else {
+			_, ok := OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID]
+			if !ok {
+				OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
+			}
 		}
 	}
 }
