@@ -16,6 +16,23 @@
       "message": "hardware test\nfunctional tests",
       "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9d56433a_9a353497",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-17T21:27:28Z",
+      "side": 1,
+      "message": "please rebase on current master",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
