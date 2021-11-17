@@ -122,6 +122,24 @@
       "parentUuid": "2118170c_f76608bc",
       "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "758c81f1_f5aa82ff",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-17T08:07:58Z",
+      "side": 1,
+      "message": "Interesting, thanks.\nYes this could work but it seems this is tightly coupled some internal implementation of rw-core, but I do not have any better ideas for you 😊",
+      "parentUuid": "6eb4c5d7_bb5a90ed",
+      "revId": "f5026e6a391c83e5c1e6e6575ebd945d0639c46b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
