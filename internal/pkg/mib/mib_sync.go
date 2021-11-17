@@ -542,16 +542,14 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		return
 	}
 	meName := msgObj.ReportedME.GetName()
-	if meName == "UnknownItuG988ManagedEntity" || meName == "UnknownVendorSpecificManagedEntity" {
-		logger.Debugw(ctx, "MibUploadNextResponse Data for unknown ME received - temporary workaround is to ignore it!",
-			log.Fields{"device-id": oo.deviceID, "data-fields": msgObj, "meName": meName})
-	} else {
-		logger.Debugw(ctx, "MibUploadNextResponse Data for:",
-			log.Fields{"device-id": oo.deviceID, "meName": meName, "data-fields": msgObj})
-		meClassID := msgObj.ReportedME.GetClassID()
-		meEntityID := msgObj.ReportedME.GetEntityID()
-		meAttributes := msgObj.ReportedME.GetAttributeValueMap()
+	meClassID := msgObj.ReportedME.GetClassID()
+	meEntityID := msgObj.ReportedME.GetEntityID()
 
+	logger.Debugw(ctx, "MibUploadNextResponse Data for:", log.Fields{"device-id": oo.deviceID, "meName": meName, "data-fields": msgObj})
+
+	if meName == devdb.CUnknownItuG988ManagedEntity || meName == devdb.CUnknownVendorSpecificManagedEntity {
+		oo.pOnuDB.PutUnknownMe(ctx, devdb.UnknownMeName(meName), meClassID, meEntityID, msgObj.ReportedME.GetAttributeMask(), msgObj.BaseLayer.Payload)
+	} else {
 		//with relaxed decoding set in the OMCI-LIB we have the chance to detect if there are some unknown attributes appended which we cannot decode
 		if unknownAttrLayer := (*msg.OmciPacket).Layer(omci.LayerTypeUnknownAttributes); unknownAttrLayer != nil {
 			logger.Warnw(ctx, "MibUploadNextResponse contains unknown attributes", log.Fields{"device-id": oo.deviceID})
@@ -572,8 +570,7 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 				logger.Errorw(ctx, "unknownAttrLayer could not be decoded", log.Fields{"device-id": oo.deviceID})
 			}
 		}
-
-		oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, meAttributes)
+		oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, msgObj.ReportedME.GetAttributeValueMap())
 	}
 	if oo.PDevOmciCC.UploadSequNo < oo.PDevOmciCC.UploadNoOfCmds {
 		_ = oo.PDevOmciCC.SendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx), oo.baseDeviceHandler.GetOmciTimeout(), true)
@@ -933,6 +930,10 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 		}
 		secondLevelMap["ClassId"] = classID
 		templateMap[classID] = secondLevelMap
+	}
+	unknownMeMap := oo.pOnuDB.UnknownMeDb
+	for unknownMeMapKey := range unknownMeMap {
+		templateMap[string(unknownMeMapKey)] = unknownMeMap[unknownMeMapKey]
 	}
 	mibTemplate, err := json.Marshal(&templateMap)
 	if err != nil {
