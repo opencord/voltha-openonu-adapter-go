@@ -33,6 +33,40 @@
       "message": "hardware test\nfunctional tests",
       "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c14eab7c_085e4120",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-18T22:29:33Z",
+      "side": 1,
+      "message": "Is this persisted?. Is there any intention to persist if not done or any intention to publish events about unknown ME. Otherwise I do not see how this is useful.",
+      "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a1b23bbf_fdc8d1cc",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-18T22:29:33Z",
+      "side": 1,
+      "message": "You do not need the map protection because this is done serially? Is it possible to have concurrent access to this map in anyway?",
+      "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
