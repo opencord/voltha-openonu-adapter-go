@@ -3111,9 +3111,9 @@ func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMete
 		logger.Errorw(ctx, "Traffic Shaping Info get failed", log.Fields{"device-id": oFsm.deviceID})
 		return err
 	}
-	cir := trafficShapingInfo.Cir + trafficShapingInfo.Gir
+	cir := (trafficShapingInfo.Cir + trafficShapingInfo.Gir) * 125 // kbps --> bps --> Bps
 	cbs := trafficShapingInfo.Cbs
-	pir := trafficShapingInfo.Pir
+	pir := trafficShapingInfo.Pir * 125 // kbps --> bps --> Bps
 	pbs := trafficShapingInfo.Pbs
 
 	logger.Infow(ctx, "cir-pir-cbs-pbs", log.Fields{"device-id": oFsm.deviceID, "cir": cir, "pir": pir, "cbs": cbs, "pbs": pbs})
