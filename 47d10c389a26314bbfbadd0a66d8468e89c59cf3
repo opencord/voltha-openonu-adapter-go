@@ -71,6 +71,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "166fabff_faec715a",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-18T10:49:02Z",
+      "side": 1,
+      "message": "To point a): The definitions are in the right place here, as they represent the allowed values for the first key of the unknownMeDbMap[]. To emphasize this, I will include an explicit type declaration for this key.\nTo point b): see comment in mib_syn.go",
+      "parentUuid": "828196c5_e6f14ce8",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "b1efd46a_7a9459be",
         "filename": "internal/pkg/mib/mib_sync.go",
         "patchSetId": 1
@@ -88,6 +106,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "982890fb_09815951",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 550,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-18T10:49:02Z",
+      "side": 1,
+      "message": "Creating a new ME instance just to be able to perform the query I don\u0027t think is ideal speed-wise. Since, as you mentioned, there are many places in the Onu adapter where self-defined string constants are used, which should actually be provided by the omci-lib-go, I will write an appropriate story asking that these constants be provided by omci-lib-go.",
+      "parentUuid": "b1efd46a_7a9459be",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "3f2f1bbd_220a924e",
         "filename": "internal/pkg/mib/mib_sync.go",
         "patchSetId": 1
@@ -99,6 +135,24 @@
       "writtenOn": "2021-11-18T08:29:45Z",
       "side": 1,
       "message": "So if I understand it correctly, in this step you want to ensure the storage of the known attributes to the DB in case some unknown attributes are found. And the storage of the unknown attributes you probably shift to a later patch?",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8133528e_b6c327a2",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 573,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-18T10:49:02Z",
+      "side": 1,
+      "message": "Yes, it makes sense to wait until the following stories are implemented before implementing this feature:\nhttps://jira.opencord.org/browse/VOL-4437\nhttps://jira.opencord.org/browse/VOL-4475",
+      "parentUuid": "3f2f1bbd_220a924e",
       "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
