@@ -33,6 +33,74 @@
       "message": "please rebase on current master",
       "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9dd7ae51_bdc6d580",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-18T08:29:45Z",
+      "side": 1,
+      "message": "Just some additional hints/questions, that do not necessarily need to be considered in this patch. Therefore I also give +1 generally.",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "828196c5_e6f14ce8",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-18T08:29:45Z",
+      "side": 1,
+      "message": "Think, this definition is a) not in the right file (not used here) and b) it would be better to use the definition of the omci-lib itself (see comments for mib_sync.go)",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b1efd46a_7a9459be",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 550,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-18T08:29:45Z",
+      "side": 1,
+      "message": "Think it is better to use the definition of the omci-lib directly here, compare e.g. unknowng988me.go. I know we haven\u0027t done this so far (could be done on many other places as well, perhaps also with some initial table filling). \nWould be in the form like this (for unknown only here):\nmeEmptyInstance, _ :\u003d me.NewUnknownG988ME(0)\nif meName \u003d\u003d meEmptyInstance.GetName() { ...\n\nOtherwise I\u0027d place the definitions from onu_device_db.go into this file.",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3f2f1bbd_220a924e",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 573,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-18T08:29:45Z",
+      "side": 1,
+      "message": "So if I understand it correctly, in this step you want to ensure the storage of the known attributes to the DB in case some unknown attributes are found. And the storage of the unknown attributes you probably shift to a later patch?",
+      "revId": "47d10c389a26314bbfbadd0a66d8468e89c59cf3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
