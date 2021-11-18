@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e307fc66_0ef15b62",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3114,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-18T13:57:19Z",
+      "side": 1,
+      "message": "a) did not look on this in detail before, so maybe this a  late question for the existing code: why do you add Gir here? What does Gir mean? In the end you just want to configure a cir here.\nb) relevant to the new code: You have to check and ensure, that the multiply result (in reality) is not bigger than 4 bytes. In your code the result may just be eclipsed and the value may then be totally surprising. \nWhat the reaction on a value \u003e 4 bytes should be is in decision of ONF. At least you should supply an error log and perhaps supply the maximum possible rate then. I\u0027m not only speaking theoretically here. With 4 bytes you can only set about 500Mbps here and configured values may come in that range. And the limit can\u0027t be checked elsewhere in the system as nobody knows that here is a 4 byte limit and an internal multiply.\n\nSame to pir below.",
+      "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
