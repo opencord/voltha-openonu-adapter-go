@@ -16,6 +16,24 @@
       "message": "a) did not look on this in detail before, so maybe this a  late question for the existing code: why do you add Gir here? What does Gir mean? In the end you just want to configure a cir here.\nb) relevant to the new code: You have to check and ensure, that the multiply result (in reality) is not bigger than 4 bytes. In your code the result may just be eclipsed and the value may then be totally surprising. \nWhat the reaction on a value \u003e 4 bytes should be is in decision of ONF. At least you should supply an error log and perhaps supply the maximum possible rate then. I\u0027m not only speaking theoretically here. With 4 bytes you can only set about 500Mbps here and configured values may come in that range. And the limit can\u0027t be checked elsewhere in the system as nobody knows that here is a 4 byte limit and an internal multiply.\n\nSame to pir below.",
       "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7da756dd_bd3f32c2",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3114,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-18T19:59:00Z",
+      "side": 1,
+      "message": "@michael: GIR is guaranteed bandwidth. CIR is assured bandwidth. Since there is no way to specify GIR here, I think Ozge has added GIR+CIR to CIR which is OK.\nWhy do you say 4bytes can only limit to 500Mbps. 4 bytes is (2^32 - 1) which is very huge and can accomadate 500Mbps and more.",
+      "parentUuid": "e307fc66_0ef15b62",
+      "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
