@@ -30,6 +30,7 @@ import (
 
 	"time"
 
+	"github.com/google/gopacket"
 	"github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
@@ -532,45 +533,57 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadResponseMessage(ctx context.Context
 func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Context, msg cmn.OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadNextResponse)
 
-	if msgLayer == nil {
-		logger.Errorw(ctx, "Omci Msg layer could not be detected", log.Fields{"device-id": oo.deviceID})
-		return
-	}
-	msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
-	if !msgOk {
-		logger.Errorw(ctx, "Omci Msg layer could not be assigned", log.Fields{"device-id": oo.deviceID})
-		return
-	}
-	meName := msgObj.ReportedME.GetName()
-	meClassID := msgObj.ReportedME.GetClassID()
-	meEntityID := msgObj.ReportedME.GetEntityID()
-
-	logger.Debugw(ctx, "MibUploadNextResponse Data for:", log.Fields{"device-id": oo.deviceID, "meName": meName, "data-fields": msgObj})
-
-	if meName == devdb.CUnknownItuG988ManagedEntity || meName == devdb.CUnknownVendorSpecificManagedEntity {
-		oo.pOnuDB.PutUnknownMe(ctx, devdb.UnknownMeName(meName), meClassID, meEntityID, msgObj.ReportedME.GetAttributeMask(), msgObj.BaseLayer.Payload)
-	} else {
-		//with relaxed decoding set in the OMCI-LIB we have the chance to detect if there are some unknown attributes appended which we cannot decode
-		if unknownAttrLayer := (*msg.OmciPacket).Layer(omci.LayerTypeUnknownAttributes); unknownAttrLayer != nil {
-			logger.Warnw(ctx, "MibUploadNextResponse contains unknown attributes", log.Fields{"device-id": oo.deviceID})
-			if unknownAttributes, ok := unknownAttrLayer.(*omci.UnknownAttributes); ok {
-				// provide a loop over several ME's here already in preparation of OMCI extended message format
-				for _, unknown := range unknownAttributes.Attributes {
-					unknownAttrClassID := unknown.EntityClass // ClassID
-					unknownAttrInst := unknown.EntityInstance // uint16
-					unknownAttrMask := unknown.AttributeMask  // ui
-					unknownAttrBlob := unknown.AttributeData  // []byte
-					logger.Warnw(ctx, "unknown attributes detected for", log.Fields{"device-id": oo.deviceID,
-						"Me-ClassId": unknownAttrClassID, "Me-InstId": unknownAttrInst, "unknown mask": unknownAttrMask,
-						"unknown attributes": unknownAttrBlob})
-					//TODO!!! We have to find a way to put this extra information into the (MIB)DB, see below pOnuDB.PutMe
-					//  this probably requires an (add-on) extension in the DB, that should not harm any other (get) processing -> later as a second step
-				} // for all included ME's with unknown attributes
-			} else {
-				logger.Errorw(ctx, "unknownAttrLayer could not be decoded", log.Fields{"device-id": oo.deviceID})
-			}
+	if msgLayer != nil {
+		msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
+		if !msgOk {
+			logger.Errorw(ctx, "Omci Msg layer could not be assigned", log.Fields{"device-id": oo.deviceID})
+			return
 		}
-		oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, msgObj.ReportedME.GetAttributeValueMap())
+		meName := msgObj.ReportedME.GetName()
+		meClassID := msgObj.ReportedME.GetClassID()
+		meEntityID := msgObj.ReportedME.GetEntityID()
+
+		logger.Debugw(ctx, "MibUploadNextResponse Data for:", log.Fields{"device-id": oo.deviceID, "meName": meName, "data-fields": msgObj})
+
+		if meName == devdb.CUnknownItuG988ManagedEntity || meName == devdb.CUnknownVendorSpecificManagedEntity {
+			oo.pOnuDB.PutUnknownMe(ctx, devdb.UnknownMeName(meName), meClassID, meEntityID, msgObj.ReportedME.GetAttributeMask(), msgObj.BaseLayer.Payload)
+		} else {
+			//with relaxed decoding set in the OMCI-LIB we have the chance to detect if there are some unknown attributes appended which we cannot decode
+			if unknownAttrLayer := (*msg.OmciPacket).Layer(omci.LayerTypeUnknownAttributes); unknownAttrLayer != nil {
+				logger.Warnw(ctx, "MibUploadNextResponse contains unknown attributes", log.Fields{"device-id": oo.deviceID})
+				if unknownAttributes, ok := unknownAttrLayer.(*omci.UnknownAttributes); ok {
+					// provide a loop over several ME's here already in preparation of OMCI extended message format
+					for _, unknown := range unknownAttributes.Attributes {
+						unknownAttrClassID := unknown.EntityClass // ClassID
+						unknownAttrInst := unknown.EntityInstance // uint16
+						unknownAttrMask := unknown.AttributeMask  // ui
+						unknownAttrBlob := unknown.AttributeData  // []byte
+						logger.Warnw(ctx, "unknown attributes detected for", log.Fields{"device-id": oo.deviceID,
+							"Me-ClassId": unknownAttrClassID, "Me-InstId": unknownAttrInst, "unknown mask": unknownAttrMask,
+							"unknown attributes": unknownAttrBlob})
+						//TODO!!! We have to find a way to put this extra information into the (MIB)DB, see below pOnuDB.PutMe
+						//  this probably requires an (add-on) extension in the DB, that should not harm any other (get) processing -> later as a second step
+					} // for all included ME's with unknown attributes
+				} else {
+					logger.Errorw(ctx, "unknownAttrLayer could not be decoded", log.Fields{"device-id": oo.deviceID})
+				}
+			}
+			oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, msgObj.ReportedME.GetAttributeValueMap())
+		}
+	} else {
+		logger.Errorw(ctx, "Omci Msg layer could not be detected", log.Fields{"device-id": oo.deviceID})
+		//as long as omci-lib does not support decoding of table attribute as 'unknown/unspecified' attribute
+		//  we have to verify, if this failure is from table attribute and try to go forward with ignoring the complete message
+		errLayer := (*msg.OmciPacket).Layer(gopacket.LayerTypeDecodeFailure)
+		if failure, decodeOk := errLayer.(*gopacket.DecodeFailure); decodeOk {
+			errMsg := failure.String()
+			if !strings.Contains(strings.ToLower(errMsg), "table decode") {
+				//something still unexected happened, needs deeper investigation - stop complete MIB upload process (timeout)
+				return
+			}
+			logger.Warnw(ctx, "Decode issue on received MibUploadNextResponse frame - found table attribute(s) (message ignored)",
+				log.Fields{"device-id": oo.deviceID, "issue": errMsg})
+		}
 	}
 	if oo.PDevOmciCC.UploadSequNo < oo.PDevOmciCC.UploadNoOfCmds {
 		_ = oo.PDevOmciCC.SendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx), oo.baseDeviceHandler.GetOmciTimeout(), true)
