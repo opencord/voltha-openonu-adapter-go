@@ -54,6 +54,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "92c3aba7_1524502d",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-19T09:04:33Z",
+      "side": 1,
+      "message": "The information is obtained during the mib upload and written into the mib template when it is created later. By evaluating the mib template afterwards, the operator or the developer has the possibility to detect whether the ONU under consideration uses ITU G.988 MEs not yet supported by omci-lib-go or vendor-specific MEs.",
+      "parentUuid": "c14eab7c_085e4120",
+      "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a1b23bbf_fdc8d1cc",
         "filename": "internal/pkg/devdb/onu_device_db.go",
         "patchSetId": 2
@@ -65,6 +83,24 @@
       "writtenOn": "2021-11-18T22:29:33Z",
       "side": 1,
       "message": "You do not need the map protection because this is done serially? Is it possible to have concurrent access to this map in anyway?",
+      "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2ea6e3eb_07f9aa9e",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-19T09:04:33Z",
+      "side": 1,
+      "message": "The serialized filling of the map is ensured by the sequential processing of the mib upload get next responses.The read access occurs only after the completion of the mib upload at only one point during the creation of the mib template.",
+      "parentUuid": "a1b23bbf_fdc8d1cc",
       "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
