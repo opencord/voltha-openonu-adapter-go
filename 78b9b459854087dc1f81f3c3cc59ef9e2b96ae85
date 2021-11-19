@@ -24,6 +24,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a895a121_893036a5",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-19T09:10:15Z",
+      "side": 1,
+      "message": "Ack\npossibly shift to internal/pkg/common/utils.go and defines.go",
+      "parentUuid": "eeea67a3_8ba8da08",
+      "range": {
+        "startLine": 64,
+        "startChar": 0,
+        "endLine": 81,
+        "endChar": 1
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d615c722_ff150c3f",
@@ -37,6 +61,30 @@
       "writtenOn": "2021-11-19T00:22:53Z",
       "side": 1,
       "message": "I might as well give a large timeout like 5s. I know 5s is too large for something we may not go to hardware to configure. If it is going to fail it will fail even if the value 400ms or 5s, but we may not want to miss out on success happening at say 3s. Just a suggestion...",
+      "range": {
+        "startLine": 1072,
+        "startChar": 43,
+        "endLine": 1072,
+        "endChar": 66
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3d654368_8b5ad4c2",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-19T09:10:15Z",
+      "side": 1,
+      "message": "Ack, but then we have to modify a row of timeouts. 5s really looks to long to me for just inetrnal processing. Let\u0027s assume about 3s should be ok even in case mutliple devices are reconciling this way. I\u0027ll try to set a more sophisticated timeout in case multiple UNI\u0027s or multiple rules will be used with a base timeout of about 3s.",
+      "parentUuid": "d615c722_ff150c3f",
       "range": {
         "startLine": 1072,
         "startChar": 43,
