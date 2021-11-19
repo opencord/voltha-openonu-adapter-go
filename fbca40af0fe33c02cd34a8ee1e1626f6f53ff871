@@ -70,6 +70,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5fca313f_664f1419",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-19T19:48:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "92c3aba7_1524502d",
+      "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a1b23bbf_fdc8d1cc",
@@ -101,6 +119,24 @@
       "side": 1,
       "message": "The serialized filling of the map is ensured by the sequential processing of the mib upload get next responses.The read access occurs only after the completion of the mib upload at only one point during the creation of the mib template.",
       "parentUuid": "a1b23bbf_fdc8d1cc",
+      "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9161fa93_0b003ed7",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-19T19:48:43Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2ea6e3eb_07f9aa9e",
       "revId": "fbca40af0fe33c02cd34a8ee1e1626f6f53ff871",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
