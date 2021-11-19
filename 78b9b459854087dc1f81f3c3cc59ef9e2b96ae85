@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "eeea67a3_8ba8da08",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-19T00:22:53Z",
+      "side": 1,
+      "message": "Can you move this utility function to a common folder. May be internal/pkg/common",
+      "range": {
+        "startLine": 64,
+        "startChar": 0,
+        "endLine": 81,
+        "endChar": 1
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d615c722_ff150c3f",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2021-11-19T00:22:53Z",
+      "side": 1,
+      "message": "I might as well give a large timeout like 5s. I know 5s is too large for something we may not go to hardware to configure. If it is going to fail it will fail even if the value 400ms or 5s, but we may not want to miss out on success happening at say 3s. Just a suggestion...",
+      "range": {
+        "startLine": 1072,
+        "startChar": 43,
+        "endLine": 1072,
+        "endChar": 66
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
