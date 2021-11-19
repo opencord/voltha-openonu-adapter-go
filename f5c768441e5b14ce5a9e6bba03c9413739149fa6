@@ -52,6 +52,24 @@
       "parentUuid": "7da756dd_bd3f32c2",
       "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8f8d0f47_24ba1493",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3114,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-19T07:38:20Z",
+      "side": 1,
+      "message": "Yes, my consideration was a bit wrong, i took bps as base. With kbps there should practically be no issue, even if one should set 10Gbps. (academically there is still an issue, but that\u0027s perhaps not worth considering here).",
+      "parentUuid": "baf92b84_8ca6bf66",
+      "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
