@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "aac09268_9205669e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-19T19:03:44Z",
+      "side": 1,
+      "message": "verified here https://jenkins.opencord.org/view/VOLTHA-2.X-Tests/job/periodic-voltha-multi-uni-multiple-olts-test-bbsim/148/",
+      "revId": "101ac94ff060fd0a6a808d858807877c2da27169",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
