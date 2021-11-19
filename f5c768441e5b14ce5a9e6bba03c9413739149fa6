@@ -34,6 +34,24 @@
       "parentUuid": "e307fc66_0ef15b62",
       "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "baf92b84_8ca6bf66",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3114,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-19T00:55:04Z",
+      "side": 1,
+      "message": "a) the design of the BWP and it\u0027s representation was done here: https://docs.google.com/document/d/1HipmsHD5LEQlOc-Y2tYV7DHD1fn7-_1lehBgp79sRwU/edit#heading\u003dh.as6ld4c2s96\nb) moreover to what girish said we are expecting the input number to make sense, so I\u0027m ok with this change.",
+      "parentUuid": "7da756dd_bd3f32c2",
+      "revId": "f5c768441e5b14ce5a9e6bba03c9413739149fa6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
