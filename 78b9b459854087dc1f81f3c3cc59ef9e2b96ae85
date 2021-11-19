@@ -71,6 +71,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "afa20fd0_0135572e",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-19T13:10:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1dfe91ee_25b9620f",
+      "range": {
+        "startLine": 233,
+        "startChar": 1,
+        "endLine": 233,
+        "endChar": 29
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d615c722_ff150c3f",
@@ -142,6 +166,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "35ff3891_bcd7ecf6",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-19T13:10:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7b4d0572_4b3d4c32",
+      "range": {
+        "startLine": 1072,
+        "startChar": 43,
+        "endLine": 1072,
+        "endChar": 66
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "15851ad7_edd4af07",
@@ -155,6 +203,30 @@
       "writtenOn": "2021-11-19T11:42:04Z",
       "side": 1,
       "message": "Better named as waitOnUniVlanConfigReconcilingReady()?",
+      "range": {
+        "startLine": 1144,
+        "startChar": 25,
+        "endLine": 1144,
+        "endChar": 49
+      },
+      "revId": "78b9b459854087dc1f81f3c3cc59ef9e2b96ae85",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "61770007_658a2a16",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1144,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-19T13:10:53Z",
+      "side": 1,
+      "message": "Ack (such a long name ;-))",
+      "parentUuid": "15851ad7_edd4af07",
       "range": {
         "startLine": 1144,
         "startChar": 25,
