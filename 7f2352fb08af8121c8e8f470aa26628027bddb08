@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6cd27822_6ed60b74",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1191,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-19T11:42:04Z",
+      "side": 1,
+      "message": "There are already similar functions in pmmgr - e.g. appendIfMissingString() and appendIfMissingUnt16(). Wouldn\u0027t it be good to move these functions and the newly defined one to common/utils.go? Is it perhaps possible to combine all these functions into one function using interface{} parameters?",
+      "range": {
+        "startLine": 1191,
+        "startChar": 25,
+        "endLine": 1191,
+        "endChar": 40
+      },
+      "revId": "7f2352fb08af8121c8e8f470aa26628027bddb08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
