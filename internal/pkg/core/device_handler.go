@@ -249,7 +249,6 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.lockUpgradeFsm = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
-	dh.chUniVlanConfigReconcilingDone = make(chan uint16)
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
@@ -2717,9 +2716,14 @@ func (dh *deviceHandler) AddAllUniPorts(ctx context.Context) {
 		return
 	}
 
+	//Note: For the moment is is not required to include the (newly added) POTS ports into the range
+	//  of flowCall or reconcile channels. But some sort of flow and reconcile processing might get necessary
+	//  also for the POTS ports, so we include them already for future usage - should anyway do no great harm
 	dh.flowCbChan = make([]chan FlowCb, uniCnt)
 	dh.stopFlowMonitoringRoutine = make([]chan bool, uniCnt)
 	dh.isFlowMonitoringRoutineActive = make([]bool, uniCnt)
+	//chUniVlanConfigReconcilingDone needs to have the capacity of all UniPorts as flow reconcile may run parallel for all of them
+	dh.chUniVlanConfigReconcilingDone = make(chan uint16, uniCnt)
 	for i := 0; i < int(uniCnt); i++ {
 		dh.flowCbChan[i] = make(chan FlowCb, dh.pOpenOnuAc.config.MaxConcurrentFlowsPerUni)
 		dh.stopFlowMonitoringRoutine[i] = make(chan bool)
@@ -3988,6 +3992,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
 							log.Fields{"device-id": dh.DeviceID})
 					} else {
+						onuDevEntry.MutexPersOnuConfig.RLock()
 						if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
 							connectStatus = voltha.ConnectStatus_REACHABLE
 							if !onuDevEntry.SOnuPersistentData.PersUniDisableDone {
@@ -4002,7 +4007,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 							onuDevEntry.SOnuPersistentData.PersOperState == "" {
 							operState = voltha.OperStatus_DISCOVERED
 						}
-
+						onuDevEntry.MutexPersOnuConfig.RUnlock()
 						logger.Debugw(ctx, "Core DeviceStateUpdate", log.Fields{"connectStatus": connectStatus, "operState": operState})
 					}
 					logger.Debugw(ctx, "reconciling has been finished in time",
@@ -4022,10 +4027,13 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice",
 							log.Fields{"device-id": dh.DeviceID})
-					} else if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
-						connectStatus = voltha.ConnectStatus_REACHABLE
+					} else {
+						onuDevEntry.MutexPersOnuConfig.RLock()
+						if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
+							connectStatus = voltha.ConnectStatus_REACHABLE
+						}
+						onuDevEntry.MutexPersOnuConfig.RUnlock()
 					}
-
 					dh.deviceReconcileFailedUpdate(ctx, cmn.DrReconcileCanceled, connectStatus)
 				}
 			case <-time.After(dh.reconcileExpiryComplete):
@@ -4035,8 +4043,12 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 					logger.Errorw(ctx, "No valid OnuDevice",
 						log.Fields{"device-id": dh.DeviceID})
-				} else if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
-					connectStatus = voltha.ConnectStatus_REACHABLE
+				} else {
+					onuDevEntry.MutexPersOnuConfig.RLock()
+					if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
+						connectStatus = voltha.ConnectStatus_REACHABLE
+					}
+					onuDevEntry.MutexPersOnuConfig.RUnlock()
 				}
 
 				dh.deviceReconcileFailedUpdate(ctx, cmn.DrReconcileMaxTimeout, connectStatus)

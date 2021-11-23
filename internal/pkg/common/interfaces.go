@@ -147,9 +147,6 @@ type IonuDeviceEntry interface {
 
 	AllocateFreeTcont(context.Context, uint16) (uint16, bool, error)
 	FreeTcont(context.Context, uint16)
-
-	LockMutexPersOnuConfig()
-	UnlockMutexPersOnuConfig()
 }
 
 // IonuMetricsManager interface to onuMetricsManager

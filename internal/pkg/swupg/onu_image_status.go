@@ -317,21 +317,18 @@ func (oo *OnuImageStatus) updateOnuSwImageIndications(ctx context.Context, image
 func (oo *OnuImageStatus) updateOnuSwImagePersistentData(ctx context.Context) {
 
 	activeImageVersion := oo.pDevEntry.GetActiveImageVersion(ctx)
-	oo.pDevEntry.LockMutexPersOnuConfig()
 	persActiveSwVersion := oo.pDevEntry.GetPersActiveSwVersion()
 	if persActiveSwVersion != activeImageVersion {
 		logger.Infow(ctx, "Active SW version has been changed at ONU - update persistent data",
 			log.Fields{"old version": persActiveSwVersion,
 				"new version": activeImageVersion, "device-id": oo.deviceID})
 		oo.pDevEntry.SetPersActiveSwVersion(activeImageVersion)
-		oo.pDevEntry.UnlockMutexPersOnuConfig()
 		if err := oo.pDeviceHandler.StorePersistentData(ctx); err != nil {
 			logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
 				log.Fields{"device-id": oo.deviceID, "err": err})
 		}
 		return
 	}
-	oo.pDevEntry.UnlockMutexPersOnuConfig()
 }
 
 func (oo *OnuImageStatus) setWaitingForResp(value bool) {

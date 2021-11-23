@@ -195,8 +195,6 @@ type OnuDeviceEntry struct {
 	pLastTxMeInstance                *me.ManagedEntity
 	omciMessageReceived              chan bool        //seperate channel needed by DownloadFsm
 	omciRebootMessageReceivedChannel chan cmn.Message // channel needed by reboot request
-
-	mutexTcontMap sync.RWMutex
 }
 
 //NewOnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -851,8 +849,8 @@ func (oo *OnuDeviceEntry) AllocateFreeTcont(ctx context.Context, allocID uint16)
 	logger.Debugw(ctx, "allocate-free-tcont", log.Fields{"device-id": oo.deviceID, "allocID": allocID,
 		"allocated-instances": oo.SOnuPersistentData.PersTcontMap})
 
-	oo.mutexTcontMap.Lock()
-	defer oo.mutexTcontMap.Unlock()
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
 	if entityID, ok := oo.SOnuPersistentData.PersTcontMap[allocID]; ok {
 		//tcont already allocated before, return the used instance-id
 		return entityID, true, nil
@@ -876,14 +874,13 @@ func (oo *OnuDeviceEntry) AllocateFreeTcont(ctx context.Context, allocID uint16)
 		}
 	}
 	return 0, false, fmt.Errorf(fmt.Sprintf("no-free-tcont-left-for-device-%s", oo.deviceID))
-
 }
 
 // FreeTcont - TODO: add comment
 func (oo *OnuDeviceEntry) FreeTcont(ctx context.Context, allocID uint16) {
 	logger.Debugw(ctx, "free-tcont", log.Fields{"device-id": oo.deviceID, "alloc": allocID})
-	oo.mutexTcontMap.Lock()
-	defer oo.mutexTcontMap.Unlock()
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
 	delete(oo.SOnuPersistentData.PersTcontMap, allocID)
 }
 
@@ -899,18 +896,24 @@ func (oo *OnuDeviceEntry) GetOnuDB() *devdb.OnuDeviceDB {
 
 // GetPersSerialNumber - TODO: add comment
 func (oo *OnuDeviceEntry) GetPersSerialNumber() string {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
 	value := oo.SOnuPersistentData.PersSerialNumber
 	return value
 }
 
 // GetPersVendorID - TODO: add comment
 func (oo *OnuDeviceEntry) GetPersVendorID() string {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
 	value := oo.SOnuPersistentData.PersVendorID
 	return value
 }
 
 // GetPersEquipmentID - TODO: add comment
 func (oo *OnuDeviceEntry) GetPersEquipmentID() string {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
 	value := oo.SOnuPersistentData.PersEquipmentID
 	return value
 }
@@ -950,23 +953,17 @@ func (oo *OnuDeviceEntry) SetOnuSwImageIndications(value cmn.SswImageIndications
 	oo.onuSwImageIndications = value
 }
 
-// LockMutexPersOnuConfig - TODO: add comment
-func (oo *OnuDeviceEntry) LockMutexPersOnuConfig() {
-	oo.MutexPersOnuConfig.Lock()
-}
-
-// UnlockMutexPersOnuConfig - TODO: add comment
-func (oo *OnuDeviceEntry) UnlockMutexPersOnuConfig() {
-	oo.MutexPersOnuConfig.Unlock()
-}
-
 // GetPersActiveSwVersion - TODO: add comment
 func (oo *OnuDeviceEntry) GetPersActiveSwVersion() string {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
 	return oo.SOnuPersistentData.PersActiveSwVersion
 }
 
 // SetPersActiveSwVersion - TODO: add comment
 func (oo *OnuDeviceEntry) SetPersActiveSwVersion(value string) {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
 	oo.SOnuPersistentData.PersActiveSwVersion = value
 }
 
