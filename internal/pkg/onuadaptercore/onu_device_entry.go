@@ -307,8 +307,6 @@ type OnuDeviceEntry struct {
 	//  within the FSM event procedures
 	omciMessageReceived              chan bool    //seperate channel needed by DownloadFsm
 	omciRebootMessageReceivedChannel chan Message // channel needed by Reboot request
-
-	mutexTcontMap sync.RWMutex
 }
 
 //newOnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -947,8 +945,8 @@ func (oo *OnuDeviceEntry) allocateFreeTcont(ctx context.Context, allocID uint16)
 	logger.Debugw(ctx, "allocate-free-tcont", log.Fields{"device-id": oo.deviceID, "allocID": allocID,
 		"allocated-instances": oo.sOnuPersistentData.PersTcontMap})
 
-	oo.mutexTcontMap.Lock()
-	defer oo.mutexTcontMap.Unlock()
+	oo.mutexPersOnuConfig.Lock()
+	defer oo.mutexPersOnuConfig.Unlock()
 	if entityID, ok := oo.sOnuPersistentData.PersTcontMap[allocID]; ok {
 		//tcont already allocated before, return the used instance-id
 		return entityID, true, nil
@@ -972,12 +970,11 @@ func (oo *OnuDeviceEntry) allocateFreeTcont(ctx context.Context, allocID uint16)
 		}
 	}
 	return 0, false, fmt.Errorf(fmt.Sprintf("no-free-tcont-left-for-device-%s", oo.deviceID))
-
 }
 
 func (oo *OnuDeviceEntry) freeTcont(ctx context.Context, allocID uint16) {
 	logger.Debugw(ctx, "free-tcont", log.Fields{"device-id": oo.deviceID, "alloc": allocID})
-	oo.mutexTcontMap.Lock()
-	defer oo.mutexTcontMap.Unlock()
+	oo.mutexPersOnuConfig.Lock()
+	defer oo.mutexPersOnuConfig.Unlock()
 	delete(oo.sOnuPersistentData.PersTcontMap, allocID)
 }

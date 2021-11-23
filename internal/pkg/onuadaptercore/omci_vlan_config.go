@@ -1313,9 +1313,14 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 	if oFsm.pDeviceHandler.isSkipOnuConfigReconciling() {
 		oFsm.configuredUniFlow = oFsm.numUniFlows
 		if oFsm.lastFlowToReconcile {
-			logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{"device-id": oFsm.deviceID})
+			logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{
+				"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.uniID})
 			oFsm.pDeviceHandler.setReconcilingFlows(false)
-			oFsm.pDeviceHandler.chReconcilingFlowsFinished <- true
+			//use asynchronous channel sending to avoid stucking on non-waiting receiver
+			select {
+			case oFsm.pDeviceHandler.chReconcilingFlowsFinished <- true:
+			default:
+			}
 		}
 		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
 			log.Fields{"numUniFlows": oFsm.numUniFlows, "configuredUniFlow": oFsm.configuredUniFlow, "device-id": oFsm.deviceID})

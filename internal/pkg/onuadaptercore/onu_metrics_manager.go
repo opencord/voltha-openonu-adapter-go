@@ -2959,9 +2959,11 @@ func (mm *onuMetricsManager) removeIfFoundUint16(slice []uint16, n uint16) []uin
 func (mm *onuMetricsManager) getEthernetFrameExtendedMETypeFromKvStore(ctx context.Context) (bool, error) {
 	// Check if the data is already available in KV store, if yes, do not send the request for get me.
 	var data me.ClassID
+	mm.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RLock()
 	key := fmt.Sprintf("%s/%s/%s", mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersVendorID,
 		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersEquipmentID,
 		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersActiveSwVersion)
+	mm.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RUnlock()
 	Value, err := mm.extPmKvStore.Get(ctx, key)
 	if err == nil {
 		if Value != nil {
@@ -3059,9 +3061,11 @@ func (mm *onuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.Cla
 }
 
 func (mm *onuMetricsManager) putExtPmMeKvStore(ctx context.Context) {
+	mm.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RLock()
 	key := fmt.Sprintf("%s/%s/%s", mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersVendorID,
 		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersEquipmentID,
 		mm.pDeviceHandler.pOnuOmciDevice.sOnuPersistentData.PersActiveSwVersion)
+	mm.pDeviceHandler.pOnuOmciDevice.mutexPersOnuConfig.RUnlock()
 	// check if we get the supported type me for ethernet frame extended pm class id
 	if mm.supportedEthernetFrameExtendedPMClass == 0 {
 		logger.Error(ctx, "unable-to-get-any-supported-extended-pm-me-class")

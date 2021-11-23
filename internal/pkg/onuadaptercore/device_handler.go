@@ -3753,6 +3753,7 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
 							log.Fields{"device-id": dh.deviceID})
 					} else {
+						onuDevEntry.mutexPersOnuConfig.RLock()
 						if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
 							connectStatus = voltha.ConnectStatus_REACHABLE
 							if !onuDevEntry.sOnuPersistentData.PersUniDisableDone {
@@ -3767,7 +3768,7 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 							onuDevEntry.sOnuPersistentData.PersOperState == "" {
 							operState = voltha.OperStatus_DISCOVERED
 						}
-
+						onuDevEntry.mutexPersOnuConfig.RUnlock()
 						logger.Debugw(ctx, "Core DeviceStateUpdate", log.Fields{"connectStatus": connectStatus, "operState": operState})
 					}
 					logger.Debugw(ctx, "reconciling has been finished in time",
@@ -3783,8 +3784,12 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 					if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice",
 							log.Fields{"device-id": dh.deviceID})
-					} else if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
-						connectStatus = voltha.ConnectStatus_REACHABLE
+					} else {
+						onuDevEntry.mutexPersOnuConfig.RLock()
+						if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
+							connectStatus = voltha.ConnectStatus_REACHABLE
+						}
+						onuDevEntry.mutexPersOnuConfig.RUnlock()
 					}
 
 					dh.deviceReconcileFailedUpdate(ctx, drReconcileCanceled, connectStatus)
@@ -3796,12 +3801,14 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 				if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 					logger.Errorw(ctx, "No valid OnuDevice",
 						log.Fields{"device-id": dh.deviceID})
-				} else if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
-					connectStatus = voltha.ConnectStatus_REACHABLE
+				} else {
+					onuDevEntry.mutexPersOnuConfig.RLock()
+					if onuDevEntry.sOnuPersistentData.PersOperState == "up" {
+						connectStatus = voltha.ConnectStatus_REACHABLE
+					}
+					onuDevEntry.mutexPersOnuConfig.RUnlock()
 				}
-
 				dh.deviceReconcileFailedUpdate(ctx, drReconcileMaxTimeout, connectStatus)
-
 			}
 			dh.mutexReconcilingFlag.Lock()
 			dh.reconciling = cNoReconciling
