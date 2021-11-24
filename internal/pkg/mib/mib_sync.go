@@ -324,38 +324,6 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 				}
 			}
 		}
-
-		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
-		oo.baseDeviceHandler.ReconcileDeviceTechProf(ctx)
-
-		// start go routine with select() on reconciling flow channel before
-		// starting flow reconciling process to prevent loss of any signal
-		go func() {
-			// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
-			// we get a signal that the processing of the last step to rebuild the adapter internal
-			// flow data is finished.
-			expiry := oo.baseDeviceHandler.GetReconcileExpiryVlanConfigAbort()
-			oo.setReconcilingFlows(true)
-			select {
-			case success := <-oo.chReconcilingFlowsFinished:
-				if success {
-					logger.Debugw(ctx, "reconciling flows has been finished in time",
-						log.Fields{"device-id": oo.deviceID})
-					_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
-
-				} else {
-					logger.Debugw(ctx, "wait for reconciling flows aborted",
-						log.Fields{"device-id": oo.deviceID})
-				}
-			case <-time.After(expiry):
-				logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
-					log.Fields{"device-id": oo.deviceID, "expiry": expiry})
-				_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
-			}
-			oo.setReconcilingFlows(false)
-		}()
-		oo.baseDeviceHandler.ReconcileDeviceFlowConfig(ctx)
-
 		oo.MutexPersOnuConfig.RLock()
 		if oo.SOnuPersistentData.PersUniDisableDone {
 			oo.MutexPersOnuConfig.RUnlock()
@@ -364,6 +332,38 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		} else {
 			oo.MutexPersOnuConfig.RUnlock()
 			oo.baseDeviceHandler.EnableUniPortStateUpdate(ctx)
+		}
+
+		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
+
+		if oo.baseDeviceHandler.ReconcileDeviceTechProf(ctx) {
+			// start go routine with select() on reconciling flow channel before
+			// starting flow reconciling process to prevent loss of any signal
+			go func() {
+				// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
+				// we get a signal that the processing of the last step to rebuild the adapter internal
+				// flow data is finished.
+				expiry := oo.baseDeviceHandler.GetReconcileExpiryVlanConfigAbort()
+				oo.setReconcilingFlows(true)
+				select {
+				case success := <-oo.chReconcilingFlowsFinished:
+					if success {
+						logger.Debugw(ctx, "reconciling flows has been finished in time",
+							log.Fields{"device-id": oo.deviceID})
+						_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
+
+					} else {
+						logger.Debugw(ctx, "wait for reconciling flows aborted",
+							log.Fields{"device-id": oo.deviceID})
+					}
+				case <-time.After(expiry):
+					logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
+						log.Fields{"device-id": oo.deviceID, "expiry": expiry})
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
+				}
+				oo.setReconcilingFlows(false)
+			}()
+			oo.baseDeviceHandler.ReconcileDeviceFlowConfig(ctx)
 		}
 	} else {
 		logger.Debugw(ctx, "MibSync FSM",

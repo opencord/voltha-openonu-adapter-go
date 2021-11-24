@@ -844,16 +844,16 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 	_ = dh.createInterface(ctx, &onuIndication)
 }
 
-func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) {
+func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
 	logger.Debugw(ctx, "reconciling - trigger tech profile config", log.Fields{"device-id": dh.DeviceID})
+
+	continueWithFlowConfig := false
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
-		}
-		return
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+		return continueWithFlowConfig
 	}
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
@@ -864,10 +864,8 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
-		}
-		return
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
+		return continueWithFlowConfig
 	}
 	flowsFound := false
 	techProfsFound := false
@@ -875,7 +873,7 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) {
 outerLoop:
 	for _, uniData := range pDevEntry.SOnuPersistentData.PersUniConfig {
 		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
-		if len(uniData.PersTpPathMap) == 0 {
+		if !dh.anyTpPathExists(uniData.PersTpPathMap) {
 			logger.Debugw(ctx, "reconciling - no TPs stored for uniID",
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 			continue
@@ -899,11 +897,16 @@ outerLoop:
 					UniId:          uint32(uniData.PersUniID),
 				})
 			if err != nil || iaTechTpInst == nil {
+				// TODO: During the absence of the ONU adapter there seem to have been TP specific configurations!
+				// The no longer available TPs and the associated flows must be deleted from the ONU KV store
+				// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
 				logger.Errorw(ctx, "error fetching tp instance",
-					log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID, "err": err})
+					log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID,
+						"device-id": dh.DeviceID, "err": err})
 				techProfInstLoadFailed = true // stop loading tp instance as soon as we hit failure
 				break outerLoop
 			}
+			continueWithFlowConfig = true // valid TP found - try flow configuration later
 			var tpInst tech_profile.TechProfileInstance
 			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
 			case *ia.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
@@ -945,6 +948,8 @@ outerLoop:
 
 	//had to move techProf/flow result evaluation into separate function due to SCA complexity limit
 	dh.updateReconcileStates(ctx, techProfsFound, techProfInstLoadFailed, flowsFound)
+
+	return continueWithFlowConfig
 }
 
 func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
@@ -952,9 +957,7 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 	if !abTechProfsFound {
 		logger.Debugw(ctx, "reconciling - no TPs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
-		}
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		return
 	}
 	if abTechProfInstLoadFailed {
@@ -967,9 +970,7 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 	if !abFlowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
-		}
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 	}
 }
 
@@ -979,14 +980,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
-		}
-		//else we don't stop the device handler reconciling in constellation with omci configuration
-		//  to avoid unintented state update to rwCore due to still running background processes
-		//  such is e.g. possible in TT scenarios with multiple techProfiles as currently the end of processing
-		//  of all techProfiles is not awaited (ready on first TP done event)
-		//  (applicable to all according code points below)
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return
 	}
 
@@ -995,9 +989,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		logger.Debugw(ctx, "reconciling - no uni-configs have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
-		}
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		return
 	}
 	flowsFound := false
@@ -1011,7 +1003,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 			continue
 		}
-		if len(uniData.PersTpPathMap) == 0 {
+		if !dh.anyTpPathExists(uniData.PersTpPathMap) {
 			logger.Warnw(ctx, "reconciling flows - but no TPs stored for uniID, abort",
 				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 			// It doesn't make sense to configure any flows if no TPs are available
@@ -1028,9 +1020,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		if uniPort, exist = dh.uniEntityMap[uniNo]; !exist {
 			logger.Errorw(ctx, "reconciling - OnuUniPort data not found  - terminate reconcilement",
 				log.Fields{"uniNo": uniNo, "device-id": dh.DeviceID})
-			if !dh.IsSkipOnuConfigReconciling() {
-				dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
-			}
+			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 			return
 		}
 		//needed to split up function due to sca complexity
@@ -1050,9 +1040,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 	if !flowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
 			log.Fields{"device-id": dh.DeviceID})
-		if !dh.IsSkipOnuConfigReconciling() {
-			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
-		}
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		return
 	}
 
@@ -4405,4 +4393,14 @@ func (dh *deviceHandler) InitPmConfigs() {
 // GetUniPortMask - TODO: add comment
 func (dh *deviceHandler) GetUniPortMask() int {
 	return dh.pOpenOnuAc.config.UniPortMask
+}
+
+func (dh *deviceHandler) anyTpPathExists(aTpPathMap map[uint8]string) bool {
+	tpPathFound := false
+	for _, tpPath := range aTpPathMap {
+		if tpPath != "" {
+			tpPathFound = true
+		}
+	}
+	return tpPathFound
 }
