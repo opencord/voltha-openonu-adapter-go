@@ -33,6 +33,24 @@
       "message": "does this need porting on master ? ",
       "revId": "b59fbedea190f23e2daa425e9754aa0afca2047c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "835ba819_ac5c781e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-11-24T10:15:35Z",
+      "side": 1,
+      "message": "Indeed it is a backmerge of parts of the master changes https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/29128 and  https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/29332.",
+      "parentUuid": "facc9cf0_f86d6f05",
+      "revId": "b59fbedea190f23e2daa425e9754aa0afca2047c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
