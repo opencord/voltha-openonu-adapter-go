@@ -92,7 +92,7 @@ type IdeviceHandler interface {
 	IsReconciling() bool
 	IsSkipOnuConfigReconciling() bool
 	PrepareReconcilingWithActiveAdapter(context.Context)
-	ReconcileDeviceTechProf(context.Context)
+	ReconcileDeviceTechProf(context.Context) bool
 	ReconcileDeviceFlowConfig(context.Context)
 	GetReconcileExpiryVlanConfigAbort() time.Duration
 	SendChUniVlanConfigFinished(value uint16)
