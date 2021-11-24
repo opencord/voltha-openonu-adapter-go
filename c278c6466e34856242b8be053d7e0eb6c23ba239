@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5790de97_b740e633",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000643
+      },
+      "writtenOn": "2021-11-24T14:12:06Z",
+      "side": 1,
+      "message": "Looks and works fine (already tested for all workflows) :-)",
+      "revId": "c278c6466e34856242b8be053d7e0eb6c23ba239",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
