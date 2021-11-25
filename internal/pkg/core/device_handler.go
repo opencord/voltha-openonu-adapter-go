@@ -4259,6 +4259,21 @@ func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
 	}
 }
 
+func (dh *deviceHandler) SendOnuSwSectionsOfWindow(ctx context.Context, parentEndpoint string, request *ia.OnuSwDownloadOmciMessage) error {
+	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
+	if err != nil || pgClient == nil {
+		return err
+	}
+	subCtx, cancel := context.WithTimeout(log.WithSpanFromContext(context.Background(), ctx), dh.config.MaxTimeoutInterAdapterComm)
+	defer cancel()
+	logger.Debugw(subCtx, "send-omci-request", log.Fields{"request": request, "parent-endpoint": parentEndpoint})
+	_, err = pgClient.ProxyOnuSwDownloadOmciRequest(subCtx, request)
+	if err != nil {
+		logger.Errorw(ctx, "omci-failure", log.Fields{"request": request, "error": err, "request-parent": request.ParentDeviceId, "request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress})
+	}
+	return err
+}
+
 func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint string, request *ia.OmciMessage) error {
 	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
 	if err != nil || pgClient == nil {
