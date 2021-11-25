@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "307b93f7_3887022f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-25T12:49:43Z",
+      "side": 1,
+      "message": "One typo only.",
+      "revId": "1a57ac643b97d26b27c9ebfa08a3cde8d2b543fd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c2d7dbd6_8a85734e",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3544,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2021-11-25T12:49:43Z",
+      "side": 1,
+      "message": "semaphore",
+      "range": {
+        "startLine": 3544,
+        "startChar": 29,
+        "endLine": 3544,
+        "endChar": 40
+      },
+      "revId": "1a57ac643b97d26b27c9ebfa08a3cde8d2b543fd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
