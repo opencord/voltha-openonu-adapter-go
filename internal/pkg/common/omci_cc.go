@@ -4132,6 +4132,154 @@ func (oo *OmciCC) SendStartSoftwareDownload(ctx context.Context, timeout int, hi
 	return nil
 }
 
+// PrepareOnuSectionsOfWindow prepates a list of sections for each window
+func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context, aTimeout int, highPrio bool,
+	rxChan chan Message, aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte, aPrint bool, omciMsgsPerWindow *ia.OmciMessages) (*OmciTransferStructure, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Infow(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16), "omci-ack": aAckRequest, "sectionNo": aDownloadSectionNo, "sectionData": aSection})
+
+	//TODO!!!: don't know by now on how to generate the possibly needed AR (or enforce it to 0) with current omci-lib
+	//    by now just try to send it as defined by omci-lib
+	msgType := omci.DownloadSectionRequestType
+	var timeout int = 0 //default value for no response expected
+	if aAckRequest > 0 {
+		msgType = omci.DownloadSectionRequestWithResponseType
+		timeout = aTimeout
+	}
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   msgType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	localSectionData := make([]byte, len(aSection))
+
+	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
+	request := &omci.DownloadSectionRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		SectionNumber: aDownloadSectionNo,
+		SectionData:   localSectionData,
+	}
+
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize DlSectionRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return nil, err
+	}
+	outgoingPacket := buffer.Bytes()
+	//for initial debug purpose overrule the requested print state for some frames
+	printFrame := aPrint
+	if aAckRequest > 0 || aDownloadSectionNo == 0 {
+		printFrame = true
+	}
+
+	omciRxCallbackPair := CallbackPair{CbKey: tid,
+		// the callback is set even though no response might be required here, the tid (key) setting is needed here anyway
+		//   (used to avoid retransmission of frames with the same TID)
+		CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, printFrame /*aPrint*/},
+	}
+
+	omciTxReq := &OmciTransferStructure{
+		outgoingPacket,
+		timeout,
+		CDefaultRetries,
+		highPrio,
+		omciRxCallbackPair.CbEntry.FramePrint,
+		omciRxCallbackPair,
+		nil,
+	}
+
+	omciMsgsPerWindow.Messages = append(omciMsgsPerWindow.Messages, outgoingPacket)
+
+	if aAckRequest > 0 {
+		// only the last section should have a timeout as an ack is required only for the last section of the window
+		omciMsgsPerWindow.ParentDeviceId = oo.pBaseDeviceHandler.GetProxyAddressID()
+		omciMsgsPerWindow.ChildDeviceId = oo.deviceID
+		omciMsgsPerWindow.ProxyAddress = oo.pBaseDeviceHandler.GetProxyAddress()
+		omciMsgsPerWindow.ConnectStatus = common.ConnectStatus_REACHABLE
+
+		if omciTxReq.timeout != 0 {
+			logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": omciTxReq.cbPair.CbKey})
+			oo.mutexRxSchedMap.Lock()
+			// it could be checked, if the callback key is already registered - but simply overwrite may be acceptable ...
+			oo.rxSchedulerMap[omciTxReq.cbPair.CbKey] = omciTxReq.cbPair.CbEntry
+			oo.mutexRxSchedMap.Unlock()
+			return omciTxReq, nil
+
+		}
+		logger.Errorw(ctx, "no timeout present for last section of window", log.Fields{"device-id": oo.deviceID})
+		return nil, fmt.Errorf("no timeout present for last section of window")
+
+	}
+
+	return nil, nil
+}
+
+func (oo *OmciCC) SendOnuSwSectionsWindowWithRxSupervision(ctx context.Context, aOmciTxRequest *OmciTransferStructure, omciMsgsPerWindow *ia.OmciMessages, aTimeout int) {
+	if aOmciTxRequest == nil {
+		logger.Errorw(ctx, "SendOnuSwSectionsWindowWithRxSupervision: omciTxReq is nil",
+			log.Fields{"device-id": oo.deviceID})
+		return
+
+	}
+
+	chSuccess := make(chan bool)
+	aOmciTxRequest.chSuccess = chSuccess
+	tid := aOmciTxRequest.cbPair.CbKey
+	oo.mutexMonReq.Lock()
+	oo.monitoredRequests[tid] = *aOmciTxRequest
+	oo.mutexMonReq.Unlock()
+
+	retries := aOmciTxRequest.retries
+	retryCounter := 0
+loop:
+	for retryCounter <= retries {
+		go oo.sendOnuSwSectionsOfWindow(ctx, aOmciTxRequest, omciMsgsPerWindow)
+
+		select {
+		case success := <-chSuccess:
+			if success {
+				logger.Debugw(ctx, "reqMon: response received in time",
+					log.Fields{"tid": tid, "device-id": oo.deviceID})
+			} else {
+				logger.Debugw(ctx, "reqMon: wait for response aborted",
+					log.Fields{"tid": tid, "device-id": oo.deviceID})
+			}
+			break loop
+		case <-time.After(time.Duration(aTimeout) * time.Second):
+			if retryCounter == retries {
+				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				break loop
+			} else {
+				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
+					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+			}
+		}
+		retryCounter++
+	}
+	oo.mutexMonReq.Lock()
+	delete(oo.monitoredRequests, tid)
+	oo.mutexMonReq.Unlock()
+}
+
+func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequests *OmciTransferStructure, omciMsgsPerWindow *ia.OmciMessages) {
+	sendErr := oo.pBaseDeviceHandler.SendOnuSwSectionsOfWindow(ctx, oo.pBaseDeviceHandler.GetProxyAddress().AdapterEndpoint, omciMsgsPerWindow)
+	if sendErr != nil {
+		logger.Errorw(ctx, "send onu sw sections omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
+
+	}
+}
+
 // SendDownloadSection sends DownloadSectionRequestWithResponse
 func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPrio bool,
 	rxChan chan Message, aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte, aPrint bool) error {
