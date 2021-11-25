@@ -117,6 +117,8 @@ type IdeviceHandler interface {
 	GetDeletionInProgress() bool
 
 	SendOMCIRequest(context.Context, string, *ia.OmciMessage) error
+	SendOnuSwSectionsOfWindow(context.Context, string, *ia.OmciMessages) error
+
 	CreatePortInCore(context.Context, *voltha.Port) error
 
 	PerOnuFlowHandlerRoutine(uniID uint8)

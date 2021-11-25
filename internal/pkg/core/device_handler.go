@@ -44,6 +44,7 @@ import (
 	pmmgr "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/pmmgr"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/swupg"
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
+	"github.com/opencord/voltha-protos/v5/go/common"
 	vc "github.com/opencord/voltha-protos/v5/go/common"
 	ca "github.com/opencord/voltha-protos/v5/go/core_adapter"
 	"github.com/opencord/voltha-protos/v5/go/extension"
@@ -4307,6 +4308,26 @@ func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
 			return
 		}
 	}
+}
+
+func (dh *deviceHandler) SendOnuSwSectionsOfWindow(ctx context.Context, parentEndpoint string, request *ia.OmciMessages) error {
+	request.ParentDeviceId = dh.GetProxyAddressID()
+	request.ChildDeviceId = dh.DeviceID
+	request.ProxyAddress = dh.GetProxyAddress()
+	request.ConnectStatus = common.ConnectStatus_REACHABLE
+
+	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
+	if err != nil || pgClient == nil {
+		return err
+	}
+	subCtx, cancel := context.WithTimeout(log.WithSpanFromContext(context.Background(), ctx), dh.config.MaxTimeoutInterAdapterComm)
+	defer cancel()
+	logger.Debugw(subCtx, "send-omci-request", log.Fields{"request": request, "parent-endpoint": parentEndpoint})
+	_, err = pgClient.ProxyOmciRequests(subCtx, request)
+	if err != nil {
+		logger.Errorw(ctx, "omci-failure", log.Fields{"request": request, "error": err, "request-parent": request.ParentDeviceId, "request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress})
+	}
+	return err
 }
 
 func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint string, request *ia.OmciMessage) error {
