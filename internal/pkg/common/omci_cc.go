@@ -94,6 +94,7 @@ type OmciTransferStructure struct {
 	withFramePrint bool
 	cbPair         CallbackPair
 	chSuccess      chan bool
+	OnuSwWindow    *ia.OmciMessages
 }
 
 //OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
@@ -531,6 +532,7 @@ func (oo *OmciCC) Send(ctx context.Context, txFrame []byte, timeout int, retry i
 		printFrame,
 		receiveCallbackPair,
 		nil,
+		nil,
 	}
 	oo.mutexMonReq.Lock()
 	defer oo.mutexMonReq.Unlock()
@@ -581,9 +583,19 @@ func (oo *OmciCC) sendQueuedLowPrioRequests(ctx context.Context) error {
 	oo.mutexLowPrioTxQueue.Lock()
 	for oo.lowPrioTxQueue.Len() > 0 {
 		queueElement := oo.lowPrioTxQueue.Front() // First element
-		if err := oo.sendOMCIRequest(ctx, queueElement.Value.(OmciTransferStructure)); err != nil {
-			oo.mutexLowPrioTxQueue.Unlock()
-			return err
+		// check if the element is for onu sw section
+		aOmciTxReq := queueElement.Value.(OmciTransferStructure)
+		if aOmciTxReq.OnuSwWindow != nil {
+			if err := oo.sendOnuSwSectionsOfWindow(ctx, aOmciTxReq); err != nil {
+				oo.mutexLowPrioTxQueue.Unlock()
+				return err
+			}
+		} else {
+			err := oo.sendOMCIRequest(ctx, queueElement.Value.(OmciTransferStructure))
+			if err != nil {
+				oo.mutexLowPrioTxQueue.Unlock()
+				return err
+			}
 		}
 		oo.lowPrioTxQueue.Remove(queueElement) // Dequeue
 		// Interrupt the sending of low priority requests to process any high priority requests
@@ -644,6 +656,36 @@ func (oo *OmciCC) GetNextTid(highPriority bool) uint16 {
 		oo.mutexTid.Unlock()
 	}
 	return next
+}
+
+//GetOnuSwSecNextTid get the next low prio tid for the onu sw sections
+//onu sw sections uses only low priority tids
+//The mutexTid lock should be taken prior to using this function
+func (oo *OmciCC) GetOnuSwSecNextTid() uint16 {
+	next := oo.tid
+	oo.tid++
+	if oo.tid >= 0x8000 {
+		oo.tid = 1
+	}
+	return next
+}
+
+//GetOnuSwSecLastTid gets the last allocated tid
+//The mutexTid lock should be taken prior to using this function
+func (oo *OmciCC) GetOnuSwSecLastTid() uint16 {
+	next := oo.tid
+	lastAllocatedTid := next - 1
+	return lastAllocatedTid
+}
+
+//LockMutexTID locks mutexTid
+func (oo *OmciCC) LockMutexTID() {
+	oo.mutexTid.Lock()
+}
+
+//UnLockMutexTID unlocks mutexTid
+func (oo *OmciCC) UnLockMutexTID() {
+	oo.mutexTid.Unlock()
 }
 
 // ###################################################################################
@@ -4129,6 +4171,162 @@ func (oo *OmciCC) SendStartSoftwareDownload(ctx context.Context, timeout int, hi
 		return err
 	}
 	logger.Debug(ctx, "send StartSwDlRequest done")
+	return nil
+}
+
+// PrepareOnuSectionsOfWindow prepares a list of sections for each window
+//Before invoking this function the oo.mutexTid  needs to be be locked so that
+//GetOnuSwSecNextTid can be invoked without further locking
+func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
+	aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte,
+	omciMsgsPerWindow *ia.OmciMessages) (OmciTransferStructure, error) {
+	//onuswsections uses only low prioirity tids
+	tid := oo.GetOnuSwSecNextTid()
+	logger.Infow(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aImageMeID), 16), "omci-ack": aAckRequest, "sectionNo": aDownloadSectionNo, "sectionData": aSection})
+
+	var omciTxReq OmciTransferStructure
+	msgType := omci.DownloadSectionRequestType
+
+	if aAckRequest > 0 {
+		msgType = omci.DownloadSectionRequestWithResponseType
+
+	}
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   msgType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+		// Length:           0x28,						// Optional, defaults to 40 octets
+	}
+	localSectionData := make([]byte, len(aSection))
+
+	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
+	request := &omci.DownloadSectionRequest{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    me.SoftwareImageClassID,
+			EntityInstance: aImageMeID, //inactive image
+		},
+		SectionNumber: aDownloadSectionNo,
+		SectionData:   localSectionData,
+	}
+
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot serialize DlSectionRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return omciTxReq, err
+	}
+	outgoingPacket := buffer.Bytes()
+
+	omciMsgsPerWindow.Messages = append(omciMsgsPerWindow.Messages, outgoingPacket)
+
+	if aAckRequest > 0 {
+		// only the last section should have a timeout as an ack is required only for the last section of the window
+		omciTxReq = OmciTransferStructure{
+			withFramePrint: true,
+			OnuSwWindow:    omciMsgsPerWindow,
+		}
+		logger.Debugw(ctx, "PrepareOnuSectionsOfWindow tid for the las segment is ", log.Fields{"TID": tid})
+		return omciTxReq, nil
+	}
+
+	return omciTxReq, nil
+}
+
+//SendOnuSwSectionsWindowWithRxSupervision sends onu swd sections
+func (oo *OmciCC) SendOnuSwSectionsWindowWithRxSupervision(ctx context.Context,
+	aOmciTxRequest OmciTransferStructure, aTimeout int, rxChan chan Message) {
+	if aOmciTxRequest.OnuSwWindow == nil {
+		logger.Errorw(ctx, "SendOnuSwSectionsWindowWithRxSupervision: omciTxRequest.OnuSwWindow is nil",
+			log.Fields{"device-id": oo.deviceID})
+		return
+
+	}
+
+	tid := oo.GetOnuSwSecLastTid()
+	logger.Debugw(ctx, "SendOnuSwSectionsWindowWithRxSupervision tid for the las segment is ", log.Fields{"TID": tid})
+	omciRxCallbackPair := CallbackPair{CbKey: tid,
+		CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+	}
+
+	aOmciTxRequest.cbPair = omciRxCallbackPair
+	logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": aOmciTxRequest.cbPair.CbKey})
+	oo.mutexRxSchedMap.Lock()
+	// it could be checked, if the callback key is already registered - but simply overwrite may be acceptable ...
+	oo.rxSchedulerMap[aOmciTxRequest.cbPair.CbKey] = aOmciTxRequest.cbPair.CbEntry
+	oo.mutexRxSchedMap.Unlock()
+
+	chSuccess := make(chan bool)
+	aOmciTxRequest.chSuccess = chSuccess
+	aOmciTxRequest.timeout = aTimeout
+	aOmciTxRequest.retries = CDefaultRetries
+
+	//tid := aOmciTxRequest.cbPair.CbKey
+	oo.mutexMonReq.Lock()
+	oo.monitoredRequests[tid] = aOmciTxRequest
+	oo.mutexMonReq.Unlock()
+
+	retries := aOmciTxRequest.retries
+	retryCounter := 0
+	if aTimeout == 0 {
+		logger.Errorw(ctx, "no timeout present for last section of window", log.Fields{"device-id": oo.deviceID})
+		return
+	}
+loop:
+	for retryCounter <= retries {
+		// the onu sw sections are enqueued only to the low priority queue
+		oo.mutexLowPrioTxQueue.Lock()
+		oo.lowPrioTxQueue.PushBack(aOmciTxRequest)
+		oo.mutexLowPrioTxQueue.Unlock()
+
+		go oo.sendQueuedRequests(ctx)
+
+		select {
+		case success := <-chSuccess:
+			if success {
+				logger.Debugw(ctx, "reqMon: response received in time",
+					log.Fields{"tid": tid, "device-id": oo.deviceID})
+			} else {
+				logger.Debugw(ctx, "reqMon: wait for response aborted",
+					log.Fields{"tid": tid, "device-id": oo.deviceID})
+			}
+			break loop
+		case <-time.After(time.Duration(aTimeout) * time.Second):
+			if retryCounter == retries {
+				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				break loop
+			} else {
+				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
+					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+			}
+		}
+		retryCounter++
+	}
+	oo.mutexMonReq.Lock()
+	delete(oo.monitoredRequests, tid)
+	oo.mutexMonReq.Unlock()
+}
+
+func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest OmciTransferStructure) error {
+	if omciTxRequest.withFramePrint && omciTxRequest.OnuSwWindow != nil {
+		lastSection := omciTxRequest.OnuSwWindow.Messages[len(omciTxRequest.OnuSwWindow.Messages)-1]
+		logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
+			"TxOmciMessage": hex.EncodeToString(lastSection),
+			"device-id":     oo.deviceID,
+			"toDeviceType":  oo.pBaseDeviceHandler.GetProxyAddressType(),
+			"proxyDeviceID": oo.pBaseDeviceHandler.GetProxyAddressID(),
+			"proxyAddress":  oo.pBaseDeviceHandler.GetProxyAddress()})
+	}
+	sendErr := oo.pBaseDeviceHandler.SendOnuSwSectionsOfWindow(ctx, oo.pBaseDeviceHandler.GetProxyAddress().AdapterEndpoint, omciTxRequest.OnuSwWindow)
+	if sendErr != nil {
+		logger.Errorw(ctx, "send onu sw sections omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
+		return sendErr
+	}
 	return nil
 }
 
