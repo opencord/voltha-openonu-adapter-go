@@ -305,7 +305,7 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 	if oo.getMibFromTemplate(ctx) {
 		oo.baseDeviceHandler.StartReconciling(ctx, true)
 		oo.baseDeviceHandler.AddAllUniPorts(ctx)
-		oo.baseDeviceHandler.SetDeviceReason(cmn.DrInitialMibDownloaded)
+		_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, false)
 		oo.baseDeviceHandler.SetReadyForOmciConfig(true)
 
 		if !oo.baseDeviceHandler.GetCollectorIsRunning() {
@@ -328,7 +328,7 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if oo.SOnuPersistentData.PersUniDisableDone {
 			oo.MutexPersOnuConfig.RUnlock()
 			oo.baseDeviceHandler.DisableUniPortStateUpdate(ctx)
-			oo.baseDeviceHandler.SetDeviceReason(cmn.DrOmciAdminLock)
+			_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrOmciAdminLock, false)
 		} else {
 			oo.MutexPersOnuConfig.RUnlock()
 			oo.baseDeviceHandler.EnableUniPortStateUpdate(ctx)

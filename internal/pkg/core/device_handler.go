@@ -787,7 +787,7 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 			// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
 
 			//TODO with VOL-3045/VOL-3046: catch and return error, valid for all occurrences in the codebase
-			_ = dh.deviceReasonUpdate(ctx, cmn.DrOmciAdminLock, true)
+			_ = dh.ReasonUpdate(ctx, cmn.DrOmciAdminLock, true)
 		}
 	}
 }
@@ -960,11 +960,11 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 		return
 	}
 	if abTechProfInstLoadFailed {
-		dh.SetDeviceReason(cmn.DrTechProfileConfigDownloadFailed)
+		_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadFailed, false)
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return
 	} else if dh.IsSkipOnuConfigReconciling() {
-		dh.SetDeviceReason(cmn.DrTechProfileConfigDownloadSuccess)
+		_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, false)
 	}
 	if !abFlowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
@@ -1064,7 +1064,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 			}
 			return
 		}
-		dh.SetDeviceReason(cmn.DrOmciFlowsPushed)
+		_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, false)
 	}
 }
 
@@ -1267,7 +1267,7 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 		logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
 		return
 	}
-	if err := dh.deviceReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
+	if err := dh.ReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
 		return
 	}
 	dh.SetReadyForOmciConfig(false)
@@ -1639,7 +1639,7 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 	dh.device.Vendor = "OpenONU"
 	dh.device.Model = "go"
 	dh.device.Reason = cmn.DeviceReasonMap[cmn.DrActivatingOnu]
-	dh.SetDeviceReason(cmn.DrActivatingOnu)
+	_ = dh.ReasonUpdate(ctx, cmn.DrActivatingOnu, false)
 
 	dh.logicalDeviceID = dh.DeviceID // really needed - what for ??? //TODO!!!
 
@@ -1990,7 +1990,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		return err
 	}
 
-	_ = dh.deviceReasonUpdate(ctx, cmn.DrStartingOpenomci, !dh.IsReconciling())
+	_ = dh.ReasonUpdate(ctx, cmn.DrStartingOpenomci, !dh.IsReconciling())
 
 	/* this might be a good time for Omci Verify message?  */
 	verifyExec := make(chan bool)
@@ -2163,7 +2163,7 @@ func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuInd
 
 		dh.SetReadyForOmciConfig(false)
 
-		if err := dh.deviceReasonUpdate(ctx, cmn.DrStoppingOpenomci, true); err != nil {
+		if err := dh.ReasonUpdate(ctx, cmn.DrStoppingOpenomci, true); err != nil {
 			// abort: system behavior is just unstable ...
 			return err
 		}
@@ -2285,7 +2285,7 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEve
 		logger.Warnw(ctx, "store persistent data error - continue as there will be additional write attempts",
 			log.Fields{"device-id": dh.DeviceID, "err": err})
 	}
-	_ = dh.deviceReasonUpdate(ctx, cmn.DrDiscoveryMibsyncComplete, !dh.IsReconciling())
+	_ = dh.ReasonUpdate(ctx, cmn.DrDiscoveryMibsyncComplete, !dh.IsReconciling())
 	dh.AddAllUniPorts(ctx)
 
 	/* 200605: lock processing after initial MIBUpload removed now as the ONU should be in the lock state per default here */
@@ -2369,7 +2369,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		logger.Debugw(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVE",
 			log.Fields{"device-id": dh.DeviceID})
 	}
-	_ = dh.deviceReasonUpdate(ctx, cmn.DrInitialMibDownloaded, !dh.IsReconciling())
+	_ = dh.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, !dh.IsReconciling())
 
 	if !dh.GetCollectorIsRunning() {
 		// Start PM collector routine
@@ -2465,7 +2465,7 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, de
 
 	logger.Debugw(ctx, "DeviceReasonUpdate upon disable", log.Fields{"reason": cmn.DeviceReasonMap[cmn.DrOmciAdminLock], "device-id": dh.DeviceID})
 	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	_ = dh.deviceReasonUpdate(ctx, cmn.DrOmciAdminLock, true)
+	_ = dh.ReasonUpdate(ctx, cmn.DrOmciAdminLock, true)
 
 	//transfer the modified logical uni port state
 	dh.DisableUniPortStateUpdate(ctx)
@@ -2499,7 +2499,7 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, dev
 	logger.Debugw(ctx, "DeviceReasonUpdate upon re-enable", log.Fields{
 		"reason": cmn.DeviceReasonMap[cmn.DrOnuReenabled], "device-id": dh.DeviceID})
 	// DeviceReason to update acc.to modified py code as per beginning of Sept 2020
-	_ = dh.deviceReasonUpdate(ctx, cmn.DrOnuReenabled, true)
+	_ = dh.ReasonUpdate(ctx, cmn.DrOnuReenabled, true)
 
 	//transfer the modified logical uni port state
 	dh.EnableUniPortStateUpdate(ctx)
@@ -2536,8 +2536,8 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 		// attention: the device reason update is done based on ONU-UNI-Port related activity
 		//  - which may cause some inconsistency
 		if dh.getDeviceReason() != cmn.DrTechProfileConfigDownloadSuccess {
-			// which may be the case from some previous actvity even on this UNI Port (but also other UNI ports)
-			_ = dh.deviceReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, !dh.IsReconciling())
+			// which may be the case from some previous activity even on this UNI Port (but also other UNI ports)
+			_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, !dh.IsReconciling())
 		}
 		if dh.IsReconciling() {
 			go dh.ReconcileDeviceFlowConfig(ctx)
@@ -2547,8 +2547,8 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 		// attention: the device reason update is done based on ONU-UNI-Port related activity
 		//  - which may cause some inconsistency
 		if dh.getDeviceReason() != cmn.DrTechProfileConfigDeleteSuccess {
-			// which may be the case from some previous actvity even on this ONU port (but also other UNI ports)
-			_ = dh.deviceReasonUpdate(ctx, cmn.DrTechProfileConfigDeleteSuccess, true)
+			// which may be the case from some previous activity even on this ONU port (but also other UNI ports)
+			_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDeleteSuccess, true)
 		}
 	}
 }
@@ -2561,9 +2561,9 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 
 	if aDevEvent == cmn.OmciVlanFilterAddDone || aDevEvent == cmn.OmciVlanFilterAddDoneNoKvStore {
 		if dh.getDeviceReason() != cmn.DrOmciFlowsPushed {
-			// which may be the case from some previous actvity on another UNI Port of the ONU
+			// which may be the case from some previous activity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
-			_ = dh.deviceReasonUpdate(ctx, cmn.DrOmciFlowsPushed, !dh.IsReconciling())
+			_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, !dh.IsReconciling())
 			if dh.IsReconciling() {
 				go dh.reconcileEnd(ctx)
 			}
@@ -2571,7 +2571,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 	} else {
 		if dh.getDeviceReason() != cmn.DrOmciFlowsDeleted {
 			//not relevant for reconcile
-			_ = dh.deviceReasonUpdate(ctx, cmn.DrOmciFlowsDeleted, true)
+			_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsDeleted, true)
 		}
 	}
 
@@ -3538,23 +3538,29 @@ func (dh *deviceHandler) waitForCompletion(ctx context.Context, cancel context.C
 		"device-id": dh.DeviceID, "called from": aCallerIdent})
 }
 
-func (dh *deviceHandler) deviceReasonUpdate(ctx context.Context, deviceReason uint8, notifyCore bool) error {
-
-	dh.SetDeviceReason(deviceReason)
+//ReasonUpdate set the internally store device reason and if requested in notifyCore updates this state in the core
+//  (renamed from previous deviceReasonUpdate to avoid confusing with the core function DeviceReasonUpdate)
+func (dh *deviceHandler) ReasonUpdate(ctx context.Context, deviceReason uint8, notifyCore bool) error {
+	// acquire the deviceReason semapghore throughout this function including the possible update processing in core
+	// in order to avoid reversion of the state sequence within core in case of quasi-parallel calls (eg. in multi UNI processing)
+	dh.mutexDeviceReason.Lock()
+	defer dh.mutexDeviceReason.Unlock()
 	if notifyCore {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing at calling position
 		if err := dh.updateDeviceReasonInCore(ctx, &ca.DeviceReason{
 			DeviceId: dh.DeviceID,
 			Reason:   cmn.DeviceReasonMap[deviceReason],
 		}); err != nil {
-			logger.Errorf(ctx, "DeviceReasonUpdate error: %s",
+			logger.Errorf(ctx, "updating reason in core failed for: %s",
 				log.Fields{"device-id": dh.DeviceID, "error": err}, cmn.DeviceReasonMap[deviceReason])
 			return err
 		}
-		logger.Infof(ctx, "DeviceReasonUpdate success: %s - device-id: %s", cmn.DeviceReasonMap[deviceReason], dh.DeviceID)
-		return nil
+	} else {
+		logger.Debugf(ctx, "update reason in core not requested: %s - device-id: %s", cmn.DeviceReasonMap[deviceReason], dh.DeviceID)
 	}
-	logger.Infof(ctx, "Don't notify core about DeviceReasonUpdate: %s - device-id: %s", cmn.DeviceReasonMap[deviceReason], dh.DeviceID)
+	dh.deviceReason = deviceReason
+	logger.Infof(ctx, "reason update done for: %s - device-id: %s - with core update: %v",
+		cmn.DeviceReasonMap[deviceReason], dh.DeviceID, notifyCore)
 	return nil
 }
 
@@ -4080,12 +4086,6 @@ func (dh *deviceHandler) IsSkipOnuConfigReconciling() bool {
 	return dh.reconciling == cSkipOnuConfigReconciling
 }
 
-func (dh *deviceHandler) SetDeviceReason(value uint8) {
-	dh.mutexDeviceReason.Lock()
-	dh.deviceReason = value
-	dh.mutexDeviceReason.Unlock()
-}
-
 func (dh *deviceHandler) getDeviceReason() uint8 {
 	dh.mutexDeviceReason.RLock()
 	value := dh.deviceReason
@@ -4110,7 +4110,7 @@ func (dh *deviceHandler) IsReadyForOmciConfig() bool {
 }
 
 func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, deviceReason uint8, connectStatus voltha.ConnectStatus_Types) {
-	if err := dh.deviceReasonUpdate(ctx, deviceReason, true); err != nil {
+	if err := dh.ReasonUpdate(ctx, deviceReason, true); err != nil {
 		logger.Errorw(ctx, "unable to update device reason to core",
 			log.Fields{"device-id": dh.DeviceID, "Err": err})
 	}
