@@ -61,7 +61,7 @@ type IdeviceHandler interface {
 	GetUniVlanConfigFsm(uint8) IuniVlanConfigFsm
 
 	GetDeviceReasonString() string
-	SetDeviceReason(uint8)
+	ReasonUpdate(context.Context, uint8, bool) error
 
 	GetCollectorIsRunning() bool
 	StartCollector(context.Context)
