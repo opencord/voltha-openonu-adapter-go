@@ -30,6 +30,7 @@ import (
 	"github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
+	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
@@ -722,6 +723,7 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 		framePrint = true
 		oFsm.volthaImageState = voltha.ImageState_IMAGE_DOWNLOADING
 	}
+	var omuTxSecPerWindow []*common.OmciTransferStructure
 	for {
 		oFsm.mutexAbortRequest.RLock()
 		// this way out of the section download loop on abort request
@@ -777,13 +779,23 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 				"device-id": oFsm.deviceID, "DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute})
 		}
 		oFsm.mutexUpgradeParams.Unlock() //unlock here to give other functions some chance to process during/after the send request
-		err := oFsm.pOmciCC.SendDownloadSection(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
-			oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, framePrint)
+		err := oFsm.pOmciCC.PrepareOnuSectionsOfWindow(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
+			oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, framePrint, &omuTxSecPerWindow)
 		if err != nil {
 			logger.Errorw(ctx, "DlSection abort: can't send section", log.Fields{
 				"device-id": oFsm.deviceID, "section absolute": oFsm.nextDownloadSectionsAbsolute, "error": err})
 			oFsm.abortOnOmciError(ctx, false)
 			return
+		}
+
+		if windowAckRequest > 0 {
+			if omuTxSecPerWindow == nil {
+				logger.Errorw(ctx, "window is empty fail to send all sections in a window", log.Fields{
+					"device-id": oFsm.deviceID, "section absolute": oFsm.nextDownloadSectionsAbsolute, "error": err})
+				oFsm.abortOnOmciError(ctx, false)
+				return
+			}
+			go oFsm.pOmciCC.SendOnuSwSectionsWindowWithRxSupervision(ctx, omuTxSecPerWindow, oFsm.pDeviceHandler.GetOmciTimeout())
 		}
 		oFsm.mutexUpgradeParams.Lock()
 		oFsm.nextDownloadSectionsAbsolute++ //always increase the absolute section counter after having sent one
