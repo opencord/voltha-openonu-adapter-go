@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "b4aebdf2_a168f338",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4134,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2021-11-26T06:48:03Z",
+      "side": 1,
+      "message": "check if you can remove the older functions which used to send sections 1 by 1",
+      "revId": "6030d9de94c69ad67ee08cd26c658b4ac422c096",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "792ef7ab_dbee8fd8",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 2
