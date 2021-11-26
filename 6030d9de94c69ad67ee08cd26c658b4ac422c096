@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "792ef7ab_dbee8fd8",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4228,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2021-11-26T06:24:17Z",
+      "side": 1,
+      "message": "is this lopp needed , can we avoid this loop ?",
+      "revId": "6030d9de94c69ad67ee08cd26c658b4ac422c096",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c082c775_f507a4ee",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4237,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2021-11-26T06:24:17Z",
+      "side": 1,
+      "message": "nill check ?",
+      "revId": "6030d9de94c69ad67ee08cd26c658b4ac422c096",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
