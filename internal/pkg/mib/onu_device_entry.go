@@ -31,6 +31,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 
@@ -50,6 +51,7 @@ const (
 	UlEvGetMacAddress      = "UlEvGetMacAddress"
 	UlEvGetMibTemplate     = "UlEvGetMibTemplate"
 	UlEvUploadMib          = "UlEvUploadMib"
+	UlEvVerifyAndStoreTPs  = "UlEvVerifyAndStoreTPs"
 	UlEvExamineMds         = "UlEvExamineMds"
 	UlEvSuccess            = "UlEvSuccess"
 	UlEvMismatch           = "UlEvMismatch"
@@ -74,6 +76,7 @@ const (
 	UlStUploading              = "UlStUploading"
 	UlStUploadDone             = "UlStUploadDone"
 	UlStInSync                 = "UlStInSync"
+	UlStVerifyingAndStoringTPs = "UlStVerifyingAndStoringTPs"
 	UlStExaminingMds           = "UlStExaminingMds"
 	UlStResynchronizing        = "UlStResynchronizing"
 	UlStExaminingMdsSuccess    = "UlStExaminingMdsSuccess"
@@ -147,6 +150,8 @@ type onuPersistentData struct {
 	PersTcontMap           map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
 }
 
+//type UniTpidInstances map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage
+
 // OnuDeviceEntry - ONU device info and FSM events.
 type OnuDeviceEntry struct {
 	deviceID                   string
@@ -159,6 +164,8 @@ type OnuDeviceEntry struct {
 	mibTemplateKVStore         *db.Backend
 	MutexPersOnuConfig         sync.RWMutex
 	SOnuPersistentData         onuPersistentData
+	ReconciledTpInstances      map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage
+	MutexReconciledTpInstances sync.RWMutex
 	reconcilingFlows           bool
 	mutexReconcilingFlowsFlag  sync.RWMutex
 	chReconcilingFlowsFinished chan bool //channel to indicate that reconciling of flows has been finished
@@ -210,6 +217,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.devState = cmn.DeviceStatusInit
 	onuDeviceEntry.SOnuPersistentData.PersUniConfig = make([]uniPersConfig, 0)
 	onuDeviceEntry.SOnuPersistentData.PersTcontMap = make(map[uint16]uint16)
+	onuDeviceEntry.ReconciledTpInstances = make(map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage)
 	onuDeviceEntry.chReconcilingFlowsFinished = make(chan bool)
 	onuDeviceEntry.reconcilingFlows = false
 	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
@@ -281,7 +289,10 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 			{Name: UlEvGetMibTemplate, Src: []string{UlStGettingMacAddress}, Dst: UlStGettingMibTemplate},
 
 			{Name: UlEvUploadMib, Src: []string{UlStGettingMibTemplate}, Dst: UlStUploading},
-			{Name: UlEvExamineMds, Src: []string{UlStStarting}, Dst: UlStExaminingMds},
+
+			{Name: UlEvVerifyAndStoreTPs, Src: []string{UlStStarting}, Dst: UlStVerifyingAndStoringTPs},
+			{Name: UlEvSuccess, Src: []string{UlStVerifyingAndStoringTPs}, Dst: UlStExaminingMds},
+			{Name: UlEvMismatch, Src: []string{UlStVerifyingAndStoringTPs}, Dst: UlStResettingMib},
 
 			{Name: UlEvSuccess, Src: []string{UlStGettingMibTemplate}, Dst: UlStUploadDone},
 			{Name: UlEvSuccess, Src: []string{UlStUploading}, Dst: UlStUploadDone},
@@ -313,12 +324,12 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 			{Name: UlEvDiffsFound, Src: []string{UlStResynchronizing}, Dst: UlStOutOfSync},
 
 			{Name: UlEvTimeout, Src: []string{UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingEquipmentID, UlStGettingFirstSwVersion,
-				UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing, UlStExaminingMds,
-				UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStStarting},
+				UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing, UlStVerifyingAndStoringTPs,
+				UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStStarting},
 
 			{Name: UlEvStop, Src: []string{UlStStarting, UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingEquipmentID, UlStGettingFirstSwVersion,
-				UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing, UlStExaminingMds,
-				UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStDisabled},
+				UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing, UlStVerifyingAndStoringTPs,
+				UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStDisabled},
 		},
 
 		fsm.Callbacks{
@@ -334,6 +345,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 			"enter_" + UlStUploading:              func(e *fsm.Event) { onuDeviceEntry.enterUploadingState(ctx, e) },
 			"enter_" + UlStUploadDone:             func(e *fsm.Event) { onuDeviceEntry.enterUploadDoneState(ctx, e) },
 			"enter_" + UlStExaminingMds:           func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsState(ctx, e) },
+			"enter_" + UlStVerifyingAndStoringTPs: func(e *fsm.Event) { onuDeviceEntry.enterVerifyingAndStoringTPsState(ctx, e) },
 			"enter_" + UlStResynchronizing:        func(e *fsm.Event) { onuDeviceEntry.enterResynchronizingState(ctx, e) },
 			"enter_" + UlStExaminingMdsSuccess:    func(e *fsm.Event) { onuDeviceEntry.enterExaminingMdsSuccessState(ctx, e) },
 			"enter_" + UlStAuditing:               func(e *fsm.Event) { onuDeviceEntry.enterAuditingState(ctx, e) },

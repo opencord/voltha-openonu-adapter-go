@@ -37,6 +37,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	devdb "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
+	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 )
 
 type sLastTxMeParameter struct {
@@ -283,6 +284,67 @@ func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
 	}
 }
 
+func (oo *OnuDeviceEntry) enterVerifyingAndStoringTPsState(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start verifying and storing TPs in State": e.FSM.Current(), "device-id": oo.deviceID})
+
+	allTpInstPresent := true
+	oo.MutexPersOnuConfig.Lock()
+	oo.MutexReconciledTpInstances.Lock()
+	for indexUni, uniData := range oo.SOnuPersistentData.PersUniConfig {
+		uniID := uniData.PersUniID
+		oo.ReconciledTpInstances[uniID] = make(map[uint8]inter_adapter.TechProfileDownloadMessage)
+		for tpID, tpPath := range uniData.PersTpPathMap {
+			if tpPath != "" {
+				// Request the TP instance from the openolt adapter
+				iaTechTpInst, err := oo.baseDeviceHandler.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
+				if err == nil && iaTechTpInst != nil {
+					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
+						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
+					oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
+				} else {
+					// During the absence of the ONU adapter there seem to have been TP specific configurations!
+					// The no longer available TP and the associated flows must be deleted from the ONU KV store
+					// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
+					allTpInstPresent = false
+					logger.Infow(ctx, "reconciling - can't get tp instance - delete tp and associated flows",
+						log.Fields{"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err})
+					delete(oo.SOnuPersistentData.PersUniConfig[indexUni].PersTpPathMap, tpID)
+					flowSlice := oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams
+					for indexFlow, flowData := range flowSlice {
+						if flowData.VlanRuleParams.TpID == tpID {
+							if len(flowSlice) == 1 {
+								flowSlice = []cmn.UniVlanFlowParams{}
+							} else {
+								flowSlice = append(flowSlice[:indexFlow], flowSlice[indexFlow+1:]...)
+							}
+							oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams = flowSlice
+						}
+					}
+				}
+			}
+		}
+	}
+	oo.MutexReconciledTpInstances.Unlock()
+	oo.MutexPersOnuConfig.Unlock()
+
+	if allTpInstPresent {
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"reconciling - verifying TPs successful": e.FSM.Current(), "device-id": oo.deviceID})
+		go func() {
+			_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
+		}()
+	} else {
+		logger.Debugw(ctx, "MibSync FSM", log.Fields{"reconciling - verifying TPs not successful": e.FSM.Current(), "device-id": oo.deviceID})
+		oo.baseDeviceHandler.SetReconcilingReasonUpdate(true)
+		go func() {
+			if err := oo.baseDeviceHandler.StorePersistentData(ctx); err != nil {
+				logger.Warnw(ctx, "reconciling - store persistent data error - continue for now as there will be additional write attempts",
+					log.Fields{"device-id": oo.deviceID, "err": err})
+			}
+			_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
+		}()
+	}
+}
+
 func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start GetMds processing in State": e.FSM.Current(), "device-id": oo.deviceID})
 	oo.requestMdsValue(ctx)
@@ -305,7 +367,7 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 	if oo.getMibFromTemplate(ctx) {
 		oo.baseDeviceHandler.StartReconciling(ctx, true)
 		oo.baseDeviceHandler.AddAllUniPorts(ctx)
-		_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, false)
+		_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, oo.baseDeviceHandler.IsReconcilingReasonUpdate())
 		oo.baseDeviceHandler.SetReadyForOmciConfig(true)
 
 		if !oo.baseDeviceHandler.GetCollectorIsRunning() {
@@ -328,7 +390,7 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if oo.SOnuPersistentData.PersUniDisableDone {
 			oo.MutexPersOnuConfig.RUnlock()
 			oo.baseDeviceHandler.DisableUniPortStateUpdate(ctx)
-			_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrOmciAdminLock, false)
+			_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrOmciAdminLock, oo.baseDeviceHandler.IsReconcilingReasonUpdate())
 		} else {
 			oo.MutexPersOnuConfig.RUnlock()
 			oo.baseDeviceHandler.EnableUniPortStateUpdate(ctx)
