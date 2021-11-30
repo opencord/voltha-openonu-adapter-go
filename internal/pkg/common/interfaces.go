@@ -59,6 +59,7 @@ type IdeviceHandler interface {
 	GetPonPortNumber() *uint32
 	GetOnuIndication() *openolt.OnuIndication
 	GetUniVlanConfigFsm(uint8) IuniVlanConfigFsm
+	GetTechProfileInstanceFromParentAdapter(context.Context, uint8, string) (*ia.TechProfileDownloadMessage, error)
 
 	GetDeviceReasonString() string
 	ReasonUpdate(context.Context, uint8, bool) error
@@ -91,6 +92,8 @@ type IdeviceHandler interface {
 	StartReconciling(context.Context, bool)
 	IsReconciling() bool
 	IsSkipOnuConfigReconciling() bool
+	SetReconcilingReasonUpdate(bool)
+	IsReconcilingReasonUpdate() bool
 	PrepareReconcilingWithActiveAdapter(context.Context)
 	ReconcileDeviceTechProf(context.Context) bool
 	ReconcileDeviceFlowConfig(context.Context)

@@ -47,6 +47,7 @@ import (
 	vc "github.com/opencord/voltha-protos/v5/go/common"
 	ca "github.com/opencord/voltha-protos/v5/go/core_adapter"
 	"github.com/opencord/voltha-protos/v5/go/extension"
+	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	of "github.com/opencord/voltha-protos/v5/go/openflow_13"
 	"github.com/opencord/voltha-protos/v5/go/openolt"
@@ -204,6 +205,8 @@ type deviceHandler struct {
 	upgradeCanceled                bool
 	reconciling                    uint8
 	mutexReconcilingFlag           sync.RWMutex
+	reconcilingReasonUpdate        bool
+	mutexReconcilingReasonUpdate   sync.RWMutex
 	chUniVlanConfigReconcilingDone chan uint16 //channel to indicate that VlanConfig reconciling for a specific UNI has been finished
 	chReconcilingFinished          chan bool   //channel to indicate that reconciling has been finished
 	reconcileExpiryComplete        time.Duration
@@ -249,6 +252,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.lockUpgradeFsm = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
+	dh.reconcilingReasonUpdate = false
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
@@ -850,7 +854,7 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
+		logger.Errorw(ctx, "reconciling - no valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return continueWithFlowConfig
 	}
@@ -871,10 +875,11 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
 	techProfInstLoadFailed := false
 outerLoop:
 	for _, uniData := range pDevEntry.SOnuPersistentData.PersUniConfig {
+		uniID := uniData.PersUniID
 		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
 		if !dh.anyTpPathExists(uniData.PersTpPathMap) {
 			logger.Debugw(ctx, "reconciling - no TPs stored for uniID",
-				log.Fields{"uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
+				log.Fields{"uni-id": uniID, "device-id": dh.DeviceID})
 			continue
 		}
 		//release MutexPersOnuConfig before TechProfile (ANIConfig) processing as otherwise the reception of
@@ -883,37 +888,28 @@ outerLoop:
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		persMutexLock = false
 		techProfsFound = true // set to true if we found TP once for any UNI port
+		var iaTechTpInst ia.TechProfileDownloadMessage
+		var ok bool
 		for tpID := range uniData.PersTpPathMap {
-			// Request the TpInstance again from the openolt adapter in case of reconcile
-			iaTechTpInst, err := dh.getTechProfileInstanceFromParentAdapter(ctx,
-				dh.device.ProxyAddress.AdapterEndpoint,
-				&ia.TechProfileInstanceRequestMessage{
-					DeviceId:       dh.device.Id,
-					TpInstancePath: uniData.PersTpPathMap[tpID],
-					ParentDeviceId: dh.parentID,
-					ParentPonPort:  dh.device.ParentPortNo,
-					OnuId:          dh.device.ProxyAddress.OnuId,
-					UniId:          uint32(uniData.PersUniID),
-				})
-			if err != nil || iaTechTpInst == nil {
-				// TODO: During the absence of the ONU adapter there seem to have been TP specific configurations!
-				// The no longer available TPs and the associated flows must be deleted from the ONU KV store
-				// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
-				logger.Errorw(ctx, "error fetching tp instance",
+			pDevEntry.MutexReconciledTpInstances.RLock()
+			if iaTechTpInst, ok = pDevEntry.ReconciledTpInstances[uniID][tpID]; !ok {
+				logger.Errorw(ctx, "reconciling - no reconciled tp instance available",
 					log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID,
-						"device-id": dh.DeviceID, "err": err})
+						"device-id": dh.DeviceID})
 				techProfInstLoadFailed = true // stop loading tp instance as soon as we hit failure
+				pDevEntry.MutexReconciledTpInstances.RUnlock()
 				break outerLoop
 			}
+			pDevEntry.MutexReconciledTpInstances.RUnlock()
 			continueWithFlowConfig = true // valid TP found - try flow configuration later
 			var tpInst tech_profile.TechProfileInstance
 			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
 			case *ia.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
 				tpInst = *techTpInst.TpInstance
-				logger.Debugw(ctx, "received-tp-instance-successfully-after-reconcile", log.Fields{
+				logger.Debugw(ctx, "reconciling - received-tp-instance-successfully-after-reconcile", log.Fields{
 					"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 			default: // do not support epon or other tech
-				logger.Errorw(ctx, "unsupported-tech-profile", log.Fields{
+				logger.Errorw(ctx, "reconciling - unsupported-tech-profile", log.Fields{
 					"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 				techProfInstLoadFailed = true // stop loading tp instance as soon as we hit failure
 				break outerLoop
@@ -960,11 +956,11 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 		return
 	}
 	if abTechProfInstLoadFailed {
-		_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadFailed, false)
+		_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadFailed, dh.IsReconcilingReasonUpdate())
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return
 	} else if dh.IsSkipOnuConfigReconciling() {
-		_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, false)
+		_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, dh.IsReconcilingReasonUpdate())
 	}
 	if !abFlowsFound {
 		logger.Debugw(ctx, "reconciling - no flows have been stored before adapter restart - terminate reconcilement",
@@ -978,7 +974,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
+		logger.Errorw(ctx, "reconciling - no valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return
 	}
@@ -1056,7 +1052,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 				pDevEntry.SendChReconcilingFlowsFinished(true)
 			}
 		} else {
-			logger.Errorw(ctx, "timeout waiting for reconciling flows for all UNI's to be finished!",
+			logger.Errorw(ctx, "reconciling - timeout waiting for reconciling flows for all UNI's to be finished!",
 				log.Fields{"device-id": dh.DeviceID})
 			dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
 			if pDevEntry != nil {
@@ -1064,7 +1060,7 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 			}
 			return
 		}
-		_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, false)
+		_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, dh.IsReconcilingReasonUpdate())
 	}
 }
 
@@ -1989,8 +1985,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	if err := pDevEntry.Start(log.WithSpanFromContext(context.TODO(), ctx)); err != nil {
 		return err
 	}
-
-	_ = dh.ReasonUpdate(ctx, cmn.DrStartingOpenomci, !dh.IsReconciling())
+	_ = dh.ReasonUpdate(ctx, cmn.DrStartingOpenomci, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 
 	/* this might be a good time for Omci Verify message?  */
 	verifyExec := make(chan bool)
@@ -2104,9 +2099,9 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 					return fmt.Errorf("can't go to state resetting_mib: %s", dh.DeviceID)
 				}
 			} else {
-				if err := pMibUlFsm.Event(mib.UlEvExamineMds); err != nil {
-					logger.Errorw(ctx, "MibSyncFsm: Can't go to state examine_mds", log.Fields{"device-id": dh.DeviceID, "err": err})
-					return fmt.Errorf("can't go to examine_mds: %s", dh.DeviceID)
+				if err := pMibUlFsm.Event(mib.UlEvVerifyAndStoreTPs); err != nil {
+					logger.Errorw(ctx, "MibSyncFsm: Can't go to state verify and store TPs", log.Fields{"device-id": dh.DeviceID, "err": err})
+					return fmt.Errorf("can't go to state verify and store TPs: %s", dh.DeviceID)
 				}
 				logger.Debugw(ctx, "state of MibSyncFsm", log.Fields{"state": string(pMibUlFsm.Current())})
 			}
@@ -2285,7 +2280,7 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEve
 		logger.Warnw(ctx, "store persistent data error - continue as there will be additional write attempts",
 			log.Fields{"device-id": dh.DeviceID, "err": err})
 	}
-	_ = dh.ReasonUpdate(ctx, cmn.DrDiscoveryMibsyncComplete, !dh.IsReconciling())
+	_ = dh.ReasonUpdate(ctx, cmn.DrDiscoveryMibsyncComplete, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 	dh.AddAllUniPorts(ctx)
 
 	/* 200605: lock processing after initial MIBUpload removed now as the ONU should be in the lock state per default here */
@@ -2369,7 +2364,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		logger.Debugw(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVE",
 			log.Fields{"device-id": dh.DeviceID})
 	}
-	_ = dh.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, !dh.IsReconciling())
+	_ = dh.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 
 	if !dh.GetCollectorIsRunning() {
 		// Start PM collector routine
@@ -2537,7 +2532,7 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 		//  - which may cause some inconsistency
 		if dh.getDeviceReason() != cmn.DrTechProfileConfigDownloadSuccess {
 			// which may be the case from some previous activity even on this UNI Port (but also other UNI ports)
-			_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, !dh.IsReconciling())
+			_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 		}
 		if dh.IsReconciling() {
 			go dh.ReconcileDeviceFlowConfig(ctx)
@@ -2563,7 +2558,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 		if dh.getDeviceReason() != cmn.DrOmciFlowsPushed {
 			// which may be the case from some previous activity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
-			_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, !dh.IsReconciling())
+			_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 			if dh.IsReconciling() {
 				go dh.reconcileEnd(ctx)
 			}
@@ -4051,6 +4046,15 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 			dh.mutexReconcilingFlag.Lock()
 			dh.reconciling = cNoReconciling
 			dh.mutexReconcilingFlag.Unlock()
+			dh.SetReconcilingReasonUpdate(false)
+
+			if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+				logger.Errorw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
+			} else {
+				onuDevEntry.MutexReconciledTpInstances.Lock()
+				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage)
+				onuDevEntry.MutexReconciledTpInstances.Unlock()
+			}
 		}()
 	}
 	dh.mutexReconcilingFlag.Lock()
@@ -4084,6 +4088,18 @@ func (dh *deviceHandler) IsSkipOnuConfigReconciling() bool {
 	dh.mutexReconcilingFlag.RLock()
 	defer dh.mutexReconcilingFlag.RUnlock()
 	return dh.reconciling == cSkipOnuConfigReconciling
+}
+
+func (dh *deviceHandler) SetReconcilingReasonUpdate(value bool) {
+	dh.mutexReconcilingReasonUpdate.Lock()
+	dh.reconcilingReasonUpdate = value
+	dh.mutexReconcilingReasonUpdate.Unlock()
+}
+
+func (dh *deviceHandler) IsReconcilingReasonUpdate() bool {
+	dh.mutexReconcilingReasonUpdate.RLock()
+	defer dh.mutexReconcilingReasonUpdate.RUnlock()
+	return dh.reconcilingReasonUpdate
 }
 
 func (dh *deviceHandler) getDeviceReason() uint8 {
@@ -4217,16 +4233,26 @@ func (dh *deviceHandler) updateDeviceReasonInCore(ctx context.Context, reason *c
 Helper functions to communicate with parent adapter
 */
 
-func (dh *deviceHandler) getTechProfileInstanceFromParentAdapter(ctx context.Context, parentEndpoint string,
-	request *ia.TechProfileInstanceRequestMessage) (*ia.TechProfileDownloadMessage, error) {
-	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
+func (dh *deviceHandler) GetTechProfileInstanceFromParentAdapter(ctx context.Context, aUniID uint8,
+	aTpPath string) (*ia.TechProfileDownloadMessage, error) {
+
+	var request = ia.TechProfileInstanceRequestMessage{
+		DeviceId:       dh.DeviceID,
+		TpInstancePath: aTpPath,
+		ParentDeviceId: dh.parentID,
+		ParentPonPort:  dh.device.ParentPortNo,
+		OnuId:          dh.device.ProxyAddress.OnuId,
+		UniId:          uint32(aUniID),
+	}
+
+	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(dh.device.ProxyAddress.AdapterEndpoint)
 	if err != nil || pgClient == nil {
 		return nil, err
 	}
 	subCtx, cancel := context.WithTimeout(log.WithSpanFromContext(context.Background(), ctx), dh.config.MaxTimeoutInterAdapterComm)
 	defer cancel()
-	logger.Debugw(subCtx, "get-tech-profile-instance", log.Fields{"request": request, "parent-endpoint": parentEndpoint})
-	return pgClient.GetTechProfileInstance(subCtx, request)
+	logger.Debugw(subCtx, "get-tech-profile-instance", log.Fields{"request": request, "parent-endpoint": dh.device.ProxyAddress.AdapterEndpoint})
+	return pgClient.GetTechProfileInstance(subCtx, &request)
 }
 
 // This routine is unique per ONU ID and blocks on flowControlBlock channel for incoming flows
