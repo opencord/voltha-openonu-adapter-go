@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "28e3eca6_f565a9ce",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1031,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-11-30T19:39:39Z",
+      "side": 1,
+      "message": "I am not convinced by this, there will never be a clear for this metrics, so why the change to raise ?",
+      "revId": "90c078fbd0a7009c810bce36628afa450f0f0e40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
