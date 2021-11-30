@@ -1028,7 +1028,7 @@ func (mm *OnuMetricsManager) publishMetrics(ctx context.Context, metricInfo []*v
 	ke.Type = voltha.KpiEventType_slice
 	ke.Ts = float64(ts)
 
-	if err := mm.pDeviceHandler.GetEventProxy().SendKpiEvent(ctx, "STATS_EVENT", &ke, voltha.EventCategory_EQUIPMENT, voltha.EventSubCategory_ONU, ts); err != nil {
+	if err := mm.pDeviceHandler.GetEventProxy().SendKpiEvent(ctx, "STATS_PUBLISH_EVENT", &ke, voltha.EventCategory_EQUIPMENT, voltha.EventSubCategory_ONU, ts); err != nil {
 		logger.Errorw(ctx, "failed-to-send-pon-stats", log.Fields{"err": err})
 	}
 }
