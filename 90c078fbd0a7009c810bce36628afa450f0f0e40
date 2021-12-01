@@ -16,6 +16,24 @@
       "message": "I am not convinced by this, there will never be a clear for this metrics, so why the change to raise ?",
       "revId": "90c078fbd0a7009c810bce36628afa450f0f0e40",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d89b1781_11beeada",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1031,
+      "author": {
+        "id": 1000726
+      },
+      "writtenOn": "2021-12-01T07:45:09Z",
+      "side": 1,
+      "message": "Voltha lib go considers the event name to be reported by the caller as eventname_\u003cRAISE/CLEAR\u003e_EVENT and the getEventHeader discards the RAISE/CLEAR_EVENT from the event name while sending the event, thats why STATS_EVENT name is getting removed from the event name and empty string is the result in event name. With this change STATS will be inserted in the event name.",
+      "parentUuid": "28e3eca6_f565a9ce",
+      "revId": "90c078fbd0a7009c810bce36628afa450f0f0e40",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
