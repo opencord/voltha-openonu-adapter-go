@@ -919,7 +919,7 @@ func (oo *OpenONUAC) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*
 
 // DownloadTechProfile is part of the ONU Inter-adapter service API.
 func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*empty.Empty, error) {
-	logger.Debugw(ctx, "download-tech-profile", log.Fields{"uni-id": tProfile.UniId})
+	logger.Debugw(ctx, "download-tech-profile", log.Fields{"device-id": tProfile.DeviceId, "uni-id": tProfile.UniId})
 
 	if handler := oo.getDeviceHandler(ctx, tProfile.DeviceId, false); handler != nil {
 		if err := handler.handleTechProfileDownloadRequest(log.WithSpanFromContext(context.Background(), ctx), tProfile); err != nil {
@@ -947,7 +947,7 @@ func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortM
 
 // DeleteTCont is part of the ONU Inter-adapter service API.
 func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*empty.Empty, error) {
-	logger.Debugw(ctx, "delete-tcont", log.Fields{"tconf": tConf})
+	logger.Debugw(ctx, "delete-tcont", log.Fields{"device-id": tConf.DeviceId, "tconf": tConf})
 
 	if handler := oo.getDeviceHandler(ctx, tConf.DeviceId, false); handler != nil {
 		if err := handler.handleDeleteTcontRequest(log.WithSpanFromContext(context.Background(), ctx), tConf); err != nil {
