@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "982b8cf5_a3946e91",
+        "filename": "go.mod",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2021-12-08T23:33:38Z",
+      "side": 1,
+      "message": "once protos and voltha-lib-go are merged this will need to be removed",
+      "range": {
+        "startLine": 7,
+        "startChar": 1,
+        "endLine": 8,
+        "endChar": 57
+      },
+      "revId": "5c5888fcbf7bca96d025dab6a17956d256cc8ad0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
