@@ -28,7 +28,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events"
@@ -39,6 +38,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/probe"
 	"github.com/opencord/voltha-lib-go/v7/pkg/version"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
+	"github.com/opencord/voltha-protos/v5/go/common"
 	"github.com/opencord/voltha-protos/v5/go/core_service"
 	"github.com/opencord/voltha-protos/v5/go/health"
 	"github.com/opencord/voltha-protos/v5/go/onu_inter_adapter_service"
@@ -130,9 +130,10 @@ func (a *adapter) start(ctx context.Context) error {
 
 	// Create the Core client to handle requests to the Core.  Note that the coreClient is an interface and needs to be
 	// cast to the appropriate grpc client by invoking GetCoreGrpcClient on the a.coreClient
-	if a.coreClient, err = vgrpc.NewClient(a.config.CoreEndpoint,
-		a.coreRestarted,
-		vgrpc.ActivityCheck(true)); err != nil {
+	if a.coreClient, err = vgrpc.NewClient(
+		a.config.AdapterEndpoint,
+		a.config.CoreEndpoint,
+		a.coreRestarted); err != nil {
 		logger.Fatal(ctx, "grpc-client-not-created")
 	}
 	// Start the core grpc client
@@ -171,9 +172,9 @@ func (a *adapter) coreRestarted(ctx context.Context, endPoint string) error {
 }
 
 // setAndTestCoreServiceHandler is used to test whether the remote gRPC service is up
-func setAndTestCoreServiceHandler(ctx context.Context, conn *grpc.ClientConn) interface{} {
+func setAndTestCoreServiceHandler(ctx context.Context, conn *grpc.ClientConn, clientConn *common.Connection) interface{} {
 	svc := core_service.NewCoreServiceClient(conn)
-	if h, err := svc.GetHealthStatus(ctx, &empty.Empty{}); err != nil || h.State != health.HealthStatus_HEALTHY {
+	if h, err := svc.GetHealthStatus(ctx, clientConn); err != nil || h.State != health.HealthStatus_HEALTHY {
 		return nil
 	}
 	return svc
