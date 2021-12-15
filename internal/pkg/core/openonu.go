@@ -29,6 +29,7 @@ import (
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
+	"github.com/opencord/voltha-protos/v5/go/adapter_service"
 	"github.com/opencord/voltha-protos/v5/go/common"
 	"github.com/opencord/voltha-protos/v5/go/health"
 	"github.com/opencord/voltha-protos/v5/go/olt_inter_adapter_service"
@@ -165,15 +166,14 @@ func (oo *OpenONUAC) Start(ctx context.Context) error {
 	return nil
 }
 
-/*
 //stop terminates the session
-func (oo *OpenONUAC) stop(ctx context.Context) error {
-	logger.Info(ctx,"stopping-device-manager")
-	oo.exitChannel <- 1
-	logger.Info(ctx,"device-manager-stopped")
+func (oo *OpenONUAC) Stop(ctx context.Context) error {
+	logger.Info(ctx, "stopping-device-manager")
+	close(oo.exitChannel)
+	oo.StopAllGrpcClients(ctx)
+	logger.Info(ctx, "device-manager-stopped")
 	return nil
 }
-*/
 
 func (oo *OpenONUAC) addDeviceHandlerToMap(ctx context.Context, agent *deviceHandler) {
 	oo.mutexDeviceHandlersMap.Lock()
@@ -225,14 +225,6 @@ func (oo *OpenONUAC) getDeviceHandler(ctx context.Context, deviceID string, aWai
 	return agent
 }
 
-// GetHealthStatus is used as a service readiness validation as a grpc connection
-func (oo *OpenONUAC) GetHealthStatus(ctx context.Context, clientConn *common.Connection) (*health.HealthStatus, error) {
-	// Update the remote reachability
-	oo.updateReachabilityFromRemote(ctx, clientConn)
-
-	return &health.HealthStatus{State: health.HealthStatus_HEALTHY}, nil
-}
-
 // AdoptDevice creates a new device handler if not present already and then adopts the device
 func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	if device == nil {
@@ -265,7 +257,7 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 	logger.Infow(ctx, "reconcile-device", log.Fields{"device-id": device.Id, "parent-id": device.ParentId})
 
 	// Check whether the grpc client in the adapter of the parent device can reach us yet
-	if !oo.isReachableFromRemote(device.ProxyAddress.AdapterEndpoint, device.ParentId) {
+	if !oo.isReachableFromRemote(ctx, device.ProxyAddress.AdapterEndpoint, device.ProxyAddress.DeviceId) {
 		return nil, status.Errorf(codes.Unavailable, "adapter-not-reachable-from-parent-%s", device.ProxyAddress.AdapterEndpoint)
 	}
 
@@ -990,16 +982,31 @@ func (oo *OpenONUAC) updateReachabilityFromRemote(ctx context.Context, remote *c
 	oo.reachableFromRemote[endpointHash] = &reachabilityFromRemote{lastKeepAlive: time.Now(), keepAliveInterval: remote.KeepAliveInterval}
 }
 
-func (oo *OpenONUAC) isReachableFromRemote(endpoint string, contextInfo string) bool {
+func (oo *OpenONUAC) isReachableFromRemote(ctx context.Context, endpoint string, contextInfo string) bool {
+	logger.Debugw(ctx, "checking-remote-reachability", log.Fields{"endpoint": endpoint, "context": contextInfo})
 	oo.lockReachableFromRemote.RLock()
 	defer oo.lockReachableFromRemote.RUnlock()
 	endpointHash := getHash(endpoint, contextInfo)
 	if _, ok := oo.reachableFromRemote[endpointHash]; ok {
+		logger.Debugw(ctx, "endpoint-exists", log.Fields{"last-keep-alive": time.Since(oo.reachableFromRemote[endpointHash].lastKeepAlive)})
 		// Assume the connection is down if we did not receive 2 keep alives in succession
 		maxKeepAliveWait := time.Duration(oo.reachableFromRemote[endpointHash].keepAliveInterval * 2)
 		return time.Since(oo.reachableFromRemote[endpointHash].lastKeepAlive) <= maxKeepAliveWait
 	}
 	return false
+}
+
+func (oo *OpenONUAC) StopAllGrpcClients(ctx context.Context) {
+	// Stop the clients that connect to the parent
+	oo.lockParentAdapterClients.Lock()
+	for key, _ := range oo.parentAdapterClients {
+		oo.parentAdapterClients[key].Stop(ctx)
+		delete(oo.parentAdapterClients, key)
+	}
+	oo.lockParentAdapterClients.Unlock()
+
+	// Stop core client connection
+	oo.coreClient.Stop(ctx)
 }
 
 func (oo *OpenONUAC) setupParentInterAdapterClient(ctx context.Context, endpoint string) error {
@@ -1013,6 +1020,7 @@ func (oo *OpenONUAC) setupParentInterAdapterClient(ctx context.Context, endpoint
 	childClient, err := vgrpc.NewClient(
 		oo.config.AdapterEndpoint,
 		endpoint,
+		"olt_inter_adapter_service.OltInterAdapterService",
 		oo.oltAdapterRestarted)
 
 	if err != nil {
@@ -1021,7 +1029,7 @@ func (oo *OpenONUAC) setupParentInterAdapterClient(ctx context.Context, endpoint
 
 	oo.parentAdapterClients[endpoint] = childClient
 
-	go oo.parentAdapterClients[endpoint].Start(log.WithSpanFromContext(context.TODO(), ctx), setAndTestOltInterAdapterServiceHandler)
+	go oo.parentAdapterClients[endpoint].Start(log.WithSpanFromContext(context.TODO(), ctx), getOltInterAdapterServiceClientHandler)
 
 	// Wait until we have a connection to the child adapter.
 	// Unlimited retries or until context expires
@@ -1076,13 +1084,12 @@ func (oo *OpenONUAC) oltAdapterRestarted(ctx context.Context, endPoint string) e
 	return nil
 }
 
-// setAndTestOltInterAdapterServiceHandler is used to test whether the remote gRPC service is up
-func setAndTestOltInterAdapterServiceHandler(ctx context.Context, conn *grpc.ClientConn, clientConn *common.Connection) interface{} {
-	svc := olt_inter_adapter_service.NewOltInterAdapterServiceClient(conn)
-	if h, err := svc.GetHealthStatus(ctx, clientConn); err != nil || h.State != health.HealthStatus_HEALTHY {
+// getOltInterAdapterServiceClientHandler is used to setup the remote gRPC service
+func getOltInterAdapterServiceClientHandler(ctx context.Context, conn *grpc.ClientConn) interface{} {
+	if conn == nil {
 		return nil
 	}
-	return svc
+	return olt_inter_adapter_service.NewOltInterAdapterServiceClient(conn)
 }
 
 func (oo *OpenONUAC) forceDeleteDeviceKvData(ctx context.Context, aDeviceID string) error {
@@ -1125,6 +1132,49 @@ func (oo *OpenONUAC) forceDeleteDeviceKvData(ctx context.Context, aDeviceID stri
 		return fmt.Errorf("one or more error deleting kv data, error: %v", errorsList)
 	}
 	return nil
+}
+
+// GetHealthStatus is used by the voltha core to open a streaming connection with the onu adapter.
+func (oo *OpenONUAC) GetHealthStatus(stream adapter_service.AdapterService_GetHealthStatusServer) error {
+	ctx := context.Background()
+	logger.Debugw(ctx, "receive-stream-connection", log.Fields{"stream": stream})
+
+	if stream == nil {
+		return fmt.Errorf("conn-is-nil %v", stream)
+	}
+	initialRequestTime := time.Now()
+	var remoteClient *common.Connection
+	var tempClient *common.Connection
+	var err error
+loop:
+	for {
+		tempClient, err = stream.Recv()
+		if err != nil {
+			logger.Warnw(ctx, "received-stream-error", log.Fields{"remote-client": remoteClient, "error": err})
+			break loop
+		}
+		// Send a response back
+		err = stream.Send(&health.HealthStatus{State: health.HealthStatus_HEALTHY})
+		if err != nil {
+			logger.Warnw(ctx, "sending-stream-error", log.Fields{"remote-client": remoteClient, "error": err})
+			break loop
+		}
+		remoteClient = tempClient
+
+		logger.Debugw(ctx, "received-keep-alive", log.Fields{"remote-client": remoteClient})
+
+		select {
+		case <-stream.Context().Done():
+			logger.Infow(ctx, "stream-keep-alive-context-done", log.Fields{"remote-client": remoteClient, "error": stream.Context().Err()})
+			break loop
+		case <-oo.exitChannel:
+			logger.Warnw(ctx, "received-stop", log.Fields{"remote-client": remoteClient, "initial-conn-time": initialRequestTime})
+			break loop
+		default:
+		}
+	}
+	logger.Errorw(ctx, "connection-down", log.Fields{"remote-client": remoteClient, "error": err, "initial-conn-time": initialRequestTime})
+	return err
 }
 
 /*

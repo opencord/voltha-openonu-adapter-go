@@ -4,6 +4,8 @@ go 1.16
 
 replace (
 	github.com/coreos/bbolt v1.3.4 => go.etcd.io/bbolt v1.3.4
+	github.com/opencord/voltha-lib-go/v7 => ../voltha-lib-go
+	github.com/opencord/voltha-protos/v5 => ../voltha-protos
 	go.etcd.io/bbolt v1.3.4 => github.com/coreos/bbolt v1.3.4
 	google.golang.org/grpc => google.golang.org/grpc v1.25.1
 )
@@ -17,7 +19,7 @@ require (
 	github.com/looplab/fsm v0.2.0
 	github.com/opencord/omci-lib-go/v2 v2.1.3
 	github.com/opencord/voltha-lib-go/v7 v7.1.3
-	github.com/opencord/voltha-protos/v5 v5.1.2
+	github.com/opencord/voltha-protos/v5 v5.2.1
 	github.com/stretchr/testify v1.7.0
-	google.golang.org/grpc v1.42.0
+	google.golang.org/grpc v1.44.0
 )
