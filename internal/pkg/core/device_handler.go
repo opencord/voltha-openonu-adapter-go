@@ -1053,14 +1053,14 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 				log.Fields{"device-id": dh.DeviceID})
 			dh.stopReconciling(ctx, true, cWaitReconcileFlowAbortOnSuccess)
 			if pDevEntry != nil {
-				pDevEntry.SendChReconcilingFlowsFinished(true)
+				pDevEntry.SendChReconcilingFlowsFinished(ctx, true)
 			}
 		} else {
 			logger.Errorw(ctx, "reconciling - timeout waiting for reconciling flows for all UNI's to be finished!",
 				log.Fields{"device-id": dh.DeviceID})
 			dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
 			if pDevEntry != nil {
-				pDevEntry.SendChReconcilingFlowsFinished(false)
+				pDevEntry.SendChReconcilingFlowsFinished(ctx, false)
 			}
 			return
 		}

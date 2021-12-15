@@ -987,12 +987,14 @@ func (oo *OnuDeviceEntry) setReconcilingFlows(value bool) {
 }
 
 // SendChReconcilingFlowsFinished - TODO: add comment
-func (oo *OnuDeviceEntry) SendChReconcilingFlowsFinished(value bool) {
+func (oo *OnuDeviceEntry) SendChReconcilingFlowsFinished(ctx context.Context, value bool) {
 	if oo != nil { //if the object still exists (might have been already deleted in background)
 		//use asynchronous channel sending to avoid stucking on non-waiting receiver
 		select {
 		case oo.chReconcilingFlowsFinished <- value:
+			logger.Debugw(ctx, "reconciling - flows finished sent", log.Fields{"device-id": oo.deviceID})
 		default:
+			logger.Infow(ctx, "reconciling - flows finished not sent!", log.Fields{"device-id": oo.deviceID})
 		}
 	}
 }

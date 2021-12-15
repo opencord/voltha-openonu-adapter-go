@@ -401,12 +401,14 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if oo.baseDeviceHandler.ReconcileDeviceTechProf(ctx) {
 			// start go routine with select() on reconciling flow channel before
 			// starting flow reconciling process to prevent loss of any signal
-			go func() {
+			syncChannel := make(chan struct{})
+			go func(aSyncChannel chan struct{}) {
 				// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
 				// we get a signal that the processing of the last step to rebuild the adapter internal
 				// flow data is finished.
 				expiry := oo.baseDeviceHandler.GetReconcileExpiryVlanConfigAbort()
 				oo.setReconcilingFlows(true)
+				aSyncChannel <- struct{}{}
 				select {
 				case success := <-oo.chReconcilingFlowsFinished:
 					if success {
@@ -424,7 +426,10 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 					_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
 				}
 				oo.setReconcilingFlows(false)
-			}()
+			}(syncChannel)
+			// block further processing until the above Go routine has really started
+			// and is ready to receive values from chReconcilingFlowsFinished
+			<-syncChannel
 			oo.baseDeviceHandler.ReconcileDeviceFlowConfig(ctx)
 		}
 	} else {
@@ -1197,7 +1202,7 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 
 	if oo.isReconcilingFlows() {
-		oo.SendChReconcilingFlowsFinished(false)
+		oo.SendChReconcilingFlowsFinished(ctx, false)
 	}
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
