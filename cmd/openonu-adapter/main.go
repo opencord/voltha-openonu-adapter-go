@@ -60,14 +60,15 @@ const (
 
 type adapter struct {
 	//defaultAppName   string
-	instanceID  string
-	config      *config.AdapterFlags
-	kafkaClient kafka.Client
-	kvClient    kvstore.Client
-	eventProxy  eventif.EventProxy
-	grpcServer  *vgrpc.GrpcServer
-	onuAdapter  *ac.OpenONUAC
-	coreClient  *vgrpc.Client
+	instanceID      string
+	config          *config.AdapterFlags
+	kafkaClient     kafka.Client
+	kvClient        kvstore.Client
+	eventProxy      eventif.EventProxy
+	grpcServer      *vgrpc.GrpcServer
+	onuAdapter      *ac.OpenONUAC
+	onuInterAdapter *ac.OpenONUACInterAdapter
+	coreClient      *vgrpc.Client
 }
 
 func newAdapter(cf *config.AdapterFlags) *adapter {
@@ -133,6 +134,7 @@ func (a *adapter) start(ctx context.Context) error {
 	if a.coreClient, err = vgrpc.NewClient(
 		a.config.AdapterEndpoint,
 		a.config.CoreEndpoint,
+		"CoreService",
 		a.coreRestarted); err != nil {
 		logger.Fatal(ctx, "grpc-client-not-created")
 	}
@@ -140,8 +142,13 @@ func (a *adapter) start(ctx context.Context) error {
 	go a.coreClient.Start(ctx, setAndTestCoreServiceHandler)
 
 	// Create the open ONU interface adapter
-	if a.onuAdapter, err = a.startVolthaInterfaceAdapter(ctx, a.coreClient, a.eventProxy, a.config, cm); err != nil {
-		logger.Fatalw(ctx, "error-starting-volthaInterfaceAdapter for OpenOnt", log.Fields{"error": err})
+	if a.onuAdapter, err = a.startONUAdapter(ctx, a.coreClient, a.eventProxy, a.config, cm); err != nil {
+		logger.Fatalw(ctx, "error-starting-startONUAdapter", log.Fields{"error": err})
+	}
+
+	// Create the open ONU Inter adapter
+	if a.onuInterAdapter, err = a.startONUInterAdapter(ctx, a.onuAdapter); err != nil {
+		logger.Fatalw(ctx, "error-starting-startONUInterAdapter", log.Fields{"error": err})
 	}
 
 	// Create and start the grpc server
@@ -151,7 +158,7 @@ func (a *adapter) start(ctx context.Context) error {
 	a.addAdapterService(ctx, a.grpcServer, a.onuAdapter)
 
 	//Register the onu inter adapter  service
-	a.addOnuInterAdapterService(ctx, a.grpcServer, a.onuAdapter)
+	a.addOnuInterAdapterService(ctx, a.grpcServer, a.onuInterAdapter)
 
 	go a.startGRPCService(ctx, a.grpcServer, onuAdapterService)
 
@@ -181,6 +188,10 @@ func setAndTestCoreServiceHandler(ctx context.Context, conn *grpc.ClientConn, cl
 }
 
 func (a *adapter) stop(ctx context.Context) {
+	// Cleanup the grpc services first
+	a.onuAdapter.Stop(ctx)
+	a.onuInterAdapter.Stop(ctx)
+
 	// Cleanup - applies only if we had a kvClient
 	if a.kvClient != nil {
 		// Release all reservations
@@ -248,7 +259,7 @@ func (a *adapter) setKVClient(ctx context.Context) error {
 	return nil
 }
 
-func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, cc *vgrpc.Client, ep eventif.EventProxy,
+func (a *adapter) startONUAdapter(ctx context.Context, cc *vgrpc.Client, ep eventif.EventProxy,
 	cfg *config.AdapterFlags, cm *conf.ConfigManager) (*ac.OpenONUAC, error) {
 	var err error
 	sAcONU := ac.NewOpenONUAC(ctx, cc, ep, a.kvClient, cfg, cm)
@@ -260,6 +271,19 @@ func (a *adapter) startVolthaInterfaceAdapter(ctx context.Context, cc *vgrpc.Cli
 
 	logger.Info(ctx, "open-ont-OpenOnuAdapterCore-started")
 	return sAcONU, nil
+}
+
+func (a *adapter) startONUInterAdapter(ctx context.Context, onuA *ac.OpenONUAC) (*ac.OpenONUACInterAdapter, error) {
+	var err error
+	sAcONUInterAdapter := ac.NewOpenONUACAdapter(ctx, onuA)
+
+	if err = sAcONUInterAdapter.Start(ctx); err != nil {
+		logger.Fatalw(ctx, "error-starting-OpenONUACInterAdapter", log.Fields{"error": err})
+		return nil, err
+	}
+
+	logger.Info(ctx, "OpenONUACInterAdapter-started")
+	return sAcONUInterAdapter, nil
 }
 
 func (a *adapter) registerWithCore(ctx context.Context, serviceName string, retries int) error {
