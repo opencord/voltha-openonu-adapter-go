@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1dc53980_879fab39",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-12-15T13:23:42Z",
+      "side": 1,
+      "message": "Just a minor debug output comment.",
+      "revId": "f2fcdd474b1afb746fcb7e95110e88e5bddb3ba0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c17816fc_1fa08b52",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 995,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-12-15T13:23:42Z",
+      "side": 1,
+      "message": "I wouldn\u0027t do a log here as there is already an according log entry in the receiver function (in mib_sync.go) on normal channel reception. So either you have a log entry there for the good case or soem info for no channel sending on the default case. But this comment is just to limit the debug output, no functional impact.",
+      "revId": "f2fcdd474b1afb746fcb7e95110e88e5bddb3ba0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
