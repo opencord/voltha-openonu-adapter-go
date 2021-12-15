@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7d37b4b9_c79be573",
+        "filename": "internal/pkg/swupg/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1524,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2021-12-15T17:12:52Z",
+      "side": 1,
+      "message": "I\u0027d guess it is not required to set the Reason to NO_ERROR here, might even be dangerous (resetting the reason to NO_ERROR if it was just set to some failure somewhere else outside this scope here).\nSo in the end I\u0027d recommend not to touch volthaDownloadReason here.",
+      "revId": "e37374ec2fc97cab857ef758a9916548f13655e6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
