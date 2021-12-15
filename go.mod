@@ -16,8 +16,8 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/looplab/fsm v0.2.0
 	github.com/opencord/omci-lib-go/v2 v2.2.0
-	github.com/opencord/voltha-lib-go/v7 v7.1.3
-	github.com/opencord/voltha-protos/v5 v5.2.0
+	github.com/opencord/voltha-lib-go/v7 v7.1.5
+	github.com/opencord/voltha-protos/v5 v5.2.2
 	github.com/stretchr/testify v1.7.0
-	google.golang.org/grpc v1.42.0
+	google.golang.org/grpc v1.44.0
 )
