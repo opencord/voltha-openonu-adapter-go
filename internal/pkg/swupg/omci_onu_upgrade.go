@@ -185,7 +185,6 @@ type OnuUpgradeFsm struct {
 	volthaDownloadState              voltha.ImageState_ImageDownloadState
 	volthaDownloadReason             voltha.ImageState_ImageFailureReason
 	volthaImageState                 voltha.ImageState_ImageActivationState
-	downloadReasonCached             voltha.ImageState_ImageFailureReason
 	isEndSwDlOpen                    bool
 	chReceiveAbortEndSwDlResponse    chan tEndSwDlResponseResult
 }
@@ -1522,8 +1521,7 @@ func (oFsm *OnuUpgradeFsm) handleRxEndSwDownloadResponse(ctx context.Context, ms
 				oFsm.chReceiveAbortEndSwDlResponse <- cEndSwDlResponseBusy //repeat abort request
 			}
 			oFsm.mutexUpgradeParams.Lock()
-			oFsm.downloadReasonCached = oFsm.volthaDownloadReason //copy for later reconstruction
-			oFsm.volthaDownloadReason = voltha.ImageState_DEVICE_BUSY
+			oFsm.volthaDownloadReason = voltha.ImageState_NO_ERROR
 			oFsm.mutexUpgradeParams.Unlock()
 			return
 		}
@@ -1552,9 +1550,6 @@ func (oFsm *OnuUpgradeFsm) handleRxEndSwDownloadResponse(ctx context.Context, ms
 	oFsm.mutexUpgradeParams.Lock()
 	if msgObj.EntityInstance == oFsm.InactiveImageMeID {
 		logger.Debugw(ctx, "Expected EndSwDlResponse received", log.Fields{"device-id": oFsm.deviceID})
-		if oFsm.volthaDownloadReason == voltha.ImageState_DEVICE_BUSY { //was temporary on busy
-			oFsm.volthaDownloadReason = oFsm.downloadReasonCached //recapture from mirror
-		}
 		if inAbortingState {
 			oFsm.mutexUpgradeParams.Unlock()
 			//if the EndSwDl was requested from state AbortingDL then use channel to indicate abort acceptance
