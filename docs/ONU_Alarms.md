@@ -1,4 +1,4 @@
-#Notes on OMCI Alarms Supported by VOLTHA
+# Notes on OMCI Alarms Supported by VOLTHA
 Below Table describes the list of OMCI Alarm notifications supported by VOLTHA:
 
 | ME Class ID  | Alarm BitMap No | Alarm Name | Description |
