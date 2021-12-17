@@ -21,6 +21,7 @@ import (
 	"context"
 	"time"
 
+	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
@@ -138,10 +139,7 @@ type IonuDeviceEntry interface {
 	IncrementMibDataSync(context.Context)
 
 	GetActiveImageMeID(context.Context) (uint16, error)
-	LockMutexOnuSwImageIndications()
-	UnlockMutexOnuSwImageIndications()
-	GetOnuSwImageIndications() SswImageIndications
-	SetOnuSwImageIndications(SswImageIndications)
+	HandleSwImageIndications(context.Context, uint16, me.AttributeValueMap)
 	GetPersActiveSwVersion() string
 	SetPersActiveSwVersion(string)
 	GetActiveImageVersion(context.Context) string

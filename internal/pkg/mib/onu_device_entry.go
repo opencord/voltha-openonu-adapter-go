@@ -945,26 +945,6 @@ func (oo *OnuDeviceEntry) GetOmciRebootMsgRevChan() chan cmn.Message {
 	return oo.omciRebootMessageReceivedChannel
 }
 
-// LockMutexOnuSwImageIndications - TODO: add comment
-func (oo *OnuDeviceEntry) LockMutexOnuSwImageIndications() {
-	oo.mutexOnuSwImageIndications.Lock()
-}
-
-// UnlockMutexOnuSwImageIndications - TODO: add comment
-func (oo *OnuDeviceEntry) UnlockMutexOnuSwImageIndications() {
-	oo.mutexOnuSwImageIndications.Unlock()
-}
-
-// GetOnuSwImageIndications - TODO: add comment
-func (oo *OnuDeviceEntry) GetOnuSwImageIndications() cmn.SswImageIndications {
-	return oo.onuSwImageIndications
-}
-
-// SetOnuSwImageIndications - TODO: add comment
-func (oo *OnuDeviceEntry) SetOnuSwImageIndications(value cmn.SswImageIndications) {
-	oo.onuSwImageIndications = value
-}
-
 // GetPersActiveSwVersion - TODO: add comment
 func (oo *OnuDeviceEntry) GetPersActiveSwVersion() string {
 	oo.MutexPersOnuConfig.RLock()

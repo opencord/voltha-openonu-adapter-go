@@ -752,7 +752,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 						oo.deviceID, entityID)
 				}
 				// need to use function for go lint complexity
-				oo.handleSwImageIndications(ctx, entityID, meAttributes)
+				oo.HandleSwImageIndications(ctx, entityID, meAttributes)
 				return nil
 			case "IpHostConfigData":
 				oo.mutexLastTxParamStruct.RUnlock()
@@ -795,7 +795,8 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 	return err
 }
 
-func (oo *OnuDeviceEntry) handleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) {
+//HandleSwImageIndications updates onuSwImageIndications with the ONU data just received
+func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) {
 	imageIsCommitted := meAttributes["IsCommitted"].(uint8)
 	imageIsActive := meAttributes["IsActive"].(uint8)
 	imageVersion := cmn.TrimStringFromMeOctet(meAttributes["Version"])
