@@ -16,6 +16,23 @@
       "message": "hardware test\nfunctional tests",
       "revId": "94688c78f7148fcb2325f73b56955ca24060ef05",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8da8e3ca_78d476cb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-12-17T15:43:44Z",
+      "side": 1,
+      "message": "verified also here:\nhttps://jenkins.opencord.org/view/VOLTHA-2.X-Tests/job/periodic-software-upgrade-test-bbsim/567/ ",
+      "revId": "94688c78f7148fcb2325f73b56955ca24060ef05",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
