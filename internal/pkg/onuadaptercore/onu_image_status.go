@@ -103,7 +103,6 @@ func (oo *OnuImageStatus) getOnuImageStatus(ctx context.Context) (*voltha.OnuIma
 		images.Items = append(images.Items, &image)
 	}
 	logger.Debugw(ctx, "images of the ONU", log.Fields{"images": images})
-	oo.updateOnuSwImageIndications(ctx, &images)
 	oo.updateOnuSwImagePersistentData(ctx)
 	return &images, nil
 }
@@ -208,15 +207,17 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 	meAttributes := msgObj.Attributes
 	logger.Debugw(ctx, "processAttributesReceived", log.Fields{"attributes": meAttributes, "device-id": oo.deviceID})
 
-	for k := range oo.requestedAttributes {
-
-		if msgObj.Result != me.Success && k != cImgProductCode && k != cImgImageHash {
+	if _, ok := oo.requestedAttributes[cImgVersion]; ok {
+		if msgObj.Result != me.Success {
 			logger.Errorw(ctx, "processAttributesReceived retrieval of mandatory attributes failed",
 				log.Fields{"device-id": oo.deviceID})
 			return fmt.Errorf("process-image-status-response-error")
 		}
-		switch k {
+		oo.pDevEntry.handleSwImageIndications(ctx, msgObj.EntityInstance, meAttributes)
+	}
+	for k := range oo.requestedAttributes {
 
+		switch k {
 		// mandatory attributes
 		case cImgIsCommitted:
 			if meAttributes[cImgIsCommitted].(uint8) == swIsCommitted {
@@ -262,48 +263,6 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 		}
 	}
 	return nil
-}
-
-func (oo *OnuImageStatus) updateOnuSwImageIndications(ctx context.Context, images *voltha.OnuImages) {
-
-	oo.pDevEntry.mutexOnuSwImageIndications.Lock()
-	validActiveImageFound := false
-	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
-		if images.Items[i].IsActive && images.Items[i].IsValid {
-			oo.pDevEntry.onuSwImageIndications.activeEntityEntry.entityID = uint16(i)
-			oo.pDevEntry.onuSwImageIndications.activeEntityEntry.valid = images.Items[i].IsValid
-			oo.pDevEntry.onuSwImageIndications.activeEntityEntry.version = images.Items[i].Version
-			if images.Items[i].IsCommited {
-				oo.pDevEntry.onuSwImageIndications.activeEntityEntry.isCommitted = swIsCommitted
-			} else {
-				oo.pDevEntry.onuSwImageIndications.activeEntityEntry.isCommitted = swIsUncommitted
-			}
-			validActiveImageFound = true
-			break
-		}
-	}
-	if !validActiveImageFound {
-		oo.pDevEntry.onuSwImageIndications.activeEntityEntry.valid = false
-	}
-	validInactiveImageFound := false
-	for i := firstSwImageMeID; i <= secondSwImageMeID; i++ {
-		if !images.Items[i].IsActive && images.Items[i].IsValid {
-			oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.entityID = uint16(i)
-			oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.valid = images.Items[i].IsValid
-			oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.version = images.Items[i].Version
-			if images.Items[i].IsCommited {
-				oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.isCommitted = swIsCommitted
-			} else {
-				oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.isCommitted = swIsUncommitted
-			}
-			validInactiveImageFound = true
-			break
-		}
-	}
-	if !validInactiveImageFound {
-		oo.pDevEntry.onuSwImageIndications.inactiveEntityEntry.valid = false
-	}
-	oo.pDevEntry.mutexOnuSwImageIndications.Unlock()
 }
 
 func (oo *OnuImageStatus) updateOnuSwImagePersistentData(ctx context.Context) {
