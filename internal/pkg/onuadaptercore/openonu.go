@@ -633,7 +633,7 @@ func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.Dev
 	if request != nil && len((*request).DeviceId) > 0 && (*request).Image.Version != "" {
 		loResponse := voltha.DeviceImageResponse{}
 		imageIdentifier := (*request).Image.Version
-		downloadedToAdapter := false
+		downloadStartDone := false
 		firstDevice := true
 		var vendorID string
 		var onuVolthaDevice *voltha.Device
@@ -666,28 +666,24 @@ func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.Dev
 				if firstDevice {
 					//start/verify download of the image to the adapter based on first found device only
 					//  use the OnuVendor identification from first given device
+					//  note: if the request was done for a list of devices on the Voltha interface, rwCore
+					//  translates that into a new rpc for each device, hence each device will be the first device in parallel requests!
 					firstDevice = false
 					vendorID = onuVolthaDevice.VendorId
 					imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
-					logger.Debugw(ctx, "download request for file", log.Fields{"image-id": imageIdentifier})
-
-					if !oo.pFileManager.ImageExists(ctx, imageIdentifier) {
-						logger.Debugw(ctx, "start image download", log.Fields{"image-description": request})
-						// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
-						// the download itself is later done in background
-						if err := oo.pFileManager.StartDownload(ctx, imageIdentifier, (*request).Image.Url); err == nil {
-							downloadedToAdapter = true
-						}
-						//else: treat any error here as 'INVALID_URL' (even though it might as well be some issue on local FS, eg. 'INSUFFICIENT_SPACE')
-						// otherwise a more sophisticated error evaluation is needed
-					} else {
-						// image already exists
-						downloadedToAdapter = true
-						logger.Debugw(ctx, "image already downloaded", log.Fields{"image-description": imageIdentifier})
+					logger.Infow(ctx, "download request for file",
+						log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
+					// call the StartDownload synchronously to detect 'immediate' download problems
+					// the real download itself is later done in background
+					if fileState, err := oo.pFileManager.StartDownload(ctx, imageIdentifier, (*request).Image.Url); err == nil {
 						// note: If the image (with vendorId+name) has already been downloaded before from some other
-						//   valid URL, the current URL is just ignored. If the operators want to ensure that the new URL
+						//   valid URL, the current download request is not executed (current code delivers URL error).
+						//   If the operators want to ensure that the new URL
 						//   is really used, then they first have to use the 'abort' API to remove the existing image!
 						//   (abort API can be used also after some successful download to just remove the image from adapter)
+						if fileState == cFileStateDlSucceeded || fileState == cFileStateDlStarted {
+							downloadStartDone = true
+						} //else fileState may also indicate error situation, where the requested image is not ready to be used for other devices
 					}
 				} else {
 					//for all following devices verify the matching vendorID
@@ -697,11 +693,11 @@ func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.Dev
 						vendorIDMatch = false
 					}
 				}
-				if downloadedToAdapter && vendorIDMatch {
+				if downloadStartDone && vendorIDMatch {
 					// start the ONU download activity for each possible device
-					logger.Debugw(ctx, "image download on omci requested", log.Fields{
+					logger.Infow(ctx, "request image download to ONU on omci ", log.Fields{
 						"image-id": imageIdentifier, "device-id": loDeviceID})
-					//onu upgrade handling called in background without immediate error evaluation here
+					// onu upgrade handling called in background without immediate error evaluation here
 					//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
 					//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
 					go handler.onuSwUpgradeAfterDownload(ctx, request, oo.pFileManager, imageIdentifier)
@@ -710,7 +706,9 @@ func (oo *OpenONUAC) Download_onu_image(ctx context.Context, request *voltha.Dev
 					loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
 				} else {
 					loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_FAILED
-					if !downloadedToAdapter {
+					if !downloadStartDone {
+						// based on above fileState more descriptive error codes would be possible, e.g
+						//   IMAGE_EXISTS_WITH_DIFFERENT_URL - would require proto buf update
 						loDeviceImageState.ImageState.Reason = voltha.ImageState_INVALID_URL
 					} else { //only logical option is !vendorIDMatch
 						loDeviceImageState.ImageState.Reason = voltha.ImageState_VENDOR_DEVICE_MISMATCH

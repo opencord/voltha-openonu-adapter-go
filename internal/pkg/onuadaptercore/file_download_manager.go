@@ -43,14 +43,14 @@ const (
 	cFileStateDlSucceeded
 	cFileStateDlFailed
 	cFileStateDlAborted
-	cFileStateDlInvalid
 )
 
 type downloadImageParams struct {
 	downloadImageName       string
+	downloadImageURL        string
 	downloadImageState      fileState
 	downloadImageLen        int64
-	downloadImageCrc        uint32
+	downloadImageCRC        uint32
 	downloadActive          bool
 	downloadContextCancelFn context.CancelFunc
 }
@@ -59,6 +59,7 @@ type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map
 
 //fileDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type fileDownloadManager struct {
+	mutexFileState        sync.RWMutex
 	mutexDownloadImageDsc sync.RWMutex
 	downloadImageDscSlice []downloadImageParams
 	dnldImgReadyWaiting   map[string]requesterChannelMap
@@ -91,38 +92,45 @@ func (dm *fileDownloadManager) GetDownloadTimeout(ctx context.Context) time.Dura
 	return dm.dlToAdapterTimeout
 }
 
-//ImageExists returns true if the requested image already exists within the adapter
-func (dm *fileDownloadManager) ImageExists(ctx context.Context, aImageName string) bool {
-	logger.Debugw(ctx, "checking on existence of the image", log.Fields{"image-name": aImageName})
-	dm.mutexDownloadImageDsc.RLock()
-	defer dm.mutexDownloadImageDsc.RUnlock()
-
-	for _, dnldImgDsc := range dm.downloadImageDscSlice {
-		if dnldImgDsc.downloadImageName == aImageName {
-			//image found (by name)
-			return true
-		}
-	}
-	//image not found (by name)
-	return false
-}
-
-//StartDownload returns true if the download of the requested image could be started for the given file name and URL
-func (dm *fileDownloadManager) StartDownload(ctx context.Context, aImageName string, aURLCommand string) error {
+//StartDownload returns FileState and error code from download request for the given file name and URL
+func (dm *fileDownloadManager) StartDownload(ctx context.Context, aImageName string, aURLCommand string) (fileState, error) {
 	logger.Infow(ctx, "image download-to-adapter requested", log.Fields{
 		"image-name": aImageName, "url-command": aURLCommand})
-	loDownloadImageParams := downloadImageParams{
-		downloadImageName: aImageName, downloadImageState: cFileStateDlStarted,
-		downloadImageLen: 0, downloadImageCrc: 0}
-	//try to download from http
-	var err error
-	if err = dm.downloadFile(ctx, aURLCommand, cDefaultLocalDir, aImageName); err == nil {
-		dm.mutexDownloadImageDsc.Lock()
+	// keep a semaphore over the complete method in order to avoid parallel entrance to this method
+	// otherwise a temporary file state 'Started' could be indicated allowing start of ONU upgrade handling
+	// even though the download-start to adapter may fail (e.g on wrong URL) (delivering inconsistent download results)
+	// so once called the download-start of the first call must have been completely checked before another execution
+	// could still be limited to the same imageName, but that should be no real gain
+	dm.mutexFileState.Lock()
+	defer dm.mutexFileState.Unlock()
+	dm.mutexDownloadImageDsc.Lock()
+	var fileState fileState
+	var exists bool
+	if fileState, exists = dm.imageExists(ctx, aImageName, aURLCommand); !exists {
+		loDownloadImageParams := downloadImageParams{
+			downloadImageName: aImageName, downloadImageURL: aURLCommand, downloadImageState: cFileStateDlStarted,
+			downloadImageLen: 0, downloadImageCRC: 0}
 		dm.downloadImageDscSlice = append(dm.downloadImageDscSlice, loDownloadImageParams)
 		dm.mutexDownloadImageDsc.Unlock()
+		//start downloading from server
+		var err error
+		if err = dm.downloadFile(ctx, aURLCommand, cDefaultLocalDir, aImageName); err == nil {
+			//indicate download started correctly, complete download may run in background
+			return cFileStateDlStarted, nil
+		}
+		//return the error result of the download-request
+		return cFileStateUnknown, err
 	}
-	//return the result of the start-request to comfort the core processing even though the complete download may go on in background
-	return err
+	dm.mutexDownloadImageDsc.Unlock()
+	if fileState == cFileStateUnknown {
+		//cannot simply remove the existing file here - might still be used for running upgrades on different devices!
+		//  (has to be removed by operator - cancel API)
+		logger.Errorw(ctx, "image download requested for existing file with different URL",
+			log.Fields{"image-description": aImageName, "url": aURLCommand})
+		return fileState, fmt.Errorf("existing file is based on different URL, requested URL: %s", aURLCommand)
+	}
+	logger.Debugw(ctx, "image download already started or done", log.Fields{"image-description": aImageName})
+	return fileState, nil
 }
 
 //GetImageBufferLen returns the length of the specified file in bytes (file size) - as detected after download
@@ -139,6 +147,8 @@ func (dm *fileDownloadManager) GetImageBufferLen(ctx context.Context, aFileName 
 }
 
 //GetDownloadImageBuffer returns the content of the requested file as byte slice
+//precondition: it is assumed that a check is done immediately before if the file was downloaded to adapter correctly from caller
+//  straightforward approach is here to e.g. immediately call and verify GetImageBufferLen() before this
 func (dm *fileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFileName string) ([]byte, error) {
 	file, err := os.Open(filepath.Clean(cDefaultLocalDir + "/" + aFileName))
 	if err != nil {
@@ -221,6 +231,24 @@ func (dm *fileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName
 
 // FileDownloadManager private (unexported) methods -- start
 
+//imageExists returns current ImageState and if the requested image already exists within the adapter
+//precondition: at calling this method mutexDownloadImageDsc must already be at least RLocked by the caller
+func (dm *fileDownloadManager) imageExists(ctx context.Context, aImageName string, aURL string) (fileState, bool) {
+	logger.Debugw(ctx, "checking on existence of the image", log.Fields{"image-name": aImageName})
+	for _, dnldImgDsc := range dm.downloadImageDscSlice {
+		if dnldImgDsc.downloadImageName == aImageName {
+			//image found (by name)
+			if dnldImgDsc.downloadImageURL == aURL {
+				//image found (by name and URL)
+				return dnldImgDsc.downloadImageState, true
+			}
+			return cFileStateUnknown, true //use fileState to indicate URL mismatch for existing file
+		}
+	}
+	//image not found (by name)
+	return cFileStateUnknown, false
+}
+
 //imageLocallyDownloaded returns true if the requested image already exists within the adapter
 //  requires mutexDownloadImageDsc to be locked (at least RLocked)
 func (dm *fileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImageName string) bool {
@@ -294,6 +322,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 	urlBase, err1 := url.Parse(aURLCommand)
 	if err1 != nil {
 		logger.Errorw(ctx, "could not set base url command", log.Fields{"url": aURLCommand, "error": err1})
+		dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 		return fmt.Errorf("could not set base url command: %s, error: %s", aURLCommand, err1)
 	}
 	urlParams := url.Values{}
@@ -303,6 +332,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 	reqExist, errExist2 := http.NewRequest("HEAD", urlBase.String(), nil)
 	if errExist2 != nil {
 		logger.Errorw(ctx, "could not generate http head request", log.Fields{"url": urlBase.String(), "error": errExist2})
+		dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 		return fmt.Errorf("could not  generate http head request: %s, error: %s", aURLCommand, errExist2)
 	}
 	ctxExist, cancelExist := context.WithDeadline(ctx, time.Now().Add(3*time.Second)) //waiting for some fast answer
@@ -313,6 +343,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		if respExist == nil {
 			logger.Errorw(ctx, "http head from url error - no status, aborting", log.Fields{"url": urlBase.String(),
 				"error": errExist3})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return fmt.Errorf("http head from url error - no status, aborting: %s, error: %s",
 				aURLCommand, errExist3)
 		}
@@ -322,6 +353,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		if respExist.StatusCode != http.StatusMethodNotAllowed {
 			logger.Errorw(ctx, "http head from url: file does not exist here, aborting", log.Fields{"url": urlBase.String(),
 				"error": errExist3, "status": respExist.StatusCode})
+			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return fmt.Errorf("http head from url: file does not exist here, aborting: %s, error: %s, status: %d",
 				aURLCommand, errExist3, respExist.StatusCode)
 		}
@@ -403,7 +435,7 @@ func (dm *fileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 
 //removeImage deletes the given image according to the Image name from filesystem and downloadImageDscSlice
 func (dm *fileDownloadManager) removeImage(ctx context.Context, aImageName string, aDelFs bool) {
-	logger.Debugw(ctx, "remove the image from Adapter", log.Fields{"image-name": aImageName})
+	logger.Debugw(ctx, "remove the image from Adapter", log.Fields{"image-name": aImageName, "del-fs": aDelFs})
 	dm.mutexDownloadImageDsc.RLock()
 	defer dm.mutexDownloadImageDsc.RUnlock()
 
