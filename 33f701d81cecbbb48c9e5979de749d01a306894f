@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1c2fb453_eab5269d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-12-27T13:37:30Z",
+      "side": 1,
+      "message": "verified here: https://jenkins.opencord.org/view/VOLTHA-2.8/job/periodic-software-upgrade-test-bbsim-2.8/185",
+      "revId": "33f701d81cecbbb48c9e5979de749d01a306894f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
