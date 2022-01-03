@@ -3984,6 +3984,9 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				log.Fields{"timeout": dh.reconcileExpiryComplete, "device-id": dh.DeviceID})
 			select {
 			case success := <-dh.chReconcilingFinished:
+				logger.Debugw(ctx, "reconciling finished signal received",
+					log.Fields{"device-id": dh.DeviceID, "dh.chReconcilingFinished": dh.chReconcilingFinished})
+				dh.mutexReconcilingFlag.Lock()
 				if success {
 					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
@@ -4037,6 +4040,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 			case <-time.After(dh.reconcileExpiryComplete):
 				logger.Errorw(ctx, "timeout waiting for reconciling to be finished!",
 					log.Fields{"device-id": dh.DeviceID})
+				dh.mutexReconcilingFlag.Lock()
 
 				if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 					logger.Errorw(ctx, "No valid OnuDevice",
@@ -4052,7 +4056,6 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				dh.deviceReconcileFailedUpdate(ctx, cmn.DrReconcileMaxTimeout, connectStatus)
 
 			}
-			dh.mutexReconcilingFlag.Lock()
 			dh.reconciling = cNoReconciling
 			dh.mutexReconcilingFlag.Unlock()
 			dh.SetReconcilingReasonUpdate(false)
