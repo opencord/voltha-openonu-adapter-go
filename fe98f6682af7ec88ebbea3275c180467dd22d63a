@@ -16,6 +16,24 @@
       "message": "Hmm, interesting! Why shouldn\u0027t other threads not be able to read the reconciling status during the signal/timeout processing (still getting something else than \u0027NoReconciling\u0027 - which is basically true)? Perhaps the logic there is not quite sufficient? I mean you  extend the protection to that variable to quite some time now. Some explanatory comment would be welcome.",
       "revId": "fe98f6682af7ec88ebbea3275c180467dd22d63a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cc07d442_db214c20",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3989,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-04T10:48:40Z",
+      "side": 1,
+      "message": "Ack, comment added.",
+      "parentUuid": "248ad0ee_a325feac",
+      "revId": "fe98f6682af7ec88ebbea3275c180467dd22d63a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
