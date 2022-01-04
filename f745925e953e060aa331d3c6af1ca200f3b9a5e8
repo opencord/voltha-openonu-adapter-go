@@ -33,6 +33,23 @@
       "message": "voltha test openonu multiolt",
       "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e49a54d0_6f4b0188",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-04T15:13:50Z",
+      "side": 1,
+      "message": "@Andrea: There is a problem with the timestamp calculation in the test suite running in this Jenkins environment, which will be fixed by Torsten. There are no issues with the GO patch itself. I would suggest to merge the patch anyway. ",
+      "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
