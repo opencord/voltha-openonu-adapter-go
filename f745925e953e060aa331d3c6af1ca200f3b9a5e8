@@ -84,6 +84,23 @@
       "message": "triggered a recheck, will merge when that passes",
       "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "db119121_587819f9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-05T08:37:46Z",
+      "side": 1,
+      "message": "@Andrea: All issues in https://jenkins.opencord.org/job/patchset-voltha-multiple-olts-openonu-go-test-bbsim/10/ are related to the timestamp calculation issue of the test suite mentioned above - patch could be merged.  \n\n",
+      "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
