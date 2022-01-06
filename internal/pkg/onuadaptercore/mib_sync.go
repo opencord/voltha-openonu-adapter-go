@@ -321,10 +321,12 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 
 		// start go routine with select() on reconciling flow channel before
 		// starting flow reconciling process to prevent loss of any signal
-		go func() {
+		syncChannel := make(chan struct{})
+		go func(aSyncChannel chan struct{}) {
 			// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
 			// we get a signal that the processing of the last step to rebuild the adapter internal
 			// flow data is finished.
+			aSyncChannel <- struct{}{}
 			select {
 			case success := <-oo.baseDeviceHandler.chReconcilingFlowsFinished:
 				if success {
@@ -344,7 +346,11 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 				oo.baseDeviceHandler.setReconcilingFlows(false)
 				_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
 			}
-		}()
+		}(syncChannel)
+		// block further processing until the above Go routine has really started
+		// and is ready to receive values from chReconcilingFlowsFinished
+		<-syncChannel
+
 		oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
 
 		oo.mutexPersOnuConfig.RLock()

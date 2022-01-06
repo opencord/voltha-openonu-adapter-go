@@ -3748,6 +3748,16 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 				log.Fields{"timeout": dh.pOpenOnuAc.maxTimeoutReconciling, "device-id": dh.deviceID})
 			select {
 			case success := <-dh.chReconcilingFinished:
+				logger.Debugw(ctx, "reconciling finished signal received",
+					log.Fields{"device-id": dh.deviceID, "dh.chReconcilingFinished": dh.chReconcilingFinished})
+				// To guarantee that the case-branch below is completely processed before reconciling processing is continued,
+				// dh.mutexReconcilingFlag is locked already here. Thereby it is ensured, that further reconciling processing is stopped
+				// at next call of dh.IsReconciling() until dh.reconciling is set after informing core about finished reconciling below.
+				// This change addresses a problem described in VOL-4533 where the flag dh.reconciling not yet reset causes the uni ports
+				// not to be created in ONOS in function dh.addUniPort(), when reconciling was started in reason "starting-openomci".
+				// TODO: Keeping the mutex beyond an RPC towards core seems justifiable, as the effects here are easily overseeable.
+				// However, a later refactoring of the functionality remains unaffected.
+				dh.mutexReconcilingFlag.Lock()
 				if success {
 					if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
@@ -3797,6 +3807,7 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 			case <-time.After(dh.pOpenOnuAc.maxTimeoutReconciling):
 				logger.Errorw(ctx, "timeout waiting for reconciling to be finished!",
 					log.Fields{"device-id": dh.deviceID})
+				dh.mutexReconcilingFlag.Lock()
 
 				if onuDevEntry := dh.getOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 					logger.Errorw(ctx, "No valid OnuDevice",
@@ -3810,7 +3821,6 @@ func (dh *deviceHandler) startReconciling(ctx context.Context, skipOnuConfig boo
 				}
 				dh.deviceReconcileFailedUpdate(ctx, drReconcileMaxTimeout, connectStatus)
 			}
-			dh.mutexReconcilingFlag.Lock()
 			dh.reconciling = cNoReconciling
 			dh.mutexReconcilingFlag.Unlock()
 		}()
