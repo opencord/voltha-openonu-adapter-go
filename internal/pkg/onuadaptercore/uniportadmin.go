@@ -214,6 +214,10 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	meInstance, err := oFsm.pOmciCC.sendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.pOpenOnuAc.omciTimeout, true,
 		requestedAttributes, oFsm.pAdaptFsm.commChan)
 	if err != nil {
+		//Indicate the failure in UnLock case
+		if omciAdminState == 0 {
+			oFsm.setSuccessEvent(UniEnableStateFailed)
+		}
 		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "OnuGLS set failed, aborting LockStateFSM", log.Fields{"device-id": oFsm.deviceID})
 		pLockStateAFsm := oFsm.pAdaptFsm
@@ -230,6 +234,10 @@ func (oFsm *lockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	//  - this avoids misinterpretation of new received OMCI messages
 	oFsm.pLastTxMeInstance = meInstance
 	if oFsm.pLastTxMeInstance == nil {
+		//Indicate the failure in UnLock case
+		if omciAdminState == 0 {
+			oFsm.setSuccessEvent(UniEnableStateFailed)
+		}
 		oFsm.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "could not send OMCI message from LockStateFsm", log.Fields{
 			"device-id": oFsm.deviceID})
@@ -276,6 +284,12 @@ func (oFsm *lockStateFsm) enterAdminDoneState(ctx context.Context, e *fsm.Event)
 
 func (oFsm *lockStateFsm) enterResettingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "LockStateFSM resetting", log.Fields{"device-id": oFsm.deviceID})
+	//If the fsm is reseted because of a failure during reenable, then issue the fail event.
+	if oFsm.requestEvent == UniEnableStateFailed {
+		logger.Debugw(ctx, "LockStateFSM send notification to core", log.Fields{"state": e.FSM.Current(), "device-id": oFsm.deviceID})
+		//use DeviceHandler event notification directly, no need/support to update DeviceEntryState for lock/unlock
+		oFsm.pDeviceHandler.deviceProcStatusUpdate(ctx, oFsm.requestEvent)
+	}
 	pLockStateAFsm := oFsm.pAdaptFsm
 	if pLockStateAFsm != nil {
 		// abort running message processing
@@ -430,6 +444,10 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 					oFsm.mutexPLastTxMeInstance.Unlock()
 					logger.Errorw(ctx, "SetPptpEthUniLS set failed, aborting LockStateFsm!",
 						log.Fields{"device-id": oFsm.deviceID})
+					//Indicate the failure in UnLock case
+					if omciAdminState == 0 {
+						oFsm.setSuccessEvent(UniEnableStateFailed)
+					}
 					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 					return
 				}
@@ -446,6 +464,10 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 					oFsm.mutexPLastTxMeInstance.Unlock()
 					logger.Errorw(ctx, "SetVeipLS set failed, aborting LockStateFsm!",
 						log.Fields{"device-id": oFsm.deviceID})
+					//Indicate the failure in UnLock case
+					if omciAdminState == 0 {
+						oFsm.setSuccessEvent(UniEnableStateFailed)
+					}
 					_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 					return
 				}
@@ -461,6 +483,10 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				oFsm.mutexPLastTxMeInstance.RUnlock()
 				logger.Errorw(ctx, "could not send PortAdmin OMCI message from LockStateFsm", log.Fields{
 					"device-id": oFsm.deviceID, "Port": uniNo})
+				//Indicate the failure in UnLock case
+				if omciAdminState == 0 {
+					oFsm.setSuccessEvent(UniEnableStateFailed)
+				}
 				//some more sophisticated approach is possible, e.g. repeating once, by now let's reset the state machine in order to release all resources now
 				_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 				return
@@ -472,6 +498,10 @@ func (oFsm *lockStateFsm) performUniPortAdminSet(ctx context.Context) {
 			if err != nil {
 				logger.Errorw(ctx, "UniTP Admin State set failed, aborting LockState set!",
 					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
+				//Indicate the failure in UnLock case
+				if omciAdminState == 0 {
+					oFsm.setSuccessEvent(UniEnableStateFailed)
+				}
 				_ = oFsm.pAdaptFsm.pFsm.Event(uniEvReset)
 				return
 			}
