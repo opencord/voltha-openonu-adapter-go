@@ -2377,6 +2377,15 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, dev
 	}
 }
 
+func (dh *deviceHandler) processUniEnableStateFailedEvent(ctx context.Context, devEvent OnuDeviceEvent) {
+	logger.Debugw(ctx, "DeviceStateUpdate upon re-enable failure. ", log.Fields{
+		"OperStatus": voltha.OperStatus_FAILED, "device-id": dh.deviceID})
+	if err := dh.coreProxy.DeviceStateUpdate(log.WithSpanFromContext(context.TODO(), ctx), dh.deviceID, voltha.ConnectStatus_REACHABLE,
+		voltha.OperStatus_FAILED); err != nil {
+		logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.deviceID, "error": err})
+	}
+}
+
 func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devEvent OnuDeviceEvent) {
 	if devEvent == OmciAniConfigDone {
 		logger.Debugw(ctx, "OmciAniConfigDone event received", log.Fields{"device-id": dh.deviceID})
@@ -2456,6 +2465,10 @@ func (dh *deviceHandler) deviceProcStatusUpdate(ctx context.Context, devEvent On
 	case UniEnableStateDone:
 		{
 			dh.processUniEnableStateDoneEvent(ctx, devEvent)
+		}
+	case UniEnableStateFailed:
+		{
+			dh.processUniEnableStateFailedEvent(ctx, devEvent)
 		}
 	case UniDisableStateDone:
 		{
