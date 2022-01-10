@@ -33,6 +33,23 @@
       "message": "voltha test openonu multiolt",
       "revId": "6be983797551274c7650188fc0a3e70e9b209b37",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d6603864_9c0da9f6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-10T11:37:57Z",
+      "side": 1,
+      "message": "@Andrea: Trigger-comment \"voltha test openonu multiolt\" is currently only working in master. Issue is already followed-up.",
+      "revId": "6be983797551274c7650188fc0a3e70e9b209b37",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
