@@ -299,10 +299,16 @@ func (oo *OpenONUAC) Process_inter_adapter_message(ctx context.Context, msg *ic.
 		//   and are by now not reported to the calling party (to force what reaction there?)
 		return nil
 		*/
+	} else if msg.Header.Type == ic.InterAdapterMessageType_DELETE_GEM_PORT_REQUEST ||
+		msg.Header.Type == ic.InterAdapterMessageType_DELETE_TCONT_REQUEST {
+		// delete requests for objects of an already deleted ONU should be acknowledged positively - continue
+		logger.Debugw(ctx, "deviceHandler not found for delete request - continue", log.Fields{"device-id": targetDevice})
+		return nil
+	} else {
+		logger.Warnw(ctx, "no handler found for received Inter-Proxy-message", log.Fields{
+			"msgToDeviceId": targetDevice})
+		return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
 	}
-	logger.Warnw(ctx, "no handler found for received Inter-Proxy-message", log.Fields{
-		"msgToDeviceId": targetDevice})
-	return fmt.Errorf(fmt.Sprintf("handler-not-found-%s", targetDevice))
 }
 
 //Process_tech_profile_instance_request not implemented
