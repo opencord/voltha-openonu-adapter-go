@@ -67,6 +67,23 @@
       "message": "voltha 2.8 test openonu multiolt",
       "revId": "6be983797551274c7650188fc0a3e70e9b209b37",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a4a60714_2ea686d4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-12T11:27:53Z",
+      "side": 1,
+      "message": "voltha 2.8 test openonu multiolt",
+      "revId": "6be983797551274c7650188fc0a3e70e9b209b37",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
