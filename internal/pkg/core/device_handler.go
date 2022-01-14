@@ -222,8 +222,10 @@ type deviceHandler struct {
 
 	flowCbChan                     []chan FlowCb
 	mutexFlowMonitoringRoutineFlag sync.RWMutex
+	mutexForDisableDeviceRequested sync.RWMutex
 	stopFlowMonitoringRoutine      []chan bool // length of slice equal to number of uni ports
 	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
+	disableDeviceRequested         bool        // this flag identify ONU received disable request or not
 }
 
 //newDeviceHandler creates a new device handler
@@ -252,10 +254,12 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.lockVlanConfig = sync.RWMutex{}
 	dh.lockVlanAdd = sync.RWMutex{}
 	dh.lockUpgradeFsm = sync.RWMutex{}
+	dh.mutexForDisableDeviceRequested = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
 	dh.reconcilingReasonUpdate = false
 	dh.reconcilingFirstPass = true
+	dh.disableDeviceRequested = false
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
@@ -765,7 +769,9 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 // (Conn-State: REACHABLE might conflict with some previous ONU Down indication - maybe to be resolved later)
 func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "disable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
-
+	dh.mutexForDisableDeviceRequested.Lock()
+	dh.disableDeviceRequested = true
+	dh.mutexForDisableDeviceRequested.Unlock()
 	//admin-lock reason can also be used uniquely for setting the DeviceState accordingly
 	//note that disableDevice sequences in some 'ONU active' state may yield also
 	// "tech...delete-success" or "omci-flow-deleted" according to further received requests in the end
@@ -819,6 +825,9 @@ func (dh *deviceHandler) reEnableDevice(ctx context.Context, device *voltha.Devi
 
 	// enable ONU/UNI ports
 	// *** should generate cmn.UniEnableStateDone event - used to disable the port(s) on success
+	dh.mutexForDisableDeviceRequested.Lock()
+	dh.disableDeviceRequested = false
+	dh.mutexForDisableDeviceRequested.Unlock()
 	if dh.pUnlockStateFsm == nil {
 		dh.createUniLockFsm(ctx, false, cmn.UniEnableStateDone)
 	} else { //UnlockStateFSM already init
@@ -2402,11 +2411,18 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	} else {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		// *** should generate UniUnlockStateDone event *****
-		if dh.pUnlockStateFsm == nil {
-			dh.createUniLockFsm(ctx, false, cmn.UniUnlockStateDone)
-		} else { //UnlockStateFSM already init
-			dh.pUnlockStateFsm.SetSuccessEvent(cmn.UniUnlockStateDone)
-			dh.runUniLockFsm(ctx, false)
+		dh.mutexForDisableDeviceRequested.RLock()
+		if !dh.disableDeviceRequested {
+			if dh.pUnlockStateFsm == nil {
+				dh.createUniLockFsm(ctx, false, cmn.UniUnlockStateDone)
+			} else { //UnlockStateFSM already init
+				dh.pUnlockStateFsm.SetSuccessEvent(cmn.UniUnlockStateDone)
+				dh.runUniLockFsm(ctx, false)
+			}
+			dh.mutexForDisableDeviceRequested.RUnlock()
+		} else {
+			dh.mutexForDisableDeviceRequested.RUnlock()
+			logger.Debugw(ctx, "Uni already lock", log.Fields{"device-id": dh.DeviceID})
 		}
 	}
 }
