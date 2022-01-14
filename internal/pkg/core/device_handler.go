@@ -222,6 +222,7 @@ type deviceHandler struct {
 	mutexFlowMonitoringRoutineFlag sync.RWMutex
 	stopFlowMonitoringRoutine      []chan bool // length of slice equal to number of uni ports
 	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
+	disableDeviceRequested           bool        // this flag identify ONU received disable request or not
 }
 
 //newDeviceHandler creates a new device handler
@@ -253,6 +254,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
 	dh.reconcilingReasonUpdate = false
+	dh.disableDeviceRequested = false
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
@@ -762,7 +764,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 // (Conn-State: REACHABLE might conflict with some previous ONU Down indication - maybe to be resolved later)
 func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "disable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
-
+	dh.disableDeviceRequested = true
 	//admin-lock reason can also be used uniquely for setting the DeviceState accordingly
 	//note that disableDevice sequences in some 'ONU active' state may yield also
 	// "tech...delete-success" or "omci-flow-deleted" according to further received requests in the end
@@ -2413,11 +2415,15 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	} else {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		// *** should generate UniUnlockStateDone event *****
-		if dh.pUnlockStateFsm == nil {
-			dh.createUniLockFsm(ctx, false, cmn.UniUnlockStateDone)
-		} else { //UnlockStateFSM already init
-			dh.pUnlockStateFsm.SetSuccessEvent(cmn.UniUnlockStateDone)
-			dh.runUniLockFsm(ctx, false)
+		if dh.deviceReason != cmn.DrOmciAdminLock && dh.disableDeviceRequested == false{
+			if dh.pUnlockStateFsm == nil {
+				dh.createUniLockFsm(ctx, false, cmn.UniUnlockStateDone)
+			} else { //UnlockStateFSM already init
+				dh.pUnlockStateFsm.SetSuccessEvent(cmn.UniUnlockStateDone)
+				dh.runUniLockFsm(ctx, false)
+			}
+		} else{
+			logger.Debugw(ctx,"Uni already lock", log.Fields{"device-id": dh.DeviceID})
 		}
 	}
 }
@@ -2889,7 +2895,8 @@ func (dh *deviceHandler) runUniLockFsm(ctx context.Context, aAdminState bool) {
 		pLSStatemachine = dh.pUnlockStateFsm.PAdaptFsm.PFsm
 		//make sure the opposite FSM is not running and if so, terminate it as not relevant anymore
 		if (dh.pLockStateFsm != nil) &&
-			(dh.pLockStateFsm.PAdaptFsm.PFsm.Current() != uniprt.UniStDisabled) {
+			(dh.pLockStateFsm.PAdaptFsm.PFsm.Current() != uniprt.UniStDisabled) &&
+			dh.disableDeviceRequested == false{
 			_ = dh.pLockStateFsm.PAdaptFsm.PFsm.Event(uniprt.UniEvReset)
 		}
 	}
