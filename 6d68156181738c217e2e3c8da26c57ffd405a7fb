@@ -16,6 +16,29 @@
       "message": "recheck",
       "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d20ac44a_a1dcc997",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 767,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-17T12:29:20Z",
+      "side": 1,
+      "message": "Shouldn\u0027t dh.disableDeviceRequested be reset when current disable processing is finished - i.e. when \"DrOmciAdminLock\" is reached?",
+      "range": {
+        "startLine": 767,
+        "startChar": 4,
+        "endLine": 767,
+        "endChar": 26
+      },
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
