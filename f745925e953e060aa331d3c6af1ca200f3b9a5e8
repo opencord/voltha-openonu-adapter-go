@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "639844a9_e0958ec3",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1046,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-01-18T08:37:52Z",
+      "side": 0,
+      "message": "we are removing this check, is this correct ? how is this handled ?",
+      "range": {
+        "startLine": 1046,
+        "startChar": 1,
+        "endLine": 1046,
+        "endChar": 37
+      },
+      "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47fa1869_89b41754",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1078,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-01-18T08:37:52Z",
+      "side": 0,
+      "message": "same",
+      "range": {
+        "startLine": 1078,
+        "startChar": 2,
+        "endLine": 1078,
+        "endChar": 38
+      },
+      "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}

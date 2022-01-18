@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1939b99c_7c0955c0",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2400,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-01-18T08:37:52Z",
+      "side": 1,
+      "message": "will this have scale impact of doing the tech profile in the same thread ?",
+      "revId": "7741f27048178b5588d4496fd01988371e6d419b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
