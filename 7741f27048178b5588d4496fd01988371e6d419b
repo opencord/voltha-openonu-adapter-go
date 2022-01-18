@@ -16,6 +16,24 @@
       "message": "will this have scale impact of doing the tech profile in the same thread ?",
       "revId": "7741f27048178b5588d4496fd01988371e6d419b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7d30f986_6f77423d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2400,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-18T10:37:47Z",
+      "side": 1,
+      "message": "As I understand it, the processing of the RPC ReconcileDevice() for a particular ONU is already running in a separate thread anyway, so the synchronous call here should not have any delaying influence on any RPCs that may arrive in parallel.",
+      "parentUuid": "1939b99c_7c0955c0",
+      "revId": "7741f27048178b5588d4496fd01988371e6d419b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }

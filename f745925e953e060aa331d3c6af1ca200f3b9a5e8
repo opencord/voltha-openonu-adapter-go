@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "f2bb11f5_2740e44c",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1046,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-18T10:37:47Z",
+      "side": 0,
+      "message": "The runtime monitoring of flow configuration during reconciling was originally introduced for the use case \"reconciling without OMCI-config\" to prevent reconciling from ending before the complete flow configuration has been processed. During the analysis of the current Jira it became clear that this runtime monitoring is also more than relevant for the use case \"reconciling with OMCI-config\". Therefore, this is now used for both use cases.",
+      "parentUuid": "639844a9_e0958ec3",
+      "range": {
+        "startLine": 1046,
+        "startChar": 1,
+        "endLine": 1046,
+        "endChar": 37
+      },
+      "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "47fa1869_89b41754",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 1
@@ -37,6 +61,30 @@
       "writtenOn": "2022-01-18T08:37:52Z",
       "side": 0,
       "message": "same",
+      "range": {
+        "startLine": 1078,
+        "startChar": 2,
+        "endLine": 1078,
+        "endChar": 38
+      },
+      "revId": "f745925e953e060aa331d3c6af1ca200f3b9a5e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "42f1e5f8_49610613",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1078,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-18T10:37:47Z",
+      "side": 0,
+      "message": "see above",
+      "parentUuid": "47fa1869_89b41754",
       "range": {
         "startLine": 1078,
         "startChar": 2,
