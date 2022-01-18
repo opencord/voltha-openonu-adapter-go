@@ -39,6 +39,115 @@
       },
       "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "48897c2f_36419770",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 767,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-18T09:42:04Z",
+      "side": 1,
+      "message": "Theoretically this would also be a variant, but I would not recommend this way, see also further comments on the changes.\nI\u0027d recommend to not use \u0027DrOmciAdminLock\u0027 in this respect, but to reset \u0027disableDeviceRequested\u0027 on ReEnable request (even though not really required for changes required on MibDownload - but to be consistent.",
+      "parentUuid": "d20ac44a_a1dcc997",
+      "range": {
+        "startLine": 767,
+        "startChar": 4,
+        "endLine": 767,
+        "endChar": 26
+      },
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dd8a831e_bc44266f",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 767,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-18T09:42:04Z",
+      "side": 1,
+      "message": "+ write semaphore protection required!",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fe207964_051ae324",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 826,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-18T09:42:04Z",
+      "side": 1,
+      "message": "I\u0027d recommend to reset \u0027disableDeviceRequested\u0027 here again",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3358c0e3_f7b402db",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2418,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-18T09:42:04Z",
+      "side": 1,
+      "message": "I\u0027d check disableDeviceRequested here only, not DrOmciAdminLock.\nIt is sufficient , that disable was requested before in order to not enable the ONU/Ports here (it\u0027s is not needed that the device reason AdminLock has already been reached).\n+ (Read) Semaphore protection required!",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dbde5f4f_e58ef732",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2424,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-18T09:42:04Z",
+      "side": 1,
+      "message": "hereafter would be the point to release the semaphore again",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c9348e28_6b10829f",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2899,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-18T09:42:04Z",
+      "side": 1,
+      "message": "No need to additionally check dh.disableDeviceRequested here, runUniLockFsm() for unlock should already only be called in case \u0027disableDeviceRequested\u0027 is not set (see also semaphore comments)",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
