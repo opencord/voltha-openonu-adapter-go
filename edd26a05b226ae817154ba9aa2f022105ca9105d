@@ -16,6 +16,24 @@
       "message": "This scheme of processing ignores the existing two priority send queues and does not enforce in-sequence sending of OMCI messages according to the TID in case of parallel OMCI send requests. This might be problematic with some ONU\u0027s (and is partly against the standard) - although I generally expect it to work.\nAlternative approach would be to lock the approval of further send requests throughout the collection of all sections of the window (should not be that long) and possibly also use the low prio queue before sending the complete request (as done before).",
       "revId": "edd26a05b226ae817154ba9aa2f022105ca9105d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b4bdaebb_3cbb5a62",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 4227,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-01-19T10:16:23Z",
+      "side": 1,
+      "message": "Updated the implementation to us low prio queues for sending onu sw sections,\nUpdated the call to \"SendOnuSwSectionsWindowWithRxSupervision\" as synchronous, so that approval of further send requests are blocked till the previous window is sent and response is received.",
+      "parentUuid": "60af6968_2406fdaf",
+      "revId": "edd26a05b226ae817154ba9aa2f022105ca9105d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
