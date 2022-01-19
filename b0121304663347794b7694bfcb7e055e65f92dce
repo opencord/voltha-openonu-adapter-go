@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "39f5467b_9f4d6acd",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:24:46Z",
+      "side": 1,
+      "message": "Some smaller issues left...",
+      "revId": "b0121304663347794b7694bfcb7e055e65f92dce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ab0aa2cd_9676a207",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 833,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:24:46Z",
+      "side": 1,
+      "message": "wrong position: resetting it is also (and practically more) relevant to just using createUniLockFsm(). So must be reset reset for both cases.\nAnd Semaphore protection required.",
+      "revId": "b0121304663347794b7694bfcb7e055e65f92dce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9dedfe15_36b800ed",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2420,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:24:46Z",
+      "side": 1,
+      "message": "Semaphore should be released only here in order to avoid different state machine creation/setting just in between from parallel processing",
+      "revId": "b0121304663347794b7694bfcb7e055e65f92dce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
