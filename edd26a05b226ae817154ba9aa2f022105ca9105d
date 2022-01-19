@@ -34,6 +34,24 @@
       "parentUuid": "60af6968_2406fdaf",
       "revId": "edd26a05b226ae817154ba9aa2f022105ca9105d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d568ae39_0d7171f9",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 4227,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "Synchromous call: that was not really my concern. Next sections will only be sent after response. So might as well be donein background, guess it does not reall matter much. See the newer comments.",
+      "parentUuid": "b4bdaebb_3cbb5a62",
+      "revId": "edd26a05b226ae817154ba9aa2f022105ca9105d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }

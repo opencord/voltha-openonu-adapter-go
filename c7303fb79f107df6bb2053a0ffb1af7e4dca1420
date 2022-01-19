@@ -1,0 +1,157 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d0b4573e_48c61f80",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 13
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "Basically that looks already better now. My biggest concern would still be the sequencing of the (low prio) OMCI messages, see according comments. Most of the other comments are just formal, maybe also to try to understand why you choose some specific approach (and sometimes not the one that already existed).",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "272dc520_cf5e3a8e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "Any specific reason why you attach this complex (pointer to) structure? As far as I can see some simple bool would be enough (multiMessageTransfer bool).\nI understand ia.OmciMessages is latest needed in deviceHandler::SendOnuSwSectionsOfWindow(), but compare also my comment to lines 589/4208ff.",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cf69dcd3_4608fe84",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 589,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "For reason of equal treatment I\u0027d prefer to keep the real transmit data in the element OmciTransferStructure.txFrame (even though the buffer here now consists of multiple OMCI frames). The question here might be how *ia.OmciMessages.Messages is defined. If it is just a byte slice the data could be kept in OmciTransferStructure.txFrame up to trhe point were the data is then finaly sent from device handler. Other wise OmciTransferStructure.txFrame is just left unused in this branch.",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "78516772_c3ff0120",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4149,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "PrepareOnuSectionsOfWindow() seems to me a bit overloaded now considering it shall just build the collected Omci messages. So parameters aTimeout and rxChan could be just shifted more adequate to SendOnuSwSectionsWindowWithRxSupervision(), where their content could be better used for the single send request initialisation.\nMaybe also omciMsgsPerWindow is not needed here in case data can simply be written to OmciTransferStructure.txFrame\nMoreover: Any reason why you changed the return argument from pointer to direct structure? Should not be that efficient?",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b4b262c1_a61e4946",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4150,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "Two remarks here:\n1.) you allow prio config here (for the used TID numbers), while the real sending is later done only from the low priority queue. So either you enforce usage of low-prio TID\u0027s or you extend the code at sending also to use the high prio queue. Latest is maybe a bit oversized for this function here, as long as really only used for SwSection transfer. You could similarly remove the highprio parameter here and always just use the lowPrio TID\u0027s as well as sending later from the low prio queue\n2.) as already mention on patch #11: now here is the point, where TID\u0027s are fixed for the OMCI transmission. As stated there could be other parallel single-frame OMCI send requests that are directly sent (theoretically also low priority) - and the sequence of transmission in the TID might get broken. As stated before I think it would be required to hold an according semaphore as long as the frames are collected here, so that every other parallel send request has to wait for this transmission first",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e21cf128_6ef82662",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4208,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "I don\u0027t think it makes sense to initialize these variables already here. As you can see they belong to the deviceHandler which is later also resonsible for real sending. So I\u0027d propose to set them in the device Handler send function SendOnuSwSectionsOfWindow()",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9a937972_b9e87dd5",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4211,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "What is the purpose of this state here (compared to the usually used core connection state)? Might be dangerous to set this state without checking any conditions ...",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "622d3382_dc868692",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4220,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "As stated before, perhaps data can be writen to txFrame?",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2d5c825c_7d96b327",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4241,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-01-19T14:13:32Z",
+      "side": 1,
+      "message": "Same question as in line 4149: why changed from pointer to structure?",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
