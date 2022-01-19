@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "9d186f87_ca79ffda",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 833,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T15:50:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab0aa2cd_9676a207",
+      "revId": "b0121304663347794b7694bfcb7e055e65f92dce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9dedfe15_36b800ed",
@@ -48,6 +66,24 @@
       "writtenOn": "2022-01-19T14:24:46Z",
       "side": 1,
       "message": "Semaphore should be released only here in order to avoid different state machine creation/setting just in between from parallel processing",
+      "revId": "b0121304663347794b7694bfcb7e055e65f92dce",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "09fba0e6_dfa729f0",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2420,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T15:50:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9dedfe15_36b800ed",
       "revId": "b0121304663347794b7694bfcb7e055e65f92dce",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
