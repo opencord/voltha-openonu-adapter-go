@@ -84,6 +84,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a0e9aed0_14cbb338",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 767,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T11:04:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dd8a831e_bc44266f",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "fe207964_051ae324",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 2
@@ -95,6 +113,24 @@
       "writtenOn": "2022-01-18T09:42:04Z",
       "side": 1,
       "message": "I\u0027d recommend to reset \u0027disableDeviceRequested\u0027 here again",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d9fac77b_061f9557",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 826,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T11:04:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fe207964_051ae324",
       "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -118,6 +154,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "9eef9505_490e58c7",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2418,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T11:04:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3358c0e3_f7b402db",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "dbde5f4f_e58ef732",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 2
@@ -135,6 +189,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "99b5f08c_a61327eb",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2424,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T11:04:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dbde5f4f_e58ef732",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c9348e28_6b10829f",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 2
@@ -146,6 +218,24 @@
       "writtenOn": "2022-01-18T09:42:04Z",
       "side": 1,
       "message": "No need to additionally check dh.disableDeviceRequested here, runUniLockFsm() for unlock should already only be called in case \u0027disableDeviceRequested\u0027 is not set (see also semaphore comments)",
+      "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "eddf1b5b_d10cf2fd",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2899,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-19T11:04:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c9348e28_6b10829f",
       "revId": "6d68156181738c217e2e3c8da26c57ffd405a7fb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
