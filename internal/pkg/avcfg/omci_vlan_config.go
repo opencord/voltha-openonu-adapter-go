@@ -1327,15 +1327,15 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 		}(pConfigVlanStateBaseFsm)
 		return
 	}
+	if oFsm.lastFlowToReconcile {
+		//note: lastFlowToReconcile does not mean that this block may run only once within reconcilement here,
+		//  due to asynchronous event processing from SetUniFlowParams() it may be executed multiple times
+		logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{
+			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
+		oFsm.pDeviceHandler.SendChUniVlanConfigFinished(uint16(oFsm.pOnuUniPort.UniID))
+	}
 	if oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
 		oFsm.ConfiguredUniFlow = oFsm.NumUniFlows
-		if oFsm.lastFlowToReconcile {
-			//note: lastFlowToReconcile does not mean that this block may run only once within reconcilement here,
-			//  due to asynchronous event processing from SetUniFlowParams() it may be executed multiple times
-			logger.Debugw(ctx, "reconciling - flow processing finished", log.Fields{
-				"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
-			oFsm.pDeviceHandler.SendChUniVlanConfigFinished(uint16(oFsm.pOnuUniPort.UniID))
-		}
 		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
 			log.Fields{"NumUniFlows": oFsm.NumUniFlows, "ConfiguredUniFlow": oFsm.ConfiguredUniFlow, "device-id": oFsm.deviceID})
 		oFsm.mutexFlowParams.Unlock()

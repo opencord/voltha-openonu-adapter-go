@@ -205,6 +205,8 @@ type deviceHandler struct {
 	upgradeCanceled                bool
 	reconciling                    uint8
 	mutexReconcilingFlag           sync.RWMutex
+	reconcilingFirstPass           bool
+	mutexReconcilingFirstPassFlag  sync.RWMutex
 	reconcilingReasonUpdate        bool
 	mutexReconcilingReasonUpdate   sync.RWMutex
 	chUniVlanConfigReconcilingDone chan uint16 //channel to indicate that VlanConfig reconciling for a specific UNI has been finished
@@ -253,6 +255,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
 	dh.reconcilingReasonUpdate = false
+	dh.reconcilingFirstPass = true
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
@@ -1042,30 +1045,25 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 		return
 	}
-
-	if dh.IsSkipOnuConfigReconciling() {
-		//only with 'SkipOnuConfig' we need to wait for all finished-signals
-		//  from vlanConfig processing of all UNI's.
-		logger.Debugw(ctx, "reconciling flows - waiting on ready indication of requested UNIs", log.Fields{
-			"device-id": dh.DeviceID, "expiry": dh.reconcileExpiryVlanConfig})
-		if executed := loWaitGroupWTO.WaitTimeout(dh.reconcileExpiryVlanConfig); executed {
-			logger.Debugw(ctx, "reconciling flows for all UNI's has been finished in time",
-				log.Fields{"device-id": dh.DeviceID})
-			dh.stopReconciling(ctx, true, cWaitReconcileFlowAbortOnSuccess)
-			if pDevEntry != nil {
-				pDevEntry.SendChReconcilingFlowsFinished(ctx, true)
-			}
-		} else {
-			logger.Errorw(ctx, "reconciling - timeout waiting for reconciling flows for all UNI's to be finished!",
-				log.Fields{"device-id": dh.DeviceID})
-			dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
-			if pDevEntry != nil {
-				pDevEntry.SendChReconcilingFlowsFinished(ctx, false)
-			}
-			return
+	logger.Debugw(ctx, "reconciling flows - waiting on ready indication of requested UNIs", log.Fields{
+		"device-id": dh.DeviceID, "expiry": dh.reconcileExpiryVlanConfig})
+	if executed := loWaitGroupWTO.WaitTimeout(dh.reconcileExpiryVlanConfig); executed {
+		logger.Debugw(ctx, "reconciling flows for all UNI's has been finished in time",
+			log.Fields{"device-id": dh.DeviceID})
+		dh.stopReconciling(ctx, true, cWaitReconcileFlowAbortOnSuccess)
+		if pDevEntry != nil {
+			pDevEntry.SendChReconcilingFlowsFinished(ctx, true)
 		}
-		_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, dh.IsReconcilingReasonUpdate())
+	} else {
+		logger.Errorw(ctx, "reconciling - timeout waiting for reconciling flows for all UNI's to be finished!",
+			log.Fields{"device-id": dh.DeviceID})
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
+		if pDevEntry != nil {
+			pDevEntry.SendChReconcilingFlowsFinished(ctx, false)
+		}
+		return
 	}
+	_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, dh.IsReconcilingReasonUpdate())
 }
 
 func (dh *deviceHandler) updateReconcileFlowConfig(ctx context.Context, apUniPort *cmn.OnuUniPort,
@@ -1075,28 +1073,24 @@ func (dh *deviceHandler) updateReconcileFlowConfig(ctx context.Context, apUniPor
 	lastFlowToReconcile := false
 	loUniID := apUniPort.UniID
 	for _, flowData := range aPersFlowParam {
-		if dh.IsSkipOnuConfigReconciling() {
-			if !(*apFlowsFound) {
-				*apFlowsFound = true
-				syncChannel := make(chan struct{})
-				// start go routine with select() on reconciling vlan config channel before
-				// starting vlan config reconciling process to prevent loss of any signal
-				// this routine just collects all the received 'flow-reconciled' signals - possibly from different UNI's
-				go dh.waitOnUniVlanConfigReconcilingReady(ctx, syncChannel, apWaitGroup)
-				//block until the wait routine is really blocked on channel input
-				//  in order to prevent to early ready signal from VlanConfig processing
-				<-syncChannel
-			}
-			if flowsProcessed == len(aPersFlowParam)-1 {
-				var uniAdded bool
-				lastFlowToReconcile = true
-				if aUniVlanConfigEntries, uniAdded = dh.appendIfMissing(aUniVlanConfigEntries, loUniID); uniAdded {
-					apWaitGroup.Add(1) //increment the waiting group
-				}
+		if !(*apFlowsFound) {
+			*apFlowsFound = true
+			syncChannel := make(chan struct{})
+			// start go routine with select() on reconciling vlan config channel before
+			// starting vlan config reconciling process to prevent loss of any signal
+			// this routine just collects all the received 'flow-reconciled' signals - possibly from different UNI's
+			go dh.waitOnUniVlanConfigReconcilingReady(ctx, syncChannel, apWaitGroup)
+			//block until the wait routine is really blocked on channel input
+			//  in order to prevent to early ready signal from VlanConfig processing
+			<-syncChannel
+		}
+		if flowsProcessed == len(aPersFlowParam)-1 {
+			var uniAdded bool
+			lastFlowToReconcile = true
+			if aUniVlanConfigEntries, uniAdded = dh.appendIfMissing(aUniVlanConfigEntries, loUniID); uniAdded {
+				apWaitGroup.Add(1) //increment the waiting group
 			}
 		}
-		// note for above block: also lastFlowToReconcile (as parameter to flow config below)
-		//   is only relevant in the vlanConfig processing for IsSkipOnuConfigReconciling = true
 		logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{
 			"device-id": dh.DeviceID, "uni-id": loUniID,
 			"flowsProcessed": flowsProcessed, "cookies": flowData.CookieSlice})
@@ -1203,11 +1197,6 @@ func (dh *deviceHandler) SendChUniVlanConfigFinished(value uint16) {
 		default:
 		}
 	}
-}
-
-func (dh *deviceHandler) reconcileEnd(ctx context.Context) {
-	logger.Debugw(ctx, "reconciling - completed!", log.Fields{"device-id": dh.DeviceID})
-	dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 }
 
 func (dh *deviceHandler) deleteDevicePersistencyData(ctx context.Context) error {
@@ -2408,7 +2397,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		logger.Debugw(ctx, "reconciling - uni-ports were disabled by admin before adapter restart - keep the ports locked",
 			log.Fields{"device-id": dh.DeviceID})
-		go dh.ReconcileDeviceTechProf(ctx)
+		dh.ReconcileDeviceTechProf(ctx)
 		// reconcilement will be continued after ani config is done
 	} else {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
@@ -2444,7 +2433,7 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 	} else {
 		logger.Debugw(ctx, "reconciling - don't notify core that onu went to active but trigger tech profile config",
 			log.Fields{"device-id": dh.DeviceID})
-		go dh.ReconcileDeviceTechProf(ctx)
+		dh.ReconcileDeviceTechProf(ctx)
 		// reconcilement will be continued after ani config is done
 	}
 }
@@ -2540,7 +2529,15 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 			_ = dh.ReasonUpdate(ctx, cmn.DrTechProfileConfigDownloadSuccess, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 		}
 		if dh.IsReconciling() {
-			go dh.ReconcileDeviceFlowConfig(ctx)
+			// during reconciling with OMCI configuration in TT multi-UNI scenario, OmciAniConfigDone is reached several times
+			// therefore it must be ensured that reconciling of flow config is only started on the first pass of this code position
+			dh.mutexReconcilingFirstPassFlag.Lock()
+			if dh.reconcilingFirstPass {
+				logger.Debugw(ctx, "reconciling - OmciAniConfigDone first pass, start flow processing", log.Fields{"device-id": dh.DeviceID})
+				dh.reconcilingFirstPass = false
+				go dh.ReconcileDeviceFlowConfig(ctx)
+			}
+			dh.mutexReconcilingFirstPassFlag.Unlock()
 		}
 	} else { // should be the OmciAniResourceRemoved block
 		logger.Debugw(ctx, "OmciAniResourceRemoved event received", log.Fields{"device-id": dh.DeviceID})
@@ -2564,9 +2561,6 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 			// which may be the case from some previous activity on another UNI Port of the ONU
 			// or even some previous flow add activity on the same port
 			_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
-			if dh.IsReconciling() {
-				go dh.reconcileEnd(ctx)
-			}
 		}
 	} else {
 		if dh.getDeviceReason() != cmn.DrOmciFlowsDeleted {
@@ -4066,6 +4060,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 			dh.reconciling = cNoReconciling
 			dh.mutexReconcilingFlag.Unlock()
 			dh.SetReconcilingReasonUpdate(false)
+			dh.SetReconcilingFirstPass(true)
 
 			if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 				logger.Errorw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
@@ -4107,6 +4102,12 @@ func (dh *deviceHandler) IsSkipOnuConfigReconciling() bool {
 	dh.mutexReconcilingFlag.RLock()
 	defer dh.mutexReconcilingFlag.RUnlock()
 	return dh.reconciling == cSkipOnuConfigReconciling
+}
+
+func (dh *deviceHandler) SetReconcilingFirstPass(value bool) {
+	dh.mutexReconcilingFirstPassFlag.Lock()
+	dh.reconcilingFirstPass = value
+	dh.mutexReconcilingFirstPassFlag.Unlock()
 }
 
 func (dh *deviceHandler) SetReconcilingReasonUpdate(value bool) {
