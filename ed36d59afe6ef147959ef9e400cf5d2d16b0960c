@@ -37,6 +37,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ed99e679_61ae0bd9",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 831,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-20T08:50:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7b75fc41_b4b3297e",
+      "revId": "ed36d59afe6ef147959ef9e400cf5d2d16b0960c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "52a277f9_82afa5da",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 5
@@ -48,6 +66,24 @@
       "writtenOn": "2022-01-20T08:11:32Z",
       "side": 1,
       "message": "Maybe it is a good idea to set disableDeviceRequested to true here as well. It is not really required by now (similar to the enable request) as the else case below is currently the only one evaluating this flag. But might be good to keep it consistent also after reconcilement in case it should be used occasionally on other points later. As always - if inserted, don\u0027t forget the semaphore protection.",
+      "revId": "ed36d59afe6ef147959ef9e400cf5d2d16b0960c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "616fa8d8_093bab92",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2409,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-01-20T08:50:52Z",
+      "side": 1,
+      "message": "This line comes with rebase with the last changes.",
+      "parentUuid": "52a277f9_82afa5da",
       "revId": "ed36d59afe6ef147959ef9e400cf5d2d16b0960c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
