@@ -16,6 +16,24 @@
       "message": "debug log level ?",
       "revId": "ebaf33de6336e6d61205cfca23eff9fd2d412d15",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1377fa30_cb44a5f6",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 539,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-01-24T16:28:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "bd84c0d6_b6e71fe8",
+      "revId": "ebaf33de6336e6d61205cfca23eff9fd2d412d15",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
