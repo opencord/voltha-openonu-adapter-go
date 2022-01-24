@@ -498,7 +498,7 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 }
 
 func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontMsg *ia.DeleteTcontMessage) error {
-	logger.Infow(ctx, "delete-tcont-request start", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "delete-tcont-request start", log.Fields{"device-id": dh.DeviceID, "uni-id": delTcontMsg.UniId, "tcont": delTcontMsg.AllocId})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
@@ -530,9 +530,19 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 			"device-id": dh.DeviceID, "err": err, "tp-path": tpPath})
 		return err
 	}
-	logger.Infow(ctx, "delete-tcont-request", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID, "tcont": delTcontMsg.AllocId})
-
 	pDevEntry.FreeTcont(ctx, uint16(delTcontMsg.AllocId))
+
+	var wg sync.WaitGroup
+	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+	wg.Add(1)
+	logger.Debugw(ctx, "remove-tcont-in-kv", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID, "tcont": delTcontMsg.AllocId})
+	go pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
+	dh.waitForCompletion(ctx, cancel, &wg, "DeleteTcont") //wait for background process to finish
+	if err := pDevEntry.GetKvProcessingErrorIndication(); err != nil {
+		logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+		return err
+	}
 
 	return dh.deleteTechProfileResource(ctx, uniID, tpID, delTcontMsg.TpInstancePath,
 		avcfg.CResourceTcont, delTcontMsg.AllocId)
@@ -577,7 +587,7 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
 			wg2.Add(1)
 			// Removal of the gem id mapping represents the removal of the tech profile
-			logger.Infow(ctx, "remove-techProfile-indication-in-kv", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID})
+			logger.Debugw(ctx, "remove-techProfile-indication-in-kv", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID})
 			go pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg2)
 			dh.waitForCompletion(ctx, cancel2, &wg2, "TechProfileDeleteOn"+resourceName) //wait for background process to finish
 			if err := pDevEntry.GetKvProcessingErrorIndication(); err != nil {
