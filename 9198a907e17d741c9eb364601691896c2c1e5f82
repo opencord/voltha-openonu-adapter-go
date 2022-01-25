@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c94f531d_86184b61",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1172,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-01-25T17:34:45Z",
+      "side": 1,
+      "message": "Do the Info and Warn logs here cause too much log entries in log files?",
+      "range": {
+        "startLine": 1172,
+        "startChar": 0,
+        "endLine": 1172,
+        "endChar": 72
+      },
+      "revId": "9198a907e17d741c9eb364601691896c2c1e5f82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "32087c8e_9bcfe5b7",
+        "filename": "internal/pkg/core/openonuInterAdapter.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-01-25T17:34:45Z",
+      "side": 1,
+      "message": "is this olt-adapter?",
+      "range": {
+        "startLine": 77,
+        "startChar": 35,
+        "endLine": 77,
+        "endChar": 39
+      },
+      "revId": "9198a907e17d741c9eb364601691896c2c1e5f82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
