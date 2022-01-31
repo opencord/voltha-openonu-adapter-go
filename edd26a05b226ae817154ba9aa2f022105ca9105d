@@ -52,6 +52,24 @@
       "parentUuid": "b4bdaebb_3cbb5a62",
       "revId": "edd26a05b226ae817154ba9aa2f022105ca9105d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4a860bff_224f4012",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 4227,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-01-31T12:06:22Z",
+      "side": 1,
+      "message": "I got the point and have added the lock for the time the sections are prepared",
+      "parentUuid": "d568ae39_0d7171f9",
+      "revId": "edd26a05b226ae817154ba9aa2f022105ca9105d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
