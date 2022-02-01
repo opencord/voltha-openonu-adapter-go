@@ -4674,3 +4674,11 @@ func (oo *OmciCC) SendSetEthernetFrameExtendedPMME(ctx context.Context, timeout 
 		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
 	return nil, omciErr.GetError()
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oo *OmciCC) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oo.pBaseDeviceHandler = nil
+	oo.pOnuDeviceEntry = nil
+	oo.pOnuAlarmManager = nil
+}

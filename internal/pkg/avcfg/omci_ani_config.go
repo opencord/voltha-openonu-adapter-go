@@ -1817,3 +1817,11 @@ func (oFsm *UniPonAniConfigFsm) isChanSet() bool {
 	oFsm.mutexChanSet.RUnlock()
 	return flagValue
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oFsm *UniPonAniConfigFsm) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": oFsm.deviceID})
+	oFsm.pDeviceHandler = nil
+	oFsm.pOnuDeviceEntry = nil
+	oFsm.pOmciCC = nil
+}

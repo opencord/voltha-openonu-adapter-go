@@ -986,3 +986,14 @@ func (oo *OnuDeviceEntry) isReconcilingFlows() bool {
 	oo.mutexReconcilingFlowsFlag.RUnlock()
 	return value
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oo *OnuDeviceEntry) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oo.baseDeviceHandler = nil
+	oo.pOnuTP = nil
+	if oo.PDevOmciCC != nil {
+		oo.PDevOmciCC.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	oo.PDevOmciCC = nil
+}
