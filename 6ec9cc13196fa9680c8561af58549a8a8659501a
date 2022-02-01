@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "523d0aa6_b97b030f",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 358,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T11:46:16Z",
+      "side": 0,
+      "message": "we are not deleting the persistent data anymore here, are we ok with that ?",
+      "range": {
+        "startLine": 358,
+        "startChar": 12,
+        "endLine": 358,
+        "endChar": 47
+      },
+      "revId": "6ec9cc13196fa9680c8561af58549a8a8659501a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "56954ab9_dfbd56f3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T11:46:16Z",
+      "side": 1,
+      "message": "please also rebase",
+      "revId": "acd205d9a161c7657b26c746fac376f73911a5ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b380e356_482ed469",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4507,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T11:46:16Z",
+      "side": 1,
+      "message": "will this be an issue in case of fast device reboot (such as ONU delete and re-discovery via Indication ?",
+      "range": {
+        "startLine": 4505,
+        "startChar": 0,
+        "endLine": 4507,
+        "endChar": 28
+      },
+      "revId": "acd205d9a161c7657b26c746fac376f73911a5ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
