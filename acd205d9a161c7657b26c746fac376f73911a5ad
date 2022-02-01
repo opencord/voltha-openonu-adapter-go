@@ -35,6 +35,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5439e61a_a99a0974",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T15:10:04Z",
+      "side": 1,
+      "message": "please also rebase",
+      "revId": "acd205d9a161c7657b26c746fac376f73911a5ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b380e356_482ed469",
@@ -72,6 +89,30 @@
       "side": 1,
       "message": "Indeed, it would be if this function were not called as a goroutine, as it is in OpenONUAC::DeleteDevice(). I will add an additional comment with a note about this in the function.",
       "parentUuid": "b380e356_482ed469",
+      "range": {
+        "startLine": 4505,
+        "startChar": 0,
+        "endLine": 4507,
+        "endChar": 28
+      },
+      "revId": "acd205d9a161c7657b26c746fac376f73911a5ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "668dcd48_b84de779",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4507,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T15:10:04Z",
+      "side": 1,
+      "message": "good. +1 to the comment, will +1 the patch after that.",
+      "parentUuid": "100346d6_521dfdb4",
       "range": {
         "startLine": 4505,
         "startChar": 0,
