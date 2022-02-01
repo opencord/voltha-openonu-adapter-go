@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "196a5b41_1ce097ba",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 4180,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T15:00:24Z",
+      "side": 1,
+      "message": "please check with Chip Boling on this.",
+      "revId": "f035c229ea29a40be33847ee18713d27f6da95bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
