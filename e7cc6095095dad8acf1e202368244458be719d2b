@@ -46,6 +46,30 @@
       },
       "revId": "e7cc6095095dad8acf1e202368244458be719d2b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a02c5fd9_b7be120e",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4508,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-01T15:43:57Z",
+      "side": 1,
+      "message": "Making this timer arbitrarily configurable would create a way to willfully crash the adapter.",
+      "parentUuid": "06ba17f5_b5b87dee",
+      "range": {
+        "startLine": 4508,
+        "startChar": 1,
+        "endLine": 4508,
+        "endChar": 28
+      },
+      "revId": "e7cc6095095dad8acf1e202368244458be719d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
