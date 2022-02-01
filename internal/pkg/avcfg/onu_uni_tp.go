@@ -1009,3 +1009,14 @@ func (onuTP *OnuUniTechProf) getProfileResetting(aUniTpKey uniTP) bool {
 	}
 	return false
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (onuTP *OnuUniTechProf) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	onuTP.baseDeviceHandler = nil
+	onuTP.onuDevice = nil
+	for k, v := range onuTP.PAniConfigFsm {
+		v.PrepareForGarbageCollection(ctx, aDeviceID)
+		delete(onuTP.PAniConfigFsm, k)
+	}
+}

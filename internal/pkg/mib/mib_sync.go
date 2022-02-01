@@ -488,6 +488,10 @@ loop:
 		switch message.Type {
 		case cmn.TestMsg:
 			msg, _ := message.Data.(cmn.TestMessage)
+			if msg.TestMessageVal == cmn.AbortMessageProcessing {
+				logger.Debugw(ctx, "MibSync Msg abort ProcessMsg", log.Fields{"for device-id": oo.deviceID})
+				break loop
+			}
 			oo.handleTestMsg(ctx, msg)
 		case cmn.OMCI:
 			msg, _ := message.Data.(cmn.OmciMessage)
@@ -1207,8 +1211,16 @@ func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 	}
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
-	pMibUlFsm := oo.PMibUploadFsm.PFsm
+	pMibUlFsm := oo.PMibUploadFsm
 	if pMibUlFsm != nil {
-		_ = pMibUlFsm.Event(UlEvStop)
+		// abort running message processing
+		fsmAbortMsg := cmn.Message{
+			Type: cmn.TestMsg,
+			Data: cmn.TestMessage{
+				TestMessageVal: cmn.AbortMessageProcessing,
+			},
+		}
+		pMibUlFsm.CommChan <- fsmAbortMsg
+		_ = pMibUlFsm.PFsm.Event(UlEvStop)
 	}
 }

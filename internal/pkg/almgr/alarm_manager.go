@@ -800,3 +800,10 @@ func (am *OnuAlarmManager) GetAlarmUploadSeqNo() uint16 {
 func (am *OnuAlarmManager) GetAlarmMgrEventChannel() chan cmn.Message {
 	return am.eventChannel
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (am *OnuAlarmManager) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	am.pDeviceHandler = nil
+	am.pOnuDeviceEntry = nil
+}

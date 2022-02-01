@@ -4497,3 +4497,50 @@ func (dh *deviceHandler) anyTpPathExists(aTpPathMap map[uint8]string) bool {
 	}
 	return tpPathFound
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+
+	// Note: This function must be called as a goroutine to prevent blocking of further processing!
+	// first let the objects rest for some time to give all asynchronously started
+	// cleanup routines a chance to come to an end
+	time.Sleep(5 * time.Second)
+
+	if dh.pOnuTP != nil {
+		dh.pOnuTP.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pOnuMetricsMgr != nil {
+		dh.pOnuMetricsMgr.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pAlarmMgr != nil {
+		dh.pAlarmMgr.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pSelfTestHdlr != nil {
+		dh.pSelfTestHdlr.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pLockStateFsm != nil {
+		dh.pLockStateFsm.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pUnlockStateFsm != nil {
+		dh.pUnlockStateFsm.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pOnuUpradeFsm != nil {
+		dh.pOnuUpradeFsm.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	if dh.pOnuOmciDevice != nil {
+		dh.pOnuOmciDevice.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	for k, v := range dh.UniVlanConfigFsmMap {
+		v.PrepareForGarbageCollection(ctx, aDeviceID)
+		delete(dh.UniVlanConfigFsmMap, k)
+	}
+	dh.pOnuOmciDevice = nil
+	dh.pOnuTP = nil
+	dh.pOnuMetricsMgr = nil
+	dh.pAlarmMgr = nil
+	dh.pSelfTestHdlr = nil
+	dh.pLockStateFsm = nil
+	dh.pUnlockStateFsm = nil
+	dh.pOnuUpradeFsm = nil
+}

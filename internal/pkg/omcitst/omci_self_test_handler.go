@@ -410,3 +410,10 @@ func (selfTestCb *SelfTestControlBlock) SelfTestRequestStart(ctx context.Context
 	// If the return from here is NOT nil, the caller shall not wait for async response.
 	return selfTestCb.initiateNewSelfTestFsm(ctx, reqMsg, CommChan, meClassID, respChan)
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (selfTestCb *SelfTestControlBlock) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	selfTestCb.pDeviceHandler = nil
+	selfTestCb.pDevEntry = nil
+}

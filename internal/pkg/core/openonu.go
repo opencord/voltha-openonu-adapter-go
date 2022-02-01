@@ -344,34 +344,18 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}
-		forceKvDelete := false
-
-		// Clear PM data on the KV store
-		if handler.pOnuMetricsMgr != nil {
-			if err := handler.pOnuMetricsMgr.ClearAllPmData(ctx); err != nil {
-				errorsList = append(errorsList, err)
-				forceKvDelete = true
-			}
-		} else {
-			forceKvDelete = true
-		}
-		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
-			errorsList = append(errorsList, err)
-			forceKvDelete = true
-		}
 		for _, uni := range handler.uniEntityMap {
 			if handler.GetFlowMonitoringIsRunning(uni.UniID) {
 				handler.stopFlowMonitoringRoutine[uni.UniID] <- true
 				logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id})
 			}
 		}
-		//don't leave any garbage - even in error case
-		oo.deleteDeviceHandlerToMap(handler)
-		if forceKvDelete {
-			if err := oo.forceDeleteDeviceKvData(ctx, device.Id); err != nil {
-				errorsList = append(errorsList, err)
-			}
+		//don't leave any garbage in kv-store
+		if err := oo.forceDeleteDeviceKvData(ctx, device.Id); err != nil {
+			errorsList = append(errorsList, err)
 		}
+		oo.deleteDeviceHandlerToMap(handler)
+		go handler.PrepareForGarbageCollection(ctx, handler.DeviceID)
 
 		if len(errorsList) > 0 {
 			logger.Errorw(ctx, "one-or-more-error-during-device-delete", log.Fields{"device-id": device.Id})
