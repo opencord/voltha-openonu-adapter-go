@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "73d2e230_11cdf22d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4508,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-01T15:17:26Z",
+      "side": 1,
+      "message": "I would also make this configurable and possibly reduce this to a lower number. is 1s enough ?\nboth of these things can be done on a separate patch.",
+      "range": {
+        "startLine": 4508,
+        "startChar": 1,
+        "endLine": 4508,
+        "endChar": 28
+      },
+      "revId": "e7cc6095095dad8acf1e202368244458be719d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
