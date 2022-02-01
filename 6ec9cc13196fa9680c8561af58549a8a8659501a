@@ -22,6 +22,30 @@
       },
       "revId": "6ec9cc13196fa9680c8561af58549a8a8659501a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7ffc79d8_d2d28ea4",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 358,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-01T15:08:36Z",
+      "side": 0,
+      "message": "To speed up processing in case of deleting the device, all persistent data is now deleted both in the good case and in the error cases using the function OpenONUAC::forceDeleteDeviceKvData() below.",
+      "parentUuid": "523d0aa6_b97b030f",
+      "range": {
+        "startLine": 358,
+        "startChar": 12,
+        "endLine": 358,
+        "endChar": 47
+      },
+      "revId": "6ec9cc13196fa9680c8561af58549a8a8659501a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }

@@ -56,6 +56,30 @@
       },
       "revId": "acd205d9a161c7657b26c746fac376f73911a5ad",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "100346d6_521dfdb4",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4507,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-01T15:08:36Z",
+      "side": 1,
+      "message": "Indeed, it would be if this function were not called as a goroutine, as it is in OpenONUAC::DeleteDevice(). I will add an additional comment with a note about this in the function.",
+      "parentUuid": "b380e356_482ed469",
+      "range": {
+        "startLine": 4505,
+        "startChar": 0,
+        "endLine": 4507,
+        "endChar": 28
+      },
+      "revId": "acd205d9a161c7657b26c746fac376f73911a5ad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
