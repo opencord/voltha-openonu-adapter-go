@@ -18,6 +18,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "57e0b035_ad886de3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-02T09:00:58Z",
+      "side": 1,
+      "message": "Yes",
+      "parentUuid": "d536d73b_9faa393f",
+      "revId": "e7cc6095095dad8acf1e202368244458be719d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "73d2e230_11cdf22d",
@@ -127,6 +145,30 @@
       "side": 1,
       "message": "Are there any asyncrhonous cleanup processes except this one? I did not find any.",
       "parentUuid": "939a30d1_be87f0cc",
+      "range": {
+        "startLine": 4508,
+        "startChar": 1,
+        "endLine": 4508,
+        "endChar": 28
+      },
+      "revId": "e7cc6095095dad8acf1e202368244458be719d2b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2926faae_c3d9ef2c",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4508,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-02T09:00:58Z",
+      "side": 1,
+      "message": "Yes, for the longest time the deletion of PM configurations in etcd ran after by the function OnuMetricsManager::clearPmGroupData(), which is triggered indirectly by deviceHandler::resetFsms() above in OpenONUAC::DeleteDevice() due to the termination of OnuMetricsManager.",
+      "parentUuid": "428d5dd6_d561183a",
       "range": {
         "startLine": 4508,
         "startChar": 1,
