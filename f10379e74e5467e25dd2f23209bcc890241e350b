@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "56929f39_4ed7f2fa",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-03T09:08:50Z",
+      "side": 1,
+      "message": "@Girish: Seems to be that reusing the onuKvbackend is not always working. Then the loop above show be resolved and ONU- and PM-data should be deleted discretly.",
+      "revId": "f10379e74e5467e25dd2f23209bcc890241e350b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3e474370_a28ccba6",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1093,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-03T09:08:50Z",
+      "side": 1,
+      "message": "It seems that reusing the onuKvbackend does not always work. Then the above loop should be resolved and ONU and PM data should be deleted discretely. But the solution of the current patch works as well for the time being.",
+      "range": {
+        "startLine": 1093,
+        "startChar": 2,
+        "endLine": 1093,
+        "endChar": 15
+      },
+      "revId": "f10379e74e5467e25dd2f23209bcc890241e350b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
