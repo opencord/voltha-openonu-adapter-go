@@ -39,6 +39,30 @@
       },
       "revId": "f10379e74e5467e25dd2f23209bcc890241e350b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ab7e7cb7_5d13d5f7",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1093,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-03T17:51:49Z",
+      "side": 1,
+      "message": "I am not sure I understand this comment. The PM data deletion and ONU data deletion use different backends. There is no reuse.",
+      "parentUuid": "3e474370_a28ccba6",
+      "range": {
+        "startLine": 1093,
+        "startChar": 2,
+        "endLine": 1093,
+        "endChar": 15
+      },
+      "revId": "f10379e74e5467e25dd2f23209bcc890241e350b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
