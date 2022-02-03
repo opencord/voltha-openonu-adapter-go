@@ -230,6 +230,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "bc2a6380_bd9be41e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4211,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "I still do ot understand. Where was the connection state (used) earlier? I think it is at least a new parameter within ia.OmciMessages. So it is first used in this Gerrit change. I still have some doubts about the fixed setting here and the possibly reactions whereever this is evaluated. If it is here just pro forma, then fine.",
+      "parentUuid": "d06fda39_d091ee7d",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "622d3382_dc868692",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 13

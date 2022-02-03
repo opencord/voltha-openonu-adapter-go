@@ -16,6 +16,143 @@
       "message": "Would it somehow be possible to run an ONU upgrade scale test with this patch?",
       "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1ba48294_16e63115",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 18
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "Looks good that way, but I still would propose some optimisation/improvement.",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "abe8b622_9ca58ecf",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4169,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "Just spelling: \u0027prepares\u0027.\nA further comment would be welcome to indicate that precondition of this function call is that mutexTid is locked outside this funtion, so that internally GetOnuSwSecNextTid() can be used without any further locking.",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "775a1047_9d19481c",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4170,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "rxChan and aPrint: see discussion on patch 13 and now also down on line 4217ff.\nIn my point of view it makes no sense to keep this parameters here for all individual sections as they are used in the CallbackPairEntry only with the last (responseRequired) section. \nSo my proposal would be to remove all this stuff completely out of this function here and initialize and set the CallbackPairEntry only in SendOnuSwSectionsWindowWithRxSupervision(). This probably also requires to have the last tid as parameter to that function (which should not be a bigger issue by using a new CC function GetOnuSwSecLastTid within omci_onu_upgrade).",
+      "range": {
+        "startLine": 4170,
+        "startChar": 66,
+        "endLine": 4170,
+        "endChar": 72
+      },
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "80e376a1_0badd6d1",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4217,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "Concerning print frame usage: This paramater setting has no effect anymore in your sequence of send functions. I\u0027d appreciate if you\u0027d really print the last (responseRequired) section if requested per parameter, but this can\u0027t be controlled here anymore (just) using the callback parameter. I think it would be good to pass the print option with the callbackPair set when reaching the last section. But based on that at sending (within deviceHandler?) I would avoid printing the whole window then, but really only the last section. If that is to complicated [and the way it works with this patch version] I\u0027d rather skip printing completely - and you can just skip setting the print option here (which is then more misleading than anything else).",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b374d914_9e8520b4",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4222,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "This block: It makes no sense here to always set the callbackPair for each section, while it is only used with the last (responseRequired) section. My proposal is to move it completely to SendOnuSwSectionsWindowWithRxSupervision().\nSee also discussion on function parameters above.",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "02645d1b_fe35b1bb",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4255,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "See comment in upgrade code.",
+      "range": {
+        "startLine": 4255,
+        "startChar": 51,
+        "endLine": 4255,
+        "endChar": 62
+      },
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3183450c_1ff8573e",
+        "filename": "internal/pkg/swupg/omci_onu_upgrade.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 821,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-03T11:40:20Z",
+      "side": 1,
+      "message": "It is not common and proposed to set the Retry rate from the calling application. So far the retry rate is more a CC internal parameter (and set only there). As you obviously don\u0027t want to set very specific value here I\u0027d propose to leave that in the CC code only.",
+      "range": {
+        "startLine": 821,
+        "startChar": 119,
+        "endLine": 821,
+        "endChar": 134
+      },
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
