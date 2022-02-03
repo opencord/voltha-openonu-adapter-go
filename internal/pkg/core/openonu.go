@@ -896,7 +896,7 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 			}
 			return &empty.Empty{}, nil
 		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
-			return nil, handler.updateInterface(ctx, onuIndication)
+			return &empty.Empty{}, handler.updateInterface(ctx, onuIndication)
 		} else {
 			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
 			return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, onuInd.DeviceId)
