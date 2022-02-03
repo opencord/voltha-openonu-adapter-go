@@ -1084,27 +1084,42 @@ func setAndTestOltInterAdapterServiceHandler(ctx context.Context, conn *grpc.Cli
 
 func (oo *OpenONUAC) forceDeleteDeviceKvData(ctx context.Context, aDeviceID string) error {
 	logger.Debugw(ctx, "force deletion of ONU device specific data in kv store", log.Fields{"device-id": aDeviceID})
-
+	var errorsList []error
+	// delete onu persitent data
 	for i := range onuKvStorePathPrefixes {
 		baseKvStorePath := fmt.Sprintf(onuKvStorePathPrefixes[i], oo.cm.Backend.PathPrefix)
 		logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": baseKvStorePath,
 			"device-id": aDeviceID})
-		kvbackend := &db.Backend{
+		onuKvbackend := &db.Backend{
 			Client:     oo.kvClient,
 			StoreType:  oo.KVStoreType,
 			Address:    oo.KVStoreAddress,
 			Timeout:    oo.KVStoreTimeout,
-			PathPrefix: baseKvStorePath}
-
-		if kvbackend == nil {
-			logger.Errorw(ctx, "Can't access onuKVStore - no backend connection to service", log.Fields{"service": baseKvStorePath, "device-id": aDeviceID})
-			return fmt.Errorf("can-not-access-onuKVStore-no-backend-connection-to-service")
+			PathPrefix: baseKvStorePath,
 		}
-		err := kvbackend.DeleteWithPrefix(ctx, aDeviceID)
+		err := onuKvbackend.DeleteWithPrefix(ctx, aDeviceID)
 		if err != nil {
 			logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": baseKvStorePath, "device-id": aDeviceID, "err": err})
-			return fmt.Errorf("unable-to-delete-in-KVstore")
+			// continue to delete kv data, but accumulate any errors
+			errorsList = append(errorsList, err)
 		}
+	}
+	// delete pm data
+	pmKvbackend := &db.Backend{
+		Client:     oo.kvClient,
+		StoreType:  oo.KVStoreType,
+		Address:    oo.KVStoreAddress,
+		Timeout:    oo.KVStoreTimeout,
+		PathPrefix: fmt.Sprintf(pmmgr.CPmKvStorePrefixBase, oo.cm.Backend.PathPrefix),
+	}
+	err := pmKvbackend.DeleteWithPrefix(ctx, aDeviceID)
+	if err != nil {
+		logger.Errorw(ctx, "unable to delete PM in KVstore", log.Fields{"path": pmmgr.CPmKvStorePrefixBase + aDeviceID, "device-id": aDeviceID, "err": err})
+		// accumulate any errors
+		errorsList = append(errorsList, err)
+	}
+	if len(errorsList) > 0 {
+		return fmt.Errorf("one or more error deleting kv data, error: %v", errorsList)
 	}
 	return nil
 }
