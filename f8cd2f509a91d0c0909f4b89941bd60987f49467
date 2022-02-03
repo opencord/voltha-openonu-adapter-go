@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "11ca79db_f7a5c429",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 18
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-03T09:28:48Z",
+      "side": 1,
+      "message": "Would it somehow be possible to run an ONU upgrade scale test with this patch?",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
