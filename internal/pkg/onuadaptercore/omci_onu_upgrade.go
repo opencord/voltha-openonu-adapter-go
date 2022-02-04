@@ -1910,3 +1910,13 @@ func (oFsm *OnuUpgradeFsm) stateUpdateOnReset(ctx context.Context) {
 		oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN //something like 'IMAGE_DOWNLOAD_ABORTED' would be better (proto)
 	}
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oFsm *OnuUpgradeFsm) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oFsm.pDeviceHandler = nil
+	oFsm.pDownloadManager = nil
+	oFsm.pFileManager = nil
+	oFsm.pDevEntry = nil
+	oFsm.pOmciCC = nil
+}

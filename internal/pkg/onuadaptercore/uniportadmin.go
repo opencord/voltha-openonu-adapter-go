@@ -531,3 +531,10 @@ func (oFsm *lockStateFsm) waitforOmciResponse(ctx context.Context, apMeInstance 
 		return fmt.Errorf("lockStateFsm uni-set responseError for device-id %s", oFsm.deviceID)
 	}
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oFsm *lockStateFsm) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oFsm.pDeviceHandler = nil
+	oFsm.pOmciCC = nil
+}

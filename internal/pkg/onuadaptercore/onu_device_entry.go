@@ -980,3 +980,13 @@ func (oo *OnuDeviceEntry) freeTcont(ctx context.Context, allocID uint16) {
 	defer oo.mutexPersOnuConfig.Unlock()
 	delete(oo.sOnuPersistentData.PersTcontMap, allocID)
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oo *OnuDeviceEntry) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oo.baseDeviceHandler = nil
+	if oo.PDevOmciCC != nil {
+		oo.PDevOmciCC.PrepareForGarbageCollection(ctx, aDeviceID)
+	}
+	oo.PDevOmciCC = nil
+}

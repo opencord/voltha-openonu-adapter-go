@@ -786,3 +786,9 @@ func (am *onuAlarmManager) GetAlarmUploadSeqNo() uint16 {
 	am.onuAlarmManagerLock.RUnlock()
 	return value
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (am *onuAlarmManager) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	am.pDeviceHandler = nil
+}

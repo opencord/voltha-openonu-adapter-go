@@ -3156,3 +3156,10 @@ func (oFsm *UniVlanConfigFsm) reconcileVlanFilterList(ctx context.Context, aSetV
 		oFsm.numVlanFilterEntries++
 	}
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oFsm *UniVlanConfigFsm) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oFsm.pDeviceHandler = nil
+	oFsm.pOmciCC = nil
+}

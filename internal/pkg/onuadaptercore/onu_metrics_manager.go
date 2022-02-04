@@ -3670,3 +3670,9 @@ func (mm *onuMetricsManager) getControlBlockForExtendedPMDirection(ctx context.C
 	controlBlock[7] = 0
 	return controlBlock
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (mm *onuMetricsManager) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	mm.pDeviceHandler = nil
+}

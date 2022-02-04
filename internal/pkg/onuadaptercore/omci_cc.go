@@ -3237,3 +3237,10 @@ func (oo *omciCC) sendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Contex
 		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
 	return nil, omciErr.GetError()
 }
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (oo *omciCC) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	oo.pBaseDeviceHandler = nil
+	oo.pOnuDeviceEntry = nil
+}

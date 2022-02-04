@@ -409,20 +409,12 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 		handler.deletionInProgress = true
 		handler.mutexDeletionInProgressFlag.Unlock()
 
-		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
+		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}
-		select {
-		case handler.stopCollector <- true: // stop the metric collector routine
-			logger.Debugw(ctx, "sent stop signal to metric collector routine", log.Fields{"device-id": device.Id})
-		default:
-			logger.Warnw(ctx, "metric collector routine not waiting on stop signal", log.Fields{"device-id": device.Id})
-		}
-		select {
-		case handler.stopAlarmManager <- true: //stop the alarm manager.
-			logger.Debugw(ctx, "sent stop signal to alarm manager", log.Fields{"device-id": device.Id})
-		default:
-			logger.Warnw(ctx, "alarm manager not waiting on stop signal", log.Fields{"device-id": device.Id})
+
+		if err := handler.deleteDevicePersistencyData(ctx); err != nil {
+			errorsList = append(errorsList, err)
 		}
 		if handler.pOnuMetricsMgr != nil {
 			if err := handler.pOnuMetricsMgr.clearAllPmData(ctx); err != nil {
@@ -437,6 +429,7 @@ func (oo *OpenONUAC) Delete_device(ctx context.Context, device *voltha.Device) e
 		}
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
+		//go handler.PrepareForGarbageCollection(ctx, device.Id)
 		if len(errorsList) > 0 {
 			logger.Errorw(ctx, "one-or-more-error-during-device-delete", log.Fields{"device-id": device.Id})
 			return fmt.Errorf("one-or-more-error-during-device-delete, errors:%v", errorsList)

@@ -20,13 +20,14 @@ package adaptercoreonu
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go"
 	"github.com/opencord/omci-lib-go/generated"
 	"github.com/opencord/voltha-lib-go/v5/pkg/log"
 	"github.com/opencord/voltha-protos/v4/go/extension"
-	"sync"
-	"time"
 )
 
 const (
@@ -378,4 +379,10 @@ func (selfTestCb *selfTestControlBlock) SelfTestRequestStart(ctx context.Context
 	// indicates only if the FSM was initiated correctly. Response is asynchronous on respChan.
 	// If the return from here is NOT nil, the caller shall not wait for async response.
 	return selfTestCb.initiateNewSelfTestFsm(ctx, reqMsg, commChan, meClassID, respChan)
+}
+
+// PrepareForGarbageCollection - remove references to prepare for garbage collection
+func (selfTestCb *selfTestControlBlock) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
+	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	selfTestCb.pDeviceHandler = nil
 }
