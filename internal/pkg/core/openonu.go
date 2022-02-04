@@ -53,8 +53,6 @@ import (
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
 )
 
-var onuKvStorePathPrefixes = []string{cmn.CBasePathOnuKVStore, pmmgr.CPmKvStorePrefixBase}
-
 type reachabilityFromRemote struct {
 	lastKeepAlive     time.Time
 	keepAliveInterval int64
@@ -1089,35 +1087,36 @@ func (oo *OpenONUAC) forceDeleteDeviceKvData(ctx context.Context, aDeviceID stri
 	logger.Debugw(ctx, "force deletion of ONU device specific data in kv store", log.Fields{"device-id": aDeviceID})
 	var errorsList []error
 	// delete onu persitent data
-	for i := range onuKvStorePathPrefixes {
-		baseKvStorePath := fmt.Sprintf(onuKvStorePathPrefixes[i], oo.cm.Backend.PathPrefix)
-		logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": baseKvStorePath,
-			"device-id": aDeviceID})
-		onuKvbackend := &db.Backend{
-			Client:     oo.kvClient,
-			StoreType:  oo.KVStoreType,
-			Address:    oo.KVStoreAddress,
-			Timeout:    oo.KVStoreTimeout,
-			PathPrefix: baseKvStorePath,
-		}
-		err := onuKvbackend.DeleteWithPrefix(ctx, aDeviceID)
-		if err != nil {
-			logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": baseKvStorePath, "device-id": aDeviceID, "err": err})
-			// continue to delete kv data, but accumulate any errors
-			errorsList = append(errorsList, err)
-		}
+	onuBaseKvStorePath := fmt.Sprintf(cmn.CBasePathOnuKVStore, oo.cm.Backend.PathPrefix)
+	logger.Debugw(ctx, "SetOnuKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": onuBaseKvStorePath,
+		"device-id": aDeviceID})
+	onuKvbackend := &db.Backend{
+		Client:     oo.kvClient,
+		StoreType:  oo.KVStoreType,
+		Address:    oo.KVStoreAddress,
+		Timeout:    oo.KVStoreTimeout,
+		PathPrefix: onuBaseKvStorePath,
+	}
+	err := onuKvbackend.DeleteWithPrefix(ctx, aDeviceID)
+	if err != nil {
+		logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"service": onuBaseKvStorePath, "device-id": aDeviceID, "err": err})
+		// continue to delete kv data, but accumulate any errors
+		errorsList = append(errorsList, err)
 	}
 	// delete pm data
+	pmBaseKvStorePath := fmt.Sprintf(pmmgr.CPmKvStorePrefixBase, oo.cm.Backend.PathPrefix)
+	logger.Debugw(ctx, "SetPmKVStoreBackend", log.Fields{"IpTarget": oo.KVStoreAddress, "BasePathKvStore": pmBaseKvStorePath,
+		"device-id": aDeviceID})
 	pmKvbackend := &db.Backend{
 		Client:     oo.kvClient,
 		StoreType:  oo.KVStoreType,
 		Address:    oo.KVStoreAddress,
 		Timeout:    oo.KVStoreTimeout,
-		PathPrefix: fmt.Sprintf(pmmgr.CPmKvStorePrefixBase, oo.cm.Backend.PathPrefix),
+		PathPrefix: pmBaseKvStorePath,
 	}
-	err := pmKvbackend.DeleteWithPrefix(ctx, aDeviceID)
+	err = pmKvbackend.DeleteWithPrefix(ctx, aDeviceID)
 	if err != nil {
-		logger.Errorw(ctx, "unable to delete PM in KVstore", log.Fields{"path": pmmgr.CPmKvStorePrefixBase + aDeviceID, "device-id": aDeviceID, "err": err})
+		logger.Errorw(ctx, "unable to delete PM in KVstore", log.Fields{"service": pmBaseKvStorePath, "device-id": aDeviceID, "err": err})
 		// accumulate any errors
 		errorsList = append(errorsList, err)
 	}
