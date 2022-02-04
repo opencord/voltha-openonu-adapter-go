@@ -63,6 +63,30 @@
       },
       "revId": "f10379e74e5467e25dd2f23209bcc890241e350b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4d9c8115_b9f39a97",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1093,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-04T11:21:14Z",
+      "side": 1,
+      "message": "The idea was to reuse the local variable onuKvbackend to include a new backend definition in each loop iteration. baseKvStorePath differs in each run: \nbaseKvStorePath :\u003d fmt.Sprintf(onuKvStorePathPrefixes[i], oo.cm.Backend.PathPrefix).\nHowever, this would only work if onuKvbackend.DeleteWithPrefix(ctx, aDeviceID) would run completely synchronously. Therefore, the loop should be removed and replaced by deleting onu data only, followed by your new code for pm data below.",
+      "parentUuid": "ab7e7cb7_5d13d5f7",
+      "range": {
+        "startLine": 1093,
+        "startChar": 2,
+        "endLine": 1093,
+        "endChar": 15
+      },
+      "revId": "f10379e74e5467e25dd2f23209bcc890241e350b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
