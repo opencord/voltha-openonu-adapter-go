@@ -367,6 +367,8 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		}
 		//don't leave any garbage - even in error case
 		oo.deleteDeviceHandlerToMap(handler)
+		go handler.PrepareForGarbageCollection(ctx, handler.DeviceID)
+
 		if forceKvDelete {
 			if err := oo.forceDeleteDeviceKvData(ctx, device.Id); err != nil {
 				errorsList = append(errorsList, err)
