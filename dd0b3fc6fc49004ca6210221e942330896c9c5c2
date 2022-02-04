@@ -22,6 +22,30 @@
       },
       "revId": "dd0b3fc6fc49004ca6210221e942330896c9c5c2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e3d585d0_c1f87ead",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 899,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-02-04T07:42:45Z",
+      "side": 1,
+      "message": "Yeah, It should be good.",
+      "parentUuid": "36f62fb5_f906765e",
+      "range": {
+        "startLine": 899,
+        "startChar": 3,
+        "endLine": 899,
+        "endChar": 69
+      },
+      "revId": "dd0b3fc6fc49004ca6210221e942330896c9c5c2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
