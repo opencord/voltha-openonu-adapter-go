@@ -2236,6 +2236,53 @@ func (oo *OmciCC) SendDeleteGemIWTP(ctx context.Context, timeout int, highPrio b
 	return nil, omciErr.GetError()
 }
 
+// SendDeleteMulticastGemIWTP deletes MulticastGemInterworkingTerminationPoint ME instance
+func (oo *OmciCC) SendDeleteMulticastGemIWTP(ctx context.Context, timeout int, highPrio bool,
+	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send MulticastGemIwTp-Delete-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16),
+		"InstId": strconv.FormatInt(int64(aInstID), 16)})
+
+	meParams := me.ParamData{EntityID: aInstID}
+	meInstance, omciErr := me.NewMulticastGemInterworkingTerminationPoint(meParams)
+	if omciErr.GetError() == nil {
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.DeleteRequestType,
+			oframe.TransactionID(tid))
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode MulticastGemIwTp for delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			//TODO!!: refactoring improvement requested, here as an example for [VOL-3457]:
+			//  return (dual format) error code that can be used at caller for immediate error treatment
+			//  (relevant to all used sendXX() methods and their error conditions)
+			return nil, err
+		}
+
+		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize MulticastGemIwTp delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send MulticastGemIwTp delete", log.Fields{
+				"Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debug(ctx, "send MulticastGemIwTp-Delete-msg done")
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate MulticastGemIwTp Instance for delete", log.Fields{
+		"Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
 // SendDeleteGemNCTP deletes GemPortNetworkCtp ME instance
 func (oo *OmciCC) SendDeleteGemNCTP(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
