@@ -809,12 +809,18 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	oFsm.pUniTechProf.mutexTPState.RLock()
 	// get the related GemPort entity Id from pUniTechProf, OMCI Gem* entityID is set to be equal to GemPortId!
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
+	var mcastGemPortID uint16
+	mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
+	for _, gemEntry := range mapGemPortParams {
+		if gemEntry.isMulticast {
+			mcastGemPortID = gemEntry.multicastGemPortID
+		}
+	}
 	oFsm.pUniTechProf.mutexTPState.RUnlock()
 	logger.Debugw(ctx, "UniPonAniConfigFsm - start removing one GemIwTP", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
 		"GemIwTp-entity-id": loGemPortID})
 	oFsm.requestEventOffset = 1 //offset 1 to indicate last activity = remove
-
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.SendDeleteGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
@@ -836,8 +842,89 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	}
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
+	if mcastGemPortID != 0 {
+		oFsm.deleteAllMulticastMEs(ctx, e, mcastGemPortID)
+	}
 }
 
+func (oFsm *UniPonAniConfigFsm) deleteAllMulticastMEs(ctx context.Context, e *fsm.Event, gemPortID uint16) {
+	oFsm.mutexPLastTxMeInstance.Lock()
+	meInstance, err := oFsm.pOmciCC.SendDeleteMulticastGemIWTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(),
+		true, oFsm.PAdaptFsm.CommChan, gemPortID)
+	if err != nil {
+		logger.Errorw(ctx, "MulticastGemIWTP delete failed, aborting UniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		pConfigAniStateAFsm := oFsm.PAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			oFsm.mutexPLastTxMeInstance.Unlock()
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *cmn.AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.PFsm != nil {
+					_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
+				}
+			}(pConfigAniStateAFsm)
+			return
+		}
+	}
+	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
+	oFsm.mutexPLastTxMeInstance.Lock()
+	instID, errMBPCDEID := cmn.GenerateUNISideMBPCDEID(uint16(oFsm.pOnuUniPort.MacBpNo))
+	if errMBPCDEID != nil {
+		logger.Errorw(ctx, "Cannot generate MulticastMEID, aborting UniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		pConfigAniStateAFsm := oFsm.PAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			oFsm.mutexPLastTxMeInstance.Unlock()
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *cmn.AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.PFsm != nil {
+					_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
+				}
+			}(pConfigAniStateAFsm)
+			return
+		}
+	}
+	meInstance, err = oFsm.pOmciCC.SendDeleteMulticastSubscriberConfigInfo(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(),
+		true, oFsm.PAdaptFsm.CommChan, instID)
+	if err != nil {
+		logger.Errorw(ctx, "MulticastSubscriberConfigInfo delete failed, aborting UniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		pConfigAniStateAFsm := oFsm.PAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			oFsm.mutexPLastTxMeInstance.Unlock()
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *cmn.AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.PFsm != nil {
+					_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
+				}
+			}(pConfigAniStateAFsm)
+			return
+		}
+	}
+	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
+	oFsm.mutexPLastTxMeInstance.Lock()
+	meInstance, err = oFsm.pOmciCC.SendDeleteMulticastOperationsProfile(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(),
+		true, oFsm.PAdaptFsm.CommChan, instID)
+	if err != nil {
+		logger.Errorw(ctx, "MulticastOperationsProfile delete failed, aborting UniPonAniConfigFsm!",
+			log.Fields{"device-id": oFsm.deviceID})
+		pConfigAniStateAFsm := oFsm.PAdaptFsm
+		if pConfigAniStateAFsm != nil {
+			oFsm.mutexPLastTxMeInstance.Unlock()
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *cmn.AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.PFsm != nil {
+					_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
+				}
+			}(pConfigAniStateAFsm)
+			return
+		}
+	}
+	oFsm.pLastTxMeInstance = meInstance
+	oFsm.mutexPLastTxMeInstance.Unlock()
+}
 func (oFsm *UniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.Event) {
 	oFsm.mutexIsAwaitingResponse.Lock()
 	oFsm.isWaitingForFlowDelete = true
@@ -911,6 +998,13 @@ func (oFsm *UniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.
 func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm.Event) {
 	oFsm.pUniTechProf.mutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
+	var mcastGemPortID uint16
+	mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
+	for _, gemEntry := range mapGemPortParams {
+		if gemEntry.isMulticast {
+			mcastGemPortID = gemEntry.multicastGemPortID
+		}
+	}
 	oFsm.pUniTechProf.mutexTPState.RUnlock()
 	logger.Debugw(ctx, "UniPonAniConfigFsm - start removing one GemNCTP", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
@@ -937,6 +1031,29 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
 
+	if mcastGemPortID != 0 {
+		// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
+		oFsm.mutexPLastTxMeInstance.Lock()
+		meInstance, err := oFsm.pOmciCC.SendDeleteGemNCTP(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
+			oFsm.PAdaptFsm.CommChan, mcastGemPortID)
+		if err != nil {
+			logger.Errorw(ctx, "GemNCTP delete failed, aborting UniPonAniConfigFsm!",
+				log.Fields{"device-id": oFsm.deviceID})
+			pConfigAniStateAFsm := oFsm.PAdaptFsm
+			if pConfigAniStateAFsm != nil {
+				oFsm.mutexPLastTxMeInstance.Unlock()
+				// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+				go func(aPAFsm *cmn.AdapterFsm) {
+					if aPAFsm != nil && aPAFsm.PFsm != nil {
+						_ = aPAFsm.PFsm.Event(aniEvReset)
+					}
+				}(pConfigAniStateAFsm)
+				return
+			}
+		}
+		oFsm.pLastTxMeInstance = meInstance
+		oFsm.mutexPLastTxMeInstance.Unlock()
+	}
 	// Mark the gem port to be removed for Performance History monitoring
 	OnuMetricsManager := oFsm.pDeviceHandler.GetOnuMetricsManager()
 	if OnuMetricsManager != nil {
@@ -1062,7 +1179,13 @@ func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 func (oFsm *UniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
-
+	var mcastGemPortID uint16
+	mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
+	for _, gemEntry := range mapGemPortParams {
+		if gemEntry.isMulticast {
+			mcastGemPortID = gemEntry.multicastGemPortID
+		}
+	}
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.SendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
 		oFsm.PAdaptFsm.CommChan, oFsm.macBPCD0ID)
@@ -1083,6 +1206,28 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm
 	}
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
+	if mcastGemPortID != 0 {
+		oFsm.mutexPLastTxMeInstance.Lock()
+		meInstance, err := oFsm.pOmciCC.SendDeleteMBPConfigData(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
+			oFsm.PAdaptFsm.CommChan, oFsm.macBPCD0ID+1)
+		if err != nil {
+			logger.Errorw(ctx, "MBPConfigData delete failed, aborting UniPonAniConfigFsm!",
+				log.Fields{"device-id": oFsm.deviceID})
+			pConfigAniStateAFsm := oFsm.PAdaptFsm
+			if pConfigAniStateAFsm != nil {
+				oFsm.mutexPLastTxMeInstance.Unlock()
+				// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+				go func(aPAFsm *cmn.AdapterFsm) {
+					if aPAFsm != nil && aPAFsm.PFsm != nil {
+						_ = aPAFsm.PFsm.Event(aniEvReset)
+					}
+				}(pConfigAniStateAFsm)
+				return
+			}
+		}
+		oFsm.pLastTxMeInstance = meInstance
+		oFsm.mutexPLastTxMeInstance.Unlock()
+	}
 }
 
 func (oFsm *UniPonAniConfigFsm) enterAniRemoveDone(ctx context.Context, e *fsm.Event) {
@@ -1374,7 +1519,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 			// if, then something like: oFsm.pOnuDB.XyyMe(msgObj)
 
 			switch oFsm.pLastTxMeInstance.GetName() {
-			case "GemInterworkingTerminationPoint":
+			case "GemInterworkingTerminationPoint", "MulticastGemInterworkingTerminationPoint":
 				{ // let the FSM proceed ...
 					oFsm.mutexPLastTxMeInstance.RUnlock()
 					_ = oFsm.PAdaptFsm.PFsm.Event(aniEvRxRemGemiwResp)
