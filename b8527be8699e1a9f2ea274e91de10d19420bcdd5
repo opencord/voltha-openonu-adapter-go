@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "84112314_9d9b930b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 19
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-07T10:41:39Z",
+      "side": 1,
+      "message": "Since responses to Michael\u0027s comments are still open, I\u0027ll holding myself back with a vote.",
+      "revId": "b8527be8699e1a9f2ea274e91de10d19420bcdd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "61a9ce01_6e0b1daf",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 663,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-07T10:41:39Z",
+      "side": 1,
+      "message": "function",
+      "range": {
+        "startLine": 663,
+        "startChar": 59,
+        "endLine": 663,
+        "endChar": 66
+      },
+      "revId": "b8527be8699e1a9f2ea274e91de10d19420bcdd5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
