@@ -1215,9 +1215,9 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 		meParams := me.ParamData{
 			EntityID: vtfdID,
 			Attributes: me.AttributeValueMap{
-				"VlanFilterList":   vtfdFilterList, //omci lib wants a slice for serialization
-				"ForwardOperation": uint8(0x10),    //VID investigation
-				"NumberOfEntries":  oFsm.numVlanFilterEntries,
+				me.VlanTaggingFilterData_VlanFilterList:   vtfdFilterList, //omci lib wants a slice for serialization
+				me.VlanTaggingFilterData_ForwardOperation: uint8(0x10),    //VID investigation
+				me.VlanTaggingFilterData_NumberOfEntries:  oFsm.numVlanFilterEntries,
 			},
 		}
 		logger.Debugw(ctx, "UniVlanConfigFsm sendcreate VTFD", log.Fields{
@@ -1448,9 +1448,9 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 			meParams := me.ParamData{
 				EntityID: vtfdID,
 				Attributes: me.AttributeValueMap{
-					"VlanFilterList":   vtfdFilterList,
-					"ForwardOperation": uint8(0x10), //VID investigation
-					"NumberOfEntries":  oFsm.numVlanFilterEntries,
+					me.VlanTaggingFilterData_VlanFilterList:   vtfdFilterList,
+					me.VlanTaggingFilterData_ForwardOperation: uint8(0x10), //VID investigation
+					me.VlanTaggingFilterData_NumberOfEntries:  oFsm.numVlanFilterEntries,
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
@@ -1499,9 +1499,9 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 			meParams := me.ParamData{
 				EntityID: vtfdID,
 				Attributes: me.AttributeValueMap{
-					"VlanFilterList":   vtfdFilterList,
-					"ForwardOperation": uint8(0x10), //VID investigation
-					"NumberOfEntries":  oFsm.numVlanFilterEntries,
+					me.VlanTaggingFilterData_VlanFilterList:   vtfdFilterList,
+					me.VlanTaggingFilterData_ForwardOperation: uint8(0x10), //VID investigation
+					me.VlanTaggingFilterData_NumberOfEntries:  oFsm.numVlanFilterEntries,
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
@@ -2166,8 +2166,8 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 		meParams := me.ParamData{
 			EntityID: evtocdID,
 			Attributes: me.AttributeValueMap{
-				"AssociationType":     uint8(associationType),
-				"AssociatedMePointer": oFsm.pOnuUniPort.EntityID,
+				me.ExtendedVlanTaggingOperationConfigurationData_AssociationType:     uint8(associationType),
+				me.ExtendedVlanTaggingOperationConfigurationData_AssociatedMePointer: oFsm.pOnuUniPort.EntityID,
 			},
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
@@ -2198,9 +2198,9 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 		meParams = me.ParamData{
 			EntityID: evtocdID,
 			Attributes: me.AttributeValueMap{
-				"InputTpid":      uint16(cDefaultTpid), //could be possibly retrieved from flow config one day, by now just like py-code base
-				"OutputTpid":     uint16(cDefaultTpid), //could be possibly retrieved from flow config one day, by now just like py-code base
-				"DownstreamMode": uint8(cDefaultDownstreamMode),
+				me.ExtendedVlanTaggingOperationConfigurationData_InputTpid:      uint16(cDefaultTpid), //could be possibly retrieved from flow config one day, by now just like py-code base
+				me.ExtendedVlanTaggingOperationConfigurationData_OutputTpid:     uint16(cDefaultTpid), //could be possibly retrieved from flow config one day, by now just like py-code base
+				me.ExtendedVlanTaggingOperationConfigurationData_DownstreamMode: uint8(cDefaultDownstreamMode),
 			},
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
@@ -2262,7 +2262,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 		meParams := me.ParamData{
 			EntityID: evtocdID,
 			Attributes: me.AttributeValueMap{
-				"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+				me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 			},
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
@@ -2328,7 +2328,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 			meParams := me.ParamData{
 				EntityID: evtocdID,
 				Attributes: me.AttributeValueMap{
-					"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+					me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
@@ -2390,7 +2390,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 				meParams := me.ParamData{
 					EntityID: evtocdID,
 					Attributes: me.AttributeValueMap{
-						"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+						me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 					},
 				}
 				oFsm.mutexPLastTxMeInstance.Lock()
@@ -2453,7 +2453,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 				meParams := me.ParamData{
 					EntityID: evtocdID,
 					Attributes: me.AttributeValueMap{
-						"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+						me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 					},
 				}
 				oFsm.mutexPLastTxMeInstance.Lock()
@@ -2532,7 +2532,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 		meParams := me.ParamData{
 			EntityID: evtocdID,
 			Attributes: me.AttributeValueMap{
-				"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+				me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 			},
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
@@ -2587,7 +2587,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 			meParams := me.ParamData{
 				EntityID: evtocdID,
 				Attributes: me.AttributeValueMap{
-					"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+					me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
@@ -2699,7 +2699,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 					meParams := me.ParamData{
 						EntityID: evtocdID,
 						Attributes: me.AttributeValueMap{
-							"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+							me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 						},
 					}
 					oFsm.mutexPLastTxMeInstance.Lock()
@@ -2751,7 +2751,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 					meParams := me.ParamData{
 						EntityID: evtocdID,
 						Attributes: me.AttributeValueMap{
-							"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+							me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
 						},
 					}
 					oFsm.mutexPLastTxMeInstance.Lock()
@@ -2864,10 +2864,10 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 	meParams := me.ParamData{
 		EntityID: macBpCdEID,
 		Attributes: me.AttributeValueMap{
-			"BridgeIdPointer": cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo),
-			"PortNum":         0xf0, //fixed unique ANI side indication
-			"TpType":          6,    //MCGemIWTP
-			"TpPointer":       multicastGemPortID,
+			me.MacBridgePortConfigurationData_BridgeIdPointer: cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo),
+			me.MacBridgePortConfigurationData_PortNum:         0xf0, //fixed unique ANI side indication
+			me.MacBridgePortConfigurationData_TpType:          6,    //MCGemIWTP
+			me.MacBridgePortConfigurationData_TpPointer:       multicastGemPortID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -2911,9 +2911,9 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 	meParams = me.ParamData{
 		EntityID: mcastVtfdID,
 		Attributes: me.AttributeValueMap{
-			"VlanFilterList":   vtfdFilterList,
-			"ForwardOperation": uint8(0x10), //VID investigation
-			"NumberOfEntries":  oFsm.numVlanFilterEntries,
+			me.VlanTaggingFilterData_VlanFilterList:   vtfdFilterList,
+			me.VlanTaggingFilterData_ForwardOperation: uint8(0x10), //VID investigation
+			me.VlanTaggingFilterData_NumberOfEntries:  oFsm.numVlanFilterEntries,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -2951,7 +2951,7 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastSubscriberConfigInfo(ctx c
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"MeType": 0,
+			me.MulticastSubscriberConfigInfo_MeType: 0,
 			//Direct reference to the Operation profile
 			//TODO ANI side used on UNI side, not the clearest option.
 			"MulticastOperationsProfilePointer": instID,
@@ -2995,17 +2995,17 @@ func (oFsm *UniVlanConfigFsm) performCreatingMulticastOperationProfile(ctx conte
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"IgmpVersion":  2,
-			"IgmpFunction": 0,
+			me.MulticastOperationsProfile_IgmpVersion:  2,
+			me.MulticastOperationsProfile_IgmpFunction: 0,
 			//0 means false
-			"ImmediateLeave":          0,
-			"Robustness":              2,
-			"QuerierIpAddress":        0,
-			"QueryInterval":           125,
-			"QueryMaxResponseTime":    100,
-			"LastMemberQueryInterval": 10,
+			me.MulticastOperationsProfile_ImmediateLeave:          0,
+			me.MulticastOperationsProfile_Robustness:              2,
+			me.MulticastOperationsProfile_QuerierIpAddress:        0,
+			me.MulticastOperationsProfile_QueryInterval:           125,
+			me.MulticastOperationsProfile_QueryMaxResponseTime:    100,
+			me.MulticastOperationsProfile_LastMemberQueryInterval: 10,
 			//0 means false
-			"UnauthorizedJoinRequestBehaviour": 0,
+			me.MulticastOperationsProfile_UnauthorizedJoinRequestBehaviour: 0,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -3070,7 +3070,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"DynamicAccessControlListTable": dynamicAccessCL,
+			me.MulticastOperationsProfile_DynamicAccessControlListTable: dynamicAccessCL,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -3122,14 +3122,14 @@ func (oFsm *UniVlanConfigFsm) createTrafficDescriptor(ctx context.Context, aMete
 	meParams := me.ParamData{
 		EntityID: trafficDescriptorID,
 		Attributes: me.AttributeValueMap{
-			"Cir":                  cir,
-			"Pir":                  pir,
-			"Cbs":                  cbs,
-			"Pbs":                  pbs,
-			"ColourMode":           1,
-			"IngressColourMarking": 3,
-			"EgressColourMarking":  3,
-			"MeterType":            1,
+			me.TrafficDescriptor_Cir:                  cir,
+			me.TrafficDescriptor_Pir:                  pir,
+			me.TrafficDescriptor_Cbs:                  cbs,
+			me.TrafficDescriptor_Pbs:                  pbs,
+			me.TrafficDescriptor_ColourMode:           1,
+			me.TrafficDescriptor_IngressColourMarking: 3,
+			me.TrafficDescriptor_EgressColourMarking:  3,
+			me.TrafficDescriptor_MeterType:            1,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -3165,7 +3165,7 @@ func (oFsm *UniVlanConfigFsm) setTrafficDescriptorToGemPortNWCTP(ctx context.Con
 	meParams := me.ParamData{
 		EntityID: gemPortEntityID,
 		Attributes: me.AttributeValueMap{
-			"TrafficDescriptorProfilePointerForUpstream": trafficDescriptorEntityID,
+			me.GemPortNetworkCtp_TrafficDescriptorProfilePointerForUpstream: trafficDescriptorEntityID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()

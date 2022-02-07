@@ -28,12 +28,7 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/extension"
 )
 
-const (
-	uniStatusTimeout = 3
-	adminState       = "AdministrativeState"
-	operationalState = "OperationalState"
-	configInd        = "ConfigurationInd"
-)
+const uniStatusTimeout = 3
 
 //UniPortStatus implements methods to get uni port status info
 type UniPortStatus struct {
@@ -59,7 +54,10 @@ func (portStatus *UniPortStatus) GetUniPortStatus(ctx context.Context, uniIdx ui
 
 		if uniPort.UniID == uint8(uniIdx) && uniPort.PortType == cmn.UniPPTP {
 
-			requestedAttributes := me.AttributeValueMap{adminState: 0, operationalState: 0, configInd: 0}
+			requestedAttributes := me.AttributeValueMap{
+				me.PhysicalPathTerminationPointEthernetUni_AdministrativeState: 0,
+				me.PhysicalPathTerminationPointEthernetUni_OperationalState:    0,
+				me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd:    0}
 			// Note: No reference to fetch the OMCI timeout configuration value, so hard code it to 10s
 			meInstance, err := portStatus.pOmiCC.SendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, uniPort.EntityID, requestedAttributes, 10, true, portStatus.omciRespChn)
 			if err != nil {
@@ -134,17 +132,17 @@ func (portStatus *UniPortStatus) processGetUnitStatusResp(ctx context.Context, m
 			},
 		},
 	}
-	if meAttributes[operationalState].(uint8) == 0 {
+	if meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState].(uint8) == 0 {
 		singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_ENABLED
-	} else if meAttributes[operationalState].(uint8) == 1 {
+	} else if meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState].(uint8) == 1 {
 		singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_DISABLED
 	} else {
 		singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_OPERSTATE_UNDEFINED
 	}
 
-	if meAttributes[adminState].(uint8) == 0 {
+	if meAttributes[me.PhysicalPathTerminationPointEthernetUni_AdministrativeState].(uint8) == 0 {
 		singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_UNLOCKED
-	} else if meAttributes[adminState].(uint8) == 1 {
+	} else if meAttributes[me.PhysicalPathTerminationPointEthernetUni_AdministrativeState].(uint8) == 1 {
 		singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_LOCKED
 	} else {
 		singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_ADMSTATE_UNDEFINED
@@ -159,7 +157,7 @@ func (portStatus *UniPortStatus) processGetUnitStatusResp(ctx context.Context, m
 		18: extension.GetOnuUniInfoResponse_HUNDRED_BASE_T_HDX,
 		19: extension.GetOnuUniInfoResponse_GIGABIT_ETHERNET_HDX,
 	}
-	configInd := meAttributes[configInd].(uint8)
+	configInd := meAttributes[me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd].(uint8)
 	singleValResp.Response.GetUniInfo().ConfigInd = configIndMap[configInd]
 	return &singleValResp
 }

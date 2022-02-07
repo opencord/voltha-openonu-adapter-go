@@ -960,7 +960,7 @@ func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
 func (oFsm *OnuUpgradeFsm) enterCheckImageName(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm checking downloaded image name", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
-	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
+	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	meInstance, err := oFsm.pOmciCC.SendGetMe(log.WithSpanFromContext(context.Background(), ctx),
 		me.SoftwareImageClassID, oFsm.InactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.GetOmciTimeout(),
 		false, oFsm.PAdaptFsm.CommChan)
@@ -1038,7 +1038,7 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm checking committed SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
-	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
+	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	meInstance, err := oFsm.pOmciCC.SendGetMe(log.WithSpanFromContext(context.Background(), ctx),
 		me.SoftwareImageClassID, oFsm.InactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.GetOmciTimeout(), false, oFsm.PAdaptFsm.CommChan)
 	if err != nil {
@@ -1612,9 +1612,9 @@ func (oFsm *OnuUpgradeFsm) handleRxSwGetResponse(ctx context.Context, msg cmn.Om
 	}
 
 	meAttributes := msgObj.Attributes
-	imageIsCommitted := meAttributes["IsCommitted"].(uint8)
-	imageIsActive := meAttributes["IsActive"].(uint8)
-	imageVersion := cmn.TrimStringFromMeOctet(meAttributes["Version"])
+	imageIsCommitted := meAttributes[me.SoftwareImage_IsCommitted].(uint8)
+	imageIsActive := meAttributes[me.SoftwareImage_IsActive].(uint8)
+	imageVersion := cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_Version])
 	logger.Debugw(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
 		log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
 			"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})

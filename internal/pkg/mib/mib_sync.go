@@ -97,7 +97,7 @@ func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Eve
 
 func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting VendorId and SerialNumber in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"VendorId": "", "SerialNumber": 0}
+	requestedAttributes := me.AttributeValueMap{me.OnuG_VendorId: "", me.OnuG_SerialNumber: 0}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, cmn.OnugMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
@@ -120,7 +120,7 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 
 func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting EquipmentId in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"EquipmentId": ""}
+	requestedAttributes := me.AttributeValueMap{me.Onu2G_EquipmentId: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, cmn.Onu2gMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
@@ -143,7 +143,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
+	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.FirstSwImageMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
@@ -166,7 +166,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 
 func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"IsCommitted": 0, "IsActive": 0, "Version": ""}
+	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.SecondSwImageMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
@@ -189,7 +189,7 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 
 func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting MacAddress in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"MacAddress": ""}
+	requestedAttributes := me.AttributeValueMap{me.IpHostConfigData_MacAddress: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, cmn.IPHostConfigDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
@@ -550,7 +550,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 		oo.mutexLastTxParamStruct.Lock()
 		if oo.lastTxParamStruct.lastTxMessageType == omci.GetRequestType && oo.lastTxParamStruct.repeatCount == 0 {
 			logger.Debugw(ctx, "MibSync FSM - repeat MdsGetRequest (updated SequenceNumber)", log.Fields{"device-id": oo.deviceID})
-			requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
+			requestedAttributes := me.AttributeValueMap{me.OnuData_MibDataSync: ""}
 			_, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
 				me.OnuDataClassID, cmn.OnuDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 			if err != nil {
@@ -721,8 +721,8 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			case "OnuG":
 				oo.mutexLastTxParamStruct.RUnlock()
 				oo.MutexPersOnuConfig.Lock()
-				oo.SOnuPersistentData.PersVendorID = cmn.TrimStringFromMeOctet(meAttributes["VendorId"])
-				snBytes, _ := me.InterfaceToOctets(meAttributes["SerialNumber"])
+				oo.SOnuPersistentData.PersVendorID = cmn.TrimStringFromMeOctet(meAttributes[me.OnuG_VendorId])
+				snBytes, _ := me.InterfaceToOctets(meAttributes[me.OnuG_SerialNumber])
 				if cmn.OnugSerialNumberLen == len(snBytes) {
 					snVendorPart := fmt.Sprintf("%s", snBytes[:4])
 					snNumberPart := hex.EncodeToString(snBytes[4:])
@@ -740,7 +740,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			case "Onu2G":
 				oo.mutexLastTxParamStruct.RUnlock()
 				oo.MutexPersOnuConfig.Lock()
-				oo.SOnuPersistentData.PersEquipmentID = cmn.TrimStringFromMeOctet(meAttributes["EquipmentId"])
+				oo.SOnuPersistentData.PersEquipmentID = cmn.TrimStringFromMeOctet(meAttributes[me.Onu2G_EquipmentId])
 				logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu2-G - EquipmentId", log.Fields{"device-id": oo.deviceID,
 					"onuDeviceEntry.equipmentID": oo.SOnuPersistentData.PersEquipmentID})
 				oo.MutexPersOnuConfig.Unlock()
@@ -760,7 +760,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				return nil
 			case "IpHostConfigData":
 				oo.mutexLastTxParamStruct.RUnlock()
-				macBytes, _ := me.InterfaceToOctets(meAttributes["MacAddress"])
+				macBytes, _ := me.InterfaceToOctets(meAttributes[me.IpHostConfigData_MacAddress])
 				oo.MutexPersOnuConfig.Lock()
 				if cmn.OmciMacAddressLen == len(macBytes) {
 					oo.SOnuPersistentData.PersMacAddress = hex.EncodeToString(macBytes[:])
@@ -776,7 +776,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				return nil
 			case "OnuData":
 				oo.mutexLastTxParamStruct.RUnlock()
-				oo.checkMdsValue(ctx, meAttributes["MibDataSync"].(uint8))
+				oo.checkMdsValue(ctx, meAttributes[me.OnuData_MibDataSync].(uint8))
 				return nil
 			default:
 				oo.mutexLastTxParamStruct.RUnlock()
@@ -801,9 +801,9 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 
 //HandleSwImageIndications updates onuSwImageIndications with the ONU data just received
 func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) {
-	imageIsCommitted := meAttributes["IsCommitted"].(uint8)
-	imageIsActive := meAttributes["IsActive"].(uint8)
-	imageVersion := cmn.TrimStringFromMeOctet(meAttributes["Version"])
+	imageIsCommitted := meAttributes[me.SoftwareImage_IsCommitted].(uint8)
+	imageIsActive := meAttributes[me.SoftwareImage_IsActive].(uint8)
+	imageVersion := cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_Version])
 	oo.MutexPersOnuConfig.RLock()
 	logger.Infow(ctx, "MibSync FSM - GetResponse Data for SoftwareImage",
 		log.Fields{"device-id": oo.deviceID, "entityID": entityID,
@@ -1042,7 +1042,7 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 
 func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 	logger.Debugw(ctx, "Request MDS value", log.Fields{"device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{"MibDataSync": ""}
+	requestedAttributes := me.AttributeValueMap{me.OnuData_MibDataSync: ""}
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
 		me.OnuDataClassID, cmn.OnuDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx

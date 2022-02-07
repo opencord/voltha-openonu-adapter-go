@@ -74,20 +74,6 @@ const (
 	ExtendedPmCreateAttempts            = 3
 	UnsupportedCounterValue32bit uint64 = 4294967294
 	UnsupportedCounterValue64bit uint64 = 18446744073709551614
-	dropEvents                          = "DropEvents"
-	octets                              = "Octets"
-	frames                              = "Frames"
-	broadcastFrames                     = "BroadcastFrames"
-	multicastFrames                     = "MulticastFrames"
-	crcErroredFrames                    = "CrcErroredFrames"
-	undersizeFrames                     = "UndersizeFrames"
-	oversizeFrames                      = "OversizeFrames"
-	frames64Octets                      = "Frames64Octets"
-	frames65To127Octets                 = "Frames65To127Octets"
-	frames128To255Octets                = "Frames128To255Octets"
-	frames256To511Octets                = "Frames256To511Octets"
-	frames512To1023Octets               = "Frames512To1023Octets"
-	frames1024To1518Octets              = "Frames1024To1518Octets"
 )
 
 // OpticalPowerGroupMetrics are supported optical pm names
@@ -760,7 +746,7 @@ loop:
 		var meAttributes me.AttributeValueMap
 		opticalMetrics := make(map[string]float32)
 		// Get the ANI-G instance optical power attributes
-		requestedAttributes := me.AttributeValueMap{"OpticalSignalLevel": 0, "TransmitOpticalLevel": 0}
+		requestedAttributes := me.AttributeValueMap{me.AniG_OpticalSignalLevel: 0, me.AniG_TransmitOpticalLevel: 0}
 		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
@@ -781,15 +767,15 @@ loop:
 			for k := range OpticalPowerGroupMetrics {
 				switch k {
 				case "ani_g_instance_id":
-					if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+					if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 						opticalMetrics[k] = float32(val.(uint16))
 					}
 				case "transmit_power_dBm":
-					if val, ok := meAttributes["TransmitOpticalLevel"]; ok && val != nil {
+					if val, ok := meAttributes[me.AniG_TransmitOpticalLevel]; ok && val != nil {
 						opticalMetrics[k] = float32(math.Round((float64(cmn.TwosComplementToSignedInt16(val.(uint16)))/500.0)*10) / 10) // convert to dBm rounded of to single decimal place
 					}
 				case "receive_power_dBm":
-					if val, ok := meAttributes["OpticalSignalLevel"]; ok && val != nil {
+					if val, ok := meAttributes[me.AniG_OpticalSignalLevel]; ok && val != nil {
 						opticalMetrics[k] = float32(math.Round((float64(cmn.TwosComplementToSignedInt16(val.(uint16)))/500.0)*10) / 10) // convert to dBm rounded of to single decimal place
 					}
 				default:
@@ -843,7 +829,7 @@ loop1:
 		unigMetrics := make(map[string]float32)
 		var meAttributes me.AttributeValueMap
 		// Get the UNI-G instance optical power attributes
-		requestedAttributes := me.AttributeValueMap{"AdministrativeState": 0}
+		requestedAttributes := me.AttributeValueMap{me.UniG_AdministrativeState: 0}
 		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 		if err != nil {
 			logger.Errorw(ctx, "UNI-G failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
@@ -864,14 +850,14 @@ loop1:
 			for k := range UniStatusGroupMetrics {
 				switch k {
 				case "uni_admin_state":
-					if val, ok := meAttributes["AdministrativeState"]; ok && val != nil {
+					if val, ok := meAttributes[me.UniG_AdministrativeState]; ok && val != nil {
 						unigMetrics[k] = float32(val.(byte))
 					}
 				default:
 					// do nothing
 				}
 			}
-			if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+			if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 				entityID := val.(uint16)
 				unigMetrics["entity_id"] = float32(entityID)
 				// TODO: Rlock needed for reading uniEntityMap? May not be needed given uniEntityMap is populated setup at initial ONU bring up
@@ -899,8 +885,12 @@ loop2:
 		var meAttributes me.AttributeValueMap
 		pptpMetrics := make(map[string]float32)
 
-		requestedAttributes := me.AttributeValueMap{"ConfigurationInd": 0, "OperationalState": 0, "AdministrativeState": 0}
-		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, pptpInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+		requestedAttributes := me.AttributeValueMap{
+			me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd:    0,
+			me.PhysicalPathTerminationPointEthernetUni_OperationalState:    0,
+			me.PhysicalPathTerminationPointEthernetUni_AdministrativeState: 0}
+		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID,
+			pptpInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -921,15 +911,15 @@ loop2:
 			for k := range UniStatusGroupMetrics {
 				switch k {
 				case "configuration_ind":
-					if val, ok := meAttributes["ConfigurationInd"]; ok && val != nil {
+					if val, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd]; ok && val != nil {
 						pptpMetrics[k] = float32(val.(byte))
 					}
 				case "oper_status":
-					if val, ok := meAttributes["OperationalState"]; ok && val != nil {
+					if val, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState]; ok && val != nil {
 						pptpMetrics[k] = float32(val.(byte))
 					}
 				case "uni_admin_state":
-					if val, ok := meAttributes["AdministrativeState"]; ok && val != nil {
+					if val, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_AdministrativeState]; ok && val != nil {
 						pptpMetrics[k] = float32(val.(byte))
 					}
 				default:
@@ -937,7 +927,7 @@ loop2:
 				}
 			}
 		}
-		if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+		if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 			entityID := val.(uint16)
 			pptpMetrics["entity_id"] = float32(entityID)
 			// TODO: Rlock needed for reading uniEntityMap? May not be needed given uniEntityMap is populated setup at initial ONU bring up
@@ -964,7 +954,7 @@ loop3:
 		var meAttributes me.AttributeValueMap
 		veipMetrics := make(map[string]float32)
 
-		requestedAttributes := me.AttributeValueMap{"OperationalState": 0, "AdministrativeState": 0}
+		requestedAttributes := me.AttributeValueMap{me.VirtualEthernetInterfacePoint_OperationalState: 0, me.VirtualEthernetInterfacePoint_AdministrativeState: 0}
 		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
@@ -986,11 +976,11 @@ loop3:
 			for k := range UniStatusGroupMetrics {
 				switch k {
 				case "oper_status":
-					if val, ok := meAttributes["OperationalState"]; ok && val != nil {
+					if val, ok := meAttributes[me.VirtualEthernetInterfacePoint_OperationalState]; ok && val != nil {
 						veipMetrics[k] = float32(val.(byte))
 					}
 				case "uni_admin_state":
-					if val, ok := meAttributes["AdministrativeState"]; ok && val != nil {
+					if val, ok := meAttributes[me.VirtualEthernetInterfacePoint_AdministrativeState]; ok && val != nil {
 						veipMetrics[k] = float32(val.(byte))
 					}
 				default:
@@ -999,7 +989,7 @@ loop3:
 			}
 		}
 
-		if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+		if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 			entityID := val.(uint16)
 			veipMetrics["entity_id"] = float32(entityID)
 			// TODO: Rlock needed for reading uniEntityMap? May not be needed given uniEntityMap is populated setup at initial ONU bring up
@@ -1999,7 +1989,7 @@ func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 		upstream = true
 	}
 	// Insert "IntervalEndTime" as part of the requested attributes as we need this to compare the get responses when get request is multipart
-	requestedAttributes["IntervalEndTime"] = 0
+	requestedAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_IntervalEndTime] = 0
 	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 	if err != nil {
 		logger.Errorw(ctx, "GetME failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
@@ -2034,63 +2024,63 @@ func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 		if _, ok := ethPMHistData[k]; !ok {
 			switch k {
 			case "entity_id":
-				if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+				if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint16))
 				}
 			case "drop_events":
-				if val, ok := meAttributes["DropEvents"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_DropEvents]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "octets":
-				if val, ok := meAttributes["Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "packets":
-				if val, ok := meAttributes["Packets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "broadcast_packets":
-				if val, ok := meAttributes["BroadcastPackets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_BroadcastPackets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "multicast_packets":
-				if val, ok := meAttributes["MulticastPackets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_MulticastPackets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "crc_errored_packets":
-				if val, ok := meAttributes["CrcErroredPackets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_CrcErroredPackets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "undersize_packets":
-				if val, ok := meAttributes["UndersizePackets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_UndersizePackets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "oversize_packets":
-				if val, ok := meAttributes["OversizePackets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_OversizePackets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "64_octets":
-				if val, ok := meAttributes["Packets64Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets64Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "65_to_127_octets":
-				if val, ok := meAttributes["Packets65To127Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets65To127Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "128_to_255_octets":
-				if val, ok := meAttributes["Packets128To255Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets128To255Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "256_to_511_octets":
-				if val, ok := meAttributes["Packets256To511Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets256To511Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "512_to_1023_octets":
-				if val, ok := meAttributes["Packets512To1023Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets512To1023Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			case "1024_to_1518_octets":
-				if val, ok := meAttributes["Packets1024To1518Octets"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_Packets1024To1518Octets]; ok && val != nil {
 					ethPMHistData[k] = float32(val.(uint32))
 				}
 			default:
@@ -2136,63 +2126,63 @@ func (mm *OnuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 		if _, ok := ethPMUniHistData[k]; !ok {
 			switch k {
 			case "entity_id":
-				if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+				if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint16))
 				}
 			case "fcs_errors":
-				if val, ok := meAttributes["FcsErrors"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_FcsErrors]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "excessive_collision_counter":
-				if val, ok := meAttributes["ExcessiveCollisionCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_ExcessiveCollisionCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "late_collision_counter":
-				if val, ok := meAttributes["LateCollisionCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_LateCollisionCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "frames_too_long":
-				if val, ok := meAttributes["FramesTooLong"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_FramesTooLong]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "buffer_overflows_on_rx":
-				if val, ok := meAttributes["BufferOverflowsOnReceive"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_BufferOverflowsOnReceive]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "buffer_overflows_on_tx":
-				if val, ok := meAttributes["BufferOverflowsOnTransmit"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_BufferOverflowsOnTransmit]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "single_collision_frame_counter":
-				if val, ok := meAttributes["SingleCollisionFrameCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_SingleCollisionFrameCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "multiple_collisions_frame_counter":
-				if val, ok := meAttributes["MultipleCollisionsFrameCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_MultipleCollisionsFrameCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "sqe_counter":
-				if val, ok := meAttributes["SqeCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_SqeCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "deferred_tx_counter":
-				if val, ok := meAttributes["DeferredTransmissionCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_DeferredTransmissionCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "internal_mac_tx_error_counter":
-				if val, ok := meAttributes["InternalMacTransmitErrorCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_InternalMacTransmitErrorCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "carrier_sense_error_counter":
-				if val, ok := meAttributes["CarrierSenseErrorCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_CarrierSenseErrorCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "alignment_error_counter":
-				if val, ok := meAttributes["AlignmentErrorCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_AlignmentErrorCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			case "internal_mac_rx_error_counter":
-				if val, ok := meAttributes["InternalMacReceiveErrorCounter"]; ok && val != nil {
+				if val, ok := meAttributes[me.EthernetPerformanceMonitoringHistoryData_InternalMacReceiveErrorCounter]; ok && val != nil {
 					ethPMUniHistData[k] = float32(val.(uint32))
 				}
 			default:
@@ -2207,8 +2197,8 @@ func (mm *OnuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, fecHistData map[string]float32, intervalEndTime *int) error {
 	// Insert "IntervalEndTime" as part of the requested attributes as we need this to compare the get responses when get request is multipart
-	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
-		requestedAttributes["IntervalEndTime"] = 0
+	if _, ok := requestedAttributes[me.FecPerformanceMonitoringHistoryData_IntervalEndTime]; !ok {
+		requestedAttributes[me.FecPerformanceMonitoringHistoryData_IntervalEndTime] = 0
 	}
 	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 	if err != nil {
@@ -2238,27 +2228,27 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 		if _, ok := fecHistData[k]; !ok {
 			switch k {
 			case "entity_id":
-				if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+				if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 					fecHistData[k] = float32(val.(uint16))
 				}
 			case "corrected_bytes":
-				if val, ok := meAttributes["CorrectedBytes"]; ok && val != nil {
+				if val, ok := meAttributes[me.FecPerformanceMonitoringHistoryData_CorrectedBytes]; ok && val != nil {
 					fecHistData[k] = float32(val.(uint32))
 				}
 			case "corrected_code_words":
-				if val, ok := meAttributes["CorrectedCodeWords"]; ok && val != nil {
+				if val, ok := meAttributes[me.FecPerformanceMonitoringHistoryData_CorrectedCodeWords]; ok && val != nil {
 					fecHistData[k] = float32(val.(uint32))
 				}
 			case "uncorrectable_code_words":
-				if val, ok := meAttributes["UncorrectableCodeWords"]; ok && val != nil {
+				if val, ok := meAttributes[me.FecPerformanceMonitoringHistoryData_UncorrectableCodeWords]; ok && val != nil {
 					fecHistData[k] = float32(val.(uint32))
 				}
 			case "total_code_words":
-				if val, ok := meAttributes["TotalCodeWords"]; ok && val != nil {
+				if val, ok := meAttributes[me.FecPerformanceMonitoringHistoryData_TotalCodeWords]; ok && val != nil {
 					fecHistData[k] = float32(val.(uint32))
 				}
 			case "fec_seconds":
-				if val, ok := meAttributes["FecSeconds"]; ok && val != nil {
+				if val, ok := meAttributes[me.FecPerformanceMonitoringHistoryData_FecSeconds]; ok && val != nil {
 					fecHistData[k] = float32(val.(uint16))
 				}
 			default:
@@ -2273,8 +2263,8 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, gemPortHistData map[string]float32, intervalEndTime *int) error {
 	// Insert "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
-	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
-		requestedAttributes["IntervalEndTime"] = 0
+	if _, ok := requestedAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_IntervalEndTime]; !ok {
+		requestedAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_IntervalEndTime] = 0
 	}
 	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
 	if err != nil {
@@ -2304,27 +2294,27 @@ func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 		if _, ok := gemPortHistData[k]; !ok {
 			switch k {
 			case "entity_id":
-				if val, ok := meAttributes["ManagedEntityId"]; ok && val != nil {
+				if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
 					gemPortHistData[k] = float32(val.(uint16))
 				}
 			case "transmitted_gem_frames":
-				if val, ok := meAttributes["TransmittedGemFrames"]; ok && val != nil {
+				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_TransmittedGemFrames]; ok && val != nil {
 					gemPortHistData[k] = float32(val.(uint32))
 				}
 			case "received_gem_frames":
-				if val, ok := meAttributes["ReceivedGemFrames"]; ok && val != nil {
+				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_ReceivedGemFrames]; ok && val != nil {
 					gemPortHistData[k] = float32(val.(uint32))
 				}
 			case "received_payload_bytes":
-				if val, ok := meAttributes["ReceivedPayloadBytes"]; ok && val != nil {
+				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_ReceivedPayloadBytes]; ok && val != nil {
 					gemPortHistData[k] = float32(val.(uint64))
 				}
 			case "transmitted_payload_bytes":
-				if val, ok := meAttributes["TransmittedPayloadBytes"]; ok && val != nil {
+				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_TransmittedPayloadBytes]; ok && val != nil {
 					gemPortHistData[k] = float32(val.(uint64))
 				}
 			case "encryption_key_errors":
-				if val, ok := meAttributes["EncryptionKeyErrors"]; ok && val != nil {
+				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_EncryptionKeyErrors]; ok && val != nil {
 					gemPortHistData[k] = float32(val.(uint32))
 				}
 			default:
@@ -3476,42 +3466,42 @@ func (mm *OnuMetricsManager) getEthFrameExtPMDataFromResponse(ctx context.Contex
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "drop_events":
-					if val, ok := meAttributes[dropEvents]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_DropEvents]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x2000
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "octets":
-					if val, ok := meAttributes[octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x1000
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "frames":
-					if val, ok := meAttributes[frames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x800
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "broadcast_frames":
-					if val, ok := meAttributes[broadcastFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_BroadcastFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x400
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "multicast_frames":
-					if val, ok := meAttributes[multicastFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_MulticastFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x200
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "crc_errored_frames":
-					if val, ok := meAttributes[crcErroredFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_CrcErroredFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x100
 					} else if !ok {
@@ -3527,42 +3517,42 @@ func (mm *OnuMetricsManager) getEthFrameExtPMDataFromResponse(ctx context.Contex
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "undersize_frames":
-					if val, ok := meAttributes[undersizeFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_UndersizeFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x80
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "oversize_frames":
-					if val, ok := meAttributes[oversizeFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_OversizeFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x40
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "64_octets":
-					if val, ok := meAttributes[frames64Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames64Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x20
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "65_to_127_octets":
-					if val, ok := meAttributes[frames65To127Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames65To127Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x10
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "128_to_255_octets":
-					if val, ok := meAttributes[frames128To255Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames128To255Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x8
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "256_to_511_octets":
-					if val, ok := meAttributes[frames256To511Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames256To511Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x4
 					} else if !ok {
@@ -3578,14 +3568,14 @@ func (mm *OnuMetricsManager) getEthFrameExtPMDataFromResponse(ctx context.Contex
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "512_to_1023_octets":
-					if val, ok := meAttributes[frames512To1023Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames512To1023Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x2
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue32bit
 					}
 				case "1024_to_1518_octets":
-					if val, ok := meAttributes[frames1024To1518Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm_Frames1024To1518Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = uint64(val.(uint32))
 						receivedMask |= 0x1
 					} else if !ok {
@@ -3611,21 +3601,21 @@ func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.C
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "drop_events":
-					if val, ok := meAttributes[dropEvents]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_DropEvents]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x2000
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "octets":
-					if val, ok := meAttributes[octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x1000
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "frames":
-					if val, ok := meAttributes[frames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x800
 					} else if !ok {
@@ -3639,21 +3629,21 @@ func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.C
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "broadcast_frames":
-					if val, ok := meAttributes[broadcastFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_BroadcastFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x400
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "multicast_frames":
-					if val, ok := meAttributes[multicastFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_MulticastFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x200
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "crc_errored_frames":
-					if val, ok := meAttributes[crcErroredFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_CrcErroredFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x100
 					} else if !ok {
@@ -3667,21 +3657,21 @@ func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.C
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "undersize_frames":
-					if val, ok := meAttributes[undersizeFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_UndersizeFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x80
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "oversize_frames":
-					if val, ok := meAttributes[oversizeFrames]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_OversizeFrames]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x40
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "64_octets":
-					if val, ok := meAttributes[frames64Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames64Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x20
 					} else if !ok {
@@ -3695,21 +3685,21 @@ func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.C
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "65_to_127_octets":
-					if val, ok := meAttributes[frames65To127Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames65To127Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x10
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "128_to_255_octets":
-					if val, ok := meAttributes[frames128To255Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames128To255Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x8
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "256_to_511_octets":
-					if val, ok := meAttributes[frames256To511Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames256To511Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x4
 					} else if !ok {
@@ -3725,14 +3715,14 @@ func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.C
 			if _, ok := ethFrameExtPMData[k]; !ok {
 				switch k {
 				case "512_to_1023_octets":
-					if val, ok := meAttributes[frames512To1023Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames512To1023Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x2
 					} else if !ok {
 						ethFrameExtPMData[k] = UnsupportedCounterValue64bit
 					}
 				case "1024_to_1518_octets":
-					if val, ok := meAttributes[frames1024To1518Octets]; ok && val != nil {
+					if val, ok := meAttributes[me.EthernetFrameExtendedPm64Bit_Frames1024To1518Octets]; ok && val != nil {
 						ethFrameExtPMData[k] = val.(uint64)
 						receivedMask |= 0x1
 					} else if !ok {

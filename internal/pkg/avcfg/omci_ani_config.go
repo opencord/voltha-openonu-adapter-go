@@ -377,7 +377,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 				dsQueueFound := false
 				for _, mgmtEntityID := range queueInstKeys {
 					if meAttributes := oFsm.pOnuDB.GetMe(me.PriorityQueueClassID, mgmtEntityID); meAttributes != nil {
-						returnVal := meAttributes["RelatedPort"]
+						returnVal := meAttributes[me.PriorityQueue_RelatedPort]
 						if returnVal != nil {
 							if relatedPort, err := oFsm.pOnuDB.GetUint32Attrib(returnVal); err == nil {
 								if relatedPort == usQrelPortMask {
@@ -398,7 +398,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 								logger.Warnw(ctx, "Could not convert attribute value", log.Fields{"device-id": oFsm.deviceID})
 							}
 						} else {
-							logger.Warnw(ctx, "'RelatedPort' not found in meAttributes:", log.Fields{"device-id": oFsm.deviceID})
+							logger.Warnw(ctx, "PrioQueue.RelatedPort not found in meAttributes:", log.Fields{"device-id": oFsm.deviceID})
 						}
 					} else {
 						logger.Warnw(ctx, "No attributes available in DB:", log.Fields{"meClassID": me.PriorityQueueClassID,
@@ -525,10 +525,10 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 	meParams := me.ParamData{
 		EntityID: oFsm.macBPCD0ID,
 		Attributes: me.AttributeValueMap{
-			"BridgeIdPointer": bridgePtr,
-			"PortNum":         0xFF, //fixed unique ANI side indication
-			"TpType":          3,    //for .1PMapper
-			"TpPointer":       oFsm.mapperSP0ID,
+			me.MacBridgePortConfigurationData_BridgeIdPointer: bridgePtr,
+			me.MacBridgePortConfigurationData_PortNum:         0xFF, //fixed unique ANI side indication
+			me.MacBridgePortConfigurationData_TpType:          3,    //for .1PMapper
+			me.MacBridgePortConfigurationData_TpPointer:       oFsm.mapperSP0ID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -574,7 +574,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 	meParams := me.ParamData{
 		EntityID: oFsm.tcont0ID,
 		Attributes: me.AttributeValueMap{
-			"AllocId": oFsm.alloc0ID,
+			me.TCont_AllocId: oFsm.alloc0ID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -691,7 +691,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 	// The TP type value 0 also indicates bridging mapping, and the TP pointer should be set to 0xFFFF
 	// setting this parameter is not strictly needed anymore with the ensured .1pMapper create default setting
 	// but except for processing effort does not really harm - left to keep changes low
-	meParams.Attributes["TpPointer"] = 0xffff
+	meParams.Attributes[me.Ieee8021PMapperServiceProfile_TpPointer] = 0xffff
 
 	if !foundIwPtr {
 		logger.Debugw(ctx, "UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
@@ -983,7 +983,7 @@ func (oFsm *UniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 	meParams := me.ParamData{
 		EntityID: oFsm.tcont0ID,
 		Attributes: me.AttributeValueMap{
-			"AllocId": cmn.UnusedTcontAllocID,
+			me.TCont_AllocId: cmn.UnusedTcontAllocID,
 		},
 	}
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -1454,13 +1454,13 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 		meParams := me.ParamData{
 			EntityID: gemPortAttribs.gemPortID, //unique, same as PortId
 			Attributes: me.AttributeValueMap{
-				"PortId":       gemPortAttribs.gemPortID,
-				"TContPointer": oFsm.tcont0ID,
-				"Direction":    gemPortAttribs.direction,
+				me.GemPortNetworkCtp_PortId:       gemPortAttribs.gemPortID,
+				me.GemPortNetworkCtp_TContPointer: oFsm.tcont0ID,
+				me.GemPortNetworkCtp_Direction:    gemPortAttribs.direction,
 				//ONU-G.TrafficManagementOption dependency ->PrioQueue or TCont
 				//  TODO!! verify dependency and QueueId in case of Multi-GemPort setup!
-				"TrafficManagementPointerForUpstream": gemPortAttribs.upQueueID, //might be different in wrr-only Setup - tcont0ID
-				"PriorityQueuePointerForDownStream":   gemPortAttribs.downQueueID,
+				me.GemPortNetworkCtp_TrafficManagementPointerForUpstream: gemPortAttribs.upQueueID, //might be different in wrr-only Setup - tcont0ID
+				me.GemPortNetworkCtp_PriorityQueuePointerForDownStream:   gemPortAttribs.downQueueID,
 			},
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
@@ -1520,10 +1520,10 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.multicastGemID,
 				Attributes: me.AttributeValueMap{
-					"GemPortNetworkCtpConnectivityPointer": gemPortAttribs.multicastGemID,
-					"InterworkingOption":                   0, // Don't Care
-					"ServiceProfilePointer":                0, // Don't Care
-					"GalProfilePointer":                    cmn.GalEthernetEID,
+					me.MulticastGemInterworkingTerminationPoint_GemPortNetworkCtpConnectivityPointer: gemPortAttribs.multicastGemID,
+					me.MulticastGemInterworkingTerminationPoint_InterworkingOption:                   0, // Don't Care
+					me.MulticastGemInterworkingTerminationPoint_ServiceProfilePointer:                0, // Don't Care
+					me.MulticastGemInterworkingTerminationPoint_GalProfilePointer:                    cmn.GalEthernetEID,
 				},
 			}
 			if oFsm.pUniTechProf.multicastConfiguredForOtherUniTps(ctx, oFsm.uniTpKey) {
@@ -1564,7 +1564,7 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			meIPV4MCTableParams := me.ParamData{
 				EntityID: gemPortAttribs.multicastGemID,
 				Attributes: me.AttributeValueMap{
-					"Ipv4MulticastAddressTable": ipv4MulticastTable,
+					me.MulticastGemInterworkingTerminationPoint_Ipv4MulticastAddressTable: ipv4MulticastTable,
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
@@ -1584,11 +1584,11 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			meParams := me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,
 				Attributes: me.AttributeValueMap{
-					"GemPortNetworkCtpConnectivityPointer": gemPortAttribs.gemPortID, //same as EntityID, see above
-					"InterworkingOption":                   5,                        //fixed model:: G.998 .1pMapper
-					"ServiceProfilePointer":                oFsm.mapperSP0ID,
-					"InterworkingTerminationPointPointer":  0, //not used with .1PMapper Mac bridge
-					"GalProfilePointer":                    cmn.GalEthernetEID,
+					me.GemInterworkingTerminationPoint_GemPortNetworkCtpConnectivityPointer: gemPortAttribs.gemPortID, //same as EntityID, see above
+					me.GemInterworkingTerminationPoint_InterworkingOption:                   5,                        //fixed model:: G.998 .1pMapper
+					me.GemInterworkingTerminationPoint_ServiceProfilePointer:                oFsm.mapperSP0ID,
+					me.GemInterworkingTerminationPoint_InterworkingTerminationPointPointer:  0, //not used with .1PMapper Mac bridge
+					me.GemInterworkingTerminationPoint_GalProfilePointer:                    cmn.GalEthernetEID,
 				},
 			}
 			oFsm.mutexPLastTxMeInstance.Lock()
@@ -1705,15 +1705,15 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to StrictPrio", log.Fields{
 					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 					"device-id": oFsm.deviceID})
-				meParams.Attributes["TrafficSchedulerPointer"] = 0 //ensure T-Cont defined StrictPrio scheduling
+				meParams.Attributes[me.PriorityQueue_TrafficSchedulerPointer] = 0 //ensure T-Cont defined StrictPrio scheduling
 			} else {
 				//WRR indication
 				logger.Debugw(ctx, "uniPonAniConfigFsm Tx Set::PrioQueue to WRR", log.Fields{
 					"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 					"Weight":    kv.Value,
 					"device-id": oFsm.deviceID})
-				meParams.Attributes["TrafficSchedulerPointer"] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
-				meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
+				meParams.Attributes[me.PriorityQueue_TrafficSchedulerPointer] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
+				meParams.Attributes[me.PriorityQueue_Weight] = uint8(kv.Value.(uint16))
 			}
 		} else {
 			// setting Traffic Scheduler (TS) pointer is not supported unless we point to another TS that points to the same TCONT.
@@ -1730,7 +1730,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 				"Weight":    kv.Value,
 				"device-id": oFsm.deviceID})
-			meParams.Attributes["Weight"] = uint8(kv.Value.(uint16))
+			meParams.Attributes[me.PriorityQueue_Weight] = uint8(kv.Value.(uint16))
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
 		meInstance, err := oFsm.pOmciCC.SendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
