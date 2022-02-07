@@ -45,14 +45,6 @@ type OnuImageStatus struct {
 	pLastTxMeInstance      *me.ManagedEntity
 }
 
-const (
-	cImgVersion     = "Version"
-	cImgIsCommitted = "IsCommitted"
-	cImgIsActive    = "IsActive"
-	cImgIsValid     = "IsValid"
-	cImgProductCode = "ProductCode"
-	cImgImageHash   = "ImageHash"
-)
 const cResponse = "response: "
 
 //NewOnuImageStatus creates a new instance of OnuImageStatus
@@ -91,17 +83,17 @@ func (oo *OnuImageStatus) GetOnuImageStatus(ctx context.Context) (*voltha.OnuIma
 		// a global mechanism should be implemented that automates this distribution - which would entail quite some
 		// changes on the respective receiver sides.
 
-		oo.requestedAttributes = me.AttributeValueMap{cImgVersion: "", cImgIsCommitted: 0, cImgIsActive: 0, cImgIsValid: 0}
+		oo.requestedAttributes = me.AttributeValueMap{me.SoftwareImage_Version: "", me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_IsValid: 0}
 		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil {
 			logger.Errorw(ctx, err.Error(), log.Fields{"requestedAttributes": oo.requestedAttributes, "device-id": oo.deviceID})
 			return nil, err
 		}
-		oo.requestedAttributes = me.AttributeValueMap{cImgProductCode: ""}
+		oo.requestedAttributes = me.AttributeValueMap{me.SoftwareImage_ProductCode: ""}
 		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil {
 			logger.Errorw(ctx, err.Error(), log.Fields{"requestedAttributes": oo.requestedAttributes, "device-id": oo.deviceID})
 			return nil, err
 		}
-		oo.requestedAttributes = me.AttributeValueMap{cImgImageHash: 0}
+		oo.requestedAttributes = me.AttributeValueMap{me.SoftwareImage_ImageHash: 0}
 		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil {
 			logger.Errorw(ctx, err.Error(), log.Fields{"requestedAttributes": oo.requestedAttributes, "device-id": oo.deviceID})
 			return nil, err
@@ -213,7 +205,7 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 	meAttributes := msgObj.Attributes
 	logger.Debugw(ctx, "processAttributesReceived", log.Fields{"attributes": meAttributes, "device-id": oo.deviceID})
 
-	if _, ok := oo.requestedAttributes[cImgVersion]; ok {
+	if _, ok := oo.requestedAttributes[me.SoftwareImage_Version]; ok {
 		if msgObj.Result != me.Success {
 			logger.Errorw(ctx, "processAttributesReceived retrieval of mandatory attributes failed",
 				log.Fields{"device-id": oo.deviceID})
@@ -224,40 +216,40 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 	for k := range oo.requestedAttributes {
 		switch k {
 		// mandatory attributes
-		case cImgIsCommitted:
-			if meAttributes[cImgIsCommitted].(uint8) == cmn.SwIsCommitted {
+		case me.SoftwareImage_IsCommitted:
+			if meAttributes[me.SoftwareImage_IsCommitted].(uint8) == cmn.SwIsCommitted {
 				image.IsCommited = true
 			} else {
 				image.IsCommited = false
 			}
-		case cImgIsActive:
-			if meAttributes[cImgIsActive].(uint8) == cmn.SwIsActive {
+		case me.SoftwareImage_IsActive:
+			if meAttributes[me.SoftwareImage_IsActive].(uint8) == cmn.SwIsActive {
 				image.IsActive = true
 			} else {
 				image.IsActive = false
 			}
-		case cImgIsValid:
-			if meAttributes[cImgIsValid].(uint8) == cmn.SwIsValid {
+		case me.SoftwareImage_IsValid:
+			if meAttributes[me.SoftwareImage_IsValid].(uint8) == cmn.SwIsValid {
 				image.IsValid = true
 			} else {
 				image.IsValid = false
 			}
-		case cImgVersion:
-			image.Version = cmn.TrimStringFromMeOctet(meAttributes[cImgVersion])
+		case me.SoftwareImage_Version:
+			image.Version = cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_Version])
 
 		// optional attributes
-		case cImgProductCode:
+		case me.SoftwareImage_ProductCode:
 			if msgObj.Result == me.Success {
-				image.ProductCode = cmn.TrimStringFromMeOctet(meAttributes[cImgProductCode])
+				image.ProductCode = cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_ProductCode])
 			} else {
 				sResult := msgObj.Result.String()
 				logger.Infow(ctx, "processAttributesReceived - ProductCode",
 					log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
 				image.ProductCode = cResponse + sResult
 			}
-		case cImgImageHash:
+		case me.SoftwareImage_ImageHash:
 			if msgObj.Result == me.Success {
-				bytes, _ := me.InterfaceToOctets(meAttributes[cImgImageHash])
+				bytes, _ := me.InterfaceToOctets(meAttributes[me.SoftwareImage_ImageHash])
 				image.Hash = hex.EncodeToString(bytes)
 			} else {
 				sResult := msgObj.Result.String()

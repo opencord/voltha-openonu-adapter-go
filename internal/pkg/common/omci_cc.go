@@ -891,7 +891,7 @@ func (oo *OmciCC) SendCreateGalEthernetProfile(ctx context.Context, timeout int,
 
 	meParams := me.ParamData{
 		EntityID:   GalEthernetEID,
-		Attributes: me.AttributeValueMap{"MaximumGemPayloadSize": maxGemPayloadSize},
+		Attributes: me.AttributeValueMap{me.GalEthernetProfile_MaximumGemPayloadSize: maxGemPayloadSize},
 	}
 	meInstance, omciErr := me.NewGalEthernetProfile(meParams)
 	if omciErr.GetError() == nil {
@@ -941,7 +941,7 @@ func (oo *OmciCC) SendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 	// read ONU-2G from DB ???? //TODO!!!
 	meParams := me.ParamData{
 		EntityID:   0,
-		Attributes: me.AttributeValueMap{"CurrentConnectivityMode": connectivityModeValue},
+		Attributes: me.AttributeValueMap{me.Onu2G_CurrentConnectivityMode: connectivityModeValue},
 	}
 	meInstance, omciErr := me.NewOnu2G(meParams)
 	if omciErr.GetError() == nil {
@@ -988,11 +988,11 @@ func (oo *OmciCC) SendCreateMBServiceProfile(ctx context.Context,
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"Priority":                   0x8000,
-			"MaxAge":                     20 * 256, //20s
-			"HelloTime":                  2 * 256,  //2s
-			"ForwardDelay":               15 * 256, //15s
-			"DynamicFilteringAgeingTime": 0,
+			me.MacBridgeServiceProfile_Priority:                   0x8000,
+			me.MacBridgeServiceProfile_MaxAge:                     20 * 256, //20s
+			me.MacBridgeServiceProfile_HelloTime:                  2 * 256,  //2s
+			me.MacBridgeServiceProfile_ForwardDelay:               15 * 256, //15s
+			me.MacBridgeServiceProfile_DynamicFilteringAgeingTime: 0,
 		},
 	}
 
@@ -1048,10 +1048,10 @@ func (oo *OmciCC) SendCreateMBPConfigDataUniSide(ctx context.Context,
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"BridgeIdPointer": MacBridgeServiceProfileEID + uint16(aPUniPort.MacBpNo),
-			"PortNum":         aPUniPort.MacBpNo,
-			"TpType":          uint8(aPUniPort.PortType),
-			"TpPointer":       aPUniPort.EntityID,
+			me.MacBridgePortConfigurationData_BridgeIdPointer: MacBridgeServiceProfileEID + uint16(aPUniPort.MacBpNo),
+			me.MacBridgePortConfigurationData_PortNum:         aPUniPort.MacBpNo,
+			me.MacBridgePortConfigurationData_TpType:          uint8(aPUniPort.PortType),
+			me.MacBridgePortConfigurationData_TpPointer:       aPUniPort.EntityID,
 		},
 	}
 	meInstance, omciErr := me.NewMacBridgePortConfigurationData(meParams)
@@ -1109,8 +1109,8 @@ func (oo *OmciCC) SendCreateEVTOConfigData(ctx context.Context,
 	meParams := me.ParamData{
 		EntityID: instID,
 		Attributes: me.AttributeValueMap{
-			"AssociationType":     assType,
-			"AssociatedMePointer": aPUniPort.EntityID,
+			me.ExtendedVlanTaggingOperationConfigurationData_AssociationType:     assType,
+			me.ExtendedVlanTaggingOperationConfigurationData_AssociatedMePointer: aPUniPort.EntityID,
 			//EnhancedMode not yet supported, used with default options
 		},
 	}
@@ -1422,15 +1422,15 @@ func (oo *OmciCC) SendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 		EntityID: aInstID,
 		Attributes: me.AttributeValueMap{
 			//workaround for unsuitable omci-lib default values, cmp VOL-3729
-			"TpPointer":                          0xFFFF,
-			"InterworkTpPointerForPBitPriority0": 0xFFFF,
-			"InterworkTpPointerForPBitPriority1": 0xFFFF,
-			"InterworkTpPointerForPBitPriority2": 0xFFFF,
-			"InterworkTpPointerForPBitPriority3": 0xFFFF,
-			"InterworkTpPointerForPBitPriority4": 0xFFFF,
-			"InterworkTpPointerForPBitPriority5": 0xFFFF,
-			"InterworkTpPointerForPBitPriority6": 0xFFFF,
-			"InterworkTpPointerForPBitPriority7": 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_TpPointer:                          0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority0: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority1: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority2: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority3: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority4: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority5: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority6: 0xFFFF,
+			me.Ieee8021PMapperServiceProfile_InterworkTpPointerForPBitPriority7: 0xFFFF,
 		},
 	}
 	meInstance, omciErr := me.NewIeee8021PMapperServiceProfile(meParams)
@@ -4552,7 +4552,7 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Contex
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(entityID), 16), "create": create, "upstream": upstream})
 
 	meParam := me.ParamData{EntityID: entityID,
-		Attributes: me.AttributeValueMap{"ControlBlock": controlBlock},
+		Attributes: me.AttributeValueMap{me.EthernetFrameExtendedPm_ControlBlock: controlBlock},
 	}
 	var meInstance *me.ManagedEntity
 	var omciErr me.OmciErrors
@@ -4633,7 +4633,7 @@ func (oo *OmciCC) SendSetEthernetFrameExtendedPMME(ctx context.Context, timeout 
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(entityID), 16)})
 
 	meParams := me.ParamData{EntityID: entityID,
-		Attributes: me.AttributeValueMap{"ControlBlock": controlBlock},
+		Attributes: me.AttributeValueMap{me.EthernetFrameExtendedPm_ControlBlock: controlBlock},
 	}
 	var meInstance *me.ManagedEntity
 	var omciErr me.OmciErrors

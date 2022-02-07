@@ -213,7 +213,7 @@ func (oFsm *LockStateFsm) enterSettingOnuGState(ctx context.Context, e *fsm.Even
 	oFsm.mutexAdminState.RUnlock()
 	logger.Debugw(ctx, "LockStateFSM Tx Set::ONU-G:admin", log.Fields{
 		"omciAdmin": omciAdminState, "in state": e.FSM.Current(), "device-id": oFsm.deviceID})
-	requestedAttributes := me.AttributeValueMap{"AdministrativeState": omciAdminState}
+	requestedAttributes := me.AttributeValueMap{me.OnuG_AdministrativeState: omciAdminState}
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.SendSetOnuGLS(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
 		requestedAttributes, oFsm.PAdaptFsm.CommChan)
@@ -430,7 +430,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 	}
 	oFsm.mutexAdminState.RUnlock()
 	//set PPTPEthUni or VEIP AdminState
-	requestedAttributes := me.AttributeValueMap{"AdministrativeState": omciAdminState}
+	requestedAttributes := me.AttributeValueMap{me.PhysicalPathTerminationPointEthernetUni_AdministrativeState: omciAdminState}
 
 	for uniNo, uniPort := range *oFsm.pDeviceHandler.GetUniEntityMap() {
 		// only unlock the UniPort in case it is defined for usage (R2.6 limit only one port),
