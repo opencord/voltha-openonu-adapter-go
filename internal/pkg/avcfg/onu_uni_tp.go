@@ -583,6 +583,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 				onuTP.mapRemoveGemEntry[uniTPKey] = pLocAniConfigOnUni.mapGemPortParams[gemPortID]
 				logger.Debugw(ctx, "Remove-GemEntry stored", log.Fields{
 					"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID, "GemPort": aEntryID})
+
 				break //abort loop, always only one GemPort to remove
 			}
 		}
