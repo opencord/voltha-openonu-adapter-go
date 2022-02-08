@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9fe297a2_e42e0e41",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-08T15:41:30Z",
+      "side": 1,
+      "message": "voltha 2.8 test openonu multiolt",
+      "revId": "e3b27e9c8ff5da72c298352f5e40a374e256e571",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
