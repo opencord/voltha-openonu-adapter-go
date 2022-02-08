@@ -278,6 +278,9 @@ type OnuDeviceEntry struct {
 	mibTemplateKVStore         *db.Backend
 	mutexPersOnuConfig         sync.RWMutex
 	sOnuPersistentData         onuPersistentData
+	reconcilingFlows           bool
+	mutexReconcilingFlowsFlag  sync.RWMutex
+	chReconcilingFlowsFinished chan bool //channel to indicate that reconciling of flows has been finished
 	mibTemplatePath            string
 	mutexOnuKVStore            sync.RWMutex
 	onuKVStore                 *db.Backend
@@ -326,6 +329,8 @@ func newOnuDeviceEntry(ctx context.Context, dh *deviceHandler) *OnuDeviceEntry {
 	onuDeviceEntry.devState = DeviceStatusInit
 	onuDeviceEntry.sOnuPersistentData.PersUniConfig = make([]uniPersConfig, 0)
 	onuDeviceEntry.sOnuPersistentData.PersTcontMap = make(map[uint16]uint16)
+	onuDeviceEntry.chReconcilingFlowsFinished = make(chan bool)
+	onuDeviceEntry.reconcilingFlows = false
 	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan Message, 2048)
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
@@ -981,6 +986,34 @@ func (oo *OnuDeviceEntry) freeTcont(ctx context.Context, allocID uint16) {
 	oo.mutexPersOnuConfig.Lock()
 	defer oo.mutexPersOnuConfig.Unlock()
 	delete(oo.sOnuPersistentData.PersTcontMap, allocID)
+}
+
+// setReconcilingFlows - TODO: add comment
+func (oo *OnuDeviceEntry) setReconcilingFlows(value bool) {
+	oo.mutexReconcilingFlowsFlag.Lock()
+	oo.reconcilingFlows = value
+	oo.mutexReconcilingFlowsFlag.Unlock()
+}
+
+// SendChReconcilingFlowsFinished - TODO: add comment
+func (oo *OnuDeviceEntry) SendChReconcilingFlowsFinished(ctx context.Context, value bool) {
+	if oo != nil { //if the object still exists (might have been already deleted in background)
+		//use asynchronous channel sending to avoid stucking on non-waiting receiver
+		select {
+		case oo.chReconcilingFlowsFinished <- value:
+			logger.Debugw(ctx, "reconciling - flows finished sent", log.Fields{"device-id": oo.deviceID})
+		default:
+			logger.Infow(ctx, "reconciling - flows finished not sent!", log.Fields{"device-id": oo.deviceID})
+		}
+	}
+}
+
+// isReconcilingFlows - TODO: add comment
+func (oo *OnuDeviceEntry) isReconcilingFlows() bool {
+	oo.mutexReconcilingFlowsFlag.RLock()
+	value := oo.reconcilingFlows
+	oo.mutexReconcilingFlowsFlag.RUnlock()
+	return value
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection

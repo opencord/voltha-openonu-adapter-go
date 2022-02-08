@@ -316,43 +316,6 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if !oo.baseDeviceHandler.getAlarmManagerIsRunning(ctx) {
 			go oo.baseDeviceHandler.startAlarmManager(ctx)
 		}
-		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
-		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
-
-		// start go routine with select() on reconciling flow channel before
-		// starting flow reconciling process to prevent loss of any signal
-		syncChannel := make(chan struct{})
-		go func(aSyncChannel chan struct{}) {
-			// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
-			// we get a signal that the processing of the last step to rebuild the adapter internal
-			// flow data is finished.
-			aSyncChannel <- struct{}{}
-			select {
-			case success := <-oo.baseDeviceHandler.chReconcilingFlowsFinished:
-				if success {
-					logger.Debugw(ctx, "reconciling flows has been finished in time",
-						log.Fields{"device-id": oo.deviceID})
-					oo.baseDeviceHandler.stopReconciling(ctx, true)
-					_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
-
-				} else {
-					logger.Debugw(ctx, "wait for reconciling flows aborted",
-						log.Fields{"device-id": oo.deviceID})
-					oo.baseDeviceHandler.setReconcilingFlows(false)
-				}
-			case <-time.After(500 * time.Millisecond):
-				logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
-					log.Fields{"device-id": oo.deviceID})
-				oo.baseDeviceHandler.setReconcilingFlows(false)
-				_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
-			}
-		}(syncChannel)
-		// block further processing until the above Go routine has really started
-		// and is ready to receive values from chReconcilingFlowsFinished
-		<-syncChannel
-
-		oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
-
 		oo.mutexPersOnuConfig.RLock()
 		if oo.sOnuPersistentData.PersUniDisableDone {
 			oo.mutexPersOnuConfig.RUnlock()
@@ -361,6 +324,43 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		} else {
 			oo.mutexPersOnuConfig.RUnlock()
 			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
+		}
+
+		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
+		if oo.baseDeviceHandler.reconcileDeviceTechProf(ctx) {
+
+			// start go routine with select() on reconciling flow channel before
+			// starting flow reconciling process to prevent loss of any signal
+			syncChannel := make(chan struct{})
+			go func(aSyncChannel chan struct{}) {
+				// In multi-ONU/multi-flow environment stopping reconcilement has to be delayed until
+				// we get a signal that the processing of the last step to rebuild the adapter internal
+				// flow data is finished.
+				expiry := oo.baseDeviceHandler.GetReconcileExpiryVlanConfigAbort()
+				oo.setReconcilingFlows(true)
+				aSyncChannel <- struct{}{}
+				select {
+				case success := <-oo.chReconcilingFlowsFinished:
+					if success {
+						logger.Debugw(ctx, "reconciling flows has been finished in time",
+							log.Fields{"device-id": oo.deviceID})
+						_ = oo.pMibUploadFsm.pFsm.Event(ulEvSuccess)
+
+					} else {
+						logger.Debugw(ctx, "wait for reconciling flows aborted",
+							log.Fields{"device-id": oo.deviceID})
+					}
+				case <-time.After(expiry):
+					logger.Errorw(ctx, "timeout waiting for reconciling flows to be finished!",
+						log.Fields{"device-id": oo.deviceID})
+					_ = oo.pMibUploadFsm.pFsm.Event(ulEvMismatch)
+				}
+				oo.setReconcilingFlows(false)
+			}(syncChannel)
+			// block further processing until the above Go routine has really started
+			// and is ready to receive values from chReconcilingFlowsFinished
+			<-syncChannel
+			oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
 		}
 	} else {
 		logger.Debugw(ctx, "MibSync FSM",
@@ -1108,26 +1108,27 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 //CancelProcessing terminates potentially running reconciling processes and stops the FSM
 func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 
-	if oo.baseDeviceHandler.isReconcilingFlows() {
-		oo.baseDeviceHandler.chReconcilingFlowsFinished <- false
-	}
-	if oo.baseDeviceHandler.isReconciling() {
-		oo.baseDeviceHandler.stopReconciling(ctx, false)
+	if oo.isReconcilingFlows() {
+		oo.SendChReconcilingFlowsFinished(ctx, false)
 	}
 	oo.mutexMibSyncMsgProcessorRunning.RLock()
 	defer oo.mutexMibSyncMsgProcessorRunning.RUnlock()
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
-	pMibUlFsm := oo.pMibUploadFsm
-	if pMibUlFsm != nil {
-		// abort running message processing
-		fsmAbortMsg := Message{
-			Type: TestMsg,
-			Data: TestMessage{
-				TestMessageVal: AbortMessageProcessing,
-			},
+	oo.mutexMibSyncMsgProcessorRunning.RLock()
+	defer oo.mutexMibSyncMsgProcessorRunning.RUnlock()
+	if oo.mibSyncMsgProcessorRunning {
+		pMibUlFsm := oo.pMibUploadFsm
+		if pMibUlFsm != nil {
+			// abort running message processing
+			fsmAbortMsg := Message{
+				Type: TestMsg,
+				Data: TestMessage{
+					TestMessageVal: AbortMessageProcessing,
+				},
+			}
+			pMibUlFsm.commChan <- fsmAbortMsg
+			_ = pMibUlFsm.pFsm.Event(ulEvStop)
 		}
-		pMibUlFsm.commChan <- fsmAbortMsg
-		_ = pMibUlFsm.pFsm.Event(ulEvStop)
 	}
 }
