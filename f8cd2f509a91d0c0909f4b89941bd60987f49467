@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e543cb6a_bbce2777",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 18
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "Hi , with this patch we have tested onu sw update with 32 onus",
+      "parentUuid": "11ca79db_f7a5c429",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "abe8b622_9ca58ecf",
@@ -48,6 +66,24 @@
       "writtenOn": "2022-02-03T11:40:20Z",
       "side": 1,
       "message": "Just spelling: \u0027prepares\u0027.\nA further comment would be welcome to indicate that precondition of this function call is that mutexTid is locked outside this funtion, so that internally GetOnuSwSecNextTid() can be used without any further locking.",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e0cd637d_e02ef4e4",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4169,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "fix the spelling and added a comment to indicate the lock for mutexTid.",
+      "parentUuid": "abe8b622_9ca58ecf",
       "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -77,6 +113,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "465b85ac_cde288c6",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4170,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "addressed this comment.",
+      "parentUuid": "775a1047_9d19481c",
+      "range": {
+        "startLine": 4170,
+        "startChar": 66,
+        "endLine": 4170,
+        "endChar": 72
+      },
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "80e376a1_0badd6d1",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 18
@@ -94,6 +154,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "fa6dab83_2e096780",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4217,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "removed the printFrame parameter, now the print is enabled only for the last section and the last section is being printed during the send.",
+      "parentUuid": "80e376a1_0badd6d1",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "b374d914_9e8520b4",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 18
@@ -105,6 +183,24 @@
       "writtenOn": "2022-02-03T11:40:20Z",
       "side": 1,
       "message": "This block: It makes no sense here to always set the callbackPair for each section, while it is only used with the last (responseRequired) section. My proposal is to move it completely to SendOnuSwSectionsWindowWithRxSupervision().\nSee also discussion on function parameters above.",
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "66600d10_09f1b8ae",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4222,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "moved the callbackPair to the SendOnuSwSectionsWindowWithRxSupervision",
+      "parentUuid": "b374d914_9e8520b4",
       "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -134,6 +230,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "44ad7757_8f2bbcec",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 4255,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "addressed",
+      "parentUuid": "02645d1b_fe35b1bb",
+      "range": {
+        "startLine": 4255,
+        "startChar": 51,
+        "endLine": 4255,
+        "endChar": 62
+      },
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "3183450c_1ff8573e",
         "filename": "internal/pkg/swupg/omci_onu_upgrade.go",
         "patchSetId": 18
@@ -145,6 +265,30 @@
       "writtenOn": "2022-02-03T11:40:20Z",
       "side": 1,
       "message": "It is not common and proposed to set the Retry rate from the calling application. So far the retry rate is more a CC internal parameter (and set only there). As you obviously don\u0027t want to set very specific value here I\u0027d propose to leave that in the CC code only.",
+      "range": {
+        "startLine": 821,
+        "startChar": 119,
+        "endLine": 821,
+        "endChar": 134
+      },
+      "revId": "f8cd2f509a91d0c0909f4b89941bd60987f49467",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "36850ae6_c7a2ef0c",
+        "filename": "internal/pkg/swupg/omci_onu_upgrade.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 821,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "addressed this comment.",
+      "parentUuid": "3183450c_1ff8573e",
       "range": {
         "startLine": 821,
         "startChar": 119,

@@ -248,6 +248,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "00d2a6f9_8470e25e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 4211,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "This is present from the beginning and the parameter connections status is evaluated at the olt adapter before sending the message, so i have kept this part of the code as it is.",
+      "parentUuid": "bc2a6380_bd9be41e",
+      "revId": "c7303fb79f107df6bb2053a0ffb1af7e4dca1420",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "622d3382_dc868692",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 13

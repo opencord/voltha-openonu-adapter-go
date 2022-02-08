@@ -69,6 +69,24 @@
       "parentUuid": "5a8f6494_d33c5d14",
       "revId": "f035c229ea29a40be33847ee18713d27f6da95bd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4f40c40d_9b333e08",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 4180,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-08T10:36:40Z",
+      "side": 1,
+      "message": "Removed the comment.",
+      "parentUuid": "18f78403_0a8c5516",
+      "revId": "f035c229ea29a40be33847ee18713d27f6da95bd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
