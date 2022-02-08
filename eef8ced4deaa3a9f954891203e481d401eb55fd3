@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a6bde002_62b211c2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 23
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-08T11:07:11Z",
+      "side": 1,
+      "message": "patch is good, hardware test fail due to BAL issue with XGS-PON devices",
+      "revId": "eef8ced4deaa3a9f954891203e481d401eb55fd3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
