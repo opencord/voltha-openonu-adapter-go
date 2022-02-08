@@ -16,6 +16,23 @@
       "message": "when ready please remove the WIP and we can review/test it, thanks! ",
       "revId": "c4aad0f9c433560a21edfd94ef98996d34321775",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7d12a36a_12d8a75c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-08T20:34:25Z",
+      "side": 1,
+      "message": "AFAIK, OLT adapter does not send gem port delete to ONU. Also it is not that big a deal as Multicast gem port is reserved and it is not really assigned to anyone. I am not sure this patch would work then if OLT adapter is not sending a GEM port delete request.",
+      "revId": "c4aad0f9c433560a21edfd94ef98996d34321775",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
