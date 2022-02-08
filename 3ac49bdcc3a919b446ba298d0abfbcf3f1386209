@@ -50,6 +50,23 @@
       "message": "recheck",
       "revId": "3ac49bdcc3a919b446ba298d0abfbcf3f1386209",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "502ce7e9_9258eb1f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-08T11:30:31Z",
+      "side": 1,
+      "message": "Path is good, merging, the failure in HW tests is due to BAL issue with XGS-PON",
+      "revId": "3ac49bdcc3a919b446ba298d0abfbcf3f1386209",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
