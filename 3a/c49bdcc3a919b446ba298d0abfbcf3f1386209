@@ -1,0 +1,8 @@
+Code-Review+1: Torsten Thieme <torsten.thieme@adtran.com>
+Code-Review+2: Andrea Campanella <andrea@opennetworking.org>
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Submitted-by: Andrea Campanella <andrea@opennetworking.org>
+Submitted-at: Tue, 08 Feb 2022 11:30:36 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/30802
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
