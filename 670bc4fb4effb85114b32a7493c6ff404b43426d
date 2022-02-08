@@ -16,6 +16,24 @@
       "message": "has this been tested on hw ? ",
       "revId": "670bc4fb4effb85114b32a7493c6ff404b43426d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ba6323f3_c43b946f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-02-08T06:49:31Z",
+      "side": 1,
+      "message": "Not yet.",
+      "parentUuid": "4dcc4a28_5a1c8e22",
+      "revId": "670bc4fb4effb85114b32a7493c6ff404b43426d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
