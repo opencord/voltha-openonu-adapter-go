@@ -316,6 +316,15 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		if !oo.baseDeviceHandler.getAlarmManagerIsRunning(ctx) {
 			go oo.baseDeviceHandler.startAlarmManager(ctx)
 		}
+		oo.mutexPersOnuConfig.RLock()
+		if oo.sOnuPersistentData.PersUniDisableDone {
+			oo.mutexPersOnuConfig.RUnlock()
+			oo.baseDeviceHandler.disableUniPortStateUpdate(ctx)
+			oo.baseDeviceHandler.setDeviceReason(drOmciAdminLock)
+		} else {
+			oo.mutexPersOnuConfig.RUnlock()
+			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
+		}
 		// no need to reconcile additional data for MibDownloadFsm, LockStateFsm, or UnlockStateFsm
 		oo.baseDeviceHandler.reconcileDeviceTechProf(ctx)
 
@@ -352,16 +361,6 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		<-syncChannel
 
 		oo.baseDeviceHandler.reconcileDeviceFlowConfig(ctx)
-
-		oo.mutexPersOnuConfig.RLock()
-		if oo.sOnuPersistentData.PersUniDisableDone {
-			oo.mutexPersOnuConfig.RUnlock()
-			oo.baseDeviceHandler.disableUniPortStateUpdate(ctx)
-			oo.baseDeviceHandler.setDeviceReason(drOmciAdminLock)
-		} else {
-			oo.mutexPersOnuConfig.RUnlock()
-			oo.baseDeviceHandler.enableUniPortStateUpdate(ctx)
-		}
 	} else {
 		logger.Debugw(ctx, "MibSync FSM",
 			log.Fields{"Getting MIB from template not successful": e.FSM.Current(), "device-id": oo.deviceID})
