@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ac22052f_ef89bdfc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-09T19:04:15Z",
+      "side": 1,
+      "message": "when this patch is merged we should consider releasing the helm-chart for voltha-2.8",
+      "revId": "ef7b4adaedbc582927d23a1c79937559422fb21d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
