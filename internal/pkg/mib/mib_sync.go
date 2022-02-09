@@ -473,6 +473,9 @@ func (oo *OnuDeviceEntry) enterOutOfSyncState(ctx context.Context, e *fsm.Event)
 
 func (oo *OnuDeviceEntry) processMibSyncMessages(ctx context.Context) {
 	logger.Debugw(ctx, "MibSync Msg", log.Fields{"Start routine to process OMCI-messages for device-id": oo.deviceID})
+	oo.mutexMibSyncMsgProcessorRunning.Lock()
+	oo.mibSyncMsgProcessorRunning = true
+	oo.mutexMibSyncMsgProcessorRunning.RUnlock()
 loop:
 	for {
 		// case <-ctx.Done():
@@ -481,6 +484,9 @@ loop:
 		message, ok := <-oo.PMibUploadFsm.CommChan
 		if !ok {
 			logger.Info(ctx, "MibSync Msg", log.Fields{"Message couldn't be read from channel for device-id": oo.deviceID})
+			oo.mutexMibSyncMsgProcessorRunning.Lock()
+			oo.mibSyncMsgProcessorRunning = false
+			oo.mutexMibSyncMsgProcessorRunning.RUnlock()
 			break loop
 		}
 		logger.Debugw(ctx, "MibSync Msg", log.Fields{"Received message on ONU MibSyncChan for device-id": oo.deviceID})
@@ -490,6 +496,9 @@ loop:
 			msg, _ := message.Data.(cmn.TestMessage)
 			if msg.TestMessageVal == cmn.AbortMessageProcessing {
 				logger.Debugw(ctx, "MibSync Msg abort ProcessMsg", log.Fields{"for device-id": oo.deviceID})
+				oo.mutexMibSyncMsgProcessorRunning.Lock()
+				oo.mibSyncMsgProcessorRunning = false
+				oo.mutexMibSyncMsgProcessorRunning.RUnlock()
 				break loop
 			}
 			oo.handleTestMsg(ctx, msg)
@@ -1211,16 +1220,20 @@ func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 	}
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
-	pMibUlFsm := oo.PMibUploadFsm
-	if pMibUlFsm != nil {
-		// abort running message processing
-		fsmAbortMsg := cmn.Message{
-			Type: cmn.TestMsg,
-			Data: cmn.TestMessage{
-				TestMessageVal: cmn.AbortMessageProcessing,
-			},
+	oo.mutexMibSyncMsgProcessorRunning.RLock()
+	defer oo.mutexMibSyncMsgProcessorRunning.RUnlock()
+	if oo.mibSyncMsgProcessorRunning {
+		pMibUlFsm := oo.PMibUploadFsm
+		if pMibUlFsm != nil {
+			// abort running message processing
+			fsmAbortMsg := cmn.Message{
+				Type: cmn.TestMsg,
+				Data: cmn.TestMessage{
+					TestMessageVal: cmn.AbortMessageProcessing,
+				},
+			}
+			pMibUlFsm.CommChan <- fsmAbortMsg
+			_ = pMibUlFsm.PFsm.Event(UlEvStop)
 		}
-		pMibUlFsm.CommChan <- fsmAbortMsg
-		_ = pMibUlFsm.PFsm.Event(UlEvStop)
 	}
 }
