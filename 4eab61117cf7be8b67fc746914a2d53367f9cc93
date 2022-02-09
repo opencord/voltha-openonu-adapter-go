@@ -1,0 +1,95 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "aedbbc6b_381496de",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-09T16:53:54Z",
+      "side": 1,
+      "message": "minor comments, +1 otherwise",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "db644748_73117023",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4308,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-09T16:53:54Z",
+      "side": 1,
+      "message": "are these constants present elsewhere ? if so I\u0027d extract them",
+      "range": {
+        "startLine": 4307,
+        "startChar": 4,
+        "endLine": 4308,
+        "endChar": 33
+      },
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6744f03f_a46f969f",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4311,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-09T16:53:54Z",
+      "side": 1,
+      "message": "same here",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "976527b7_28b64078",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4728,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-09T16:53:54Z",
+      "side": 1,
+      "message": "see here, please reuse constants",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "112d40e9_6e016ff5",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1101,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-02-09T16:53:54Z",
+      "side": 1,
+      "message": "same",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
