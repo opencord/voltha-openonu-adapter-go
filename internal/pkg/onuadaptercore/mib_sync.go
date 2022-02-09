@@ -403,6 +403,9 @@ func (oo *OnuDeviceEntry) enterOutOfSyncState(ctx context.Context, e *fsm.Event)
 
 func (oo *OnuDeviceEntry) processMibSyncMessages(ctx context.Context) {
 	logger.Debugw(ctx, "MibSync Msg", log.Fields{"Start routine to process OMCI-messages for device-id": oo.deviceID})
+	oo.mutexMibSyncMsgProcessorRunning.Lock()
+	oo.mibSyncMsgProcessorRunning = true
+	oo.mutexMibSyncMsgProcessorRunning.Unlock()
 loop:
 	for {
 		// case <-ctx.Done():
@@ -411,6 +414,9 @@ loop:
 		message, ok := <-oo.pMibUploadFsm.commChan
 		if !ok {
 			logger.Info(ctx, "MibSync Msg", log.Fields{"Message couldn't be read from channel for device-id": oo.deviceID})
+			oo.mutexMibSyncMsgProcessorRunning.Lock()
+			oo.mibSyncMsgProcessorRunning = false
+			oo.mutexMibSyncMsgProcessorRunning.Unlock()
 			break loop
 		}
 		logger.Debugw(ctx, "MibSync Msg", log.Fields{"Received message on ONU MibSyncChan for device-id": oo.deviceID})
@@ -420,6 +426,9 @@ loop:
 			msg, _ := message.Data.(TestMessage)
 			if msg.TestMessageVal == AbortMessageProcessing {
 				logger.Debugw(ctx, "MibSync Msg abort ProcessMsg", log.Fields{"for device-id": oo.deviceID})
+				oo.mutexMibSyncMsgProcessorRunning.Lock()
+				oo.mibSyncMsgProcessorRunning = false
+				oo.mutexMibSyncMsgProcessorRunning.Unlock()
 				break loop
 			}
 			oo.handleTestMsg(ctx, msg)
@@ -1105,6 +1114,8 @@ func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 	if oo.baseDeviceHandler.isReconciling() {
 		oo.baseDeviceHandler.stopReconciling(ctx, false)
 	}
+	oo.mutexMibSyncMsgProcessorRunning.RLock()
+	defer oo.mutexMibSyncMsgProcessorRunning.RUnlock()
 	//the MibSync FSM might be active all the ONU-active time,
 	// hence it must be stopped unconditionally
 	pMibUlFsm := oo.pMibUploadFsm
