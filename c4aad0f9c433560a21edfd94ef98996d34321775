@@ -69,6 +69,24 @@
       "parentUuid": "fe054339_88aca3ad",
       "revId": "c4aad0f9c433560a21edfd94ef98996d34321775",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "12ff6b55_d6dca40a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-09T18:33:55Z",
+      "side": 1,
+      "message": "Yes, it is a bit tricky to handle this in OLT adapter. As discussed in openonu-go call on Wed, Feb9 - you may want to handle gem port delete trigger when VoD service is deleted.",
+      "parentUuid": "cd535782_4c6b0b75",
+      "revId": "c4aad0f9c433560a21edfd94ef98996d34321775",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
