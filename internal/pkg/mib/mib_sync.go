@@ -1093,8 +1093,9 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 			logger.Debugw(ctx, "MibSync FSM - mib reaudit - MDS check ok", log.Fields{"device-id": oo.deviceID})
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
 		} else {
-			logger.Errorw(ctx, "MibSync FSM - mib audit - MDS check failed for the second time!", log.Fields{"device-id": oo.deviceID})
-			//TODO: send new event notification "MDS counter mismatch" to the core
+			logger.Errorw(ctx, "MibSync FSM - mib audit - MDS check failed for the second time - send ONU device event!",
+				log.Fields{"device-id": oo.deviceID})
+			oo.SendOnuDeviceEvent(ctx, cmn.OnuMibAuditFailureMds, cmn.OnuMibAuditFailureMdsDesc)
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
 		}
 	} else if oo.PMibUploadFsm.PFsm.Is(UlStExaminingMds) {

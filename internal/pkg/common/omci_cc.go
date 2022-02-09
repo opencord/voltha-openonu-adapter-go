@@ -4296,8 +4296,9 @@ loop:
 			break loop
 		case <-time.After(time.Duration(aTimeout) * time.Second):
 			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureSwUpgrade, OnuOmciCommunicationFailureSwUpgradeDesc)
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
@@ -4705,8 +4706,9 @@ loop:
 			break loop
 		case <-time.After(time.Duration(aTimeout) * time.Second):
 			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureConfig, OnuOmciCommunicationFailureConfigDesc)
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",

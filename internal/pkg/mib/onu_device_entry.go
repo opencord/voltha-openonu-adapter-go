@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -30,8 +31,10 @@ import (
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
+	"github.com/opencord/voltha-protos/v5/go/voltha"
 
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 
@@ -156,6 +159,7 @@ type onuPersistentData struct {
 type OnuDeviceEntry struct {
 	deviceID                   string
 	baseDeviceHandler          cmn.IdeviceHandler
+	eventProxy                 eventif.EventProxy
 	pOpenOnuAc                 cmn.IopenONUAC
 	pOnuTP                     cmn.IonuUniTechProf
 	coreClient                 *vgrpc.Client
@@ -214,6 +218,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.deviceID = dh.GetDeviceID()
 	logger.Debugw(ctx, "init-onuDeviceEntry", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	onuDeviceEntry.baseDeviceHandler = dh
+	onuDeviceEntry.eventProxy = dh.GetEventProxy()
 	onuDeviceEntry.pOpenOnuAc = openonu
 	onuDeviceEntry.coreClient = cc
 	onuDeviceEntry.devState = cmn.DeviceStatusInit
@@ -998,4 +1003,23 @@ func (oo *OnuDeviceEntry) PrepareForGarbageCollection(ctx context.Context, aDevi
 		oo.PDevOmciCC.PrepareForGarbageCollection(ctx, aDeviceID)
 	}
 	oo.PDevOmciCC = nil
+}
+
+//SendOnuDeviceEvent sends an ONU DeviceEvent via eventProxy
+func (oo *OnuDeviceEntry) SendOnuDeviceEvent(ctx context.Context, aDeviceEventName string, aDescription string) {
+
+	oo.MutexPersOnuConfig.RLock()
+	context := make(map[string]string)
+	context["onu-id"] = strconv.FormatUint(uint64(oo.SOnuPersistentData.PersOnuID), 10)
+	context["intf-id"] = strconv.FormatUint(uint64(oo.SOnuPersistentData.PersIntfID), 10)
+	context["onu-serial-number"] = oo.SOnuPersistentData.PersSerialNumber
+	oo.MutexPersOnuConfig.RUnlock()
+
+	deviceEvent := &voltha.DeviceEvent{
+		ResourceId:      oo.deviceID,
+		DeviceEventName: aDeviceEventName,
+		Description:     aDescription,
+		Context:         context,
+	}
+	_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
 }

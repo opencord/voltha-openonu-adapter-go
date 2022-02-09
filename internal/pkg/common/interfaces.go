@@ -150,6 +150,8 @@ type IonuDeviceEntry interface {
 
 	AllocateFreeTcont(context.Context, uint16) (uint16, bool, error)
 	FreeTcont(context.Context, uint16)
+
+	SendOnuDeviceEvent(context.Context, string, string)
 }
 
 // IonuMetricsManager interface to onuMetricsManager

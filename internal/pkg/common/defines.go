@@ -345,3 +345,17 @@ const CBasePathOnuKVStore = "%s/openonu"
 type WaitGroupWithTimeOut struct {
 	sync.WaitGroup
 }
+
+///////////////////////////////////////////////////////////
+
+// event notifications
+const (
+	OnuMibAuditFailureMds     = "ONU_MIB_AUDIT_FAILURE_MDS"
+	OnuMibAuditFailureMdsDesc = "MIB audit failed due to MDS value mismatch between ONU and adapter"
+
+	OnuOmciCommunicationFailureConfig     = "ONU_OMCI_COMMUNICATION_FAILURE_CONFIG"
+	OnuOmciCommunicationFailureConfigDesc = "OMCI communication during ONU configuration failed"
+
+	OnuOmciCommunicationFailureSwUpgrade     = "ONU_OMCI_COMMUNICATION_FAILURE_SW_UPGRADE"
+	OnuOmciCommunicationFailureSwUpgradeDesc = "OMCI communication during ONU SW upgrade failed"
+)
