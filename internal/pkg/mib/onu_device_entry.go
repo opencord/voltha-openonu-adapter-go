@@ -191,9 +191,11 @@ type OnuDeviceEntry struct {
 	//mibNextDbResync uint32
 
 	// for mibUpload
-	PMibUploadFsm          *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
-	mutexLastTxParamStruct sync.RWMutex
-	lastTxParamStruct      sLastTxMeParameter
+	PMibUploadFsm                   *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
+	mutexLastTxParamStruct          sync.RWMutex
+	lastTxParamStruct               sLastTxMeParameter
+	mibSyncMsgProcessorRunning      bool
+	mutexMibSyncMsgProcessorRunning sync.RWMutex
 	// for mibDownload
 	PMibDownloadFsm *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
 	//remark: general usage of pAdapterFsm would require generalization of CommChan  usage and internal event setting
