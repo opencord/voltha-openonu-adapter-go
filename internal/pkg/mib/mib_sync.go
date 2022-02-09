@@ -38,6 +38,7 @@ import (
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	devdb "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
 	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
+	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
 type sLastTxMeParameter struct {
@@ -1093,8 +1094,19 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 			logger.Debugw(ctx, "MibSync FSM - mib reaudit - MDS check ok", log.Fields{"device-id": oo.deviceID})
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
 		} else {
-			logger.Errorw(ctx, "MibSync FSM - mib audit - MDS check failed for the second time!", log.Fields{"device-id": oo.deviceID})
-			//TODO: send new event notification "MDS counter mismatch" to the core
+			logger.Errorw(ctx, "MibSync FSM - mib audit - MDS check failed for the second time - send kafka device event!",
+				log.Fields{"device-id": oo.deviceID})
+
+			context := make(map[string]string)
+			context["onu-id"] = oo.deviceID
+			context["onu-serial-number"] = oo.GetPersSerialNumber()
+			deviceEvent := &voltha.DeviceEvent{
+				ResourceId:      oo.deviceID,
+				DeviceEventName: "MIB_AUDIT_FAILURE_MDS",
+				Description:     "MIB audit failed due to MDS value mismatch between ONU and adapter",
+				Context:         context,
+			}
+			_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
 		}
 	} else if oo.PMibUploadFsm.PFsm.Is(UlStExaminingMds) {

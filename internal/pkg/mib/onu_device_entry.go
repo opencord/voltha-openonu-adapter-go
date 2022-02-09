@@ -30,6 +30,7 @@ import (
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
+	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 
@@ -156,6 +157,7 @@ type onuPersistentData struct {
 type OnuDeviceEntry struct {
 	deviceID                   string
 	baseDeviceHandler          cmn.IdeviceHandler
+	eventProxy                 eventif.EventProxy
 	pOpenOnuAc                 cmn.IopenONUAC
 	pOnuTP                     cmn.IonuUniTechProf
 	coreClient                 *vgrpc.Client
@@ -214,6 +216,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.deviceID = dh.GetDeviceID()
 	logger.Debugw(ctx, "init-onuDeviceEntry", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	onuDeviceEntry.baseDeviceHandler = dh
+	onuDeviceEntry.eventProxy = dh.GetEventProxy()
 	onuDeviceEntry.pOpenOnuAc = openonu
 	onuDeviceEntry.coreClient = cc
 	onuDeviceEntry.devState = cmn.DeviceStatusInit

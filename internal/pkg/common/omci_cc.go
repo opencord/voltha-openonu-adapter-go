@@ -35,11 +35,13 @@ import (
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	oframe "github.com/opencord/omci-lib-go/v2/meframe"
 
+	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	"github.com/opencord/voltha-protos/v5/go/common"
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
+	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
 // ### OMCI related definitions - retrieved from Python adapter code/trace ####
@@ -101,6 +103,7 @@ type OmciTransferStructure struct {
 type OmciCC struct {
 	enabled            bool
 	pBaseDeviceHandler IdeviceHandler
+	eventProxy         eventif.EventProxy
 	pOnuDeviceEntry    IonuDeviceEntry
 	pOnuAlarmManager   IonuAlarmManager
 	deviceID           string
@@ -149,6 +152,7 @@ func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandle
 	var omciCC OmciCC
 	omciCC.enabled = false
 	omciCC.pBaseDeviceHandler = deviceHandler
+	omciCC.eventProxy = omciCC.pBaseDeviceHandler.GetEventProxy()
 	omciCC.pOnuAlarmManager = onuAlarmManager
 	omciCC.pOnuDeviceEntry = onuDeviceEntry
 	omciCC.deviceID = deviceID
@@ -4296,8 +4300,20 @@ loop:
 			break loop
 		case <-time.After(time.Duration(aTimeout) * time.Second):
 			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send kafka device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+
+				context := make(map[string]string)
+				context["onu-id"] = oo.deviceID
+				context["onu-serial-number"] = oo.pOnuDeviceEntry.GetPersSerialNumber()
+				deviceEvent := &voltha.DeviceEvent{
+					ResourceId:      oo.deviceID,
+					DeviceEventName: "OMCI_COMMUNICATION_FAILURE_SW_UPGRADE",
+					Description:     fmt.Sprintf("OMCI communication during ONU SW upgrade failed after %d attempts", retries+1),
+					Context:         context,
+				}
+				_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
+
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
@@ -4705,8 +4721,20 @@ loop:
 			break loop
 		case <-time.After(time.Duration(aTimeout) * time.Second):
 			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached!",
+				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send kafka device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+
+				context := make(map[string]string)
+				context["onu-id"] = oo.deviceID
+				context["onu-serial-number"] = oo.pOnuDeviceEntry.GetPersSerialNumber()
+				deviceEvent := &voltha.DeviceEvent{
+					ResourceId:      oo.deviceID,
+					DeviceEventName: "OMCI_COMMUNICATION_FAILURE_CONFIG",
+					Description:     fmt.Sprintf("OMCI communication during ONU configuration failed after %d attempts", retries+1),
+					Context:         context,
+				}
+				_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
+
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
