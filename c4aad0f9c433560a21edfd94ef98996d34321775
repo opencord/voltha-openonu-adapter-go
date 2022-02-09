@@ -51,6 +51,24 @@
       "parentUuid": "7d12a36a_12d8a75c",
       "revId": "c4aad0f9c433560a21edfd94ef98996d34321775",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cd535782_4c6b0b75",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-02-09T06:21:42Z",
+      "side": 1,
+      "message": "The OLT has just one Multicast GEM for all ONU devices. Also, OLT doesn\u0027t know services has multicast or not. I reckon OLT adapter cannot handle this. What are you think about this?",
+      "parentUuid": "fe054339_88aca3ad",
+      "revId": "c4aad0f9c433560a21edfd94ef98996d34321775",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
