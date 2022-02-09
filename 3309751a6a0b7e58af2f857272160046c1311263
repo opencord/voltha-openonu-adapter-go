@@ -60,6 +60,48 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "cdb5224b_81ae5629",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 4233,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-09T07:15:32Z",
+      "side": 1,
+      "message": "addressed",
+      "parentUuid": "4e3f2b55_a82b6c2a",
+      "range": {
+        "startLine": 4233,
+        "startChar": 61,
+        "endLine": 4233,
+        "endChar": 64
+      },
+      "revId": "3309751a6a0b7e58af2f857272160046c1311263",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "698ce35e_0590201c",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 4233,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-09T07:15:32Z",
+      "side": 1,
+      "message": "addressed",
+      "parentUuid": "b4b16801_be3ac4dc",
+      "revId": "3309751a6a0b7e58af2f857272160046c1311263",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "b1993e8e_552eedb0",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 24
@@ -71,6 +113,30 @@
       "writtenOn": "2022-02-08T17:57:07Z",
       "side": 1,
       "message": "last",
+      "range": {
+        "startLine": 4251,
+        "startChar": 74,
+        "endLine": 4251,
+        "endChar": 77
+      },
+      "revId": "3309751a6a0b7e58af2f857272160046c1311263",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7cb4684a_2530a19a",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 24
+      },
+      "lineNbr": 4251,
+      "author": {
+        "id": 1000635
+      },
+      "writtenOn": "2022-02-09T07:15:32Z",
+      "side": 1,
+      "message": "addressed",
+      "parentUuid": "b1993e8e_552eedb0",
       "range": {
         "startLine": 4251,
         "startChar": 74,
