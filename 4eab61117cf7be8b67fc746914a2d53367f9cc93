@@ -20,6 +20,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "9ef2bb26_2cd99f4d",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4307,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-09T19:23:38Z",
+      "side": 1,
+      "message": "does it make sense to have this as \"device-id\". \"onu-id\" is generally 1 to 255, but device-id is a random hash identifier in voltha. If it is needed you can as well add the \"onu-id\" field apart from \"device-id\".\nSame comment at other places.",
+      "range": {
+        "startLine": 4307,
+        "startChar": 13,
+        "endLine": 4307,
+        "endChar": 19
+      },
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "db644748_73117023",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
