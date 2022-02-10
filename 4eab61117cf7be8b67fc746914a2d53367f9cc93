@@ -41,6 +41,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5625365c_423e32f4",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4307,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-10T12:43:16Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9ef2bb26_2cd99f4d",
+      "range": {
+        "startLine": 4307,
+        "startChar": 13,
+        "endLine": 4307,
+        "endChar": 19
+      },
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "db644748_73117023",
@@ -54,6 +78,30 @@
       "writtenOn": "2022-02-09T16:53:54Z",
       "side": 1,
       "message": "are these constants present elsewhere ? if so I\u0027d extract them",
+      "range": {
+        "startLine": 4307,
+        "startChar": 4,
+        "endLine": 4308,
+        "endChar": 33
+      },
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "48312c1c_11ffec8f",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4308,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-10T12:43:16Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "db644748_73117023",
       "range": {
         "startLine": 4307,
         "startChar": 4,
@@ -81,6 +129,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "edb1e142_090fda25",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4311,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-10T12:43:16Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6744f03f_a46f969f",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "976527b7_28b64078",
@@ -98,6 +164,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "9efa00f5_bee05709",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4728,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-10T12:43:16Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "976527b7_28b64078",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "112d40e9_6e016ff5",
@@ -111,6 +195,24 @@
       "writtenOn": "2022-02-09T16:53:54Z",
       "side": 1,
       "message": "same",
+      "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ecd9adfc_9279f2d0",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1101,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-10T12:43:16Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "112d40e9_6e016ff5",
       "revId": "4eab61117cf7be8b67fc746914a2d53367f9cc93",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
