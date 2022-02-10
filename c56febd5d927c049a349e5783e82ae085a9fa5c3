@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6b391333_3ffca585",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1024,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-10T19:38:13Z",
+      "side": 1,
+      "message": "I believe the category could be configurable but ok for now.",
+      "range": {
+        "startLine": 1024,
+        "startChar": 53,
+        "endLine": 1024,
+        "endChar": 87
+      },
+      "revId": "c56febd5d927c049a349e5783e82ae085a9fa5c3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
