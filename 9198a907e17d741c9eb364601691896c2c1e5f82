@@ -72,6 +72,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "05d72905_513a6b2c",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1172,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2022-02-10T18:41:13Z",
+      "side": 1,
+      "message": "Updated",
+      "parentUuid": "7b099f4b_496fc4bb",
+      "range": {
+        "startLine": 1172,
+        "startChar": 0,
+        "endLine": 1172,
+        "endChar": 72
+      },
+      "revId": "9198a907e17d741c9eb364601691896c2c1e5f82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "32087c8e_9bcfe5b7",
@@ -109,6 +133,30 @@
       "side": 1,
       "message": "Good catch.",
       "parentUuid": "32087c8e_9bcfe5b7",
+      "range": {
+        "startLine": 77,
+        "startChar": 35,
+        "endLine": 77,
+        "endChar": 39
+      },
+      "revId": "9198a907e17d741c9eb364601691896c2c1e5f82",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c9cd1517_543ff7c5",
+        "filename": "internal/pkg/core/openonuInterAdapter.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2022-02-10T18:41:13Z",
+      "side": 1,
+      "message": "Updated",
+      "parentUuid": "71ab43fb_fa2e0ea0",
       "range": {
         "startLine": 77,
         "startChar": 35,
