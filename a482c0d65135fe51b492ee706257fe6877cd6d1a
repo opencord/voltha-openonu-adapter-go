@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "48b76a8c_eec049ce",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-11T22:15:26Z",
+      "side": 1,
+      "message": "I do not see removal of Multicast Subscriber Config Info and Multicst Operations Profile ME. Don\u0027t you need to do that?",
+      "revId": "a482c0d65135fe51b492ee706257fe6877cd6d1a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "738b2397_4c2be8ef",
+        "filename": "internal/pkg/avcfg/onu_uni_tp.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 580,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-11T22:15:26Z",
+      "side": 1,
+      "message": "Do you still need this log, if not please remove.",
+      "revId": "a482c0d65135fe51b492ee706257fe6877cd6d1a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
