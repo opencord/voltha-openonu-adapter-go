@@ -18,6 +18,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5adaa9ec_005a3881",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-02-14T11:21:42Z",
+      "side": 1,
+      "message": "I added a new method and deleted them too.",
+      "parentUuid": "48b76a8c_eec049ce",
+      "revId": "a482c0d65135fe51b492ee706257fe6877cd6d1a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "738b2397_4c2be8ef",
@@ -31,6 +49,24 @@
       "writtenOn": "2022-02-11T22:15:26Z",
       "side": 1,
       "message": "Do you still need this log, if not please remove.",
+      "revId": "a482c0d65135fe51b492ee706257fe6877cd6d1a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "38858686_daf0eb64",
+        "filename": "internal/pkg/avcfg/onu_uni_tp.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 580,
+      "author": {
+        "id": 1000513
+      },
+      "writtenOn": "2022-02-14T11:21:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "738b2397_4c2be8ef",
       "revId": "a482c0d65135fe51b492ee706257fe6877cd6d1a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
