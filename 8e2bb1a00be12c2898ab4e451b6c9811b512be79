@@ -20,6 +20,52 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "4cfdbd09_12a521e9",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 845,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-02-14T20:08:47Z",
+      "side": 1,
+      "message": "As far as understand, if the deleted config has an MCAS gem then we remove the multicast related MEs here. But we may still have Mcast service for other UNIs of this ONU. Shouldn\u0027t we check if nobody else on this ONU uses Mcast service before deleting MulticastIWTP and GemPortCTP?",
+      "range": {
+        "startLine": 845,
+        "startChar": 0,
+        "endLine": 845,
+        "endChar": 25
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "84d7d0b4_36e6be92",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 869,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-02-14T20:08:47Z",
+      "side": 1,
+      "message": "You frequently overwrite the oFsm.pLastTxMeInstance before receiving the response of the previous message. I guess this is not how this ism works.",
+      "range": {
+        "startLine": 869,
+        "startChar": 0,
+        "endLine": 869,
+        "endChar": 36
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "4939aec2_2704883e",
         "filename": "internal/pkg/avcfg/omci_ani_config.go",
         "patchSetId": 7
@@ -43,6 +89,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "1ba8b1c9_28f27965",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 905,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-02-14T20:08:47Z",
+      "side": 1,
+      "message": "again overwriting oFsm.pLastTxMeInstance without waiting for response in handleOmciAniConfigDeleteResponseMessage().",
+      "range": {
+        "startLine": 905,
+        "startChar": 0,
+        "endLine": 905,
+        "endChar": 36
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "01725143_9650b791",
         "filename": "internal/pkg/avcfg/omci_ani_config.go",
         "patchSetId": 7
@@ -59,6 +128,52 @@
         "startChar": 0,
         "endLine": 907,
         "endChar": 35
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "34d51f58_aa4dd0b2",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 925,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-02-14T20:08:47Z",
+      "side": 1,
+      "message": "same overwriting oFsm.pLastTxMeInstance but no response is waited for MulticastOperationsProfile in handleOmciAniConfigDeleteResponseMessage().",
+      "range": {
+        "startLine": 925,
+        "startChar": 0,
+        "endLine": 925,
+        "endChar": 36
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2da63de4_0192933b",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 1034,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-02-14T20:08:47Z",
+      "side": 1,
+      "message": "Again, any other UNI can have MCAST service.",
+      "range": {
+        "startLine": 1034,
+        "startChar": 4,
+        "endLine": 1034,
+        "endChar": 18
       },
       "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
