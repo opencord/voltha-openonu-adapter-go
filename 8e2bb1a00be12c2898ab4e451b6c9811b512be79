@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a2b8e6b4_bc3e885b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-14T19:12:53Z",
+      "side": 1,
+      "message": "Have you verified this to work on hardware?\nBasically provision VoD/mcast service. Unprovision them and verify the mcast MEs are deleted on the ONU. Then re-provision VoD/Mcast service and verify it works. Also, does it work on BBSIM? Does BBSIM need changes for this to work? I think BBSIM does not handle delete of these MEs.\n@torsten and @holger: Should we add a test case for this?",
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4939aec2_2704883e",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 871,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-14T19:12:53Z",
+      "side": 1,
+      "message": "I do not think there is need to unlock and lock immediately. You can remove these two lines entirely.",
+      "range": {
+        "startLine": 870,
+        "startChar": 0,
+        "endLine": 871,
+        "endChar": 35
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "01725143_9650b791",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 907,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-02-14T19:12:53Z",
+      "side": 1,
+      "message": "same here",
+      "range": {
+        "startLine": 906,
+        "startChar": 0,
+        "endLine": 907,
+        "endChar": 35
+      },
+      "revId": "8e2bb1a00be12c2898ab4e451b6c9811b512be79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
