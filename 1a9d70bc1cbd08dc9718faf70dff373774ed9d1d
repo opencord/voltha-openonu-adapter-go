@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "810d3055_acb9a1ac",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-16T10:21:05Z",
+      "side": 1,
+      "message": "Small issue left - please postpone your review - patchset 2 will follow. ",
+      "revId": "1a9d70bc1cbd08dc9718faf70dff373774ed9d1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
