@@ -287,47 +287,7 @@ func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
 func (oo *OnuDeviceEntry) enterVerifyingAndStoringTPsState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start verifying and storing TPs in State": e.FSM.Current(), "device-id": oo.deviceID})
 
-	allTpInstPresent := true
-	oo.MutexPersOnuConfig.Lock()
-	oo.MutexReconciledTpInstances.Lock()
-	for indexUni, uniData := range oo.SOnuPersistentData.PersUniConfig {
-		uniID := uniData.PersUniID
-		oo.ReconciledTpInstances[uniID] = make(map[uint8]inter_adapter.TechProfileDownloadMessage)
-		for tpID, tpPath := range uniData.PersTpPathMap {
-			if tpPath != "" {
-				// Request the TP instance from the openolt adapter
-				iaTechTpInst, err := oo.baseDeviceHandler.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
-				if err == nil && iaTechTpInst != nil {
-					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
-						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
-					oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
-				} else {
-					// During the absence of the ONU adapter there seem to have been TP specific configurations!
-					// The no longer available TP and the associated flows must be deleted from the ONU KV store
-					// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
-					allTpInstPresent = false
-					logger.Infow(ctx, "reconciling - can't get tp instance - delete tp and associated flows",
-						log.Fields{"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err})
-					delete(oo.SOnuPersistentData.PersUniConfig[indexUni].PersTpPathMap, tpID)
-					flowSlice := oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams
-					for indexFlow, flowData := range flowSlice {
-						if flowData.VlanRuleParams.TpID == tpID {
-							if len(flowSlice) == 1 {
-								flowSlice = []cmn.UniVlanFlowParams{}
-							} else {
-								flowSlice = append(flowSlice[:indexFlow], flowSlice[indexFlow+1:]...)
-							}
-							oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams = flowSlice
-						}
-					}
-				}
-			}
-		}
-	}
-	oo.MutexReconciledTpInstances.Unlock()
-	oo.MutexPersOnuConfig.Unlock()
-
-	if allTpInstPresent {
+	if oo.getAllStoredTpInstFromParentAdapter(ctx) {
 		logger.Debugw(ctx, "MibSync FSM", log.Fields{"reconciling - verifying TPs successful": e.FSM.Current(), "device-id": oo.deviceID})
 		go func() {
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
@@ -1096,6 +1056,10 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 			logger.Errorw(ctx, "MibSync FSM - mib audit - MDS check failed for the second time - send ONU device event!",
 				log.Fields{"device-id": oo.deviceID})
 			oo.SendOnuDeviceEvent(ctx, cmn.OnuMibAuditFailureMds, cmn.OnuMibAuditFailureMdsDesc)
+			// To reconcile ONU with active adapter later on, we have to retrieve TP instances from parent adapter.
+			// Any inconsistencies between TP pathes stored in kv store and TP instances retrieved are not relevant here
+			// since they will be adjusted by the function below and we do a mib reset later on anyway.
+			_ = oo.getAllStoredTpInstFromParentAdapter(ctx)
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvMismatch)
 		}
 	} else if oo.PMibUploadFsm.PFsm.Is(UlStExaminingMds) {
@@ -1211,6 +1175,50 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
 	}
 	return restoredFromMibTemplate
+}
+
+func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Context) bool {
+
+	allTpInstPresent := true
+	oo.MutexPersOnuConfig.Lock()
+	oo.MutexReconciledTpInstances.Lock()
+	for indexUni, uniData := range oo.SOnuPersistentData.PersUniConfig {
+		uniID := uniData.PersUniID
+		oo.ReconciledTpInstances[uniID] = make(map[uint8]inter_adapter.TechProfileDownloadMessage)
+		for tpID, tpPath := range uniData.PersTpPathMap {
+			if tpPath != "" {
+				// Request the TP instance from the openolt adapter
+				iaTechTpInst, err := oo.baseDeviceHandler.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
+				if err == nil && iaTechTpInst != nil {
+					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
+						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
+					oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
+				} else {
+					// During the absence of the ONU adapter there seem to have been TP specific configurations!
+					// The no longer available TP and the associated flows must be deleted from the ONU KV store
+					// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
+					allTpInstPresent = false
+					logger.Infow(ctx, "reconciling - can't get tp instance - delete tp and associated flows",
+						log.Fields{"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err})
+					delete(oo.SOnuPersistentData.PersUniConfig[indexUni].PersTpPathMap, tpID)
+					flowSlice := oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams
+					for indexFlow, flowData := range flowSlice {
+						if flowData.VlanRuleParams.TpID == tpID {
+							if len(flowSlice) == 1 {
+								flowSlice = []cmn.UniVlanFlowParams{}
+							} else {
+								flowSlice = append(flowSlice[:indexFlow], flowSlice[indexFlow+1:]...)
+							}
+							oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams = flowSlice
+						}
+					}
+				}
+			}
+		}
+	}
+	oo.MutexReconciledTpInstances.Unlock()
+	oo.MutexPersOnuConfig.Unlock()
+	return allTpInstPresent
 }
 
 //CancelProcessing terminates potentially running reconciling processes and stops the FSM
