@@ -16,6 +16,23 @@
       "message": "+1, apart from SCA",
       "revId": "3275560e5dd91fede99a04860b16515b9ecd469f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3f290e20_986035d2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-02-18T10:23:10Z",
+      "side": 1,
+      "message": "VERSION should be increased.",
+      "revId": "3275560e5dd91fede99a04860b16515b9ecd469f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
