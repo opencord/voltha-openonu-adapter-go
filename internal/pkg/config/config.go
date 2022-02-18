@@ -26,7 +26,7 @@ import (
 // Open ONU default constants
 const (
 	EtcdStoreName = "etcd"
-	OnuVendorIds  = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG"
+	OnuVendorIds  = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX"
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service

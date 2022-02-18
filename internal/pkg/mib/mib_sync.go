@@ -729,14 +729,20 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				return nil
 			case "IpHostConfigData":
 				oo.mutexLastTxParamStruct.RUnlock()
-				macBytes, _ := me.InterfaceToOctets(meAttributes[me.IpHostConfigData_MacAddress])
+				ipHostConfigMacAddress, ok := meAttributes[me.IpHostConfigData_MacAddress]
 				oo.MutexPersOnuConfig.Lock()
-				if cmn.OmciMacAddressLen == len(macBytes) {
-					oo.SOnuPersistentData.PersMacAddress = hex.EncodeToString(macBytes[:])
-					logger.Debugw(ctx, "MibSync FSM - GetResponse Data for IpHostConfigData - MacAddress", log.Fields{"device-id": oo.deviceID,
-						"macAddress": oo.SOnuPersistentData.PersMacAddress})
+				if ok {
+					macBytes, _ := me.InterfaceToOctets(ipHostConfigMacAddress)
+					if cmn.OmciMacAddressLen == len(macBytes) {
+						oo.SOnuPersistentData.PersMacAddress = hex.EncodeToString(macBytes[:])
+						logger.Debugw(ctx, "MibSync FSM - GetResponse Data for IpHostConfigData - MacAddress", log.Fields{"device-id": oo.deviceID,
+							"macAddress": oo.SOnuPersistentData.PersMacAddress})
+					} else {
+						logger.Infow(ctx, "MibSync FSM - MacAddress wrong length - fill macAddress with zeros", log.Fields{"device-id": oo.deviceID, "length": len(macBytes)})
+						oo.SOnuPersistentData.PersMacAddress = cEmptyMacAddrString
+					}
 				} else {
-					logger.Infow(ctx, "MibSync FSM - MacAddress wrong length - fill macAddress with zeros", log.Fields{"device-id": oo.deviceID, "length": len(macBytes)})
+					logger.Infow(ctx, "MibSync FSM - MacAddress field not present in ip host config - fill macAddress with zeros", log.Fields{"device-id": oo.deviceID})
 					oo.SOnuPersistentData.PersMacAddress = cEmptyMacAddrString
 				}
 				oo.MutexPersOnuConfig.Unlock()
