@@ -1048,6 +1048,33 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		//needed to split up function due to sca complexity
 		dh.updateReconcileFlowConfig(ctx, uniPort, uniData.PersFlowParams, uniVlanConfigEntries, &loWaitGroupWTO, &flowsFound)
 
+		flowsFound = true
+		lastFlowToReconcile := false
+		flowsProcessed := 0
+		for _, flowData := range uniData.PersFlowParams {
+			logger.Debugw(ctx, "reconciling - add flow with cookie slice", log.Fields{
+				"device-id": dh.DeviceID, "uni-id": uniData.PersUniID, "cookies": flowData.CookieSlice})
+			if flowsProcessed == len(uniData.PersFlowParams)-1 {
+				lastFlowToReconcile = true
+			}
+			//the slice can be passed 'by value' here, - which internally passes its reference copy
+			dh.lockVlanConfig.Lock()
+			if _, exist = dh.UniVlanConfigFsmMap[uniData.PersUniID]; exist {
+				if err := dh.UniVlanConfigFsmMap[uniData.PersUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
+					flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
+					uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, lastFlowToReconcile, flowData.Meter, nil); err != nil {
+					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+				}
+			} else {
+				if err := dh.createVlanFilterFsm(ctx, uniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
+					uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
+					uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
+					logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+				}
+			}
+			dh.lockVlanConfig.Unlock()
+			flowsProcessed++
+		} //for all flows of this UNI
 		logger.Debugw(ctx, "reconciling - flows processed", log.Fields{
 			"device-id": dh.DeviceID, "uni-id": uniData.PersUniID,
 			"NumUniFlows":       dh.UniVlanConfigFsmMap[uniData.PersUniID].NumUniFlows,
@@ -1119,13 +1146,13 @@ func (dh *deviceHandler) updateReconcileFlowConfig(ctx context.Context, apUniPor
 		if _, exist := dh.UniVlanConfigFsmMap[loUniID]; exist {
 			if err := dh.UniVlanConfigFsmMap[loUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
 				flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-				uint8(flowData.VlanRuleParams.SetPcp), lastFlowToReconcile, flowData.Meter, nil); err != nil {
+				uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, lastFlowToReconcile, flowData.Meter, nil); err != nil {
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
 			}
 		} else {
 			if err := dh.createVlanFilterFsm(ctx, apUniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
 				uint16(flowData.VlanRuleParams.MatchVid), uint16(flowData.VlanRuleParams.SetVid),
-				uint8(flowData.VlanRuleParams.SetPcp), cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
+				uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
 			}
 		}
@@ -3259,8 +3286,9 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	loTpID := uint8(flow.GetTechProfileIDFromWriteMetaData(ctx, metadata))
 	loCookie := apFlowItem.GetCookie()
 	loCookieSlice := []uint64{loCookie}
+	loInnerCvlan := flow.GetInnerTagFromWriteMetaData(ctx, metadata)
 	logger.Debugw(ctx, "flow-add base indications", log.Fields{"device-id": dh.DeviceID,
-		"TechProf-Id": loTpID, "cookie": loCookie})
+		"TechProf-Id": loTpID, "cookie": loCookie, "innerCvlan": loInnerCvlan})
 
 	dh.getFlowOfbFields(ctx, apFlowItem, &loMatchVlan, &loAddPcp, &loIPProto)
 	/* TT related temporary workaround - should not be needed anymore
@@ -3311,7 +3339,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		//  in order to allow for according flow removal lockVlanConfig may only be used with RLock here
 		// Also the error is returned to caller via response channel
 		_ = dh.UniVlanConfigFsmMap[apUniPort.UniID].SetUniFlowParams(ctx, loTpID, loCookieSlice,
-			loMatchVlan, loSetVlan, loSetPcp, false, meter, respChan)
+			loMatchVlan, loSetVlan, loSetPcp, loInnerCvlan, false, meter, respChan)
 		dh.lockVlanConfig.RUnlock()
 		dh.lockVlanAdd.Unlock() //re-admit new Add-flow-processing
 		return
@@ -3319,7 +3347,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	dh.lockVlanConfig.RUnlock()
 	dh.lockVlanConfig.Lock() //createVlanFilterFsm should always be a non-blocking operation and requires r+w lock
 	err := dh.createVlanFilterFsm(ctx, apUniPort, loTpID, loCookieSlice,
-		loMatchVlan, loSetVlan, loSetPcp, cmn.OmciVlanFilterAddDone, false, meter, respChan)
+		loMatchVlan, loSetVlan, loSetPcp, loInnerCvlan, cmn.OmciVlanFilterAddDone, false, meter, respChan)
 	dh.lockVlanConfig.Unlock()
 	dh.lockVlanAdd.Unlock() //re-admit new Add-flow-processing
 	if err != nil {
@@ -3384,7 +3412,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 // if this function is called from possibly concurrent processes it must be mutex-protected from the caller!
 // precondition: dh.lockVlanConfig is locked by the caller!
 func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn.OnuUniPort, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	chVlanFilterFsm := make(chan cmn.Message, 2048)
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
@@ -3395,7 +3423,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn
 
 	pVlanFilterFsm := avcfg.NewUniVlanConfigFsm(ctx, dh, pDevEntry, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
 		pDevEntry.GetOnuDB(), aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
-		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, lastFlowToReconcile, aMeter, respChan)
+		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, innerCvlan, lastFlowToReconcile, aMeter, respChan)
 	if pVlanFilterFsm != nil {
 		//dh.lockVlanConfig is locked (by caller) throughout the state transition to 'starting'
 		// to prevent unintended (ignored) events to be sent there (from parallel processing)
