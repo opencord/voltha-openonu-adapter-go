@@ -188,7 +188,7 @@ type UniVlanConfigFsm struct {
 func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, apDevOmciCC *cmn.OmciCC, apUniPort *cmn.OnuUniPort,
 	apUniTechProf *OnuUniTechProf, apOnuDB *devdb.OnuDeviceDB, aTechProfileID uint8,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message, aAcceptIncrementalEvto bool,
-	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToRec bool, aMeter *of.OfpMeterConfig, respChan *chan error) *UniVlanConfigFsm {
+	aCookieSlice []uint64, aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, lastFlowToRec bool, aMeter *of.OfpMeterConfig, respChan *chan error) *UniVlanConfigFsm {
 	instFsm := &UniVlanConfigFsm{
 		pDeviceHandler:              apDeviceHandler,
 		pOnuDeviceEntry:             apOnuDeviceEntry,
@@ -272,7 +272,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 		return nil
 	}
 
-	_ = instFsm.initUniFlowParams(ctx, aTechProfileID, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, aMeter, respChan)
+	_ = instFsm.initUniFlowParams(ctx, aTechProfileID, aCookieSlice, aMatchVlan, aSetVlan, aSetPcp, innerCvlan, aMeter, respChan)
 
 	logger.Debugw(ctx, "UniVlanConfigFsm created", log.Fields{"device-id": instFsm.deviceID,
 		"accIncrEvto": instFsm.acceptIncrementalEvtoOption})
@@ -281,12 +281,13 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 
 //initUniFlowParams is a simplified form of SetUniFlowParams() used for first flow parameters configuration
 func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aMeter *of.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	loRuleParams := cmn.UniVlanRuleParams{
-		TpID:     aTpID,
-		MatchVid: uint32(aMatchVlan),
-		SetVid:   uint32(aSetVlan),
-		SetPcp:   uint32(aSetPcp),
+		TpID:       aTpID,
+		MatchVid:   uint32(aMatchVlan),
+		SetVid:     uint32(aSetVlan),
+		SetPcp:     uint32(aSetPcp),
+		InnerCvlan: innerCvlan,
 	}
 	// some automatic adjustments on the filter/treat parameters as not specifically configured/ensured by flow configuration parameters
 	loRuleParams.TagsToRemove = 1            //one tag to remove as default setting
@@ -398,16 +399,17 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
 // ignore complexity by now
 // nolint: gocyclo
 func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aSetVlan uint16, aSetPcp uint8, aInnerCvlan uint16, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	if oFsm == nil {
 		logger.Error(ctx, "no valid UniVlanConfigFsm!")
 		return fmt.Errorf("no-valid-UniVlanConfigFsm")
 	}
 	loRuleParams := cmn.UniVlanRuleParams{
-		TpID:     aTpID,
-		MatchVid: uint32(aMatchVlan),
-		SetVid:   uint32(aSetVlan),
-		SetPcp:   uint32(aSetPcp),
+		TpID:       aTpID,
+		MatchVid:   uint32(aMatchVlan),
+		SetVid:     uint32(aSetVlan),
+		SetPcp:     uint32(aSetPcp),
+		InnerCvlan: aInnerCvlan,
 	}
 	var err error
 	// some automatic adjustments on the filter/treat parameters as not specifically configured/ensured by flow configuration parameters
@@ -2230,7 +2232,8 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 	} //first flow element
 
 	oFsm.mutexFlowParams.RLock()
-	if oFsm.actualUniFlowParam.VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) {
+	if oFsm.actualUniFlowParam.VlanRuleParams.SetVid == uint32(of.OfpVlanId_OFPVID_PRESENT) &&
+		uint32(oFsm.actualUniFlowParam.VlanRuleParams.InnerCvlan) == uint32(of.OfpVlanId_OFPVID_NONE) {
 		//transparent transmission required
 		oFsm.mutexFlowParams.RUnlock()
 		logger.Debugw(ctx, "UniVlanConfigFsm Tx Set::EVTOCD single tagged transparent rule", log.Fields{
@@ -2293,67 +2296,136 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 	} else {
 		// according to py-code acceptIncrementalEvto program option decides upon stacking or translation scenario
 		if oFsm.acceptIncrementalEvtoOption {
-			matchPcp := oFsm.actualUniFlowParam.VlanRuleParams.MatchPcp
-			matchVid := oFsm.actualUniFlowParam.VlanRuleParams.MatchVid
-			setPcp := oFsm.actualUniFlowParam.VlanRuleParams.SetPcp
-			setVid := oFsm.actualUniFlowParam.VlanRuleParams.SetVid
-			// this defines VID translation scenario: singletagged->singletagged (if not transparent)
-			logger.Debugw(ctx, "UniVlanConfigFsm Tx Set::EVTOCD single tagged translation rule", log.Fields{
-				"match-pcp": matchPcp, "match-vid": matchVid, "set-pcp": setPcp, "set-vid:": setVid, "device-id": oFsm.deviceID})
-			sliceEvtocdRule := make([]uint8, 16)
-			// fill vlan tagging operation table bit fields using network=bigEndian order and using slice offset 0 as highest 'word'
-			binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterOuterOffset:],
-				cPrioIgnoreTag<<cFilterPrioOffset| // Not an outer-tag rule
-					cDoNotFilterVid<<cFilterVidOffset| // Do not filter on outer vid
-					cDoNotFilterTPID<<cFilterTpidOffset) // Do not filter on outer TPID field
+			if uint32(oFsm.actualUniFlowParam.VlanRuleParams.InnerCvlan) == uint32(of.OfpVlanId_OFPVID_NONE) {
+				matchPcp := oFsm.actualUniFlowParam.VlanRuleParams.MatchPcp
+				matchVid := oFsm.actualUniFlowParam.VlanRuleParams.MatchVid
+				setPcp := oFsm.actualUniFlowParam.VlanRuleParams.SetPcp
+				setVid := oFsm.actualUniFlowParam.VlanRuleParams.SetVid
+				// this defines VID translation scenario: singletagged->singletagged (if not transparent)
+				logger.Debugw(ctx, "UniVlanConfigFsm Tx Set::EVTOCD single tagged translation rule", log.Fields{
+					"match-pcp": matchPcp, "match-vid": matchVid, "set-pcp": setPcp, "set-vid:": setVid, "device-id": oFsm.deviceID})
+				sliceEvtocdRule := make([]uint8, 16)
+				// fill vlan tagging operation table bit fields using network=bigEndian order and using slice offset 0 as highest 'word'
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterOuterOffset:],
+					cPrioIgnoreTag<<cFilterPrioOffset| // Not an outer-tag rule
+						cDoNotFilterVid<<cFilterVidOffset| // Do not filter on outer vid
+						cDoNotFilterTPID<<cFilterTpidOffset) // Do not filter on outer TPID field
 
-			binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterInnerOffset:],
-				oFsm.actualUniFlowParam.VlanRuleParams.MatchPcp<<cFilterPrioOffset| // either DNFonPrio or ignore tag (default) on innerVLAN
-					oFsm.actualUniFlowParam.VlanRuleParams.MatchVid<<cFilterVidOffset| // either DNFonVid or real filter VID
-					cDoNotFilterTPID<<cFilterTpidOffset| // Do not filter on inner TPID field
-					cDoNotFilterEtherType<<cFilterEtherTypeOffset) // Do not filter of EtherType
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterInnerOffset:],
+					oFsm.actualUniFlowParam.VlanRuleParams.MatchPcp<<cFilterPrioOffset| // either DNFonPrio or ignore tag (default) on innerVLAN
+						oFsm.actualUniFlowParam.VlanRuleParams.MatchVid<<cFilterVidOffset| // either DNFonVid or real filter VID
+						cDoNotFilterTPID<<cFilterTpidOffset| // Do not filter on inner TPID field
+						cDoNotFilterEtherType<<cFilterEtherTypeOffset) // Do not filter of EtherType
 
-			binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatOuterOffset:],
-				oFsm.actualUniFlowParam.VlanRuleParams.TagsToRemove<<cTreatTTROffset| // either 1 or 0
-					cDoNotAddPrio<<cTreatPrioOffset| // do not add outer tag
-					cDontCareVid<<cTreatVidOffset| // Outer VID don't care
-					cDontCareTpid<<cTreatTpidOffset) // Outer TPID field don't care
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatOuterOffset:],
+					oFsm.actualUniFlowParam.VlanRuleParams.TagsToRemove<<cTreatTTROffset| // either 1 or 0
+						cDoNotAddPrio<<cTreatPrioOffset| // do not add outer tag
+						cDontCareVid<<cTreatVidOffset| // Outer VID don't care
+						cDontCareTpid<<cTreatTpidOffset) // Outer TPID field don't care
 
-			binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatInnerOffset:],
-				oFsm.actualUniFlowParam.VlanRuleParams.SetPcp<<cTreatPrioOffset| // as configured in flow
-					oFsm.actualUniFlowParam.VlanRuleParams.SetVid<<cTreatVidOffset| //as configured in flow
-					cSetOutputTpidCopyDei<<cTreatTpidOffset) // Set TPID = 0x8100
-			oFsm.mutexFlowParams.RUnlock()
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatInnerOffset:],
+					oFsm.actualUniFlowParam.VlanRuleParams.SetPcp<<cTreatPrioOffset| // as configured in flow
+						oFsm.actualUniFlowParam.VlanRuleParams.SetVid<<cTreatVidOffset| //as configured in flow
+						cSetOutputTpidCopyDei<<cTreatTpidOffset) // Set TPID = 0x8100
+				oFsm.mutexFlowParams.RUnlock()
 
-			meParams := me.ParamData{
-				EntityID: evtocdID,
-				Attributes: me.AttributeValueMap{
-					me.ExtendedVlanTaggingOperationConfigurationData_ReceivedFrameVlanTaggingOperationTable: sliceEvtocdRule,
-				},
-			}
-			oFsm.mutexPLastTxMeInstance.Lock()
-			meInstance, err := oFsm.pOmciCC.SendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx),
-				oFsm.pDeviceHandler.GetOmciTimeout(), true,
-				oFsm.PAdaptFsm.CommChan, meParams)
-			if err != nil {
+				meParams := me.ParamData{
+					EntityID: evtocdID,
+					Attributes: me.AttributeValueMap{
+						"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+					},
+				}
+				oFsm.mutexPLastTxMeInstance.Lock()
+				meInstance, err := oFsm.pOmciCC.SendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx),
+					oFsm.pDeviceHandler.GetOmciTimeout(), true,
+					oFsm.PAdaptFsm.CommChan, meParams)
+				if err != nil {
+					oFsm.mutexPLastTxMeInstance.Unlock()
+					logger.Errorw(ctx, "SetEvtocdVar set failed, aborting UniVlanConfigFsm!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
+					return fmt.Errorf("evtocd instance set failed %s, error %s", oFsm.deviceID, err)
+				}
+				//accept also nil as (error) return value for writing to LastTx
+				//  - this avoids misinterpretation of new received OMCI messages
+				oFsm.pLastTxMeInstance = meInstance
 				oFsm.mutexPLastTxMeInstance.Unlock()
-				logger.Errorw(ctx, "SetEvtocdVar set failed, aborting UniVlanConfigFsm!",
-					log.Fields{"device-id": oFsm.deviceID})
-				_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
-				return fmt.Errorf("evtocd instance set failed %s, error %s", oFsm.deviceID, err)
-			}
-			//accept also nil as (error) return value for writing to LastTx
-			//  - this avoids misinterpretation of new received OMCI messages
-			oFsm.pLastTxMeInstance = meInstance
-			oFsm.mutexPLastTxMeInstance.Unlock()
 
-			//verify response
-			err = oFsm.waitforOmciResponse(ctx)
-			if err != nil {
-				logger.Errorw(ctx, "Evtocd set singletagged translation rule failed, aborting VlanConfig FSM!",
-					log.Fields{"device-id": oFsm.deviceID})
-				_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
-				return fmt.Errorf("evtocd set singletagged translation rule failed %s, error %s", oFsm.deviceID, err)
+				//verify response
+				err = oFsm.waitforOmciResponse(ctx)
+				if err != nil {
+					logger.Errorw(ctx, "Evtocd set singletagged translation rule failed, aborting VlanConfig FSM!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
+					return fmt.Errorf("evtocd set singletagged translation rule failed %s, error %s", oFsm.deviceID, err)
+				}
+			} else {
+				//Double tagged case, if innerCvlan is 4096 then transparent, else match on the innerCvlan
+				//As of now only a match and no action can be done on the inner tag .
+				matchPcp := oFsm.actualUniFlowParam.VlanRuleParams.MatchPcp
+				matchVid := oFsm.actualUniFlowParam.VlanRuleParams.MatchVid
+				setPcp := oFsm.actualUniFlowParam.VlanRuleParams.SetPcp
+				setVid := oFsm.actualUniFlowParam.VlanRuleParams.SetVid
+				innerCvlan := oFsm.actualUniFlowParam.VlanRuleParams.InnerCvlan
+
+				// this defines VID translation scenario: singletagged->singletagged (if not transparent)
+				logger.Debugw(ctx, "UniVlanConfigFsm Tx Set::EVTOCD double tagged translation rule", log.Fields{
+					"match-pcp": matchPcp, "match-vid": matchVid, "set-pcp": setPcp, "set-vid:": setVid, "inner-cvlan:": innerCvlan, "device-id": oFsm.deviceID})
+				sliceEvtocdRule := make([]uint8, 16)
+				// fill vlan tagging operation table bit fields using network=bigEndian order and using slice offset 0 as highest 'word'
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterOuterOffset:],
+					oFsm.actualUniFlowParam.VlanRuleParams.MatchPcp<<cFilterPrioOffset| // either DNFonPrio or ignore tag (default)
+						oFsm.actualUniFlowParam.VlanRuleParams.MatchVid<<cFilterVidOffset| // either DNFonVid or real filter VID
+						cDoNotFilterTPID<<cFilterTpidOffset) // Do not filter on outer TPID field
+
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterInnerOffset:],
+					cPrioDefaultFilter<<cFilterPrioOffset| // default inner-tag rule
+						cDoNotFilterVid<<cFilterVidOffset| // Do not filter on inner vid
+						cDoNotFilterTPID<<cFilterTpidOffset| // Do not filter on inner TPID field
+						cDoNotFilterEtherType<<cFilterEtherTypeOffset) // Do not filter of EtherType
+
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatOuterOffset:],
+					oFsm.actualUniFlowParam.VlanRuleParams.TagsToRemove<<cTreatTTROffset| // either 1 or 0
+						setPcp<<cTreatPrioOffset| // Set pcp according to the flow
+						setVid<<cTreatVidOffset| // Set VID
+						cDontCareTpid<<cTreatTpidOffset) // Outer TPID field don't care
+
+				binary.BigEndian.PutUint32(sliceEvtocdRule[cTreatInnerOffset:],
+					cDoNotAddPrio<<cTreatPrioOffset| // do not add inner tag
+						uint32(innerCvlan)<<cTreatVidOffset| //as configured in flow
+						cDontCareTpid<<cTreatTpidOffset) // Set TPID = 0x8100
+				oFsm.mutexFlowParams.RUnlock()
+
+				meParams := me.ParamData{
+					EntityID: evtocdID,
+					Attributes: me.AttributeValueMap{
+						"ReceivedFrameVlanTaggingOperationTable": sliceEvtocdRule,
+					},
+				}
+				oFsm.mutexPLastTxMeInstance.Lock()
+				meInstance, err := oFsm.pOmciCC.SendSetEvtocdVar(log.WithSpanFromContext(context.TODO(), ctx),
+					oFsm.pDeviceHandler.GetOmciTimeout(), true,
+					oFsm.PAdaptFsm.CommChan, meParams)
+				if err != nil {
+					oFsm.mutexPLastTxMeInstance.Unlock()
+					logger.Errorw(ctx, "SetEvtocdVar set failed, aborting UniVlanConfigFsm!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
+					return fmt.Errorf("evtocd instance set failed %s, error %s", oFsm.deviceID, err)
+				}
+				//accept also nil as (error) return value for writing to LastTx
+				//  - this avoids misinterpretation of new received OMCI messages
+				oFsm.pLastTxMeInstance = meInstance
+				oFsm.mutexPLastTxMeInstance.Unlock()
+
+				//verify response
+				err = oFsm.waitforOmciResponse(ctx)
+				if err != nil {
+					logger.Errorw(ctx, "Evtocd set singletagged translation rule failed, aborting VlanConfig FSM!",
+						log.Fields{"device-id": oFsm.deviceID})
+					_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
+					return fmt.Errorf("evtocd set singletagged translation rule failed %s, error %s", oFsm.deviceID, err)
+				}
 			}
 		} else {
 			//not transparent and not acceptIncrementalEvtoOption untagged/priotagged->singletagged
