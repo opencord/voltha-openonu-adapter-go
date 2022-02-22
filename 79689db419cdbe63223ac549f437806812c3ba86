@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ab00c382_724f5234",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-02-22T17:25:01Z",
+      "side": 1,
+      "message": "I don\u0027t understand this change. \nFrom the title I understand it shall support the FTTB subscriber flows.\nFor this some InnerCvlan is introduced, which in my point of view is already misleading from the name in respect to ONU related usage.\nSo here it seems to be understood as some VLAN that is inserted in the inner tag of some frame matching some outer tag of a double tagged frame, which is then also modified with some other outer VID (so possibly both tags are exchanged). I don\u0027t know what this is for. Moreover it would be completely ignored by the ADTRAN DPU16/DPU8.\nI think the concept was having a flow configuration that allows for transparent transmission of frames with the outer ANP-Tag on the ONU and stacking the S-Tag on the OLT.\nAs I have already mentioned in according comments for the ADTRAN DPU16/DPU8 it would be sufficient to set no EVTOCD at all (for the subscriber flows), only the VLAN tagging configuration is required (to ensure the correct bridging to the GemPorts/T-Cont). To be formally compatible for possible other DPU types it might be required to configure the usual \u0027default\u0027 EVTOCD rules (\u0027do nothing\u0027 rules for single and double tagged traffic).\nPlease note that I also still assume the requirement from TCOM to be valid to transmit ANP single tagged frames (even though I am not sure if this requirement is still valid in this project).\n\n",
+      "revId": "79689db419cdbe63223ac549f437806812c3ba86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
