@@ -382,7 +382,7 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 	}
 	// restore data from KV store
 	if err := metricsManager.restorePmData(ctx); err != nil {
-		logger.Errorw(ctx, "error restoring pm data", log.Fields{"err": err})
+		logger.Errorw(ctx, "error restoring pm data", log.Fields{"device-id": metricsManager.deviceID, "err": err})
 		// we continue given that it does not effect the actual services for the ONU,
 		// but there may be some negative effect on PM collection (there may be some mismatch in
 		// the actual PM config and what is present on the device).
@@ -1019,7 +1019,7 @@ func (mm *OnuMetricsManager) publishMetrics(ctx context.Context, metricInfo []*v
 	ke.Ts = float64(ts)
 
 	if err := mm.pDeviceHandler.GetEventProxy().SendKpiEvent(ctx, "STATS_PUBLISH_EVENT", &ke, voltha.EventCategory_EQUIPMENT, voltha.EventSubCategory_ONU, ts); err != nil {
-		logger.Errorw(ctx, "failed-to-send-pon-stats", log.Fields{"err": err})
+		logger.Errorw(ctx, "failed-to-send-pon-stats", log.Fields{"device-id": mm.deviceID, "err": err})
 	}
 }
 
@@ -1075,7 +1075,7 @@ func (mm *OnuMetricsManager) handleOmciMessage(ctx context.Context, msg cmn.Omci
 	case omci.SetResponseType:
 		_ = mm.handleOmciSetResponseMessage(ctx, msg)
 	default:
-		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
+		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"device-id": mm.deviceID, "msgType": msg.OmciMsg.MessageType})
 
 	}
 }
@@ -2656,7 +2656,7 @@ func (mm *OnuMetricsManager) populateLocalGroupMetricData(ctx context.Context) {
 			mm.GroupMetricMap[g.GroupName].metricMap = GemPortHistory
 			mm.GroupMetricMap[g.GroupName].IsL2PMCounter = true
 		default:
-			logger.Errorw(ctx, "unhandled-group-name", log.Fields{"groupName": g.GroupName})
+			logger.Errorw(ctx, "unhandled-group-name", log.Fields{"device-id": mm.deviceID, "groupName": g.GroupName})
 		}
 	}
 
@@ -2670,7 +2670,7 @@ func (mm *OnuMetricsManager) populateLocalGroupMetricData(ctx context.Context) {
 		switch m.Name {
 		// None exist as of now. Add when available.
 		default:
-			logger.Errorw(ctx, "unhandled-metric-name", log.Fields{"metricName": m.Name})
+			logger.Errorw(ctx, "unhandled-metric-name", log.Fields{"device-id": mm.deviceID, "metricName": m.Name})
 		}
 	}
 }
@@ -2876,15 +2876,18 @@ func (mm *OnuMetricsManager) updatePmData(ctx context.Context, groupName string,
 
 	Value, err := json.Marshal(*pmMEData)
 	if err != nil {
-		logger.Errorw(ctx, "unable to marshal PM data", log.Fields{"groupName": groupName, "pmAction": pmAction, "pmData": *pmMEData, "err": err})
+		logger.Errorw(ctx, "unable to marshal PM data", log.Fields{"device-id": mm.deviceID,
+			"groupName": groupName, "pmAction": pmAction, "pmData": *pmMEData, "err": err})
 		return err
 	}
 	// Update back to kv store
 	if err = mm.pmKvStore.Put(ctx, groupName, Value); err != nil {
-		logger.Errorw(ctx, "unable to put PM data to kv store", log.Fields{"groupName": groupName, "pmData": *pmMEData, "pmAction": pmAction, "err": err})
+		logger.Errorw(ctx, "unable to put PM data to kv store", log.Fields{"device-id": mm.deviceID,
+			"groupName": groupName, "pmData": *pmMEData, "pmAction": pmAction, "err": err})
 		return err
 	}
-	logger.Debugw(ctx, "updatePmData - success", log.Fields{"device-id": mm.deviceID, "groupName": groupName, "pmData": *pmMEData, "pmAction": pmAction})
+	logger.Debugw(ctx, "updatePmData - success", log.Fields{"device-id": mm.deviceID,
+		"groupName": groupName, "pmData": *pmMEData, "pmAction": pmAction})
 
 	return nil
 }
@@ -3112,10 +3115,10 @@ func (mm *OnuMetricsManager) putExtPmMeKvStore(ctx context.Context) {
 	}
 	classSupported, err := json.Marshal(mm.supportedEthernetFrameExtendedPMClass)
 	if err != nil {
-		logger.Errorw(ctx, "unable-to-marshal-data", log.Fields{"err": err})
+		logger.Errorw(ctx, "unable-to-marshal-data", log.Fields{"device-id": mm.deviceID, "err": err})
 	}
 	if err := mm.extPmKvStore.Put(ctx, key, classSupported); err != nil {
-		logger.Errorw(ctx, "unable-to-add-data-in-db", log.Fields{"err": err})
+		logger.Errorw(ctx, "unable-to-add-data-in-db", log.Fields{"device-id": mm.deviceID, "err": err})
 	}
 }
 

@@ -373,7 +373,8 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg cm
 		}
 		logger.Debugw(ctx, "LockStateFsm SetResponse Data", log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj})
 		if msgObj.Result != me.Success {
-			logger.Errorw(ctx, "LockStateFsm - Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"Error": msgObj.Result})
+			logger.Errorw(ctx, "LockStateFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
+				log.Fields{"Error": msgObj.Result, "EntityClass": msgObj.EntityClass, "EntityInstance": msgObj.EntityInstance, "device-id": oFsm.deviceID})
 			// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
 			return
 		}
@@ -417,7 +418,7 @@ func (oFsm *LockStateFsm) handleOmciLockStateMessage(ctx context.Context, msg cm
 			return
 		}
 	} else {
-		logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"omciMsgType": msg.OmciMsg.MessageType})
+		logger.Errorw(ctx, "LockStateFsm - Rx OMCI unhandled MsgType", log.Fields{"device-id": oFsm.deviceID, "omciMsgType": msg.OmciMsg.MessageType})
 		return
 	}
 }

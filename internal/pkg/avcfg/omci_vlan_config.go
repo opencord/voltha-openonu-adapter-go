@@ -1977,7 +1977,8 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(ctx context.Context, m
 	case omci.CreateResponseType:
 		{ // had to shift that to a method to cope with StaticCodeAnalysis restrictions :-(
 			if err := oFsm.handleOmciCreateResponseMessage(ctx, msg.OmciPacket); err != nil {
-				logger.Warnw(ctx, "CreateResponse handling aborted", log.Fields{"err": err})
+				logger.Warnw(ctx, "CreateResponse handling aborted",
+					log.Fields{"device-id": oFsm.deviceID, "err": err})
 				return
 			}
 		} //CreateResponseType
@@ -2028,7 +2029,8 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(ctx context.Context, m
 	case omci.DeleteResponseType:
 		{ // had to shift that to a method to cope with StaticCodeAnalysis restrictions :-(
 			if err := oFsm.handleOmciDeleteResponseMessage(ctx, msg.OmciPacket); err != nil {
-				logger.Warnw(ctx, "DeleteResponse handling aborted", log.Fields{"err": err})
+				logger.Warnw(ctx, "DeleteResponse handling aborted",
+					log.Fields{"device-id": oFsm.deviceID, "err": err})
 				return
 			}
 		} //DeleteResponseType
