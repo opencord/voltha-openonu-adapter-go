@@ -628,12 +628,12 @@ func (oo *OpenONUAC) GetOnuImageStatus(ctx context.Context, in *voltha.DeviceIma
 					vendorID = onuVolthaDevice.VendorId
 					imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
 					vendorIDSet = true
-					logger.Debugw(ctx, "status request for image", log.Fields{"image-id": imageIdentifier})
+					logger.Debugw(ctx, "status request for image", log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
 				} else {
 					//for all following devices verify the matching vendorID
 					if onuVolthaDevice.VendorId != vendorID {
 						logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
-							log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
+							log.Fields{"device-id": loDeviceID, "onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
 					} else {
 						vendorIDSet = true
 					}
@@ -701,12 +701,12 @@ func (oo *OpenONUAC) AbortOnuImageUpgrade(ctx context.Context, in *voltha.Device
 					vendorID = onuVolthaDevice.VendorId
 					vendorIDSet = true
 					imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
-					logger.Debugw(ctx, "abort request for file", log.Fields{"image-id": imageIdentifier})
+					logger.Debugw(ctx, "abort request for file", log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
 				} else {
 					//for all following devices verify the matching vendorID
 					if onuVolthaDevice.VendorId != vendorID {
 						logger.Warnw(ctx, "onu vendor id does not match image vendor id, device ignored",
-							log.Fields{"onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
+							log.Fields{"device-id": loDeviceID, "onu-vendor-id": onuVolthaDevice.VendorId, "image-vendor-id": vendorID})
 						pDeviceImageState.DeviceId = loDeviceID
 						pDeviceImageState.ImageState.Version = (*in).Version
 						pDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_UNKNOWN

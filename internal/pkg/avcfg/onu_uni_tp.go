@@ -449,7 +449,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			isMulticast, err = strconv.ParseBool(downstreamContent.IsMulticast)
 			if err != nil {
 				logger.Errorw(ctx, "multicast-error-config-unknown-flag-in-technology-profile",
-					log.Fields{"UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "error": err})
+					log.Fields{"device-id": onuTP.deviceID, "UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "error": err})
 				continue
 			}
 		}
@@ -459,8 +459,8 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			_, existing := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID]
 			if existing {
 				//GEM port was previously configured, avoid setting multicast attributes
-				logger.Errorw(ctx, "multicast-error-config-existing-gem-port-config", log.Fields{"UniTpKey": uniTPKey,
-					"downstream-gem": downstreamContent, "key": mcastGemID})
+				logger.Errorw(ctx, "multicast-error-config-existing-gem-port-config", log.Fields{"device-id": onuTP.deviceID,
+					"UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "key": mcastGemID})
 				continue
 			} else {
 				//GEM port is not configured, setting multicast attributes
@@ -869,7 +869,7 @@ func (onuTP *OnuUniTechProf) runAniConfigFsm(ctx context.Context, aEvent string,
 		//FSM init requirement to get informed about FSM completion! (otherwise timeout of the TechProf config)
 		onuTP.PAniConfigFsm[uniTpKey].setFsmCompleteChannel(onuTP.chTpConfigProcessingStep, aProcessingStep)
 		if err := pACStatemachine.Event(aEvent); err != nil {
-			logger.Errorw(ctx, "AniConfigFSM: can't trigger event", log.Fields{"err": err})
+			logger.Errorw(ctx, "AniConfigFSM: can't trigger event", log.Fields{"device-id": onuTP.deviceID, "err": err})
 			return fmt.Errorf("can't trigger event in AniConfigFSM: %s", onuTP.deviceID)
 		}
 		/***** AniConfigFSM event notified */

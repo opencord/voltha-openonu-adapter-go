@@ -384,7 +384,7 @@ func (am *OnuAlarmManager) handleOmciMessage(ctx context.Context, msg cmn.OmciMe
 	case omci.GetAllAlarmsNextResponseType:
 		am.handleOmciGetAllAlarmNextResponseMessage(ctx, msg)
 	default:
-		logger.Warnw(ctx, "unknown-message-type", log.Fields{"msg-type": msg.OmciMsg.MessageType})
+		logger.Warnw(ctx, "unknown-message-type", log.Fields{"device-id": am.deviceID, "msg-type": msg.OmciMsg.MessageType})
 
 	}
 }
@@ -581,7 +581,8 @@ func (am *OnuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 		return fmt.Errorf("alarm-manager-is-in-stopped-state")
 	}
 	if _, present := am.pOnuDeviceEntry.GetOnuDB().MeDb[classID][meInstance]; !present {
-		logger.Errorw(ctx, "me-class-instance-not-present", log.Fields{"class-id": classID, "instance-id": meInstance})
+		logger.Errorw(ctx, "me-class-instance-not-present",
+			log.Fields{"class-id": classID, "instance-id": meInstance, "device-id": am.deviceID})
 		return fmt.Errorf("me-class-%d-instance-%d-not-present", classID, meInstance)
 	}
 	if sequenceNo > 0 {
@@ -630,8 +631,8 @@ func (am *OnuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 			// Clear this alarm if It is cleared now, in that case IsAlarmClear would return true
 			cleared, err := msg.IsAlarmClear(alarmNo)
 			if err != nil {
-				logger.Warnw(ctx, "unable-to-find-out-alarm-is-cleared", log.Fields{"class-id": classID,
-					"instance-id": meInstance, "alarm-no": alarmNo})
+				logger.Warnw(ctx, "unable-to-find-out-alarm-is-cleared", log.Fields{"device-id": am.deviceID,
+					"class-id": classID, "instance-id": meInstance, "alarm-no": alarmNo})
 				return err
 			}
 			if cleared {
@@ -643,8 +644,8 @@ func (am *OnuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 			// or not, if yes then raise it.
 			raised, err := msg.IsAlarmActive(alarmNo)
 			if err != nil {
-				logger.Warnw(ctx, "unable-to-find-out-alarm-is-raised", log.Fields{"class-id": classID,
-					"instance-id": meInstance, "alarm-no": alarmNo})
+				logger.Warnw(ctx, "unable-to-find-out-alarm-is-raised", log.Fields{"device-id": am.deviceID,
+					"class-id": classID, "instance-id": meInstance, "alarm-no": alarmNo})
 				return err
 			}
 			if raised {
@@ -694,7 +695,7 @@ func (am *OnuAlarmManager) getIntfIDAlarm(ctx context.Context, classID me.ClassI
 		intfID = am.pDeviceHandler.GetPonPortNumber()
 		return intfID
 	} else {
-		logger.Warnw(ctx, "me-not-supported", log.Fields{"class-id": classID, "instance-id": instanceID})
+		logger.Warnw(ctx, "me-not-supported", log.Fields{"device-id": am.deviceID, "class-id": classID, "instance-id": instanceID})
 	}
 	return nil
 }

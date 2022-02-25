@@ -629,7 +629,7 @@ func (oo *OmciCC) sendOMCIRequest(ctx context.Context, omciTxRequest OmciTransfe
 	}
 	sendErr := oo.pBaseDeviceHandler.SendOMCIRequest(ctx, oo.pBaseDeviceHandler.GetProxyAddress().AdapterEndpoint, omciMsg)
 	if sendErr != nil {
-		logger.Errorw(ctx, "send omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
+		logger.Errorw(ctx, "send omci request error", log.Fields{"device-id": oo.deviceID, "ChildId": oo.deviceID, "error": sendErr})
 		return sendErr
 	}
 	return nil

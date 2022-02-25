@@ -406,7 +406,8 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 	uniID := uint8(techProfMsg.UniId)
 	tpID, err := cmn.GetTpIDFromTpPath(techProfMsg.TpInstancePath)
 	if err != nil {
-		logger.Errorw(ctx, "error-parsing-tpid-from-tppath", log.Fields{"err": err, "tp-path": techProfMsg.TpInstancePath})
+		logger.Errorw(ctx, "error-parsing-tpid-from-tppath",
+			log.Fields{"device-id": dh.DeviceID, "err": err, "tp-path": techProfMsg.TpInstancePath})
 		return err
 	}
 	logger.Debugw(ctx, "unmarshal-techprof-msg-body", log.Fields{"device-id": dh.DeviceID,
@@ -4354,7 +4355,8 @@ func (dh *deviceHandler) SendOnuSwSectionsOfWindow(ctx context.Context, parentEn
 	logger.Debugw(subCtx, "send-omci-request", log.Fields{"request": request, "parent-endpoint": parentEndpoint})
 	_, err = pgClient.ProxyOmciRequests(subCtx, request)
 	if err != nil {
-		logger.Errorw(ctx, "omci-failure", log.Fields{"request": request, "error": err, "request-parent": request.ParentDeviceId, "request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress})
+		logger.Errorw(ctx, "omci-failure", log.Fields{"device-id": dh.device.Id, "request": request, "error": err,
+			"request-parent": request.ParentDeviceId, "request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress})
 	}
 	return err
 }

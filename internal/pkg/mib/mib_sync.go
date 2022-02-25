@@ -870,7 +870,7 @@ func (oo *OnuDeviceEntry) handleOmciMessage(ctx context.Context, msg cmn.OmciMes
 		_ = oo.handleOmciGetResponseMessage(ctx, msg)
 
 	default:
-		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
+		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"device-id": oo.deviceID, "msgType": msg.OmciMsg.MessageType})
 
 	}
 }
