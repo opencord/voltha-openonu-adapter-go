@@ -16,6 +16,24 @@
       "message": "Not sure of this check, please confirm under what circumstances this check would be  valid",
       "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5be696ac_0bd6c852",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3278,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-03T19:38:35Z",
+      "side": 0,
+      "message": "The logic behind is surely that if there is a match set on the VlanID there should also be some defined action what to do with that VLAN (treatment/set). If the VLAN should not be modified then there is no need for such rule at all.\nThere might be some specific scenarios where e.g only the prio of some specific VLAN\u0027s has to be changed, but such was out of focus so far.\nThis code point here might be relevant to DPU subscriber flows. Here my recommendation was to set the SetVLAN equal to the MatchVlan. But of course also other solutions are possible...",
+      "parentUuid": "7e1d7287_de528414",
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }

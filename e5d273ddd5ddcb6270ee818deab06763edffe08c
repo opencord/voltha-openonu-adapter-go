@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9a230735_f73827dc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-03T19:38:35Z",
+      "side": 1,
+      "message": "Think the direction of this change is clear - to allow for a configurable MatchPcp. \nLooks good to me, but I guess more extensions are required on top of this in SetUniFlowParams() to care about and handle the aMatchPcp extension (and possibly within the real FSM [Received frame VLAN tagging operation table] as well).",
+      "revId": "e5d273ddd5ddcb6270ee818deab06763edffe08c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
