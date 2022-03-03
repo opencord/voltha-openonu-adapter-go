@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7e1d7287_de528414",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3278,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-03T13:20:39Z",
+      "side": 0,
+      "message": "Not sure of this check, please confirm under what circumstances this check would be  valid",
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
