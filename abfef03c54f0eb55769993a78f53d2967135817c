@@ -34,6 +34,47 @@
       "parentUuid": "7e1d7287_de528414",
       "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "76530c5e_fdef7f33",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3278,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-03T22:22:15Z",
+      "side": 0,
+      "message": "or also enhance the check like below. Basically add additional check for no pcp modification.\n\n\tif loSetVlan \u003d\u003d uint16(of.OfpVlanId_OFPVID_NONE) \u0026\u0026 loMatchVlan !\u003d uint16(of.OfpVlanId_OFPVID_PRESENT) \u0026\u0026 loAddPcp !\u003d 8 {\n ...\n}",
+      "parentUuid": "5be696ac_0bd6c852",
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "382da2cb_b6728e0c",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3242,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-03T22:22:15Z",
+      "side": 0,
+      "message": "Not sure why this is called loAddPcp. Should rather have been loMatchPcp.\n@michael: Any thoughts?\nIf there are no objects I suggest we rename this as loMatchPcp.",
+      "range": {
+        "startLine": 3242,
+        "startChar": 5,
+        "endLine": 3242,
+        "endChar": 13
+      },
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
