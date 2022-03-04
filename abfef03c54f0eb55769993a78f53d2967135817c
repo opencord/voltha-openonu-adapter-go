@@ -54,6 +54,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "cc8126a4_740ba79d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3278,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-04T09:47:25Z",
+      "side": 0,
+      "message": "Done",
+      "parentUuid": "76530c5e_fdef7f33",
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "382da2cb_b6728e0c",
@@ -91,6 +109,30 @@
       "side": 0,
       "message": "No objection. Variable has not been used so far. And with this change it seems it is interpreted as MatchPcp in vlan_config anyway.",
       "parentUuid": "382da2cb_b6728e0c",
+      "range": {
+        "startLine": 3242,
+        "startChar": 5,
+        "endLine": 3242,
+        "endChar": 13
+      },
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "82f49859_ff79b675",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3242,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-04T09:47:25Z",
+      "side": 0,
+      "message": "Done",
+      "parentUuid": "d9e947a5_d80f55bf",
       "range": {
         "startLine": 3242,
         "startChar": 5,
