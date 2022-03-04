@@ -16,6 +16,23 @@
       "message": "hardware test\nfunctional tests",
       "revId": "c7c29d8f8de4376ae9109a471ab234a5e58b4875",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5de4b8db_cbb83e24",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-04T18:26:45Z",
+      "side": 1,
+      "message": "voltha test openonu singleolt",
+      "revId": "c7c29d8f8de4376ae9109a471ab234a5e58b4875",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
