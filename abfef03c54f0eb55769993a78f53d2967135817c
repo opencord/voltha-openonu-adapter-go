@@ -75,6 +75,30 @@
       },
       "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d9e947a5_d80f55bf",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3242,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-04T07:37:01Z",
+      "side": 0,
+      "message": "No objection. Variable has not been used so far. And with this change it seems it is interpreted as MatchPcp in vlan_config anyway.",
+      "parentUuid": "382da2cb_b6728e0c",
+      "range": {
+        "startLine": 3242,
+        "startChar": 5,
+        "endLine": 3242,
+        "endChar": 13
+      },
+      "revId": "abfef03c54f0eb55769993a78f53d2967135817c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
