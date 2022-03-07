@@ -84,6 +84,23 @@
       "message": "recheck",
       "revId": "c7c29d8f8de4376ae9109a471ab234a5e58b4875",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f5d9700b_4f3cfd83",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-07T18:31:04Z",
+      "side": 1,
+      "message": "Ok: apart from still missing evaluation of the matchPcp within SetUniFlowParams().\nSo whenever there is some additional rule configuration on an already existing VlanFsm instance the matchVlan will be ignored (defaulted) in the new rule (possibly leading to some further unneeded or unexpected new OMCI configuration [see rule parameter comparison  storedUniFlowParams.VlanRuleParams \u003d\u003d loRuleParams]).",
+      "revId": "c7c29d8f8de4376ae9109a471ab234a5e58b4875",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
