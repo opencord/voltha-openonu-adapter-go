@@ -1625,15 +1625,28 @@ func (oFsm *OnuUpgradeFsm) handleRxSwGetResponse(ctx context.Context, msg cmn.Om
 			log.Fields{"device-id": oFsm.deviceID})
 		return
 	}
-
 	meAttributes := msgObj.Attributes
-	imageIsCommitted := meAttributes[me.SoftwareImage_IsCommitted].(uint8)
-	imageIsActive := meAttributes[me.SoftwareImage_IsActive].(uint8)
-	imageVersion := cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_Version])
-	logger.Debugw(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
-		log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
-			"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})
+	var imageVersion string
+	var imageIsCommitted, imageIsActive uint8
 
+	if softwareImageIsCommitted, ok := meAttributes[me.SoftwareImage_IsCommitted]; ok {
+		if softwareImageIsActiveimage, ok := meAttributes[me.SoftwareImage_IsActive]; ok {
+			if softwareImageVersion, ok := meAttributes[me.SoftwareImage_Version]; ok {
+				imageIsCommitted = softwareImageIsCommitted.(uint8)
+				imageIsActive = softwareImageIsActiveimage.(uint8)
+				imageVersion = cmn.TrimStringFromMeOctet(softwareImageVersion)
+				logger.Debugw(ctx, "OnuUpgradeFsm - GetResponse Data for SoftwareImage",
+					log.Fields{"device-id": oFsm.deviceID, "entityID": msgObj.EntityInstance,
+						"version": imageVersion, "isActive": imageIsActive, "isCommitted": imageIsCommitted})
+			} else {
+				logger.Errorw(ctx,
+					"OnuUpgradeFsm - Not all mandatory attributes present in in SoftwareImage instance - handling stopped!",
+					log.Fields{"device-id": oFsm.deviceID})
+				oFsm.abortOnOmciError(ctx, false)
+				return
+			}
+		}
+	}
 	if oFsm.PAdaptFsm.PFsm.Current() == UpgradeStCheckImageName {
 		//image name check after EndSwDownload, this state (and block) can only be taken if APIVersion43 is used
 		oFsm.verifyOnuSwStatusAfterDownload(ctx, msgObj.EntityInstance, imageVersion, imageIsActive, imageIsCommitted)

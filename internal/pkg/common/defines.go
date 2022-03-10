@@ -332,6 +332,7 @@ const (
 	IPHostConfigDataMeID = 1
 	OnugSerialNumberLen  = 8
 	OmciMacAddressLen    = 6
+	MdsDefaultMib        = 0
 )
 
 ///////////////////////////////////////////////////////////

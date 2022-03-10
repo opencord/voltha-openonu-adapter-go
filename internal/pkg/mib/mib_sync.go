@@ -499,7 +499,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 				logger.Debugw(ctx, "MibResetResponse Data", log.Fields{"data-fields": msgObj})
 				if msgObj.Result == me.Success {
 					oo.MutexPersOnuConfig.Lock()
-					oo.SOnuPersistentData.PersMibDataSyncAdpt = 0
+					oo.SOnuPersistentData.PersMibDataSyncAdpt = cmn.MdsDefaultMib
 					oo.MutexPersOnuConfig.Unlock()
 					// trigger retrieval of VendorId and SerialNumber
 					_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetVendorAndSerial)
@@ -690,30 +690,63 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 			switch meInstance {
 			case "OnuG":
 				oo.mutexLastTxParamStruct.RUnlock()
-				oo.MutexPersOnuConfig.Lock()
-				oo.SOnuPersistentData.PersVendorID = cmn.TrimStringFromMeOctet(meAttributes[me.OnuG_VendorId])
-				snBytes, _ := me.InterfaceToOctets(meAttributes[me.OnuG_SerialNumber])
-				if cmn.OnugSerialNumberLen == len(snBytes) {
-					snVendorPart := fmt.Sprintf("%s", snBytes[:4])
-					snNumberPart := hex.EncodeToString(snBytes[4:])
-					oo.SOnuPersistentData.PersSerialNumber = snVendorPart + snNumberPart
-					logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-G - VendorId/SerialNumber", log.Fields{"device-id": oo.deviceID,
-						"onuDeviceEntry.vendorID": oo.SOnuPersistentData.PersVendorID, "onuDeviceEntry.serialNumber": oo.SOnuPersistentData.PersSerialNumber})
+				if onuGVendorID, ok := meAttributes[me.OnuG_VendorId]; ok {
+					vendorID := cmn.TrimStringFromMeOctet(onuGVendorID)
+					if vendorID == "" {
+						logger.Infow(ctx, "MibSync FSM - mandatory attribute VendorId is empty in OnuG instance - fill with appropriate value", log.Fields{"device-id": oo.deviceID})
+						vendorID = cEmptyVendorIDString
+					}
+					oo.MutexPersOnuConfig.Lock()
+					oo.SOnuPersistentData.PersVendorID = vendorID
+					oo.MutexPersOnuConfig.Unlock()
 				} else {
-					logger.Infow(ctx, "MibSync FSM - SerialNumber has wrong length - fill serialNumber with zeros", log.Fields{"device-id": oo.deviceID, "length": len(snBytes)})
-					oo.SOnuPersistentData.PersSerialNumber = cEmptySerialNumberString
+					logger.Errorw(ctx, "MibSync FSM - mandatory attribute VendorId not present in OnuG instance - handling of MibSyncChan stopped!",
+						log.Fields{"device-id": oo.deviceID})
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
+					return fmt.Errorf("mibSync FSM - mandatory attribute VendorId not present in OnuG instance - handling of MibSyncChan stopped: %s", oo.deviceID)
 				}
-				oo.MutexPersOnuConfig.Unlock()
+				if onuGSerialNumber, ok := meAttributes[me.OnuG_SerialNumber]; ok {
+					oo.MutexPersOnuConfig.Lock()
+					snBytes, _ := me.InterfaceToOctets(onuGSerialNumber)
+					if cmn.OnugSerialNumberLen == len(snBytes) {
+						snVendorPart := fmt.Sprintf("%s", snBytes[:4])
+						snNumberPart := hex.EncodeToString(snBytes[4:])
+						oo.SOnuPersistentData.PersSerialNumber = snVendorPart + snNumberPart
+						logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu-G - VendorId/SerialNumber", log.Fields{"device-id": oo.deviceID,
+							"onuDeviceEntry.vendorID": oo.SOnuPersistentData.PersVendorID, "onuDeviceEntry.serialNumber": oo.SOnuPersistentData.PersSerialNumber})
+					} else {
+						logger.Infow(ctx, "MibSync FSM - SerialNumber has wrong length - fill serialNumber with zeros", log.Fields{"device-id": oo.deviceID, "length": len(snBytes)})
+						oo.SOnuPersistentData.PersSerialNumber = cEmptySerialNumberString
+					}
+					oo.MutexPersOnuConfig.Unlock()
+				} else {
+					logger.Errorw(ctx, "MibSync FSM - mandatory attribute SerialNumber not present in OnuG instance - handling of MibSyncChan stopped!",
+						log.Fields{"device-id": oo.deviceID})
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
+					return fmt.Errorf("mibSync FSM - mandatory attribute SerialNumber not present in OnuG instance - handling of MibSyncChan stopped: %s", oo.deviceID)
+				}
 				// trigger retrieval of EquipmentId
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetEquipmentID)
 				return nil
 			case "Onu2G":
 				oo.mutexLastTxParamStruct.RUnlock()
+				var equipmentID string
+				if onu2GEquipmentID, ok := meAttributes[me.Onu2G_EquipmentId]; ok {
+					equipmentID = cmn.TrimStringFromMeOctet(onu2GEquipmentID)
+					if equipmentID == "" {
+						logger.Infow(ctx, "MibSync FSM - optional attribute EquipmentID is empty in Onu2G instance - fill with appropriate value", log.Fields{"device-id": oo.deviceID})
+						equipmentID = cEmptyEquipIDString
+					}
+				} else {
+					logger.Infow(ctx, "MibSync FSM - optional attribute EquipmentID not present in Onu2G instance - fill with appropriate value", log.Fields{"device-id": oo.deviceID})
+					equipmentID = cNotPresentEquipIDString
+				}
 				oo.MutexPersOnuConfig.Lock()
-				oo.SOnuPersistentData.PersEquipmentID = cmn.TrimStringFromMeOctet(meAttributes[me.Onu2G_EquipmentId])
+				oo.SOnuPersistentData.PersEquipmentID = equipmentID
 				logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu2-G - EquipmentId", log.Fields{"device-id": oo.deviceID,
 					"onuDeviceEntry.equipmentID": oo.SOnuPersistentData.PersEquipmentID})
 				oo.MutexPersOnuConfig.Unlock()
+
 				// trigger retrieval of 1st SW-image info
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetFirstSwVersion)
 				return nil
@@ -726,13 +759,16 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 						oo.deviceID, entityID)
 				}
 				// need to use function for go lint complexity
-				oo.HandleSwImageIndications(ctx, entityID, meAttributes)
+				if !oo.HandleSwImageIndications(ctx, entityID, meAttributes) {
+					logger.Errorw(ctx, "MibSync FSM - Not all mandatory attributes present in in SoftwareImage instance - handling of MibSyncChan stopped!", log.Fields{"device-id": oo.deviceID})
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
+					return fmt.Errorf("mibSync FSM - Not all mandatory attributes present in in SoftwareImage instance - handling of MibSyncChan stopped: %s", oo.deviceID)
+				}
 				return nil
 			case "IpHostConfigData":
 				oo.mutexLastTxParamStruct.RUnlock()
-				ipHostConfigMacAddress, ok := meAttributes[me.IpHostConfigData_MacAddress]
 				oo.MutexPersOnuConfig.Lock()
-				if ok {
+				if ipHostConfigMacAddress, ok := meAttributes[me.IpHostConfigData_MacAddress]; ok {
 					macBytes, _ := me.InterfaceToOctets(ipHostConfigMacAddress)
 					if cmn.OmciMacAddressLen == len(macBytes) {
 						oo.SOnuPersistentData.PersMacAddress = hex.EncodeToString(macBytes[:])
@@ -743,7 +779,8 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 						oo.SOnuPersistentData.PersMacAddress = cEmptyMacAddrString
 					}
 				} else {
-					logger.Infow(ctx, "MibSync FSM - MacAddress field not present in ip host config - fill macAddress with zeros", log.Fields{"device-id": oo.deviceID})
+					// since ONU creates instances of this ME automatically only when IP host services are available, processing continues here despite the error
+					logger.Infow(ctx, "MibSync FSM - MacAddress attribute not present in IpHostConfigData instance - fill macAddress with zeros", log.Fields{"device-id": oo.deviceID})
 					oo.SOnuPersistentData.PersMacAddress = cEmptyMacAddrString
 				}
 				oo.MutexPersOnuConfig.Unlock()
@@ -752,7 +789,13 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 				return nil
 			case "OnuData":
 				oo.mutexLastTxParamStruct.RUnlock()
-				oo.checkMdsValue(ctx, meAttributes[me.OnuData_MibDataSync].(uint8))
+				if onuDataMibDataSync, ok := meAttributes[me.OnuData_MibDataSync]; ok {
+					oo.checkMdsValue(ctx, onuDataMibDataSync.(uint8))
+				} else {
+					logger.Errorw(ctx, "MibSync FSM - MibDataSync attribute not present in OnuData instance - handling of MibSyncChan stopped!", log.Fields{"device-id": oo.deviceID})
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
+					return fmt.Errorf("mibSync FSM - VendorId attribute not present in OnuG instance - handling of MibSyncChan stopped: %s", oo.deviceID)
+				}
 				return nil
 			default:
 				oo.mutexLastTxParamStruct.RUnlock()
@@ -776,10 +819,26 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 }
 
 //HandleSwImageIndications updates onuSwImageIndications with the ONU data just received
-func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) {
-	imageIsCommitted := meAttributes[me.SoftwareImage_IsCommitted].(uint8)
-	imageIsActive := meAttributes[me.SoftwareImage_IsActive].(uint8)
-	imageVersion := cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_Version])
+func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) bool {
+
+	var imageVersion string
+	var imageIsCommitted, imageIsActive uint8
+
+	allMandAttribsPresent := false
+	if softwareImageIsCommitted, ok := meAttributes[me.SoftwareImage_IsCommitted]; ok {
+		if softwareImageIsActiveimage, ok := meAttributes[me.SoftwareImage_IsActive]; ok {
+			if softwareImageVersion, ok := meAttributes[me.SoftwareImage_Version]; ok {
+				imageVersion = cmn.TrimStringFromMeOctet(softwareImageVersion)
+				imageIsActive = softwareImageIsActiveimage.(uint8)
+				imageIsCommitted = softwareImageIsCommitted.(uint8)
+				allMandAttribsPresent = true
+			}
+		}
+	}
+	if !allMandAttribsPresent {
+		logger.Errorw(ctx, "MibSync FSM - Not all mandatory attributes present in SoftwareImage instance - skip processing!", log.Fields{"device-id": oo.deviceID})
+		return allMandAttribsPresent
+	}
 	oo.MutexPersOnuConfig.RLock()
 	logger.Infow(ctx, "MibSync FSM - GetResponse Data for SoftwareImage",
 		log.Fields{"device-id": oo.deviceID, "entityID": entityID,
@@ -809,7 +868,7 @@ func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID
 		}
 		oo.mutexOnuSwImageIndications.Unlock()
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetSecondSwVersion)
-		return
+		return allMandAttribsPresent
 	} else if cmn.SecondSwImageMeID == entityID {
 		//2nd image info might conflict with first image info, in which case we priorize first image info!
 		oo.mutexOnuSwImageIndications.Lock()
@@ -847,8 +906,8 @@ func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID
 		}
 		oo.mutexOnuSwImageIndications.Unlock()
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetMacAddress)
-		return
 	}
+	return allMandAttribsPresent
 }
 
 func (oo *OnuDeviceEntry) handleOmciMessage(ctx context.Context, msg cmn.OmciMessage) {
