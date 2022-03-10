@@ -32,6 +32,7 @@ const uniStatusTimeout = 3
 
 //UniPortStatus implements methods to get uni port status info
 type UniPortStatus struct {
+	deviceID          string
 	pDeviceHandler    cmn.IdeviceHandler
 	pOmiCC            *cmn.OmciCC
 	omciRespChn       chan cmn.Message
@@ -41,6 +42,7 @@ type UniPortStatus struct {
 //NewUniPortStatus creates a new instance of UniPortStatus
 func NewUniPortStatus(apDeviceHandler cmn.IdeviceHandler, apOmicc *cmn.OmciCC) *UniPortStatus {
 	return &UniPortStatus{
+		deviceID:       apDeviceHandler.GetDeviceID(),
 		pDeviceHandler: apDeviceHandler,
 		pOmiCC:         apOmicc,
 		omciRespChn:    make(chan cmn.Message),
@@ -71,7 +73,7 @@ func (portStatus *UniPortStatus) GetUniPortStatus(ctx context.Context, uniIdx ui
 			}
 		}
 	}
-	logger.Errorw(ctx, "GetUniPortStatus uniIdx is not valid", log.Fields{"uniIdx": uniIdx})
+	logger.Errorw(ctx, "GetUniPortStatus uniIdx is not valid", log.Fields{"uniIdx": uniIdx, "device-id": portStatus.deviceID})
 	return PostUniStatusErrResponse(extension.GetValueResponse_INVALID_PORT_TYPE)
 }
 
@@ -80,10 +82,10 @@ func (portStatus *UniPortStatus) waitforGetUniPortStatus(ctx context.Context, ap
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	case <-ctx.Done():
-		logger.Errorf(ctx, "waitforGetUniPortStatus Context done")
+		logger.Errorw(ctx, "waitforGetUniPortStatus Context done", log.Fields{"device-id": portStatus.deviceID})
 		return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 	case <-time.After(uniStatusTimeout * time.Second):
-		logger.Errorf(ctx, "waitforGetUniPortStatus  timeout")
+		logger.Errorw(ctx, "waitforGetUniPortStatus  timeout", log.Fields{"device-id": portStatus.deviceID})
 		return PostUniStatusErrResponse(extension.GetValueResponse_TIMEOUT)
 
 	case omciMsg := <-portStatus.omciRespChn:
@@ -98,23 +100,24 @@ func (portStatus *UniPortStatus) waitforGetUniPortStatus(ctx context.Context, ap
 
 func (portStatus *UniPortStatus) processGetUnitStatusResp(ctx context.Context, msg cmn.OmciMessage) *extension.SingleGetValueResponse {
 	logger.Debugw(ctx, "processGetUniStatusResp:", log.Fields{"msg.Omci.MessageType": msg.OmciMsg.MessageType,
-		"msg.OmciMsg.TransactionID": msg.OmciMsg.TransactionID, "DeviceIdentfier": msg.OmciMsg.DeviceIdentifier})
+		"msg.OmciMsg.TransactionID": msg.OmciMsg.TransactionID, "DeviceIdentfier": msg.OmciMsg.DeviceIdentifier,
+		"device-id": portStatus.deviceID})
 
 	if msg.OmciMsg.MessageType != omci.GetResponseType {
 		logger.Debugw(ctx, "processGetUniStatusResp error", log.Fields{"incorrect RespType": msg.OmciMsg.MessageType,
-			"expected": omci.GetResponseType})
+			"expected": omci.GetResponseType, "device-id": portStatus.deviceID})
 		return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 	}
 
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeGetResponse)
 	if msgLayer == nil {
-		logger.Errorf(ctx, "processGetUniStatusResp omci Msg layer not found - ")
+		logger.Errorw(ctx, "processGetUniStatusResp omci Msg layer not found", log.Fields{"device-id": portStatus.deviceID})
 		return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 
 	}
 	msgObj, msgOk := msgLayer.(*omci.GetResponse)
 	if !msgOk {
-		logger.Errorf(ctx, "processGetUniStatusResp omci msgObj layer could not be found ")
+		logger.Errorw(ctx, "processGetUniStatusResp omci msgObj layer could not be found", log.Fields{"device-id": portStatus.deviceID})
 		return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 
 	}
@@ -132,33 +135,53 @@ func (portStatus *UniPortStatus) processGetUnitStatusResp(ctx context.Context, m
 			},
 		},
 	}
-	if meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState].(uint8) == 0 {
-		singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_ENABLED
-	} else if meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState].(uint8) == 1 {
-		singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_DISABLED
+	if pptpEthUniOperState, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState]; ok {
+		if pptpEthUniOperState.(uint8) == 0 {
+			singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_ENABLED
+		} else if pptpEthUniOperState.(uint8) == 1 {
+			singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_DISABLED
+		} else {
+			singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_OPERSTATE_UNDEFINED
+		}
 	} else {
+		logger.Infow(ctx, "processGetUniStatusResp - optional attribute pptpEthUniOperState not present!",
+			log.Fields{"device-id": portStatus.deviceID})
 		singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_OPERSTATE_UNDEFINED
 	}
 
-	if meAttributes[me.PhysicalPathTerminationPointEthernetUni_AdministrativeState].(uint8) == 0 {
-		singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_UNLOCKED
-	} else if meAttributes[me.PhysicalPathTerminationPointEthernetUni_AdministrativeState].(uint8) == 1 {
-		singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_LOCKED
+	if pptpEthUniAdminState, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState]; ok {
+		if pptpEthUniAdminState.(uint8) == 0 {
+			singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_UNLOCKED
+		} else if pptpEthUniAdminState.(uint8) == 1 {
+			singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_LOCKED
+		} else {
+			singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_ADMSTATE_UNDEFINED
+		}
 	} else {
-		singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_ADMSTATE_UNDEFINED
+		logger.Errorw(ctx, "processGetUniStatusResp - mandatory attribute pptpEthUniAdminState not present!",
+			log.Fields{"device-id": portStatus.deviceID})
+		return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 	}
-	configIndMap := map[uint8]extension.GetOnuUniInfoResponse_ConfigurationInd{
-		0:  0,
-		1:  extension.GetOnuUniInfoResponse_TEN_BASE_T_FDX,
-		2:  extension.GetOnuUniInfoResponse_HUNDRED_BASE_T_FDX,
-		3:  extension.GetOnuUniInfoResponse_GIGABIT_ETHERNET_FDX,
-		4:  extension.GetOnuUniInfoResponse_TEN_G_ETHERNET_FDX,
-		17: extension.GetOnuUniInfoResponse_TEN_BASE_T_HDX,
-		18: extension.GetOnuUniInfoResponse_HUNDRED_BASE_T_HDX,
-		19: extension.GetOnuUniInfoResponse_GIGABIT_ETHERNET_HDX,
+
+	if pptpEthUniConfigInd, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd]; ok {
+		configIndMap := map[uint8]extension.GetOnuUniInfoResponse_ConfigurationInd{
+			0:  0,
+			1:  extension.GetOnuUniInfoResponse_TEN_BASE_T_FDX,
+			2:  extension.GetOnuUniInfoResponse_HUNDRED_BASE_T_FDX,
+			3:  extension.GetOnuUniInfoResponse_GIGABIT_ETHERNET_FDX,
+			4:  extension.GetOnuUniInfoResponse_TEN_G_ETHERNET_FDX,
+			17: extension.GetOnuUniInfoResponse_TEN_BASE_T_HDX,
+			18: extension.GetOnuUniInfoResponse_HUNDRED_BASE_T_HDX,
+			19: extension.GetOnuUniInfoResponse_GIGABIT_ETHERNET_HDX,
+		}
+		configInd := pptpEthUniConfigInd.(uint8)
+		singleValResp.Response.GetUniInfo().ConfigInd = configIndMap[configInd]
+	} else {
+		logger.Errorw(ctx, "processGetUniStatusResp - mandatory attribute pptpEthUniConfigInd not present!",
+			log.Fields{"device-id": portStatus.deviceID})
+		return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 	}
-	configInd := meAttributes[me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd].(uint8)
-	singleValResp.Response.GetUniInfo().ConfigInd = configIndMap[configInd]
+
 	return &singleValResp
 }
 

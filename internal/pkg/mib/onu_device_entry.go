@@ -124,8 +124,11 @@ const (
 	cSuffixMibTemplateKvStore   = "%s/%s/%s"
 )
 
+const cEmptyVendorIDString = "____"
 const cEmptyMacAddrString = "000000000000"
 const cEmptySerialNumberString = "0000000000000000"
+const cEmptyEquipIDString = "EMPTY_EQUIP_ID"
+const cNotPresentEquipIDString = "NOT_PRESENT_EQUIP_ID"
 
 type uniPersConfig struct {
 	PersUniID      uint8                   `json:"uni_id"`
