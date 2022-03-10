@@ -207,11 +207,14 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 
 	if _, ok := oo.requestedAttributes[me.SoftwareImage_Version]; ok {
 		if msgObj.Result != me.Success {
-			logger.Errorw(ctx, "processAttributesReceived retrieval of mandatory attributes failed",
+			logger.Errorw(ctx, "processAttributesReceived - retrieval of mandatory attributes not successful",
 				log.Fields{"device-id": oo.deviceID})
-			return fmt.Errorf("process-image-status-response-error")
+			return fmt.Errorf("retrieve-mandatory-attributes-not-successful")
 		}
-		oo.pDevEntry.HandleSwImageIndications(ctx, msgObj.EntityInstance, meAttributes)
+		if !oo.pDevEntry.HandleSwImageIndications(ctx, msgObj.EntityInstance, meAttributes) {
+			logger.Errorw(ctx, "processAttributesReceived - not all mandatory attributes present in SoftwareImage instance", log.Fields{"device-id": oo.deviceID})
+			return fmt.Errorf("not-all-mandatory-attributes-present")
+		}
 	}
 	for k := range oo.requestedAttributes {
 		switch k {

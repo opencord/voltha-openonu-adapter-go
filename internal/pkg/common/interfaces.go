@@ -141,7 +141,7 @@ type IonuDeviceEntry interface {
 	IncrementMibDataSync(context.Context)
 
 	GetActiveImageMeID(context.Context) (uint16, error)
-	HandleSwImageIndications(context.Context, uint16, me.AttributeValueMap)
+	HandleSwImageIndications(context.Context, uint16, me.AttributeValueMap) bool
 	GetPersActiveSwVersion() string
 	SetPersActiveSwVersion(string)
 	GetActiveImageVersion(context.Context) string
