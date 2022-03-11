@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ecba08e1_a6836f64",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 719,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-11T00:32:17Z",
+      "side": 1,
+      "message": "Is this case acceptable? I do not think openonu adapter functionality is affected by a wrong SN field, but just double checking.",
+      "range": {
+        "startLine": 718,
+        "startChar": 0,
+        "endLine": 719,
+        "endChar": 71
+      },
+      "revId": "fdb4bbab9e5816d77fef934990947a4c847b9873",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
