@@ -22,6 +22,30 @@
       },
       "revId": "fdb4bbab9e5816d77fef934990947a4c847b9873",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2a515c19_99d61cb0",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 719,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-11T08:26:47Z",
+      "side": 1,
+      "message": "Externally, this SerialNumber initialized with zeros would only be visible in OnuDeviceEvents via kafka. But we can still assign these events via the DeviceID. So I would rather leave the code as it is and in case of an inconsistent attribute length continue the ONU startup with the initialized SerialNumber.",
+      "parentUuid": "ecba08e1_a6836f64",
+      "range": {
+        "startLine": 718,
+        "startChar": 0,
+        "endLine": 719,
+        "endChar": 71
+      },
+      "revId": "fdb4bbab9e5816d77fef934990947a4c847b9873",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
