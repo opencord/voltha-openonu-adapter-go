@@ -120,6 +120,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "e2c040a5_cf0eeb3c",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4630,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2022-03-14T13:50:26Z",
+      "side": 1,
+      "message": "Probably no additional decoding errors to check for right no in MIB Upload Next response.\n\nFor Set Response, there is not any relaxed decode Unknown attributes that should since it does not contain any attributes, just attribute bitmasks.",
+      "parentUuid": "4396ff90_0f25c906",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "2f418a90_81cad20f",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -136,6 +154,29 @@
         "startChar": 3,
         "endLine": 4645,
         "endChar": 6
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9d9b7bf1_1b0cbdba",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4687,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2022-03-14T13:50:26Z",
+      "side": 1,
+      "message": "For a set response, also check for a return type of AttributeFailure (9) and any successfully set attributes.  For this you need the original SET request attribute mask.  If request.AttributeMaskMask !\u003d (response.UnsupportedAttributeMask | respose.FailedAttributeMask), then you know at least one attribute did get set so you need to increment MIB Sync.\n\nThis can be found in NOTE 1 of Table 11.2.2-1 -- OMCI message types\n\nIt looks like in the 2.9 version of the adapter, you did a check similar to this on line 4417 but did not check to both the Unsupported and Failed bitmask against the original.  If no attributes got set, then MDS is not incremented",
+      "range": {
+        "startLine": 4687,
+        "startChar": 22,
+        "endLine": 4687,
+        "endChar": 33
       },
       "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
