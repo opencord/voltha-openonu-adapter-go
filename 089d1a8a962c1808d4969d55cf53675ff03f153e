@@ -287,6 +287,30 @@
       },
       "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "697532ed_14d4eb7c",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4687,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-14T15:09:54Z",
+      "side": 1,
+      "message": "Concerning Set response handling: This is a bit delicate ;-). \nThe question is how in the ONU Adapter we treat the response.result AttributeFailure (with possible indication of a subset of executed attributes): I assume that in any further processing we do not accept a partly execution of the command. As long as this holds I think we also do not need to react on some AttributeFailure indication here. We just interprete this response as \u0027not done\u0027. That might moreover be more helpful in case of MDS supervision to try to recover from such situation by detection some MDS mismatch later. \nI agree there could be some corner cases where it might make sense to admit AttributeFailure results, but then it would be required to accept that also in the ongoing processing of the response. \nPractically for the moment I would not really see the need for such extension - and would recommend such only in case it should pop-up with one-or-another ONU.",
+      "parentUuid": "9d9b7bf1_1b0cbdba",
+      "range": {
+        "startLine": 4687,
+        "startChar": 22,
+        "endLine": 4687,
+        "endChar": 33
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
