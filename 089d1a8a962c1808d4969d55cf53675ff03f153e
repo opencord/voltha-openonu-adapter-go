@@ -234,6 +234,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "883ab996_eccd74be",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4630,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2022-03-14T15:57:43Z",
+      "side": 1,
+      "message": "Currently there is no additional attribute bitmask checks for the three bitmasks in the response.  omci-lib-go just copies these over from the frame.",
+      "parentUuid": "e8e363c9_27573f70",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d9226d3c_bbb8897a",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -269,6 +287,30 @@
       "side": 1,
       "message": "The original reason for introducing these changes here was that ONU sent us a corrupted OMCI response. It could just as well be that the attribute bitmasks is also corrupted in their responses. What does the omci-lib-go do, for example, if the ONU falsifies the attribute bitmasks of a get response in such a way that it contains supposedly unknown attributes? Wouldn\u0027t it be appropriate for the omci-lib-go to insert an unknownAttrLayer?",
       "parentUuid": "d9226d3c_bbb8897a",
+      "range": {
+        "startLine": 4632,
+        "startChar": 13,
+        "endLine": 4632,
+        "endChar": 34
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fdb15d39_15170904",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4632,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2022-03-14T15:57:43Z",
+      "side": 1,
+      "message": "Adding an unknown attribute for a GET response would be possible and probably use much of the same logic as in a MIB Upload Next response.  I could take a look at it and maybe work on it as a low priority.  Pretty busy right now with other work.\n\nYou can keep the check above since and once the omco-lib-go library supports relaxed GET responses, it would catch those errors from the ONU.",
+      "parentUuid": "4c107e39_ddd637a0",
       "range": {
         "startLine": 4632,
         "startChar": 13,
