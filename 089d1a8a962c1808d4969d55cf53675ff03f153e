@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "321bebd9_afb20afd",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 324,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T12:32:45Z",
+      "side": 1,
+      "message": "Since the subsequent encoding is now based on relaxed decoding, this is not recommended in my opinion.",
+      "parentUuid": "79217969_275453b8",
+      "range": {
+        "startLine": 321,
+        "startChar": 0,
+        "endLine": 324,
+        "endChar": 2
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0b623fb3_0f748d11",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -43,6 +67,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "e046de10_b974f28a",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T12:32:45Z",
+      "side": 1,
+      "message": "The question is whether an additional log would also provide more information here, since all OMCI packets whose types are not defined in responsesWithMibDataSync[] do not contribute to the MDS counter increase here by default?",
+      "parentUuid": "0b623fb3_0f748d11",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "2da9e842_9f38dedd",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -54,6 +96,47 @@
       "writtenOn": "2022-03-14T10:23:31Z",
       "side": 1,
       "message": "what do we do in other error case ? valid for all other scenarios",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4396ff90_0f25c906",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4630,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T12:32:45Z",
+      "side": 1,
+      "message": "Special handling is provided here only for the layer decoding response \"LayerTypeUnknownAttributes\" - as included in Chip\u0027s example. As I understand it, this decoding response is only relevant for the LayerTypes Set- and GetResponse - apart from the type \"LayerTypeMibUploadNextResponse\", where the treatment is done separately later.\n\n@Chip: Can you think of any other layer decoding error cases that should be handled here independently?",
+      "parentUuid": "2da9e842_9f38dedd",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2f418a90_81cad20f",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4645,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T12:32:45Z",
+      "side": 1,
+      "message": "@Chip: Does it make sense at all to perform the DecodeFailure handling here even in the case when the message layer could be decoded, albeit with errors during relaxed decoding?",
+      "range": {
+        "startLine": 4645,
+        "startChar": 3,
+        "endLine": 4645,
+        "endChar": 6
+      },
       "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
