@@ -318,8 +318,11 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.printRxMessage(ctx, rxMsg)
 		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
 	}
-
-	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, gopacket.NoCopy)
+	decodeOptions := gopacket.DecodeOptions{
+		Lazy:   true,
+		NoCopy: true,
+	}
+	packet := gopacket.NewPacket(rxMsg, omci.LayerTypeOMCI, decodeOptions)
 	if packet == nil {
 		logger.Errorw(ctx, "omci-message could not be decoded", log.Fields{"device-id": oo.deviceID})
 		oo.printRxMessage(ctx, rxMsg)
@@ -376,7 +379,15 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
 		go rxCallbackEntry.CbFunction(ctx, omciMsg, &packet, rxCallbackEntry.CbRespChannel)
-		if isSuccessfulResponseWithMibDataSync(omciMsg, &packet) {
+		isSuccessfulResponse, err := oo.isSuccessfulResponseWithMibDataSync(ctx, omciMsg, &packet)
+		if err != nil {
+			// qualified error logging already done in function above
+			if !rxCallbackEntry.FramePrint {
+				oo.printRxMessage(ctx, rxMsg)
+			}
+			return fmt.Errorf("could not decode further layers %s", oo.deviceID)
+		}
+		if isSuccessfulResponse {
 			oo.pOnuDeviceEntry.IncrementMibDataSync(ctx)
 		}
 
@@ -4592,58 +4603,119 @@ func (oo *OmciCC) SendSelfTestReq(ctx context.Context, classID me.ClassID, instd
 }
 
 //nolint: gocyclo
-func isSuccessfulResponseWithMibDataSync(omciMsg *omci.OMCI, packet *gp.Packet) bool {
+func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet) (bool, error) {
+
+	nextLayer, err := omci.MsgTypeToNextLayer(omciMsg.MessageType, false)
+	if err != nil {
+		logger.Errorw(ctx, "omci-message: could not map msgType to nextLayer", log.Fields{"device-id": oo.deviceID})
+		return false, fmt.Errorf("could not map msgType to nextLayer - %s", oo.deviceID)
+	}
+	msgLayer := (*packet).Layer(nextLayer)
+	if msgLayer != nil {
+		// Note: Due to relaxed decoding, you may now still have a decoding error attached to the layers
+		if failure := (*packet).ErrorLayer(); failure != nil {
+			var unknownAttrLayer gopacket.Layer = nil
+			switch nextLayer {
+			case omci.LayerTypeMibUploadNextResponse:
+				// In the case of MibUploadNextResponse, we let the packet pass so that later processing
+				// can examine for UnkonwnMEs and UnknownAttributes
+				logger.Infow(ctx, "omci-message: MibUploadNextResponse packet with ErrorLayer - let it pass",
+					log.Fields{"device-id": oo.deviceID, "error": failure.Error()})
+				return false, nil
+			case omci.LayerTypeSetResponse:
+				if resp := msgLayer.(*omci.SetResponse); resp != nil {
+					err := resp.NextLayerType()
+					if err == omci.LayerTypeUnknownAttributes {
+						unknownAttrLayer = (*packet).Layer(omci.LayerTypeUnknownAttributes)
+					}
+				}
+			case omci.LayerTypeGetResponse:
+				if resp := msgLayer.(*omci.GetResponse); resp != nil {
+					err := resp.NextLayerType()
+					if err == omci.LayerTypeUnknownAttributes {
+						unknownAttrLayer = (*packet).Layer(omci.LayerTypeUnknownAttributes)
+					}
+				}
+			}
+			if unknownAttrLayer != nil {
+				logger.Errorw(ctx, "omci-message: packet contains unknownAttrLayer - skip it!",
+					log.Fields{"device-id": oo.deviceID, "error": failure.Error(), "unknownAttrLayer": unknownAttrLayer})
+				return false, fmt.Errorf("packet contains unknownAttrLayer - %s", oo.deviceID)
+			}
+			// Since unknownAttrLayer was not found, try to decode any further error information
+			if decodeFailure, ok := failure.(*gopacket.DecodeFailure); ok && decodeFailure != nil {
+				logger.Errorw(ctx, "omci-message: packet contains ErrorLayer with further info - skip it!",
+					log.Fields{"device-id": oo.deviceID, "error": failure.Error(), "decodeFailure": decodeFailure.String()})
+				return false, fmt.Errorf("packet contains ErrorLayer with further info - %s", oo.deviceID)
+			}
+			logger.Errorw(ctx, "omci-message: packet contains ErrorLayer - skip it!",
+				log.Fields{"device-id": oo.deviceID, "error": failure.Error()})
+			return false, fmt.Errorf("packet contains ErrorLayer - %s", oo.deviceID)
+		}
+	} else if failure := (*packet).ErrorLayer(); failure != nil {
+		// message layer could not be decoded, but at least check if additional failure information is available
+		if decodeFailure, ok := failure.(*gopacket.DecodeFailure); ok && decodeFailure != nil {
+			logger.Errorw(ctx, "omci-message: could not decode msgLayer of packet, further info available - skip it!",
+				log.Fields{"device-id": oo.deviceID, "error": failure.Error(), "decodeFailure": decodeFailure.String()})
+			return false, fmt.Errorf("could not decode msgLayer of packet, further info available - %s", oo.deviceID)
+		}
+		logger.Errorw(ctx, "omci-message: could not decode msgLayer of packet, ErrorLayer available",
+			log.Fields{"device-id": oo.deviceID, "error": failure.Error()})
+		return false, fmt.Errorf("could not decode msgLayer of packet, ErrorLayer available - %s", oo.deviceID)
+	} else {
+		logger.Errorw(ctx, "omci-message: could not decode msgLayer of packet", log.Fields{"device-id": oo.deviceID})
+		return false, fmt.Errorf("could not decode msgLayer of packet - %s", oo.deviceID)
+	}
+
 	for _, v := range responsesWithMibDataSync {
 		if v == omciMsg.MessageType {
-			nextLayer, _ := omci.MsgTypeToNextLayer(v, false)
-			msgLayer := (*packet).Layer(nextLayer)
 			switch nextLayer {
 			case omci.LayerTypeCreateResponse:
 				if resp := msgLayer.(*omci.CreateResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			case omci.LayerTypeDeleteResponse:
 				if resp := msgLayer.(*omci.DeleteResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			case omci.LayerTypeSetResponse:
 				if resp := msgLayer.(*omci.SetResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			case omci.LayerTypeStartSoftwareDownloadResponse:
 				if resp := msgLayer.(*omci.StartSoftwareDownloadResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			case omci.LayerTypeEndSoftwareDownloadResponse:
 				if resp := msgLayer.(*omci.EndSoftwareDownloadResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			case omci.LayerTypeActivateSoftwareResponse:
 				if resp := msgLayer.(*omci.ActivateSoftwareResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			case omci.LayerTypeCommitSoftwareResponse:
 				if resp := msgLayer.(*omci.CommitSoftwareResponse); resp != nil {
 					if resp.Result == me.Success {
-						return true
+						return true, nil
 					}
 				}
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (oo *OmciCC) processRequestMonitoring(ctx context.Context, aOmciTxRequest OmciTransferStructure) {
