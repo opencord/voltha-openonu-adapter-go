@@ -50,6 +50,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ceda4a61_64474e1a",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 324,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-03-14T14:18:13Z",
+      "side": 1,
+      "message": "understood",
+      "parentUuid": "321bebd9_afb20afd",
+      "range": {
+        "startLine": 321,
+        "startChar": 0,
+        "endLine": 324,
+        "endChar": 2
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0b623fb3_0f748d11",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -79,6 +103,24 @@
       "side": 1,
       "message": "The question is whether an additional log would also provide more information here, since all OMCI packets whose types are not defined in responsesWithMibDataSync[] do not contribute to the MDS counter increase here by default?",
       "parentUuid": "0b623fb3_0f748d11",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c3bff56d_e3eb0682",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-03-14T14:18:13Z",
+      "side": 1,
+      "message": "I\u0027d add it and log the fact that we are not incrementing the counter, I do not like simply hiding something",
+      "parentUuid": "e046de10_b974f28a",
       "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -132,6 +174,24 @@
       "side": 1,
       "message": "Probably no additional decoding errors to check for right no in MIB Upload Next response.\n\nFor Set Response, there is not any relaxed decode Unknown attributes that should since it does not contain any attributes, just attribute bitmasks.",
       "parentUuid": "4396ff90_0f25c906",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dec7db7c_2db6e37c",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4630,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-03-14T14:18:13Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e2c040a5_cf0eeb3c",
       "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
