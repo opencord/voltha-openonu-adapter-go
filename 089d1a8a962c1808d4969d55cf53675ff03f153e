@@ -125,6 +125,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "cf151d32_d4575805",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T15:19:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c3bff56d_e3eb0682",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2da9e842_9f38dedd",
@@ -198,6 +216,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "e8e363c9_27573f70",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4630,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T15:19:46Z",
+      "side": 1,
+      "message": "See my comment below. What happens if the ONU corrupts the attribute bitmask of a set response - does the omci-lib-go evaluate the mask before passing it to the caller?",
+      "parentUuid": "dec7db7c_2db6e37c",
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d9226d3c_bbb8897a",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -209,6 +245,30 @@
       "writtenOn": "2022-03-14T14:02:05Z",
       "side": 1,
       "message": "Do you need the check for Unknown attributes here?  \n\nThe OpenONU adapter is responsible for setting the attributes mask that it wants and therefore should not receive any Unknown Attributes in the response.  Only in a MIB Upload Next response do you have a chance for unknown attributes to be present (due to new standard, ONU with vendor specific fixes/bugs, or a bug in the omci-lib-go code-generated attributes that are available.)",
+      "range": {
+        "startLine": 4632,
+        "startChar": 13,
+        "endLine": 4632,
+        "endChar": 34
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4c107e39_ddd637a0",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4632,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-14T15:19:46Z",
+      "side": 1,
+      "message": "The original reason for introducing these changes here was that ONU sent us a corrupted OMCI response. It could just as well be that the attribute bitmasks is also corrupted in their responses. What does the omci-lib-go do, for example, if the ONU falsifies the attribute bitmasks of a get response in such a way that it contains supposedly unknown attributes? Wouldn\u0027t it be appropriate for the omci-lib-go to insert an unknownAttrLayer?",
+      "parentUuid": "d9226d3c_bbb8897a",
       "range": {
         "startLine": 4632,
         "startChar": 13,
