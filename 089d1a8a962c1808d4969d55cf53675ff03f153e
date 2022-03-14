@@ -138,6 +138,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "d9226d3c_bbb8897a",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4632,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2022-03-14T14:02:05Z",
+      "side": 1,
+      "message": "Do you need the check for Unknown attributes here?  \n\nThe OpenONU adapter is responsible for setting the attributes mask that it wants and therefore should not receive any Unknown Attributes in the response.  Only in a MIB Upload Next response do you have a chance for unknown attributes to be present (due to new standard, ONU with vendor specific fixes/bugs, or a bug in the omci-lib-go code-generated attributes that are available.)",
+      "range": {
+        "startLine": 4632,
+        "startChar": 13,
+        "endLine": 4632,
+        "endChar": 34
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "2f418a90_81cad20f",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -149,6 +172,30 @@
       "writtenOn": "2022-03-14T12:32:45Z",
       "side": 1,
       "message": "@Chip: Does it make sense at all to perform the DecodeFailure handling here even in the case when the message layer could be decoded, albeit with errors during relaxed decoding?",
+      "range": {
+        "startLine": 4645,
+        "startChar": 3,
+        "endLine": 4645,
+        "endChar": 6
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9badde55_9d982c23",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4645,
+      "author": {
+        "id": 1000617
+      },
+      "writtenOn": "2022-03-14T14:02:05Z",
+      "side": 1,
+      "message": "Having it here should be okay.  \n\nSince you are turning on lazy decode, you need to check for a new error layer where the message-type layers are decoded.  This function handles a few but for the message-type handlers for the other message-types not handled by this function may end up getting a decode error.",
+      "parentUuid": "2f418a90_81cad20f",
       "range": {
         "startLine": 4645,
         "startChar": 3,
