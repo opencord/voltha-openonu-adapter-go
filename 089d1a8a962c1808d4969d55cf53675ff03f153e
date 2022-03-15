@@ -323,6 +323,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "79fe02e2_e9392b9d",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4632,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-03-15T10:25:50Z",
+      "side": 1,
+      "message": "Thanks Chip! I have created a low prio story as a reminder.\nhttps://jira.opencord.org/browse/VOL-4662",
+      "parentUuid": "fdb15d39_15170904",
+      "range": {
+        "startLine": 4632,
+        "startChar": 13,
+        "endLine": 4632,
+        "endChar": 34
+      },
+      "revId": "089d1a8a962c1808d4969d55cf53675ff03f153e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "2f418a90_81cad20f",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
