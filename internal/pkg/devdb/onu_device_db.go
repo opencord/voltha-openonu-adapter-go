@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"sync"
 
 	me "github.com/opencord/omci-lib-go/v2/generated"
@@ -32,28 +31,32 @@ import (
 
 type meDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
 
-// UnknownMeName type to be used for unknown ME names
-type UnknownMeName string
+// UnknownMeOrAttribName type to be used for unknown ME and attribute names
+type UnknownMeOrAttribName string
 
-// allowed values for type UnknownMeName
+// names for unknown ME and attribute identifiers
 const (
 	CUnknownItuG988ManagedEntity        = "UnknownItuG988ManagedEntity"
 	CUnknownVendorSpecificManagedEntity = "UnknownVendorSpecificManagedEntity"
+	CUnknownAttributesManagedEntity     = "UnknownAttributesManagedEntity"
 )
 
-type unknownMeAttribs struct {
+// CStartUnknownMeAttribsInBaseLayerPayload defines start of unknown ME attribs after ClassID, InstanceID and AttribMask
+const CStartUnknownMeAttribsInBaseLayerPayload = 6
+
+type unknownAttribs struct {
 	AttribMask  string `json:"AttributeMask"`
 	AttribBytes string `json:"AttributeBytes"`
 }
-type unknownMeDbMap map[UnknownMeName]map[me.ClassID]map[uint16]unknownMeAttribs
+type unknownMeAndAttribDbMap map[UnknownMeOrAttribName]map[me.ClassID]map[uint16]unknownAttribs
 
 //OnuDeviceDB structure holds information about ME's
 type OnuDeviceDB struct {
-	ctx         context.Context
-	deviceID    string
-	MeDb        meDbMap
-	meDbLock    sync.RWMutex
-	UnknownMeDb unknownMeDbMap
+	ctx                  context.Context
+	deviceID             string
+	MeDb                 meDbMap
+	meDbLock             sync.RWMutex
+	UnknownMeAndAttribDb unknownMeAndAttribDbMap
 }
 
 //NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
@@ -63,7 +66,7 @@ func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	OnuDeviceDB.ctx = ctx
 	OnuDeviceDB.deviceID = aDeviceID
 	OnuDeviceDB.MeDb = make(meDbMap)
-	OnuDeviceDB.UnknownMeDb = make(unknownMeDbMap)
+	OnuDeviceDB.UnknownMeAndAttribDb = make(unknownMeAndAttribDbMap)
 
 	return &OnuDeviceDB
 }
@@ -166,27 +169,27 @@ func (OnuDeviceDB *OnuDeviceDB) LogMeDb(ctx context.Context) {
 	}
 }
 
-//PutUnknownMe puts an unknown ME instance into internal ONU DB
-func (OnuDeviceDB *OnuDeviceDB) PutUnknownMe(ctx context.Context, aMeName UnknownMeName, aMeClassID me.ClassID, aMeEntityID uint16,
+//PutUnknownMeOrAttrib puts an instance with unknown ME or attributes into internal ONU DB
+func (OnuDeviceDB *OnuDeviceDB) PutUnknownMeOrAttrib(ctx context.Context, aMeName UnknownMeOrAttribName, aMeClassID me.ClassID, aMeEntityID uint16,
 	aMeAttributeMask uint16, aMePayload []byte) {
 
-	meAttribMaskStr := strconv.FormatUint(uint64(aMeAttributeMask), 16)
-	attribs := unknownMeAttribs{meAttribMaskStr, hex.EncodeToString(aMePayload)}
+	meAttribMaskStr := fmt.Sprintf("0x%04x", aMeAttributeMask)
+	attribs := unknownAttribs{meAttribMaskStr, hex.EncodeToString(aMePayload)}
 
-	_, ok := OnuDeviceDB.UnknownMeDb[aMeName]
+	_, ok := OnuDeviceDB.UnknownMeAndAttribDb[aMeName]
 	if !ok {
-		OnuDeviceDB.UnknownMeDb[aMeName] = make(map[me.ClassID]map[uint16]unknownMeAttribs)
-		OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID] = make(map[uint16]unknownMeAttribs)
-		OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
+		OnuDeviceDB.UnknownMeAndAttribDb[aMeName] = make(map[me.ClassID]map[uint16]unknownAttribs)
+		OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID] = make(map[uint16]unknownAttribs)
+		OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID] = attribs
 	} else {
-		_, ok := OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID]
+		_, ok := OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID]
 		if !ok {
-			OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID] = make(map[uint16]unknownMeAttribs)
-			OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
+			OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID] = make(map[uint16]unknownAttribs)
+			OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID] = attribs
 		} else {
-			_, ok := OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID]
+			_, ok := OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID]
 			if !ok {
-				OnuDeviceDB.UnknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
+				OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID] = attribs
 			}
 		}
 	}
