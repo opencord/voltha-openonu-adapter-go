@@ -119,6 +119,14 @@ func (a *adapter) start(ctx context.Context) error {
 		logger.Fatal(ctx, "unable-to-connect-to-kv-store")
 	}
 
+	// create the voltha.events topic
+	topic := &kafka.Topic{Name: a.config.EventTopic}
+	if err := a.kafkaClient.CreateTopic(ctx, topic, a.config.EventTopicPartitions, a.config.EventTopicReplicas); err != nil {
+		if err != nil {
+			logger.Fatal(ctx, "unable-to create topic", log.Fields{"topic": a.config.EventTopic, "error": err})
+		}
+	}
+
 	// Create the event proxy to post events to KAFKA
 	a.eventProxy = events.NewEventProxy(events.MsgClient(a.kafkaClient), events.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))
 	go func() {

@@ -38,6 +38,8 @@ type AdapterFlags struct {
 	KVStoreTimeout              time.Duration
 	KVStoreAddress              string
 	EventTopic                  string
+	EventTopicPartitions        int
+	EventTopicReplicas          int
 	LogLevel                    string
 	OnuNumber                   int
 	Banner                      bool
@@ -88,6 +90,16 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"event_topic",
 		"voltha.events",
 		"Event topic")
+
+	fs.IntVar(&so.EventTopicPartitions,
+		"EventTopicPartitions",
+		3,
+		"RW Core Event topic partitions")
+
+	fs.IntVar(&so.EventTopicReplicas,
+		"EventTopicReplicas",
+		2,
+		"RW Core Event topic replicas")
 
 	fs.StringVar(&(so.KVStoreType),
 		"kv_store_type",
