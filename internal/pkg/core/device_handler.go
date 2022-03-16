@@ -2859,7 +2859,7 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 			cEventObjectType, cOnuActivatedEvent, "Cleared")
 	}
 	/* Send event to KAFKA */
-	if err := dh.EventProxy.SendDeviceEvent(ctx, &de, equipment, pon, raisedTs); err != nil {
+	if err := dh.EventProxy.SendDeviceEventWithKey(ctx, &de, equipment, pon, raisedTs, aDeviceID); err != nil {
 		logger.Warnw(ctx, "could not send ONU_ACTIVATED event",
 			log.Fields{"device-id": aDeviceID, "error": err})
 	}
