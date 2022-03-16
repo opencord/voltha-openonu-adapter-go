@@ -586,7 +586,11 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		logger.Debugw(ctx, "MibUploadNextResponse Data for:", log.Fields{"device-id": oo.deviceID, "meName": meName, "data-fields": msgObj})
 
 		if meName == devdb.CUnknownItuG988ManagedEntity || meName == devdb.CUnknownVendorSpecificManagedEntity {
-			oo.pOnuDB.PutUnknownMe(ctx, devdb.UnknownMeName(meName), meClassID, meEntityID, msgObj.ReportedME.GetAttributeMask(), msgObj.BaseLayer.Payload)
+			logger.Debugw(ctx, "MibUploadNextResponse contains unknown ME", log.Fields{"device-id": oo.deviceID,
+				"Me-Name": devdb.UnknownMeOrAttribName(meName), "Me-ClassId": meClassID, "Me-InstId": meEntityID,
+				"unknown mask": msgObj.ReportedME.GetAttributeMask(), "unknown attributes": msgObj.BaseLayer.Payload})
+			oo.pOnuDB.PutUnknownMeOrAttrib(ctx, devdb.UnknownMeOrAttribName(meName), meClassID, meEntityID,
+				msgObj.ReportedME.GetAttributeMask(), msgObj.BaseLayer.Payload[devdb.CStartUnknownMeAttribsInBaseLayerPayload:])
 		} else {
 			//with relaxed decoding set in the OMCI-LIB we have the chance to detect if there are some unknown attributes appended which we cannot decode
 			if unknownAttrLayer := (*msg.OmciPacket).Layer(omci.LayerTypeUnknownAttributes); unknownAttrLayer != nil {
@@ -601,8 +605,7 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 						logger.Warnw(ctx, "unknown attributes detected for", log.Fields{"device-id": oo.deviceID,
 							"Me-ClassId": unknownAttrClassID, "Me-InstId": unknownAttrInst, "unknown mask": unknownAttrMask,
 							"unknown attributes": unknownAttrBlob})
-						//TODO!!! We have to find a way to put this extra information into the (MIB)DB, see below pOnuDB.PutMe
-						//  this probably requires an (add-on) extension in the DB, that should not harm any other (get) processing -> later as a second step
+						oo.pOnuDB.PutUnknownMeOrAttrib(ctx, devdb.CUnknownAttributesManagedEntity, unknown.EntityClass, unknown.EntityInstance, unknown.AttributeMask, unknown.AttributeData)
 					} // for all included ME's with unknown attributes
 				} else {
 					logger.Errorw(ctx, "unknownAttrLayer could not be decoded", log.Fields{"device-id": oo.deviceID})
@@ -1051,9 +1054,9 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 		secondLevelMap["ClassId"] = classID
 		templateMap[classID] = secondLevelMap
 	}
-	unknownMeMap := oo.pOnuDB.UnknownMeDb
-	for unknownMeMapKey := range unknownMeMap {
-		templateMap[string(unknownMeMapKey)] = unknownMeMap[unknownMeMapKey]
+	unknownMeAndAttribMap := oo.pOnuDB.UnknownMeAndAttribDb
+	for unknownMeAndAttribMapKey := range unknownMeAndAttribMap {
+		templateMap[string(unknownMeAndAttribMapKey)] = unknownMeAndAttribMap[unknownMeAndAttribMapKey]
 	}
 	mibTemplate, err := json.Marshal(&templateMap)
 	if err != nil {
