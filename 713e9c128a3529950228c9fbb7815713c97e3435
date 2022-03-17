@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "b1b3d8d2_ac2ffc71",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2308,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T14:20:08Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "bdd9924a_c6098d44",
+      "revId": "713e9c128a3529950228c9fbb7815713c97e3435",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e7835236_9b2da6d7",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 3
@@ -31,6 +49,24 @@
       "writtenOn": "2022-03-17T13:08:23Z",
       "side": 1,
       "message": "same",
+      "revId": "713e9c128a3529950228c9fbb7815713c97e3435",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "35af68dc_d9caa3a8",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2315,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T14:20:08Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "e7835236_9b2da6d7",
       "revId": "713e9c128a3529950228c9fbb7815713c97e3435",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -60,6 +96,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "983612c6_8f30231e",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2338,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T14:20:08Z",
+      "side": 1,
+      "message": "The filters are different for both, one does filter/treatment on inneroffset and other on outeroffset",
+      "parentUuid": "9f159136_305232a0",
+      "range": {
+        "startLine": 2316,
+        "startChar": 0,
+        "endLine": 2338,
+        "endChar": 34
+      },
+      "revId": "713e9c128a3529950228c9fbb7815713c97e3435",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "713ae651_dcdc495d",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 3
@@ -77,6 +137,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "9f9240a9_5fc6e3c0",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2615,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T14:20:08Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "713ae651_dcdc495d",
+      "revId": "713e9c128a3529950228c9fbb7815713c97e3435",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "68172907_9516158c",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 3
@@ -88,6 +166,30 @@
       "writtenOn": "2022-03-17T13:08:23Z",
       "side": 1,
       "message": "this is the same as lines 2638, can you please avoid duplication",
+      "range": {
+        "startLine": 2617,
+        "startChar": 4,
+        "endLine": 2631,
+        "endChar": 0
+      },
+      "revId": "713e9c128a3529950228c9fbb7815713c97e3435",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4a645ec_570cc966",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2631,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T14:20:08Z",
+      "side": 1,
+      "message": "The filters are different for both, one does filter/treatment on inneroffset and other on outeroffset",
+      "parentUuid": "68172907_9516158c",
       "range": {
         "startLine": 2617,
         "startChar": 4,
