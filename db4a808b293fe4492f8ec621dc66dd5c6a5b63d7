@@ -16,6 +16,75 @@
       "message": "voltha-lib-go has been merged, please use it here. ",
       "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9dc34b05_a97ea826",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2333,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-17T22:06:12Z",
+      "side": 1,
+      "message": "Could move out of if/else block. It should also be removed at line 2363 if removed here and moved of of if/else block.",
+      "range": {
+        "startLine": 2333,
+        "startChar": 0,
+        "endLine": 2333,
+        "endChar": 34
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a3b9d8e0_e55b4bd1",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2338,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-17T22:06:12Z",
+      "side": 1,
+      "message": "is this comment right? The about comment says it is double tagged.",
+      "range": {
+        "startLine": 2338,
+        "startChar": 0,
+        "endLine": 2338,
+        "endChar": 93
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2623abdf_e729abaf",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2351,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-03-17T22:06:12Z",
+      "side": 1,
+      "message": "Is there no need to filter on inner-cvid if inner cvid is present?",
+      "range": {
+        "startLine": 2347,
+        "startChar": 0,
+        "endLine": 2351,
+        "endChar": 82
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
