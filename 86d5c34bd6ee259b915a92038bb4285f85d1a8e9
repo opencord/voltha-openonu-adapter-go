@@ -18,6 +18,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ca7f7232_d955b071",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T12:38:37Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "208b210c_4960592e",
+      "revId": "86d5c34bd6ee259b915a92038bb4285f85d1a8e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d4056f0c_1acb53b0",
@@ -31,6 +49,30 @@
       "writtenOn": "2022-03-17T11:28:08Z",
       "side": 1,
       "message": "please use the corresponding constant in the class imported with `me` alias.",
+      "range": {
+        "startLine": 2336,
+        "startChar": 6,
+        "endLine": 2336,
+        "endChar": 46
+      },
+      "revId": "86d5c34bd6ee259b915a92038bb4285f85d1a8e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9a6aabba_d3538830",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2336,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T12:38:37Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "d4056f0c_1acb53b0",
       "range": {
         "startLine": 2336,
         "startChar": 6,
@@ -66,6 +108,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "1bb79cea_140af4d4",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2392,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T12:38:37Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "75550377_42b3f109",
+      "range": {
+        "startLine": 2387,
+        "startChar": 0,
+        "endLine": 2392,
+        "endChar": 69
+      },
+      "revId": "86d5c34bd6ee259b915a92038bb4285f85d1a8e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "525f85e3_fdfac68b",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 1
@@ -77,6 +143,30 @@
       "writtenOn": "2022-03-17T11:28:08Z",
       "side": 1,
       "message": "same here and the lines above, please consolidate.",
+      "range": {
+        "startLine": 2697,
+        "startChar": 0,
+        "endLine": 2711,
+        "endChar": 79
+      },
+      "revId": "86d5c34bd6ee259b915a92038bb4285f85d1a8e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47d9d18b_f595f833",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2711,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-17T12:38:37Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "525f85e3_fdfac68b",
       "range": {
         "startLine": 2697,
         "startChar": 0,
