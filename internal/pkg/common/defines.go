@@ -312,6 +312,7 @@ type UniVlanRuleParams struct {
 	TagsToRemove uint32 `json:"tags_to_remove"`
 	SetVid       uint32 `json:"set_vid"`
 	SetPcp       uint32 `json:"set_pcp"`
+	InnerCvlan   uint16 `json:"inner_cvlan"`
 }
 
 // UniVlanFlowParams - TODO: add comment
