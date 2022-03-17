@@ -5,6 +5,12 @@ There are two types of performance metrics
 - Standalone metrics
 
 The group metrics are managed as a group, meaning we can only set sampling frequency, disable/enable group as a whole and not individual metrics within the group. While in contrast the standalone metrics can be managed individually.
+A subset of the group metrics are L2 Performance Metrics (PM) whose sampling interval is fixed at 15mins.
+The following are the supported L2 PMs
+1. Ethernet Bridge History
+2. Gem Port History
+3. Ethernet Uni History
+4. FEC History
 
 The performance metrics configuration is carried out via the [PmConfigs](https://github.com/opencord/voltha-protos/blob/v4.0.11/protos/voltha_protos/device.proto#L61) protobuf messages.
 
@@ -13,7 +19,7 @@ The meaning of various information elements in the `PmConfigs` and its default v
 | Key      | Meaning                  | Default for openonu-go | Additional notes|
 | :------: | :----------------------- | :--------------------- | :---------|
 | id       | onu device id | onu device id|
-| default_freq| Default sampling rate| 15 * 60 seconds | Applicable only when `freq_override` is set to false |
+| default_freq| Default sampling rate| 15 * 60 seconds for L2 PMs, otherwise 5 * 60 seconds | Applicable only when `freq_override` is set to false. Note that the sampling frequency cannot be set for L2 PM counters and is fixed at 15 mins by the OMCI specification |
 | grouped| Forces group names and group semantics| True | When this is set to true, it forces group names and group semantics. This is a `READ ONLY` attribute and cannot be changed from NBI|
 |freq_override | Allows Pm to set an individual sample frequency | True| When this is set to true, the group specific sampling rate comes into effect. This is a `READ ONLY` attribute and cannot be changed from NBI|
 | groups| The groups if grouped is true| | More details about the groups supported by openonu-go adapter is documented further in this notes.|
@@ -24,7 +30,9 @@ The meaning of various information elements in the `PmConfigs` and its default v
 
 The following group metrics are supported by openonu-go adapter.
 
-### _OpticalPower_
+### Non-L2 PM Counters
+
+#### _OpticalPower_
 ```
 // OpticalPowerGroupMetrics are supported optical pm names
 var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
@@ -34,7 +42,7 @@ var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
 }
 ```
 
-### _UniStatus_
+#### _UniStatus_
 ```
 // UniStatusGroupMetrics are supported UNI status names
 var UniStatusGroupMetrics = map[string]voltha.PmConfig_PmType{
@@ -54,7 +62,9 @@ Note:
 5. Valid values for `uni_admin_state` are 0 (unlocks) and 1 (locks)
 6. `oper_state` and `uni_admin_state` are relevant for both PPTP (me_class_id = 11) and VEIP ME (me_class_id = 329), however only `uni_admin_state` is relevant for UNI-G ME (me_class_id = 264).
 
-### _EthernetBridgeHistory_
+### L2 PM Counters
+
+#### _EthernetBridgeHistory_
 ```
 var EthernetBridgeHistory = map[string]voltha.PmConfig_PmType{
 	"class_id":          voltha.PmConfig_CONTEXT,
@@ -81,7 +91,7 @@ var EthernetBridgeHistory = map[string]voltha.PmConfig_PmType{
 }
 ```
 
-### _EthernetUniHistory_
+#### _EthernetUniHistory_
 ```
 var EthernetUniHistory = map[string]voltha.PmConfig_PmType{
 	"class_id":          voltha.PmConfig_CONTEXT,
@@ -105,7 +115,7 @@ var EthernetUniHistory = map[string]voltha.PmConfig_PmType{
 }
 ```
 
-### _FecHistory_
+#### _FecHistory_
 ```
 var FecHistory = map[string]voltha.PmConfig_PmType{
 	"class_id":          voltha.PmConfig_CONTEXT,
@@ -120,7 +130,7 @@ var FecHistory = map[string]voltha.PmConfig_PmType{
 }
 ```
 
-### _GemPortHistory_
+#### _GemPortHistory_
 ```
 var GemPortHistory = map[string]voltha.PmConfig_PmType{
 	"class_id":          voltha.PmConfig_CONTEXT,
@@ -135,7 +145,7 @@ var GemPortHistory = map[string]voltha.PmConfig_PmType{
 }
 ```
 
-## Basic KPI Format (**KpiEvent2**)
+### Basic KPI Format (**KpiEvent2**)
 
 The KPI information is published on the kafka bus under the _voltha.events_ topic. For
 VOLTHA PM information, the kafka key is empty and the value is a JSON message composed
@@ -149,11 +159,11 @@ of the following key-value pairs.
 
 **NOTE**: Time-series metrics and corresponding protobuf messages have not been defined.
 
-## Slice Data Format
+#### Slice Data Format
 
 For KPI slice KPI messages, the _slice_data_ portion of the **KpiEvent2** is composed of a _metadata_ section and a _metrics_ section.
 
-### _metadata_ Section Format
+#### _Metadata_ Section Format
 
 The metadata section is used to:
  - Define which metric/metric-group is being reported (The _title_ field)
@@ -264,6 +274,9 @@ Note2 : The `frequency` of L2 PM counters is fixed at 15m and cannot be changed.
 voltctl -k <kafka-ip:port> event listen --show-body -t 10000 -o json -F
 ```
 Note: For more `event listen` options, check `voltctl event listen --help` command.
+
+`voltha.events` is the default topic on which the KPI/PM events are pushed by the openonu adapter.
+This default value can be changed by setting the required value to `voltha-adapter-openonu.adapter_open_onu.topics.event_topic` in the `voltha-adapter-openonu` helm chart.
 
 ## On Demand Counters
 voltha supports following on demand counters:
