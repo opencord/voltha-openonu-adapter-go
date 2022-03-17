@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9a1f611d_d7318d45",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-03-17T16:38:13Z",
+      "side": 1,
+      "message": "voltha-lib-go has been merged, please use it here. ",
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
