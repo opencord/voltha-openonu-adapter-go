@@ -77,6 +77,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "cc1e8b2b_001d4276",
+        "filename": "VERSION",
+        "patchSetId": 4
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "212b7be7_cffa9284",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 12
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "9dc34b05_a97ea826",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 4
@@ -88,6 +112,30 @@
       "writtenOn": "2022-03-17T22:06:12Z",
       "side": 1,
       "message": "Could move out of if/else block. It should also be removed at line 2363 if removed here and moved of of if/else block.",
+      "range": {
+        "startLine": 2333,
+        "startChar": 0,
+        "endLine": 2333,
+        "endChar": 34
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "00eef84d_a1b6c978",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2333,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "9dc34b05_a97ea826",
       "range": {
         "startLine": 2333,
         "startChar": 0,
@@ -123,6 +171,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "7a038f58_2ac709f1",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2337,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "corrected the code according to the comment to keep it generic",
+      "parentUuid": "f691057d_f466346c",
+      "range": {
+        "startLine": 2336,
+        "startChar": 4,
+        "endLine": 2337,
+        "endChar": 73
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a3b9d8e0_e55b4bd1",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 4
@@ -146,6 +218,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "4ccbe143_99a26b3c",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2338,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "typo :-) removed the line",
+      "parentUuid": "a3b9d8e0_e55b4bd1",
+      "range": {
+        "startLine": 2338,
+        "startChar": 0,
+        "endLine": 2338,
+        "endChar": 93
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "deb410a3_c9cb1d64",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 4
@@ -157,6 +253,30 @@
       "writtenOn": "2022-03-18T10:51:09Z",
       "side": 1,
       "message": "I think this comment is not valid anymore and meanwhile more confusing than helpful. It might be true for the specific DPU subscriber flow case, that for subscriber flows the MatchPcp is set to DNFonPrio (from ONOS). But it is no general requirement for the OpenOnu adapter anymore (based on adapter code).",
+      "range": {
+        "startLine": 2343,
+        "startChar": 76,
+        "endLine": 2343,
+        "endChar": 116
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "430ba871_574e0e19",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2343,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "changed the comment",
+      "parentUuid": "deb410a3_c9cb1d64",
       "range": {
         "startLine": 2343,
         "startChar": 76,
@@ -216,6 +336,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "32d2e15a_62ba369c",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2351,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "Yes, changed the filter to a more generic to filter in innervlan if not 4096",
+      "parentUuid": "6a489e21_441fe93b",
+      "range": {
+        "startLine": 2347,
+        "startChar": 0,
+        "endLine": 2351,
+        "endChar": 82
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "68a47e6c_cd95bc01",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 4
@@ -239,6 +383,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a8a55533_96b3bcce",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2355,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "yes correct, thanks for the find",
+      "parentUuid": "68a47e6c_cd95bc01",
+      "range": {
+        "startLine": 2355,
+        "startChar": 6,
+        "endLine": 2355,
+        "endChar": 12
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d685ccc4_1a6c7600",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 4
@@ -250,6 +418,30 @@
       "writtenOn": "2022-03-18T10:51:09Z",
       "side": 1,
       "message": "So what is your assumption on the setVid for the FTTB subscriber flows? I still asume it to be the same as the matchVid - correct? If so, generally a \u0027default rule\u0027 setting for just passing double tagged frames would be sufficient as well.\nOf course this implementation allows for a wider configuration here - for a real double tagged frame transmission with replacement of the outer VLAN. I just mention that this might not be required for the given use case of this patch.",
+      "range": {
+        "startLine": 2356,
+        "startChar": 6,
+        "endLine": 2356,
+        "endChar": 12
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a3fe4ca2_195f3f1a",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2356,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T14:57:55Z",
+      "side": 1,
+      "message": "Yes, you are right. this pathc is more genric and would allow more wider configuration",
+      "parentUuid": "d685ccc4_1a6c7600",
       "range": {
         "startLine": 2356,
         "startChar": 6,
