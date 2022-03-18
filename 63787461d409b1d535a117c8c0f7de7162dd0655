@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "552e1961_32f6e694",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-18T15:28:04Z",
+      "side": 1,
+      "message": "Some less important remarks/questions, but I give a +1 anyway.",
+      "revId": "63787461d409b1d535a117c8c0f7de7162dd0655",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0fe3951a_415aa3f1",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 2347,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-03-18T15:28:04Z",
+      "side": 1,
+      "message": "So now, this looks also a bit strange to me in case innerCvlan is not 4096 (so not the FTTB use case). If you want to set also a filter on the innerVid for a specific (non-default) double tag rule (which you specify before in line 2342), then I would not expect a PrioDefaultFilter setting on the priority (indicating some default rule) but the \u0027cPrioDoNotFilter\u0027 value (8). If you do not want to set any specific filtering on the InnerVlan (innerCvlan \u003d 4096), then the value cPrioDefaultFilter should be fine. But I\u0027m not saying that your approach is not working for some ONU\u0027s, the G988 is not really clear about this here. I\u0027m just saying it would make more sense to me.",
+      "range": {
+        "startLine": 2347,
+        "startChar": 5,
+        "endLine": 2347,
+        "endChar": 23
+      },
+      "revId": "63787461d409b1d535a117c8c0f7de7162dd0655",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
