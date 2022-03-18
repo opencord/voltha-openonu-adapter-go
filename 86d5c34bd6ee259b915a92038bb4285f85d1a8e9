@@ -175,6 +175,30 @@
       },
       "revId": "86d5c34bd6ee259b915a92038bb4285f85d1a8e9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d8f43969_4fc0cc80",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2711,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-03-18T15:02:27Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "47d9d18b_f595f833",
+      "range": {
+        "startLine": 2697,
+        "startChar": 0,
+        "endLine": 2711,
+        "endChar": 79
+      },
+      "revId": "86d5c34bd6ee259b915a92038bb4285f85d1a8e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
