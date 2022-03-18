@@ -431,6 +431,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "23cdf0b4_023e6b3b",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2355,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T16:14:08Z",
+      "side": 1,
+      "message": "No, ONOS will not send setPcp \u003d 9",
+      "parentUuid": "1373159b_f0dfb54d",
+      "range": {
+        "startLine": 2355,
+        "startChar": 6,
+        "endLine": 2355,
+        "endChar": 12
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d685ccc4_1a6c7600",
         "filename": "internal/pkg/avcfg/omci_vlan_config.go",
         "patchSetId": 4
@@ -490,6 +514,30 @@
       "side": 1,
       "message": "Still for interest: Is matchVID\u003dsetVID here in the FTTB subscriber flow use case?",
       "parentUuid": "a3fe4ca2_195f3f1a",
+      "range": {
+        "startLine": 2356,
+        "startChar": 6,
+        "endLine": 2356,
+        "endChar": 12
+      },
+      "revId": "db4a808b293fe4492f8ec621dc66dd5c6a5b63d7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0d1389d7_0619c551",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2356,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2022-03-18T16:14:08Z",
+      "side": 1,
+      "message": "Yes mactchVID\u003dSetVID",
+      "parentUuid": "75d8f610_7f35a3b1",
       "range": {
         "startLine": 2356,
         "startChar": 6,
