@@ -226,6 +226,9 @@ type SswImageIndications struct {
 	InActiveEntityEntry SEntrySwImageIndication
 }
 
+// CGenericManagedEntityIDName - generic name string of attribute "ManagedEntityId"
+const CGenericManagedEntityIDName = "ManagedEntityId"
+
 ///////////////////////////////////////////////////////////
 
 type activityDescr struct {

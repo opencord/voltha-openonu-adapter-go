@@ -1034,10 +1034,11 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 
 		secondLevelMap := make(map[string]interface{})
 		for secondLevelKey, secondLevelValue := range firstLevelValue {
+			// ManagedEntityId is already key of secondLevelMap - remove this redundant attribute from secondLevelValue
+			delete(secondLevelValue, cmn.CGenericManagedEntityIDName)
 			thirdLevelMap := make(map[string]interface{})
 			entityID := strconv.Itoa(int(secondLevelKey))
 			thirdLevelMap["Attributes"] = secondLevelValue
-			thirdLevelMap["InstanceId"] = entityID
 			secondLevelMap[entityID] = thirdLevelMap
 			if classID == "6" || classID == "256" {
 				forthLevelMap := map[string]interface{}(thirdLevelMap["Attributes"].(me.AttributeValueMap))
@@ -1051,7 +1052,6 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 				forthLevelMap["MacAddress"] = "%MAC_ADDRESS%"
 			}
 		}
-		secondLevelMap["ClassId"] = classID
 		templateMap[classID] = secondLevelMap
 	}
 	unknownMeAndAttribMap := oo.pOnuDB.UnknownMeAndAttribDb
