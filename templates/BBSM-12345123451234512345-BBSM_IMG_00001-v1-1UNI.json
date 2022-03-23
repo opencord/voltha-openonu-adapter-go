@@ -1,7 +1,6 @@
 {
-  "TemplateCreated": "2022-01-26 13:58:56.741535",
+  "TemplateCreated": "2022-03-22 16:57:15.463577",
   "TemplateName": "BBSM/12345123451234512345/BBSM_IMG_00001",
-  "Version": 1,
   "11": {
     "257": {
       "Attributes": {
@@ -14,17 +13,14 @@
         "DteOrDceInd": 0,
         "EthernetLoopbackConfiguration": 0,
         "ExpectedType": 0,
-        "ManagedEntityId": 257,
         "MaxFrameSize": 1518,
         "OperationalState": 0,
         "PauseTime": 0,
         "PowerControl": 0,
         "PppoeFilter": 0,
         "SensedType": 47
-      },
-      "InstanceId": "257"
-    },
-    "ClassId": "11"
+      }
+    }
   },
   "257": {
     "0": {
@@ -32,76 +28,56 @@
         "ConnectivityCapability": 127,
         "CurrentConnectivityMode": 0,
         "Deprecated": 1,
-        "ManagedEntityId": 0,
         "PriorityQueueScaleFactor": 1,
         "QualityOfServiceQosConfigurationFlexibility": 63,
         "Sysuptime": 0,
         "TotalGemPortIdNumber": 8,
         "TotalPriorityQueueNumber": 64,
         "TotalTrafficSchedulerNumber": 8
-      },
-      "InstanceId": "0"
-    },
-    "ClassId": "257"
+      }
+    }
   },
   "262": {
     "32769": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32769
-      },
-      "InstanceId": "32769"
+        "AllocId": 65535
+      }
     },
     "32770": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32770
-      },
-      "InstanceId": "32770"
+        "AllocId": 65535
+      }
     },
     "32771": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32771
-      },
-      "InstanceId": "32771"
+        "AllocId": 65535
+      }
     },
     "32772": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32772
-      },
-      "InstanceId": "32772"
+        "AllocId": 65535
+      }
     },
     "32773": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32773
-      },
-      "InstanceId": "32773"
+        "AllocId": 65535
+      }
     },
     "32774": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32774
-      },
-      "InstanceId": "32774"
+        "AllocId": 65535
+      }
     },
     "32775": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32775
-      },
-      "InstanceId": "32775"
+        "AllocId": 65535
+      }
     },
     "32776": {
       "Attributes": {
-        "AllocId": 65535,
-        "ManagedEntityId": 32776
-      },
-      "InstanceId": "32776"
-    },
-    "ClassId": "262"
+        "AllocId": 65535
+      }
+    }
   },
   "263": {
     "32769": {
@@ -112,7 +88,6 @@
         "GemBlockLength": 48,
         "LowerOpticalThreshold": 255,
         "LowerTransmitPowerThreshold": 129,
-        "ManagedEntityId": 32769,
         "OnuResponseTime": 0,
         "OpticalSignalLevel": 57428,
         "PiggybackDbaReporting": 0,
@@ -123,57 +98,46 @@
         "TransmitOpticalLevel": 3171,
         "UpperOpticalThreshold": 255,
         "UpperTransmitPowerThreshold": 129
-      },
-      "InstanceId": "32769"
-    },
-    "ClassId": "263"
+      }
+    }
   },
   "264": {
     "257": {
       "Attributes": {
         "AdministrativeState": 0,
         "Deprecated": 0,
-        "ManagedEntityId": 257,
         "ManagementCapability": 0,
         "NonOmciManagementIdentifier": 0,
         "RelayAgentOptions": 0
-      },
-      "InstanceId": "257"
+      }
     },
     "258": {
       "Attributes": {
         "AdministrativeState": 0,
         "Deprecated": 0,
-        "ManagedEntityId": 258,
         "ManagementCapability": 0,
         "NonOmciManagementIdentifier": 0,
         "RelayAgentOptions": 0
-      },
-      "InstanceId": "258"
+      }
     },
     "259": {
       "Attributes": {
         "AdministrativeState": 0,
         "Deprecated": 0,
-        "ManagedEntityId": 259,
         "ManagementCapability": 0,
         "NonOmciManagementIdentifier": 0,
         "RelayAgentOptions": 0
-      },
-      "InstanceId": "259"
+      }
     },
     "260": {
       "Attributes": {
         "AdministrativeState": 0,
         "Deprecated": 0,
-        "ManagedEntityId": 260,
         "ManagementCapability": 0,
         "NonOmciManagementIdentifier": 0,
         "RelayAgentOptions": 0
-      },
-      "InstanceId": "260"
-    },
-    "ClassId": "264"
+      }
+    }
   },
   "277": {
     "257": {
@@ -184,15 +148,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 257,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039361,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "257"
+      }
     },
     "258": {
       "Attributes": {
@@ -202,15 +164,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 258,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039362,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "258"
+      }
     },
     "259": {
       "Attributes": {
@@ -220,15 +180,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 259,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039363,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "259"
+      }
     },
     "260": {
       "Attributes": {
@@ -238,15 +196,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 260,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039364,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "260"
+      }
     },
     "261": {
       "Attributes": {
@@ -256,15 +212,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 261,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039365,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "261"
+      }
     },
     "262": {
       "Attributes": {
@@ -274,15 +228,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 262,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039366,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "262"
+      }
     },
     "263": {
       "Attributes": {
@@ -292,15 +244,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 263,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039367,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "263"
+      }
     },
     "264": {
       "Attributes": {
@@ -310,15 +260,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 264,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039368,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "264"
+      }
     },
     "265": {
       "Attributes": {
@@ -328,15 +276,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 265,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039369,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "265"
+      }
     },
     "266": {
       "Attributes": {
@@ -346,15 +292,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 266,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039370,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "266"
+      }
     },
     "267": {
       "Attributes": {
@@ -364,15 +308,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 267,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039371,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "267"
+      }
     },
     "268": {
       "Attributes": {
@@ -382,15 +324,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 268,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039372,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "268"
+      }
     },
     "269": {
       "Attributes": {
@@ -400,15 +340,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 269,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039373,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "269"
+      }
     },
     "270": {
       "Attributes": {
@@ -418,15 +356,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 270,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039374,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "270"
+      }
     },
     "271": {
       "Attributes": {
@@ -436,15 +372,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 271,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039375,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "271"
+      }
     },
     "272": {
       "Attributes": {
@@ -454,15 +388,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 272,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 17039376,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 0,
         "Weight": 1
-      },
-      "InstanceId": "272"
+      }
     },
     "32769": {
       "Attributes": {
@@ -472,15 +404,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32769,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007937,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32769"
+      }
     },
     "32770": {
       "Attributes": {
@@ -490,15 +420,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32770,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007938,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32770"
+      }
     },
     "32771": {
       "Attributes": {
@@ -508,15 +436,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32771,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007939,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32771"
+      }
     },
     "32772": {
       "Attributes": {
@@ -526,15 +452,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32772,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007940,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32772"
+      }
     },
     "32773": {
       "Attributes": {
@@ -544,15 +468,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32773,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007941,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32773"
+      }
     },
     "32774": {
       "Attributes": {
@@ -562,15 +484,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32774,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007942,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32774"
+      }
     },
     "32775": {
       "Attributes": {
@@ -580,15 +500,13 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32775,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007943,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32775"
+      }
     },
     "32776": {
       "Attributes": {
@@ -598,100 +516,80 @@
         "BackPressureOperation": 1,
         "BackPressureTime": 0,
         "DiscardBlockCounterResetInterval": 0,
-        "ManagedEntityId": 32776,
         "MaximumQueueSize": 100,
         "QueueConfigurationOption": 0,
         "RelatedPort": 2148007944,
         "ThresholdValueForDiscardedBlocksDueToBufferOverflow": 0,
         "TrafficSchedulerPointer": 264,
         "Weight": 1
-      },
-      "InstanceId": "32776"
-    },
-    "ClassId": "277"
+      }
+    }
   },
   "278": {
     "257": {
       "Attributes": {
-        "ManagedEntityId": 257,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32769,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "257"
+      }
     },
     "258": {
       "Attributes": {
-        "ManagedEntityId": 258,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32770,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "258"
+      }
     },
     "259": {
       "Attributes": {
-        "ManagedEntityId": 259,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32771,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "259"
+      }
     },
     "260": {
       "Attributes": {
-        "ManagedEntityId": 260,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32772,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "260"
+      }
     },
     "261": {
       "Attributes": {
-        "ManagedEntityId": 261,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32773,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "261"
+      }
     },
     "262": {
       "Attributes": {
-        "ManagedEntityId": 262,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32774,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "262"
+      }
     },
     "263": {
       "Attributes": {
-        "ManagedEntityId": 263,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32775,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "263"
+      }
     },
     "264": {
       "Attributes": {
-        "ManagedEntityId": 264,
         "Policy": 2,
         "PriorityWeight": 0,
         "TContPointer": 32776,
         "TrafficSchedulerPointer": 0
-      },
-      "InstanceId": "264"
-    },
-    "ClassId": "278"
+      }
+    }
   },
   "6": {
     "257": {
@@ -700,7 +598,6 @@
         "BridgedOrIpInd": 0,
         "CardConfiguration": 0,
         "EquipmentId": "QkJTTS1DaXJjdWl0LVBhY2sAAAA=",
-        "ManagedEntityId": 257,
         "NumberOfPorts": 1,
         "OperationalState": 0,
         "PowerShedOverride": 0,
@@ -709,11 +606,9 @@
         "TotalTContBufferNumber": 8,
         "TotalTrafficSchedulerNumber": 16,
         "Type": 47,
-        "VendorId": "AAAAAA==",
+        "VendorId": "T05GAA==",
         "Version": "djAuMC4xAAAAAAAAAAA="
-      },
-      "InstanceId": "257"
-    },
-    "ClassId": "6"
+      }
+    }
   }
 }
