@@ -297,6 +297,7 @@ func (oo *OnuImageStatus) isWaitingForResp() bool {
 
 //CancelProcessing ensures that interrupted processing is canceled while waiting for a response
 func (oo *OnuImageStatus) CancelProcessing(ctx context.Context) {
+	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oo.deviceID})
 	if oo.isWaitingForResp() {
 		abortMsg := cmn.Message{
 			Type: cmn.TestMsg,

@@ -4790,14 +4790,17 @@ loop:
 
 //CancelRequestMonitoring terminates monitoring of outstanding omci requests
 func (oo *OmciCC) CancelRequestMonitoring(ctx context.Context) {
+	logger.Debugw(ctx, "CancelRequestMonitoring entered", log.Fields{"device-id": oo.deviceID})
 	oo.mutexMonReq.RLock()
 	for k := range oo.monitoredRequests {
 		//implement non-blocking channel send to avoid blocking on mutexMonReq later
 		select {
 		case oo.monitoredRequests[k].chSuccess <- false:
+			logger.Debugw(ctx, "send cancellation on omciRespChannel",
+				log.Fields{"index": k, "device-id": oo.deviceID})
 		default:
-			logger.Debugw(ctx, "cancel not send on omciRespChannel (no receiver)", log.Fields{
-				"index": k, "device-id": oo.deviceID})
+			logger.Debugw(ctx, "cancellation could not be send on omciRespChannel (no receiver)",
+				log.Fields{"index": k, "device-id": oo.deviceID})
 		}
 	}
 	oo.mutexMonReq.RUnlock()

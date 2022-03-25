@@ -264,6 +264,7 @@ func (oFsm *UniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, a
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
+	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
 	//early indication about started reset processing
 	oFsm.pUniTechProf.setProfileResetting(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID, true)
 	//mutex protection is required for possible concurrent access to FSM members

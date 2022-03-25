@@ -531,6 +531,7 @@ func (oFsm *OnuUpgradeFsm) SetImageStateActive(ctx context.Context) {
 func (oFsm *OnuUpgradeFsm) CancelProcessing(ctx context.Context, abCompleteAbort bool,
 	aReason voltha.ImageState_ImageFailureReason) {
 	pAdaptFsm := oFsm.PAdaptFsm
+	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
 	if pAdaptFsm == nil || pAdaptFsm.PFsm == nil {
 		logger.Warnw(ctx, "OnuUpgradeFsm cancel, but FSM invalid", log.Fields{
 			"device-id": oFsm.deviceID})

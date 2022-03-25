@@ -1303,7 +1303,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 
 //CancelProcessing terminates potentially running reconciling processes and stops the FSM
 func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
-
+	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oo.deviceID})
 	if oo.isReconcilingFlows() {
 		oo.SendChReconcilingFlowsFinished(ctx, false)
 	}
