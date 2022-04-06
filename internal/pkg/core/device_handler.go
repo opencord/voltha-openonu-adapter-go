@@ -2004,7 +2004,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	/* this might be a good time for Omci Verify message?  */
 	verifyExec := make(chan bool)
 	omciVerify := otst.NewOmciTestRequest(log.WithSpanFromContext(context.TODO(), ctx),
-		dh.device.Id, pDevEntry.PDevOmciCC,
+		dh.device.Id, pDevEntry.PDevOmciCC, false,
 		true, true) //exclusive and allowFailure (anyway not yet checked)
 	omciVerify.PerformOmciTest(log.WithSpanFromContext(context.TODO(), ctx), verifyExec)
 
@@ -2012,7 +2012,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	after Timeout start and try MibUpload FSM anyway
 	(to prevent stopping on just not supported OMCI verification from ONU) */
 	select {
-	case <-time.After(pDevEntry.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second):
+	case <-time.After(((cmn.CDefaultRetries+1)*otst.CTestRequestOmciTimeout + 1) * time.Second):
 		logger.Warnw(ctx, "omci start-verification timed out (continue normal)", log.Fields{"device-id": dh.DeviceID})
 	case testresult := <-verifyExec:
 		logger.Infow(ctx, "Omci start verification done", log.Fields{"device-id": dh.DeviceID, "result": testresult})
