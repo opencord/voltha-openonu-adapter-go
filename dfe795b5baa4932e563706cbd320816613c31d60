@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "50eec9a5_58745c51",
+        "filename": "VERSION",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-04-06T13:28:57Z",
+      "side": 1,
+      "message": "please release a 2.2.4 when this feature is complete.",
+      "revId": "dfe795b5baa4932e563706cbd320816613c31d60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d6c52b2c_7f7c6fab",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-04-06T13:28:57Z",
+      "side": 1,
+      "message": "here you are just printing the message, should some implementation be put in place?",
+      "revId": "dfe795b5baa4932e563706cbd320816613c31d60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5a7cc6a2_7d78a9ef",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-04-06T13:28:57Z",
+      "side": 1,
+      "message": "maybe warn ?",
+      "revId": "dfe795b5baa4932e563706cbd320816613c31d60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "356081a6_63219764",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-04-06T13:28:57Z",
+      "side": 1,
+      "message": "same here",
+      "revId": "dfe795b5baa4932e563706cbd320816613c31d60",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
