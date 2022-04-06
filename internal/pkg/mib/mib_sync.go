@@ -37,6 +37,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	devdb "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
+	otst "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/omcitst"
 	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 )
 
@@ -66,6 +67,26 @@ var supportedClassIds = []me.ClassID{
 	me.EnhancedSecurityControlClassID,                 // 332
 	me.OnuDynamicPowerManagementControlClassID,        // 336
 	// 347 // definitions for ME "IPv6 host config data" are currently missing in omci-lib-go!
+}
+
+var omccVersionSupportsExtendedOmciFormat = map[uint8]bool{
+	0x80: false,
+	0x81: false,
+	0x82: false,
+	0x83: false,
+	0x84: false,
+	0x85: false,
+	0x86: false,
+	0xA0: false,
+	0xA1: false,
+	0xA2: false,
+	0xA3: false,
+	0x96: true,
+	0xB0: true,
+	0xB1: true,
+	0xB2: true,
+	0xB3: true,
+	0xB4: true,
 }
 
 var fsmMsg cmn.TestMessageType
@@ -99,7 +120,8 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting VendorId and SerialNumber in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.OnuG_VendorId: "", me.OnuG_SerialNumber: 0}
 	oo.mutexLastTxParamStruct.Lock()
-	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, cmn.OnugMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, cmn.OnugMeID, requestedAttributes,
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -118,11 +140,12 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
-func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting EquipmentId in State": e.FSM.Current(), "device-id": oo.deviceID})
-	requestedAttributes := me.AttributeValueMap{me.Onu2G_EquipmentId: ""}
+func (oo *OnuDeviceEntry) enterGettingEquipIDAndOmccVersState(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting EquipmentId and OMCC version in State": e.FSM.Current(), "device-id": oo.deviceID})
+	requestedAttributes := me.AttributeValueMap{me.Onu2G_EquipmentId: "", me.Onu2G_OpticalNetworkUnitManagementAndControlChannelOmccVersion: 0}
 	oo.mutexLastTxParamStruct.Lock()
-	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, cmn.Onu2gMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, cmn.Onu2gMeID, requestedAttributes,
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -141,11 +164,44 @@ func (oo *OnuDeviceEntry) enterGettingEquipmentIDState(ctx context.Context, e *f
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+func (oo *OnuDeviceEntry) enterTestingExtOmciSupportState(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start testing extended OMCI msg in State": e.FSM.Current(), "device-id": oo.deviceID})
+	omciVerify := otst.NewOmciTestRequest(log.WithSpanFromContext(context.TODO(), ctx),
+		oo.deviceID, oo.PDevOmciCC, true, true, true)
+	verifyExec := make(chan bool)
+	omciVerify.PerformOmciTest(log.WithSpanFromContext(context.TODO(), ctx), verifyExec)
+
+	// If verification of test message in extended OMCI format fails, reset ONU capability to OMCI baseline format
+	select {
+	case <-time.After(((cmn.CDefaultRetries+1)*otst.CTestRequestOmciTimeout + 1) * time.Second):
+		logger.Warnw(ctx, "testing extended OMCI msg format timed out - reset to baseline format", log.Fields{"device-id": oo.deviceID})
+		oo.MutexPersOnuConfig.Lock()
+		oo.SOnuPersistentData.PersIsExtOmciSupported = false
+		oo.MutexPersOnuConfig.Unlock()
+	case success := <-verifyExec:
+		if success {
+			logger.Debugw(ctx, "testing extended OMCI msg format succeeded", log.Fields{"device-id": oo.deviceID})
+		} else {
+			logger.Warnw(ctx, "testing extended OMCI msg format failed - reset to baseline format", log.Fields{"device-id": oo.deviceID, "result": success})
+			oo.MutexPersOnuConfig.Lock()
+			oo.SOnuPersistentData.PersIsExtOmciSupported = false
+			oo.MutexPersOnuConfig.Unlock()
+		}
+	}
+	pMibUlFsm := oo.PMibUploadFsm
+	if pMibUlFsm != nil {
+		go func(a_pAFsm *cmn.AdapterFsm) {
+			_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetFirstSwVersion)
+		}(pMibUlFsm)
+	}
+}
+
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
-	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.FirstSwImageMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.FirstSwImageMeID, requestedAttributes,
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -168,7 +224,8 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
-	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.SecondSwImageMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.SecondSwImageMeID, requestedAttributes,
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -191,7 +248,8 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting MacAddress in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.IpHostConfigData_MacAddress: ""}
 	oo.mutexLastTxParamStruct.Lock()
-	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, cmn.IPHostConfigDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, cmn.IPHostConfigDataMeID, requestedAttributes,
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -605,7 +663,8 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 						logger.Warnw(ctx, "unknown attributes detected for", log.Fields{"device-id": oo.deviceID,
 							"Me-ClassId": unknownAttrClassID, "Me-InstId": unknownAttrInst, "unknown mask": unknownAttrMask,
 							"unknown attributes": unknownAttrBlob})
-						oo.pOnuDB.PutUnknownMeOrAttrib(ctx, devdb.CUnknownAttributesManagedEntity, unknown.EntityClass, unknown.EntityInstance, unknown.AttributeMask, unknown.AttributeData)
+						oo.pOnuDB.PutUnknownMeOrAttrib(ctx, devdb.CUnknownAttributesManagedEntity, unknown.EntityClass, unknown.EntityInstance,
+							unknown.AttributeMask, unknown.AttributeData)
 					} // for all included ME's with unknown attributes
 				} else {
 					logger.Errorw(ctx, "unknownAttrLayer could not be decoded", log.Fields{"device-id": oo.deviceID})
@@ -729,7 +788,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 					return fmt.Errorf("mibSync FSM - mandatory attribute SerialNumber not present in OnuG instance - handling of MibSyncChan stopped: %s", oo.deviceID)
 				}
 				// trigger retrieval of EquipmentId
-				_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetEquipmentID)
+				_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetEquipIDAndOmcc)
 				return nil
 			case "Onu2G":
 				oo.mutexLastTxParamStruct.RUnlock()
@@ -750,6 +809,34 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 					"onuDeviceEntry.equipmentID": oo.SOnuPersistentData.PersEquipmentID})
 				oo.MutexPersOnuConfig.Unlock()
 
+				var omccVersion uint8
+				if onu2GOmccVersion, ok := meAttributes[me.Onu2G_OpticalNetworkUnitManagementAndControlChannelOmccVersion]; ok {
+					oo.MutexPersOnuConfig.Lock()
+					omccVersion = onu2GOmccVersion.(uint8)
+					if _, ok := omccVersionSupportsExtendedOmciFormat[omccVersion]; ok {
+						oo.SOnuPersistentData.PersIsExtOmciSupported = omccVersionSupportsExtendedOmciFormat[omccVersion]
+					} else {
+						logger.Infow(ctx, "MibSync FSM - unknown OMCC version in Onu2G instance - disable extended OMCI support",
+							log.Fields{"device-id": oo.deviceID})
+						oo.SOnuPersistentData.PersIsExtOmciSupported = false
+					}
+					logger.Debugw(ctx, "MibSync FSM - GetResponse Data for Onu2-G - OMCC version", log.Fields{"device-id": oo.deviceID,
+						"omccVersion": omccVersion, "isExtOmciSupported": oo.SOnuPersistentData.PersIsExtOmciSupported})
+					oo.MutexPersOnuConfig.Unlock()
+				} else {
+					logger.Errorw(ctx, "MibSync FSM - mandatory attribute OMCC version not present in Onu2G instance - handling of MibSyncChan stopped!",
+						log.Fields{"device-id": oo.deviceID})
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
+					return fmt.Errorf("mibSync FSM - mandatory attribute OMCC version not present in Onu2G instance - handling of MibSyncChan stopped: %s", oo.deviceID)
+				}
+				oo.MutexPersOnuConfig.RLock()
+				if oo.SOnuPersistentData.PersIsExtOmciSupported {
+					oo.MutexPersOnuConfig.RUnlock()
+					// trigger test of OMCI extended msg format
+					_ = oo.PMibUploadFsm.PFsm.Event(UlEvTestExtOmciSupport)
+					return nil
+				}
+				oo.MutexPersOnuConfig.RUnlock()
 				// trigger retrieval of 1st SW-image info
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetFirstSwVersion)
 				return nil

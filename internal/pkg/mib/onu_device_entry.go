@@ -48,7 +48,8 @@ const (
 	UlEvStart              = "UlEvStart"
 	UlEvResetMib           = "UlEvResetMib"
 	UlEvGetVendorAndSerial = "UlEvGetVendorAndSerial"
-	UlEvGetEquipmentID     = "UlEvGetEquipmentId"
+	UlEvGetEquipIDAndOmcc  = "UlEvGetEquipIDAndOmcc"
+	UlEvTestExtOmciSupport = "UlEvTestExtOmciSupport"
 	UlEvGetFirstSwVersion  = "UlEvGetFirstSwVersion"
 	UlEvGetSecondSwVersion = "UlEvGetSecondSwVersion"
 	UlEvGetMacAddress      = "UlEvGetMacAddress"
@@ -71,7 +72,8 @@ const (
 	UlStStarting               = "UlStStarting"
 	UlStResettingMib           = "UlStResettingMib"
 	UlStGettingVendorAndSerial = "UlStGettingVendorAndSerial"
-	UlStGettingEquipmentID     = "UlStGettingEquipmentID"
+	UlStGettingEquipIDAndOmcc  = "UlStGettingEquipIDAndOmcc"
+	UlStTestingExtOmciSupport  = "UlStTestingExtOmciSupport"
 	UlStGettingFirstSwVersion  = "UlStGettingFirstSwVersion"
 	UlStGettingSecondSwVersion = "UlStGettingSecondSwVersion"
 	UlStGettingMacAddress      = "UlStGettingMacAddress"
@@ -143,6 +145,7 @@ type onuPersistentData struct {
 	PersMacAddress         string            `json:"mac_address"`
 	PersVendorID           string            `json:"vendor_id"`
 	PersEquipmentID        string            `json:"equipment_id"`
+	PersIsExtOmciSupported bool              `json:"is_ext_omci_supported"`
 	PersActiveSwVersion    string            `json:"active_sw_version"`
 	PersAdminState         string            `json:"admin_state"`
 	PersOperState          string            `json:"oper_state"`
@@ -292,8 +295,9 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 
 			{Name: UlEvResetMib, Src: []string{UlStStarting}, Dst: UlStResettingMib},
 			{Name: UlEvGetVendorAndSerial, Src: []string{UlStResettingMib}, Dst: UlStGettingVendorAndSerial},
-			{Name: UlEvGetEquipmentID, Src: []string{UlStGettingVendorAndSerial}, Dst: UlStGettingEquipmentID},
-			{Name: UlEvGetFirstSwVersion, Src: []string{UlStGettingEquipmentID}, Dst: UlStGettingFirstSwVersion},
+			{Name: UlEvGetEquipIDAndOmcc, Src: []string{UlStGettingVendorAndSerial}, Dst: UlStGettingEquipIDAndOmcc},
+			{Name: UlEvTestExtOmciSupport, Src: []string{UlStGettingEquipIDAndOmcc}, Dst: UlStTestingExtOmciSupport},
+			{Name: UlEvGetFirstSwVersion, Src: []string{UlStGettingEquipIDAndOmcc, UlStTestingExtOmciSupport}, Dst: UlStGettingFirstSwVersion},
 			{Name: UlEvGetSecondSwVersion, Src: []string{UlStGettingFirstSwVersion}, Dst: UlStGettingSecondSwVersion},
 			{Name: UlEvGetMacAddress, Src: []string{UlStGettingSecondSwVersion}, Dst: UlStGettingMacAddress},
 			{Name: UlEvGetMibTemplate, Src: []string{UlStGettingMacAddress}, Dst: UlStGettingMibTemplate},
@@ -333,13 +337,13 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 			{Name: UlEvSuccess, Src: []string{UlStResynchronizing}, Dst: UlStInSync},
 			{Name: UlEvDiffsFound, Src: []string{UlStResynchronizing}, Dst: UlStOutOfSync},
 
-			{Name: UlEvTimeout, Src: []string{UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingEquipmentID, UlStGettingFirstSwVersion,
-				UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing, UlStVerifyingAndStoringTPs,
-				UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStStarting},
+			{Name: UlEvTimeout, Src: []string{UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingEquipIDAndOmcc, UlStTestingExtOmciSupport,
+				UlStGettingFirstSwVersion, UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing,
+				UlStVerifyingAndStoringTPs, UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStStarting},
 
-			{Name: UlEvStop, Src: []string{UlStStarting, UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingEquipmentID, UlStGettingFirstSwVersion,
-				UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing, UlStVerifyingAndStoringTPs,
-				UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStDisabled},
+			{Name: UlEvStop, Src: []string{UlStStarting, UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingEquipIDAndOmcc, UlStTestingExtOmciSupport,
+				UlStGettingFirstSwVersion, UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing,
+				UlStVerifyingAndStoringTPs, UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStDisabled},
 		},
 
 		fsm.Callbacks{
@@ -347,7 +351,8 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 			"enter_" + UlStStarting:               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(ctx, e) },
 			"enter_" + UlStResettingMib:           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(ctx, e) },
 			"enter_" + UlStGettingVendorAndSerial: func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(ctx, e) },
-			"enter_" + UlStGettingEquipmentID:     func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipmentIDState(ctx, e) },
+			"enter_" + UlStGettingEquipIDAndOmcc:  func(e *fsm.Event) { onuDeviceEntry.enterGettingEquipIDAndOmccVersState(ctx, e) },
+			"enter_" + UlStTestingExtOmciSupport:  func(e *fsm.Event) { onuDeviceEntry.enterTestingExtOmciSupportState(ctx, e) },
 			"enter_" + UlStGettingFirstSwVersion:  func(e *fsm.Event) { onuDeviceEntry.enterGettingFirstSwVersionState(ctx, e) },
 			"enter_" + UlStGettingSecondSwVersion: func(e *fsm.Event) { onuDeviceEntry.enterGettingSecondSwVersionState(ctx, e) },
 			"enter_" + UlStGettingMacAddress:      func(e *fsm.Event) { onuDeviceEntry.enterGettingMacAddressState(ctx, e) },
@@ -533,7 +538,7 @@ func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
 	oo.mutexOnuKVStore.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.mutexOnuKVStore.RUnlock()
@@ -588,7 +593,7 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 
 	oo.SOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.mutexOnuKVStore.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
