@@ -53,6 +53,7 @@ const connectivityModeValue = uint8(5)
 // UnusedTcontAllocID - TODO: add comment
 const UnusedTcontAllocID = uint16(0xFFFF) //common unused AllocId for G.984 and G.987 systems
 
+const cOmciDeviceIdentifierPos = 3
 const cOmciBaseMessageTrailerLen = 40
 
 // tOmciReceiveError - enum type for detected problems/errors in the received OMCI message (format)
@@ -282,41 +283,57 @@ func (oo *OmciCC) printRxMessage(ctx context.Context, rxMsg []byte) {
 
 // ReceiveMessage - Rx handler for onu messages
 //    e.g. would call ReceiveOnuMessage() in case of TID=0 or Action=test ...
+// nolint: gocyclo
 func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	//logger.Debugw(ctx,"cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
-	if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
-		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
-		//  (an extendedFormat message could be destroyed this way!)
-		trailerLenData := rxMsg[42:44]
-		trailerLen := binary.BigEndian.Uint16(trailerLenData)
-		//logger.Debugw(ctx,"omci-received-trailer-len", log.Fields{"Length": trailerLen})
-		if trailerLen != cOmciBaseMessageTrailerLen { // invalid base Format entry -> autocorrect
-			binary.BigEndian.PutUint16(rxMsg[42:44], cOmciBaseMessageTrailerLen)
-			if oo.rxOmciFrameError != cOmciMessageReceiveErrorTrailerLen {
-				//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
-				logger.Errorw(ctx, "wrong omci-message trailer length: trailer len auto-corrected",
-					log.Fields{"trailer-length": trailerLen, "device-id": oo.deviceID})
-				oo.rxOmciFrameError = cOmciMessageReceiveErrorTrailerLen
+
+	if rxMsg[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+		if len(rxMsg) >= 44 { // then it should normally include the BaseFormat trailer Len
+			// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
+			//  (an extendedFormat message could be destroyed this way!)
+			trailerLenData := rxMsg[42:44]
+			trailerLen := binary.BigEndian.Uint16(trailerLenData)
+			//logger.Debugw(ctx,"omci-received-trailer-len", log.Fields{"Length": trailerLen})
+			if trailerLen != cOmciBaseMessageTrailerLen { // invalid base Format entry -> autocorrect
+				binary.BigEndian.PutUint16(rxMsg[42:44], cOmciBaseMessageTrailerLen)
+				if oo.rxOmciFrameError != cOmciMessageReceiveErrorTrailerLen {
+					//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
+					logger.Errorw(ctx, "wrong omci-message trailer length: trailer len auto-corrected",
+						log.Fields{"trailer-length": trailerLen, "device-id": oo.deviceID})
+					oo.rxOmciFrameError = cOmciMessageReceiveErrorTrailerLen
+				}
 			}
+		} else if len(rxMsg) >= cOmciBaseMessageTrailerLen { // workaround for Adtran OLT Sim, which currently does not send trailer bytes at all!
+			// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
+			//  (an extendedFormat message could be destroyed this way!)
+			// extend/overwrite with trailer
+			trailer := make([]byte, 8)
+			binary.BigEndian.PutUint16(trailer[2:], cOmciBaseMessageTrailerLen) //set the defined baseline length
+			rxMsg = append(rxMsg[:cOmciBaseMessageTrailerLen], trailer...)
+			if oo.rxOmciFrameError != cOmciMessageReceiveErrorMissTrailer {
+				//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
+				logger.Errorw(ctx, "omci-message to short to include trailer len: trailer auto-corrected (added)",
+					log.Fields{"message-length": len(rxMsg), "device-id": oo.deviceID})
+				oo.rxOmciFrameError = cOmciMessageReceiveErrorMissTrailer
+			}
+		} else {
+			logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort",
+				log.Fields{"Length": len(rxMsg), "device-id": oo.deviceID})
+			oo.printRxMessage(ctx, rxMsg)
+			return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
 		}
-	} else if len(rxMsg) >= cOmciBaseMessageTrailerLen { // workaround for Adtran OLT Sim, which currently does not send trailer bytes at all!
-		// NOTE: autocorrection only valid for OmciBaseFormat, which is not specifically verified here!!!
-		//  (an extendedFormat message could be destroyed this way!)
-		// extend/overwrite with trailer
-		trailer := make([]byte, 8)
-		binary.BigEndian.PutUint16(trailer[2:], cOmciBaseMessageTrailerLen) //set the defined baseline length
-		rxMsg = append(rxMsg[:cOmciBaseMessageTrailerLen], trailer...)
-		if oo.rxOmciFrameError != cOmciMessageReceiveErrorMissTrailer {
-			//do just one error log, expectation is: if seen once it should appear regularly - avoid to many log entries
-			logger.Errorw(ctx, "omci-message to short to include trailer len: trailer auto-corrected (added)",
-				log.Fields{"message-length": len(rxMsg), "device-id": oo.deviceID})
-			oo.rxOmciFrameError = cOmciMessageReceiveErrorMissTrailer
+	} else if rxMsg[cOmciDeviceIdentifierPos] == byte(omci.ExtendedIdent) {
+		if len(rxMsg) < 10 || len(rxMsg) > 1980 {
+			logger.Errorw(ctx, "rxOmciMessage has wrong length for OmciExtendedFormat - abort",
+				log.Fields{"Length": len(rxMsg), "device-id": oo.deviceID})
+			oo.printRxMessage(ctx, rxMsg)
+			return fmt.Errorf("rxOmciMessage has wrong length for OmciExtendedFormat %s", oo.deviceID)
 		}
 	} else {
-		logger.Errorw(ctx, "received omci-message too small for OmciBaseFormat - abort",
+		logger.Errorw(ctx, "rxOmciMessage has wrong Device Identifier - abort",
 			log.Fields{"Length": len(rxMsg), "device-id": oo.deviceID})
 		oo.printRxMessage(ctx, rxMsg)
-		return fmt.Errorf("rxOmciMessage too small for BaseFormat %s", oo.deviceID)
+		return fmt.Errorf("rxOmciMessage has wrong Device Identifier %s", oo.deviceID)
 	}
 	decodeOptions := gopacket.DecodeOptions{
 		Lazy:   true,
@@ -530,7 +547,7 @@ func (oo *OmciCC) Send(ctx context.Context, txFrame []byte, timeout int, retry i
 	receiveCallbackPair CallbackPair) error {
 
 	if timeout != 0 {
-		logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TansCorrId": receiveCallbackPair.CbKey})
+		logger.Debugw(ctx, "register-response-callback:", log.Fields{"for TransCorrId": receiveCallbackPair.CbKey})
 		oo.mutexRxSchedMap.Lock()
 		// it could be checked, if the callback key is already registered - but simply overwrite may be acceptable ...
 		oo.rxSchedulerMap[receiveCallbackPair.CbKey] = receiveCallbackPair.CbEntry
@@ -587,6 +604,11 @@ func (oo *OmciCC) sendQueuedHighPrioRequests(ctx context.Context) error {
 	for oo.highPrioTxQueue.Len() > 0 {
 		queueElement := oo.highPrioTxQueue.Front() // First element
 		if err := oo.sendOMCIRequest(ctx, queueElement.Value.(OmciTransferStructure)); err != nil {
+			// Element will be removed from the queue regardless of the send success, to prevent
+			// an accumulation of send requests for the same message in the event of an error.
+			// In this case, resend attempts for the message are ensured by our retry
+			// mechanism after omci-timeout.
+			oo.highPrioTxQueue.Remove(queueElement) // Dequeue
 			return err
 		}
 		oo.highPrioTxQueue.Remove(queueElement) // Dequeue
@@ -602,12 +624,22 @@ func (oo *OmciCC) sendQueuedLowPrioRequests(ctx context.Context) error {
 		aOmciTxReq := queueElement.Value.(OmciTransferStructure)
 		if aOmciTxReq.OnuSwWindow != nil {
 			if err := oo.sendOnuSwSectionsOfWindow(ctx, aOmciTxReq); err != nil {
+				// Element will be removed from the queue regardless of the send success, to prevent
+				// an accumulation of send requests for the same message in the event of an error.
+				// In this case, resend attempts for the message are ensured by our retry
+				// mechanism after omci-timeout.
+				oo.lowPrioTxQueue.Remove(queueElement) // Dequeue
 				oo.mutexLowPrioTxQueue.Unlock()
 				return err
 			}
 		} else {
 			err := oo.sendOMCIRequest(ctx, queueElement.Value.(OmciTransferStructure))
 			if err != nil {
+				// Element will be removed from the queue regardless of the send success, to prevent
+				// an accumulation of send requests for the same message in the event of an error.
+				// In this case, resend attempts for the message are ensured by our retry
+				// mechanism after omci-timeout.
+				oo.lowPrioTxQueue.Remove(queueElement) // Dequeue
 				oo.mutexLowPrioTxQueue.Unlock()
 				return err
 			}
@@ -712,10 +744,11 @@ func Serialize(ctx context.Context, msgType omci.MessageType, request gopacket.S
 		TransactionID: tid,
 		MessageType:   msgType,
 	}
-	return serializeOmciLayer(ctx, omciLayer, request)
+	return SerializeOmciLayer(ctx, omciLayer, request)
 }
 
-func serializeOmciLayer(ctx context.Context, aOmciLayer *omci.OMCI, aRequest gopacket.SerializableLayer) ([]byte, error) {
+// SerializeOmciLayer - TODO: add comment
+func SerializeOmciLayer(ctx context.Context, aOmciLayer *omci.OMCI, aRequest gopacket.SerializableLayer) ([]byte, error) {
 	var options gopacket.SerializeOptions
 	options.FixLengths = true
 
@@ -960,7 +993,7 @@ func (oo *OmciCC) SendCreateGalEthernetProfile(ctx context.Context, timeout int,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize GalEnetProfile create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1009,7 +1042,7 @@ func (oo *OmciCC) SendSetOnu2g(ctx context.Context, timeout int, highPrio bool) 
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize ONU2-G set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1064,7 +1097,7 @@ func (oo *OmciCC) SendCreateMBServiceProfile(ctx context.Context,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MBSP create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1122,7 +1155,7 @@ func (oo *OmciCC) SendCreateMBPConfigDataUniSide(ctx context.Context,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MBPCD create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1182,7 +1215,7 @@ func (oo *OmciCC) SendCreateEVTOConfigData(ctx context.Context,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize EVTOCD create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1228,7 +1261,7 @@ func (oo *OmciCC) SendSetOnuGLS(ctx context.Context, timeout int,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize ONU-G set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1274,7 +1307,7 @@ func (oo *OmciCC) SendSetPptpEthUniLS(ctx context.Context, aInstNo uint16, timeo
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize PPTPEthUni-Set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1368,7 +1401,7 @@ func (oo *OmciCC) SendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VEIP-Set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1413,7 +1446,7 @@ func (oo *OmciCC) SendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 			logger.Errorf(ctx, "Cannot encode instance for get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil, err
 		}
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -1501,7 +1534,7 @@ func (oo *OmciCC) SendCreateDot1PMapper(ctx context.Context, timeout int, highPr
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize .1pMapper create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1545,7 +1578,7 @@ func (oo *OmciCC) SendCreateMBPConfigDataVar(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MBPCD create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1589,7 +1622,7 @@ func (oo *OmciCC) SendCreateGemNCTPVar(ctx context.Context, timeout int, highPri
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize GemNCTP create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1632,7 +1665,7 @@ func (oo *OmciCC) SendSetGemNCTPVar(ctx context.Context, timeout int, highPrio b
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize GemNCTP set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1676,7 +1709,7 @@ func (oo *OmciCC) SendCreateGemIWTPVar(ctx context.Context, timeout int, highPri
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize GemIwTp create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1718,7 +1751,7 @@ func (oo *OmciCC) SendSetTcontVar(ctx context.Context, timeout int, highPrio boo
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TCont set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1760,7 +1793,7 @@ func (oo *OmciCC) SendSetPrioQueueVar(ctx context.Context, timeout int, highPrio
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize PrioQueue set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1802,7 +1835,7 @@ func (oo *OmciCC) SendSetDot1PMapperVar(ctx context.Context, timeout int, highPr
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize 1PMapper set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1849,7 +1882,7 @@ func (oo *OmciCC) SendCreateVtfdVar(ctx context.Context, timeout int, highPrio b
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VTFD create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1895,7 +1928,7 @@ func (oo *OmciCC) sendSetVtfdVar(ctx context.Context, timeout int, highPrio bool
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VTFD set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1939,7 +1972,7 @@ func (oo *OmciCC) SendCreateEvtocdVar(ctx context.Context, timeout int, highPrio
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize EVTOCD create", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -1981,7 +2014,7 @@ func (oo *OmciCC) SendSetEvtocdVar(ctx context.Context, timeout int, highPrio bo
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize EVTOCD set", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2023,7 +2056,7 @@ func (oo *OmciCC) SendDeleteEvtocd(ctx context.Context, timeout int, highPrio bo
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize EVTOCD delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2070,7 +2103,7 @@ func (oo *OmciCC) SendDeleteVtfd(ctx context.Context, timeout int, highPrio bool
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VTFD delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2108,7 +2141,7 @@ func (oo *OmciCC) SendCreateTDVar(ctx context.Context, timeout int, highPrio boo
 			logger.Errorw(ctx, "Cannot encode TD for create", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
 		}
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TD create", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2144,7 +2177,7 @@ func (oo *OmciCC) sendSetTDVar(ctx context.Context, timeout int, highPrio bool,
 			logger.Errorw(ctx, "Cannot encode TD for set", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
 		}
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TD set", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2182,7 +2215,7 @@ func (oo *OmciCC) SendDeleteTD(ctx context.Context, timeout int, highPrio bool,
 			logger.Errorw(ctx, "Cannot encode TD for delete", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
 		}
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TD delete", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2226,7 +2259,7 @@ func (oo *OmciCC) SendDeleteGemIWTP(ctx context.Context, timeout int, highPrio b
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize GemIwTp delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2273,7 +2306,7 @@ func (oo *OmciCC) SendDeleteGemNCTP(ctx context.Context, timeout int, highPrio b
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize GemNCtp delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2320,7 +2353,7 @@ func (oo *OmciCC) SendDeleteDot1PMapper(ctx context.Context, timeout int, highPr
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize .1pMapper delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2367,7 +2400,7 @@ func (oo *OmciCC) SendDeleteMBPConfigData(ctx context.Context, timeout int, high
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MBPCD delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2409,7 +2442,7 @@ func (oo *OmciCC) SendCreateMulticastGemIWTPVar(ctx context.Context, timeout int
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MulticastGEMIWTP create", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2448,7 +2481,7 @@ func (oo *OmciCC) SendSetMulticastGemIWTPVar(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MulticastGEMIWTP create", log.Fields{"Err": err, "device-id": oo.deviceID})
 			return nil, err
@@ -2488,7 +2521,7 @@ func (oo *OmciCC) SendCreateMulticastOperationProfileVar(ctx context.Context, ti
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MulticastOperationProfile create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2530,7 +2563,7 @@ func (oo *OmciCC) SendSetMulticastOperationProfileVar(ctx context.Context, timeo
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MulticastOperationProfile create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2572,7 +2605,7 @@ func (oo *OmciCC) SendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize MulticastSubConfigInfo create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2614,7 +2647,7 @@ func (oo *OmciCC) SendCreateVoipVoiceCTP(ctx context.Context, timeout int, highP
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipVoiceCTP create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2656,7 +2689,7 @@ func (oo *OmciCC) SendSetVoipVoiceCTP(ctx context.Context, timeout int, highPrio
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipVoiceCTP set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2702,7 +2735,7 @@ func (oo *OmciCC) SendDeleteVoipVoiceCTP(ctx context.Context, timeout int, highP
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipVoiceCTP delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2745,7 +2778,7 @@ func (oo *OmciCC) SendCreateVoipMediaProfile(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipMediaProfile create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2787,7 +2820,7 @@ func (oo *OmciCC) SendSetVoipMediaProfile(ctx context.Context, timeout int, high
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipMediaProfile set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2830,7 +2863,7 @@ func (oo *OmciCC) SendDeleteVoipMediaProfile(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipMediaProfile delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -2873,7 +2906,7 @@ func (oo *OmciCC) SendCreateVoiceServiceProfile(ctx context.Context, timeout int
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoiceServiceProfile create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2915,7 +2948,7 @@ func (oo *OmciCC) SendSetVoiceServiceProfile(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoiceServiceProfile set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -2958,7 +2991,7 @@ func (oo *OmciCC) SendDeleteVoiceServiceProfile(ctx context.Context, timeout int
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoiceServiceProfile delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3001,7 +3034,7 @@ func (oo *OmciCC) SendCreateSIPUserData(ctx context.Context, timeout int, highPr
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPUserData create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3043,7 +3076,7 @@ func (oo *OmciCC) SendSetSIPUserData(ctx context.Context, timeout int, highPrio 
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPUserData set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3086,7 +3119,7 @@ func (oo *OmciCC) SendDeleteSIPUserData(ctx context.Context, timeout int, highPr
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPUserData delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3129,7 +3162,7 @@ func (oo *OmciCC) SendCreateVoipApplicationServiceProfile(ctx context.Context, t
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipApplicationServiceProfile create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3171,7 +3204,7 @@ func (oo *OmciCC) SendSetVoipApplicationServiceProfile(ctx context.Context, time
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize VoipApplicationServiceProfile set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3214,7 +3247,7 @@ func (oo *OmciCC) SendDeleteVoipApplicationServiceProfile(ctx context.Context, t
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPVoipApplicationServiceProfile delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3257,7 +3290,7 @@ func (oo *OmciCC) SendCreateSIPAgentConfigData(ctx context.Context, timeout int,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPAgentConfigData create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3299,7 +3332,7 @@ func (oo *OmciCC) SendSetSIPAgentConfigData(ctx context.Context, timeout int, hi
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPAgentConfigData set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3342,7 +3375,7 @@ func (oo *OmciCC) SendDeleteSIPAgentConfigData(ctx context.Context, timeout int,
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize SIPAgentConfigData delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3385,7 +3418,7 @@ func (oo *OmciCC) SendCreateTCPUDPConfigData(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TCPUDPConfigData create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3427,7 +3460,7 @@ func (oo *OmciCC) SendSetTCPUDPConfigData(ctx context.Context, timeout int, high
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TCPUDPConfigData set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3470,7 +3503,7 @@ func (oo *OmciCC) SendDeleteTCPUDPConfigData(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize TCPUDPConfigData delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3513,7 +3546,7 @@ func (oo *OmciCC) SendCreateIPHostConfigData(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize IPHostConfigData create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3555,7 +3588,7 @@ func (oo *OmciCC) SendSetIPHostConfigData(ctx context.Context, timeout int, high
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize IPHostConfigData set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3598,7 +3631,7 @@ func (oo *OmciCC) SendDeleteIPHostConfigData(ctx context.Context, timeout int, h
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize IPHostConfigData delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3641,7 +3674,7 @@ func (oo *OmciCC) SendCreateRTPProfileData(ctx context.Context, timeout int, hig
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize RTPProfileData create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3683,7 +3716,7 @@ func (oo *OmciCC) SendSetRTPProfileData(ctx context.Context, timeout int, highPr
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize RTPProfileData set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3726,7 +3759,7 @@ func (oo *OmciCC) SendDeleteRTPProfileData(ctx context.Context, timeout int, hig
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize RTPProfileData delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3769,7 +3802,7 @@ func (oo *OmciCC) SendCreateNetworkDialPlanTable(ctx context.Context, timeout in
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable create", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3811,7 +3844,7 @@ func (oo *OmciCC) SendSetNetworkDialPlanTable(ctx context.Context, timeout int, 
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable set", log.Fields{"Err": err,
 				"device-id": oo.deviceID})
@@ -3854,7 +3887,7 @@ func (oo *OmciCC) SendDeleteNetworkDialPlanTable(ctx context.Context, timeout in
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize NetworkDialPlanTable delete", log.Fields{
 				"Err": err, "device-id": oo.deviceID})
@@ -3905,7 +3938,7 @@ func (oo *OmciCC) SendSyncTime(ctx context.Context, timeout int, highPrio bool, 
 		Second: uint8(utcTime.Second()),
 	}
 
-	pkt, err := serializeOmciLayer(ctx, omciLayer, request)
+	pkt, err := SerializeOmciLayer(ctx, omciLayer, request)
 	if err != nil {
 		logger.Errorw(ctx, "Cannot serialize synchronize time request", log.Fields{"Err": err,
 			"device-id": oo.deviceID})
@@ -3956,7 +3989,7 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetPerformanceMonitoringHistoryME(ctx c
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize ethernet frame performance monitoring history data ME",
 				log.Fields{"Err": err, "device-id": oo.deviceID, "upstream": upstream, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
@@ -4009,7 +4042,7 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetUniHistoryME(ctx context.Context, ti
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize ethernet uni history data ME",
 				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
@@ -4062,7 +4095,7 @@ func (oo *OmciCC) SendCreateOrDeleteFecHistoryME(ctx context.Context, timeout in
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize fec history data ME",
 				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
@@ -4115,7 +4148,7 @@ func (oo *OmciCC) SendCreateOrDeleteGemPortHistoryME(ctx context.Context, timeou
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "Cannot serialize gemport history data ME",
 				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
@@ -4847,7 +4880,7 @@ func (oo *OmciCC) SendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Contex
 			return nil, err
 		}
 
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "cannot-serialize-ethernet-frame-extended-pm-me",
 				log.Fields{"err": err, "device-id": oo.deviceID, "upstream": upstream, "create": create, "inst-id": strconv.FormatInt(int64(entityID), 16)})
@@ -4918,7 +4951,7 @@ func (oo *OmciCC) SendSetEthernetFrameExtendedPMME(ctx context.Context, timeout 
 				log.Fields{"err": err, "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
 			return nil, err
 		}
-		pkt, err := serializeOmciLayer(ctx, omciLayer, msgLayer)
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
 		if err != nil {
 			logger.Errorw(ctx, "cannot-serialize-ethernet-frame-extended-pm-me-set-msg",
 				log.Fields{"err": err, "device-id": oo.deviceID, "inst-id": strconv.FormatInt(int64(entityID), 16)})
