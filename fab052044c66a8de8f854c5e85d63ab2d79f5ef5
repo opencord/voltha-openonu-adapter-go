@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6b66213b_c08b2ea3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-04-07T13:46:47Z",
+      "side": 1,
+      "message": "Due to the i/f change, an increase in VERSION would be required.",
+      "revId": "fab052044c66a8de8f854c5e85d63ab2d79f5ef5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
