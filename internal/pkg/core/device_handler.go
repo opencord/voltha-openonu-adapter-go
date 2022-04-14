@@ -4548,6 +4548,12 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 	}
 	if dh.pOnuMetricsMgr != nil {
 		dh.pOnuMetricsMgr.PrepareForGarbageCollection(ctx, aDeviceID)
+		select {
+		case <-dh.pOnuMetricsMgr.GarbageCollectionComplete:
+			logger.Debugw(ctx, "pm fsm shut down and garbage collection complete", log.Fields{"deviceID": aDeviceID})
+		case <-time.After(pmmgr.MaxTimeForPmFsmShutDown * time.Second):
+			logger.Errorw(ctx, "fsm did not shut down in time", log.Fields{"deviceID": aDeviceID})
+		}
 	}
 	if dh.pAlarmMgr != nil {
 		dh.pAlarmMgr.PrepareForGarbageCollection(ctx, aDeviceID)
