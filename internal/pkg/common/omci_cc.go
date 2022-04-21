@@ -44,7 +44,7 @@ import (
 
 // ### OMCI related definitions - retrieved from Python adapter code/trace ####
 
-const maxGemPayloadSize = uint16(48)
+const maxGemPayloadSize = uint16(2048)
 const connectivityModeValue = uint8(5)
 
 //const defaultTPID = uint16(0x8100)
