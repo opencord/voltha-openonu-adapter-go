@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time" //by now for testing
 
@@ -4690,8 +4691,18 @@ func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciM
 	} else if failure := (*packet).ErrorLayer(); failure != nil {
 		// message layer could not be decoded, but at least check if additional failure information is available
 		if decodeFailure, ok := failure.(*gopacket.DecodeFailure); ok && decodeFailure != nil {
+			errMsg := decodeFailure.String()
+			if nextLayer == omci.LayerTypeMibUploadNextResponse {
+				if strings.Contains(strings.ToLower(errMsg), "table decode") {
+					// In the case of MibUploadNextResponse with non-standard table attributes, we let the packet pass
+					// so that later processing can deal with it
+					logger.Infow(ctx, "omci-message: MibUploadNextResponse packet with table attributes - let it pass",
+						log.Fields{"device-id": oo.deviceID, "error": failure.Error()})
+					return false, nil
+				}
+			}
 			logger.Errorw(ctx, "omci-message: could not decode msgLayer of packet, further info available - skip it!",
-				log.Fields{"device-id": oo.deviceID, "error": failure.Error(), "decodeFailure": decodeFailure.String()})
+				log.Fields{"device-id": oo.deviceID, "error": failure.Error(), "decodeFailure": errMsg})
 			return false, fmt.Errorf("could not decode msgLayer of packet, further info available - %s", oo.deviceID)
 		}
 		logger.Errorw(ctx, "omci-message: could not decode msgLayer of packet, ErrorLayer available",
