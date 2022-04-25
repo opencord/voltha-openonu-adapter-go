@@ -4114,8 +4114,16 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 	// Note: This function must be called as a goroutine to prevent blocking of further processing!
 	// first let the objects rest for some time to give all asynchronously started
 	// cleanup routines a chance to come to an end
-	time.Sleep(5 * time.Second)
-
+	time.Sleep(2 * time.Second)
+	if dh.pOnuOmciDevice != nil {
+		if dh.pOnuOmciDevice.PDevOmciCC != nil {
+			// Since we cannot rule out that one of the handlers had initiated any OMCI configurations during its
+			// reset handling (even in future coding), request monitoring is canceled here one last time to
+			// be sure that all corresponding go routines are terminated
+			dh.pOnuOmciDevice.PDevOmciCC.CancelRequestMonitoring(ctx)
+		}
+	}
+	time.Sleep(10 * time.Second)
 	if dh.pOnuTP != nil {
 		dh.pOnuTP.PrepareForGarbageCollection(ctx, aDeviceID)
 	}
