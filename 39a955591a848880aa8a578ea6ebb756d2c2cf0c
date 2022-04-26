@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c22572dc_f04888c6",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4126,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-04-26T08:20:32Z",
+      "side": 1,
+      "message": "this is a total of 12 seconds of sleep per ONU. what happens if the ONU comes back in those 12 seconds ?",
+      "revId": "39a955591a848880aa8a578ea6ebb756d2c2cf0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
