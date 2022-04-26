@@ -34,6 +34,24 @@
       "parentUuid": "c22572dc_f04888c6",
       "revId": "39a955591a848880aa8a578ea6ebb756d2c2cf0c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "16052b27_a6ba555a",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4126,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-04-26T09:04:55Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6a0653f6_a3e5234d",
+      "revId": "39a955591a848880aa8a578ea6ebb756d2c2cf0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
