@@ -1031,7 +1031,7 @@ func (mm *OnuMetricsManager) publishMetrics(ctx context.Context, metricInfo []*v
 }
 
 // ProcessOmciMessages - TODO: add comment
-func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context) {
+func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context, waitForOmciProcessor *sync.WaitGroup) {
 	logger.Infow(ctx, "Start routine to process OMCI-GET messages for device-id", log.Fields{"device-id": mm.deviceID})
 	// Flush metric collection channels to be safe.
 	// It is possible that there is stale data on this channel if the ProcessOmciMessages routine
@@ -1040,6 +1040,7 @@ func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context) {
 	// is stopped - as a result of ONU going down.
 	mm.flushMetricCollectionChannels(ctx)
 	mm.updateOmciProcessingStatus(true)
+	waitForOmciProcessor.Done()
 	for {
 		select {
 		case <-mm.StopProcessingOmciResponses: // stop this routine

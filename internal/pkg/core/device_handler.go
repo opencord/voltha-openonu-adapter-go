@@ -2382,8 +2382,11 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	_ = dh.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 
 	if !dh.GetCollectorIsRunning() {
+		var waitForOmciProcessor sync.WaitGroup
+		waitForOmciProcessor.Add(1)
 		// Start PM collector routine
-		go dh.StartCollector(ctx)
+		go dh.StartCollector(ctx, &waitForOmciProcessor)
+		waitForOmciProcessor.Wait()
 	}
 	if !dh.GetAlarmManagerIsRunning(ctx) {
 		go dh.StartAlarmManager(ctx)
@@ -3702,11 +3705,11 @@ func (dh *deviceHandler) handleStandalonePmConfigUpdates(ctx context.Context, pm
 }
 
 // nolint: gocyclo
-func (dh *deviceHandler) StartCollector(ctx context.Context) {
+func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcessor *sync.WaitGroup) {
 	logger.Debugw(ctx, "startingCollector", log.Fields{"device-id": dh.device.Id})
 
 	// Start routine to process OMCI GET Responses
-	go dh.pOnuMetricsMgr.ProcessOmciMessages(ctx)
+	go dh.pOnuMetricsMgr.ProcessOmciMessages(ctx, waitForOmciProcessor)
 	// Create Extended Frame PM ME
 	go dh.pOnuMetricsMgr.CreateEthernetFrameExtendedPMME(ctx)
 	// Initialize the next metric collection time.
