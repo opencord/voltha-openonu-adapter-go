@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a55017d1_5a736b44",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-04-26T23:23:08Z",
+      "side": 1,
+      "message": "Runs #352, #354 and #355 on job https://jenkins.opencord.org/view/VOLTHA-2.X-Tests/job/periodic-voltha-multiple-olts-pm-data-test-bbsim/ are passing with the fix in this patch.",
+      "revId": "decc19e574e5b273529aa941c6549770327fa73b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
