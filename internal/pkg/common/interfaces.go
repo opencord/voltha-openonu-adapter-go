@@ -19,6 +19,7 @@ package common
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	me "github.com/opencord/omci-lib-go/v2/generated"
@@ -66,7 +67,7 @@ type IdeviceHandler interface {
 	ReasonUpdate(context.Context, uint8, bool) error
 
 	GetCollectorIsRunning() bool
-	StartCollector(context.Context)
+	StartCollector(context.Context, *sync.WaitGroup)
 	InitPmConfigs()
 	GetPmConfigs() *voltha.PmConfigs
 	GetMetricsEnabled() bool

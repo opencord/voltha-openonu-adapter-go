@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/looplab/fsm"
 
@@ -389,8 +390,11 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		oo.baseDeviceHandler.SetReadyForOmciConfig(true)
 
 		if !oo.baseDeviceHandler.GetCollectorIsRunning() {
+			var waitForOmciProcess sync.WaitGroup
+			waitForOmciProcess.Add(1)
 			// Start PM collector routine
-			go oo.baseDeviceHandler.StartCollector(ctx)
+			go oo.baseDeviceHandler.StartCollector(ctx, &waitForOmciProcess)
+			waitForOmciProcess.Wait()
 		}
 		if !oo.baseDeviceHandler.GetAlarmManagerIsRunning(ctx) {
 			go oo.baseDeviceHandler.StartAlarmManager(ctx)
