@@ -16,6 +16,24 @@
       "message": "this is a total of 12 seconds of sleep per ONU. what happens if the ONU comes back in those 12 seconds ?",
       "revId": "39a955591a848880aa8a578ea6ebb756d2c2cf0c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6a0653f6_a3e5234d",
+        "filename": "internal/pkg/onuadaptercore/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4126,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-04-26T08:57:32Z",
+      "side": 1,
+      "message": "PrepareForGarbageCollection() is started as an independent go routine for the deviceHandler of the old deviceID when an ONU device is deleted, and is completely decoupled from the new deviceHandler that is started for the returning ONU. Therefore, a longer timeout is completely uncritical here.",
+      "parentUuid": "c22572dc_f04888c6",
+      "revId": "39a955591a848880aa8a578ea6ebb756d2c2cf0c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
