@@ -33,6 +33,29 @@
       "message": "Torsten had asked me to run a test on this job https://jenkins.opencord.org/view/All%20Jobs/job/periodic-voltha-openonu-go-test-bbsim and I did on run #1056 with the changes in this patch set. Some reconcile tests failed. I need to investigate whether it is related to changes in this patch. Until then do not merge this patch. I have given a -1. But please do review the code and comment if you get a chance.",
       "revId": "decc19e574e5b273529aa941c6549770327fa73b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d7a543e5_c697905f",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 393,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-04-27T09:04:19Z",
+      "side": 1,
+      "message": "waitForOmciProcess must take a value not a pointer! This is causing a panic during reconciling with MDS value equal at ONU and adapter.",
+      "range": {
+        "startLine": 393,
+        "startChar": 3,
+        "endLine": 393,
+        "endChar": 41
+      },
+      "revId": "decc19e574e5b273529aa941c6549770327fa73b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
