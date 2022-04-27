@@ -56,6 +56,30 @@
       },
       "revId": "decc19e574e5b273529aa941c6549770327fa73b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "51d7d0bf_84acede5",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 393,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-04-27T15:36:26Z",
+      "side": 1,
+      "message": "Good catch. Fixed this in next patch.",
+      "parentUuid": "d7a543e5_c697905f",
+      "range": {
+        "startLine": 393,
+        "startChar": 3,
+        "endLine": 393,
+        "endChar": 41
+      },
+      "revId": "decc19e574e5b273529aa941c6549770327fa73b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
