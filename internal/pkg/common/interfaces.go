@@ -132,6 +132,7 @@ type IonuDeviceEntry interface {
 	GetPersSerialNumber() string
 	GetPersVendorID() string
 	GetPersEquipmentID() string
+	GetPersIsExtOmciSupported() bool
 
 	GetMibUploadFsmCommChan() chan Message
 	GetMibDownloadFsmCommChan() chan Message
