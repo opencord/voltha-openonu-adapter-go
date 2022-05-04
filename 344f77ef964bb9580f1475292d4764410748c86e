@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7849f781_77a9310c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-04T14:28:36Z",
+      "side": 1,
+      "message": "Depends on\n- https://gerrit.opencord.org/c/bbsim/+/32364\n- pending clarification with Chip regarding unknownME attributes in extended MIB upload responses\n- extension of Robot test suite ",
+      "revId": "344f77ef964bb9580f1475292d4764410748c86e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
