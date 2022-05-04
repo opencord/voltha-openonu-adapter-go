@@ -634,7 +634,6 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadResponseMessage(ctx context.Context
 
 func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Context, msg cmn.OmciMessage) {
 	msgLayer := (*msg.OmciPacket).Layer(omci.LayerTypeMibUploadNextResponse)
-
 	if msgLayer != nil {
 		msgObj, msgOk := msgLayer.(*omci.MibUploadNextResponse)
 		if !msgOk {
@@ -675,6 +674,38 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 				}
 			}
 			oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, msgObj.ReportedME.GetAttributeValueMap())
+		}
+		if msg.OmciMsg.DeviceIdentifier == omci.ExtendedIdent {
+			for _, additionalME := range msgObj.AdditionalMEs {
+				meName := additionalME.GetName()
+				meClassID := additionalME.GetClassID()
+				meEntityID := additionalME.GetEntityID()
+				attributes := additionalME.GetAttributeValueMap()
+
+				if meName == devdb.CUnknownItuG988ManagedEntity || meName == devdb.CUnknownVendorSpecificManagedEntity {
+					attribMask := additionalME.GetAttributeMask()
+					logger.Debugw(ctx, "MibUploadNextResponse AdditionalData contains unknown ME", log.Fields{"device-id": oo.deviceID,
+						"Me-Name": devdb.UnknownMeOrAttribName(meName), "Me-ClassId": meClassID, "Me-InstId": meEntityID,
+						"unknown mask": attribMask})
+
+					attribValues := make([]byte, 0)
+					for key, value := range attributes {
+						if key != cmn.CGenericManagedEntityIDName {
+							data, err := me.InterfaceToOctets(value)
+							if err != nil {
+								logger.Infow(ctx, "MibUploadNextResponse unknown ME AdditionalData attrib - could not decode", log.Fields{"device-id": oo.deviceID, "key": key})
+							} else {
+								attribValues = append(attribValues[:], data[:]...)
+								logger.Debugw(ctx, "MibUploadNextResponse unknown ME AdditionalData attrib", log.Fields{"device-id": oo.deviceID, "attribValues": attribValues, "data": data, "key": key})
+							}
+						}
+					}
+					oo.pOnuDB.PutUnknownMeOrAttrib(ctx, devdb.UnknownMeOrAttribName(meName), meClassID, meEntityID, attribMask, attribValues)
+				} else {
+					logger.Debugw(ctx, "MibUploadNextResponse AdditionalData for:", log.Fields{"device-id": oo.deviceID, "meName": meName, "meEntityID": meEntityID, "attributes": attributes})
+					oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, attributes)
+				}
+			}
 		}
 	} else {
 		logger.Errorw(ctx, "Omci Msg layer could not be detected", log.Fields{"device-id": oo.deviceID})

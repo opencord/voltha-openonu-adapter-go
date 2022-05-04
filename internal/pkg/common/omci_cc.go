@@ -880,13 +880,28 @@ func (oo *OmciCC) SendReboot(ctx context.Context, timeout int, highPrio bool, re
 // SendMibUpload sends MibUploadRequest
 func (oo *OmciCC) SendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
 	logger.Debugw(ctx, "send MibUpload-msg to:", log.Fields{"device-id": oo.deviceID})
+
+	tid := oo.GetNextTid(highPrio)
+	isExtended := oo.pOnuDeviceEntry.GetPersIsExtOmciSupported()
+
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.MibUploadRequestType,
+	}
+	if isExtended {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.MibUploadRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
+			Extended:    isExtended,
 		},
 	}
-	tid := oo.GetNextTid(highPrio)
-	pkt, err := Serialize(ctx, omci.MibUploadRequestType, request, tid)
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
 	if err != nil {
 		logger.Errorw(ctx, "Cannot serialize MibUploadRequest", log.Fields{
 			"Err": err, "device-id": oo.deviceID})
@@ -899,20 +914,35 @@ func (oo *OmciCC) SendMibUpload(ctx context.Context, timeout int, highPrio bool)
 		CbKey:   tid,
 		CbEntry: CallbackPairEntry{oo.pOnuDeviceEntry.GetMibUploadFsmCommChan(), oo.receiveOmciResponse, true},
 	}
-	return oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+	return oo.Send(ctx, buffer.Bytes(), timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
 }
 
 // SendMibUploadNext sends MibUploadNextRequest
 func (oo *OmciCC) SendMibUploadNext(ctx context.Context, timeout int, highPrio bool) error {
 	logger.Debugw(ctx, "send MibUploadNext-msg to:", log.Fields{"device-id": oo.deviceID, "UploadSequNo": oo.UploadSequNo})
+
+	tid := oo.GetNextTid(highPrio)
+	isExtended := oo.pOnuDeviceEntry.GetPersIsExtOmciSupported()
+
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.MibUploadNextRequestType,
+	}
+	if isExtended {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.MibUploadNextRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
+			Extended:    isExtended,
 		},
 		CommandSequenceNumber: oo.UploadSequNo,
 	}
-	tid := oo.GetNextTid(highPrio)
-	pkt, err := Serialize(ctx, omci.MibUploadNextRequestType, request, tid)
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
 	if err != nil {
 		logger.Errorw(ctx, "Cannot serialize MibUploadNextRequest", log.Fields{
 			"Err": err, "device-id": oo.deviceID})
@@ -927,7 +957,7 @@ func (oo *OmciCC) SendMibUploadNext(ctx context.Context, timeout int, highPrio b
 		// compare also software upgrade download section handling
 		CbEntry: CallbackPairEntry{oo.pOnuDeviceEntry.GetMibUploadFsmCommChan(), oo.receiveOmciResponse, true},
 	}
-	return oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+	return oo.Send(ctx, buffer.Bytes(), timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
 }
 
 // SendGetAllAlarm gets all alarm ME instances

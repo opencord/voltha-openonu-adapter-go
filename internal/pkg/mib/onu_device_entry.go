@@ -940,6 +940,14 @@ func (oo *OnuDeviceEntry) GetPersVendorID() string {
 	return value
 }
 
+// GetPersIsExtOmciSupported - TODO: add comment
+func (oo *OnuDeviceEntry) GetPersIsExtOmciSupported() bool {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
+	value := oo.SOnuPersistentData.PersIsExtOmciSupported
+	return value
+}
+
 // GetPersEquipmentID - TODO: add comment
 func (oo *OnuDeviceEntry) GetPersEquipmentID() string {
 	oo.MutexPersOnuConfig.RLock()
