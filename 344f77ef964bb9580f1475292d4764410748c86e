@@ -54,6 +54,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "e91a9910_76739610",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 897,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-05T08:39:37Z",
+      "side": 1,
+      "message": "That also seemed redundant to me. However, I based my implementation on Chip\u0027s existing unit test:\nhttps://github.com/opencord/omci-lib-go/blob/8cdd6399e493edd11f8a6204f6b363268f08704d/mibupload_test.go#L154",
+      "parentUuid": "0522b94a_65e33995",
+      "revId": "344f77ef964bb9580f1475292d4764410748c86e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "90e09dfb_454d8253",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 1
@@ -65,6 +83,24 @@
       "writtenOn": "2022-05-04T15:07:27Z",
       "side": 1,
       "message": "Also only question: What is the effect of this option (what would be other choices)? Perhaps you can add a comment why FixLength is set. For extended format I would not really assume \u0027fixLength\u0027.",
+      "revId": "344f77ef964bb9580f1475292d4764410748c86e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bb47b7ff_a86c114e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 901,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-05T08:39:37Z",
+      "side": 1,
+      "message": "Same reference as above.\nBut for the request, the statement with the fixed length is true. Only the length of the response is variable. In the omci-lib-go you can read the following comment about this parameter:\n\"FixLengths determines whether, during serialization, layers should fix the values for any length field that depends on the payload.\"",
+      "parentUuid": "90e09dfb_454d8253",
       "revId": "344f77ef964bb9580f1475292d4764410748c86e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
