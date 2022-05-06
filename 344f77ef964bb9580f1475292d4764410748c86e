@@ -35,6 +35,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d3528cb6_50523d77",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-06T07:55:30Z",
+      "side": 1,
+      "message": "Hi Chip, as already addressed in Slack, I need your opinion regarding the attribute retrieval for unknown MEs in case of receiving extended MIB upload responses.\n",
+      "revId": "344f77ef964bb9580f1475292d4764410748c86e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "0522b94a_65e33995",
