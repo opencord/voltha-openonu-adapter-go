@@ -3978,5 +3978,17 @@ func (mm *OnuMetricsManager) SetdeviceDeletionInProgress(deleted bool) {
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (mm *OnuMetricsManager) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
-	logger.Debugw(ctx, "prepare for garbage collection - no action, garbage collection done when PM FSM is stopped", log.Fields{"device-id": aDeviceID})
+	currState := L2PmStNull
+	if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+		currState = mm.PAdaptFsm.PFsm.Current()
+	}
+	if currState == L2PmStNull {
+		logger.Infow(ctx, "pm fsm already stopped, safe to garbage collect", log.Fields{"device-id": mm.deviceID})
+		mm.pDeviceHandler = nil
+		mm.pOnuDeviceEntry = nil
+		mm.GarbageCollectionComplete <- true
+		return
+	}
+	logger.Debugw(ctx, "prepare for garbage collection - no action, garbage collection done when PM FSM is stopped",
+		log.Fields{"device-id": aDeviceID, "curr-fsm-state": currState})
 }
