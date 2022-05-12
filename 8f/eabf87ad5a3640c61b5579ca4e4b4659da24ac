@@ -1,0 +1,8 @@
+Code-Review+1: Holger Hildebrandt <holger.hildebrandt@adtran.com>
+Code-Review+2: Andrea Campanella <andrea.campanella@intel.com>
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Submitted-by: Andrea Campanella <andrea.campanella@intel.com>
+Submitted-at: Thu, 12 May 2022 08:17:34 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/32457
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
