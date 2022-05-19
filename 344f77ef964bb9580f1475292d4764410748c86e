@@ -87,6 +87,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e7c69ec9_1d9b07f0",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 897,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-19T08:44:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e91a9910_76739610",
+      "revId": "344f77ef964bb9580f1475292d4764410748c86e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "90e09dfb_454d8253",
@@ -118,6 +136,24 @@
       "side": 1,
       "message": "Same reference as above.\nBut for the request, the statement with the fixed length is true. Only the length of the response is variable. In the omci-lib-go you can read the following comment about this parameter:\n\"FixLengths determines whether, during serialization, layers should fix the values for any length field that depends on the payload.\"",
       "parentUuid": "90e09dfb_454d8253",
+      "revId": "344f77ef964bb9580f1475292d4764410748c86e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "eaf0a3f3_25d974ee",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 901,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-19T08:44:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bb47b7ff_a86c114e",
       "revId": "344f77ef964bb9580f1475292d4764410748c86e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
