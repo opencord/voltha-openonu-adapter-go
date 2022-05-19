@@ -16,6 +16,23 @@
       "message": "recheck",
       "revId": "0edf5b0609aa8197ff131d8df4d7e816ce86d8dd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dd8db95f_c9259ec9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-05-19T10:56:25Z",
+      "side": 1,
+      "message": "Hi Chip,\nHave submitted the patch now after all. For the open issue regarding truncated attributes I have created the JIRA https://jira.opencord.org/browse/VOL-4721.\n@All: please ignore the \"WIP\" prefix in the patch description. ;-)",
+      "revId": "0edf5b0609aa8197ff131d8df4d7e816ce86d8dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
