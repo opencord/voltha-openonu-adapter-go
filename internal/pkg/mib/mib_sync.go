@@ -312,7 +312,8 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *f
 
 func (oo *OnuDeviceEntry) enterUploadingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"send MibUpload in State": e.FSM.Current(), "device-id": oo.deviceID})
-	_ = oo.PDevOmciCC.SendMibUpload(log.WithSpanFromContext(context.TODO(), ctx), oo.baseDeviceHandler.GetOmciTimeout(), true)
+	_ = oo.PDevOmciCC.SendMibUpload(log.WithSpanFromContext(context.TODO(), ctx),
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.GetPersIsExtOmciSupported())
 	//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
 	//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
 	oo.mutexLastTxParamStruct.Lock()
@@ -619,7 +620,8 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadResponseMessage(ctx context.Context
 	/* to be verified / reworked !!! */
 	oo.PDevOmciCC.UploadNoOfCmds = msgObj.NumberOfCommands
 	if oo.PDevOmciCC.UploadSequNo < oo.PDevOmciCC.UploadNoOfCmds {
-		_ = oo.PDevOmciCC.SendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx), oo.baseDeviceHandler.GetOmciTimeout(), true)
+		_ = oo.PDevOmciCC.SendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx),
+			oo.baseDeviceHandler.GetOmciTimeout(), true, oo.GetPersIsExtOmciSupported())
 		//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
 		//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
 		oo.mutexLastTxParamStruct.Lock()
@@ -723,7 +725,8 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		}
 	}
 	if oo.PDevOmciCC.UploadSequNo < oo.PDevOmciCC.UploadNoOfCmds {
-		_ = oo.PDevOmciCC.SendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx), oo.baseDeviceHandler.GetOmciTimeout(), true)
+		_ = oo.PDevOmciCC.SendMibUploadNext(log.WithSpanFromContext(context.TODO(), ctx),
+			oo.baseDeviceHandler.GetOmciTimeout(), true, oo.GetPersIsExtOmciSupported())
 		//even though lastTxParameters are currently not used for checking the ResetResponse message we have to ensure
 		//  that the lastTxMessageType is correctly set to avoid misinterpreting other responses
 		oo.mutexLastTxParamStruct.Lock()
