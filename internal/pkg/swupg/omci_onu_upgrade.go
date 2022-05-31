@@ -40,8 +40,10 @@ const cMaxUint32 = ^uint32(0)
 
 const (
 	// internal predefined values - some off them should later be configurable (perhaps with theses as defaults)
-	cOmciDownloadSectionSize     = 31 //in bytes
-	cOmciDownloadWindowSizeLimit = 31 //in sections for window offset (windowSize(32)-1)
+	cOmciDownloadSectionSizeBaseLine     = 31   //in bytes
+	cOmciDownloadWindowSizeLimitBaseLine = 31   //in sections for window offset (windowSize(32)-1)
+	cOmciDownloadSectionSizeExtLine      = 1965 //in bytes
+	cOmciDownloadWindowSizeLimitExtLine  = 7    //in sections for window offset (windowSize(8)-1)
 	//cOmciDownloadWindowRetryMax  = 2    // max attempts for a specific window
 	cOmciSectionInterleaveMilliseconds = 0  //DownloadSection interleave time in milliseconds (0 for no delay)
 	cOmciEndSwDlDelaySeconds           = 1  //End Software Download delay after last section (may be also configurable?)
@@ -188,6 +190,8 @@ type OnuUpgradeFsm struct {
 	volthaImageState                 voltha.ImageState_ImageActivationState
 	isEndSwDlOpen                    bool
 	chReceiveAbortEndSwDlResponse    chan tEndSwDlResponseResult
+	isExtendedOmci                   bool
+	omciDownloadSectionSize          int64
 }
 
 //NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -196,28 +200,36 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler,
 	apDevEntry cmn.IonuDeviceEntry, apOnuDB *devdb.OnuDeviceDB,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message) *OnuUpgradeFsm {
 	instFsm := &OnuUpgradeFsm{
-		pDeviceHandler:              apDeviceHandler,
-		deviceID:                    apDeviceHandler.GetDeviceID(),
-		pDevEntry:                   apDevEntry,
-		pOmciCC:                     apDevEntry.GetDevOmciCC(),
-		pOnuDB:                      apOnuDB,
-		requestEvent:                aRequestEvent,
-		omciDownloadWindowSizeLimit: cOmciDownloadWindowSizeLimit,
-		omciSectionInterleaveDelay:  cOmciSectionInterleaveMilliseconds,
-		downloadToOnuTimeout4MB:     apDeviceHandler.GetDlToOnuTimeout4M(),
-		waitCountEndSwDl:            cWaitCountEndSwDl,
-		waitDelayEndSwDl:            cWaitDelayEndSwDlSeconds,
-		upgradePhase:                cUpgradeUndefined,
-		volthaDownloadState:         voltha.ImageState_DOWNLOAD_UNKNOWN,
-		volthaDownloadReason:        voltha.ImageState_NO_ERROR,
-		volthaImageState:            voltha.ImageState_IMAGE_UNKNOWN,
-		abortRequested:              voltha.ImageState_NO_ERROR,
+		pDeviceHandler:             apDeviceHandler,
+		deviceID:                   apDeviceHandler.GetDeviceID(),
+		pDevEntry:                  apDevEntry,
+		pOmciCC:                    apDevEntry.GetDevOmciCC(),
+		pOnuDB:                     apOnuDB,
+		requestEvent:               aRequestEvent,
+		omciSectionInterleaveDelay: cOmciSectionInterleaveMilliseconds,
+		downloadToOnuTimeout4MB:    apDeviceHandler.GetDlToOnuTimeout4M(),
+		waitCountEndSwDl:           cWaitCountEndSwDl,
+		waitDelayEndSwDl:           cWaitDelayEndSwDlSeconds,
+		upgradePhase:               cUpgradeUndefined,
+		volthaDownloadState:        voltha.ImageState_DOWNLOAD_UNKNOWN,
+		volthaDownloadReason:       voltha.ImageState_NO_ERROR,
+		volthaImageState:           voltha.ImageState_IMAGE_UNKNOWN,
+		abortRequested:             voltha.ImageState_NO_ERROR,
 	}
 	instFsm.chReceiveExpectedResponse = make(chan bool)
 	instFsm.chAdapterDlReady = make(chan bool)
 	instFsm.chAbortDelayEndSwDl = make(chan struct{})
 	instFsm.chOnuDlReady = make(chan bool)
 	instFsm.chReceiveAbortEndSwDlResponse = make(chan tEndSwDlResponseResult)
+
+	instFsm.isExtendedOmci = instFsm.pDevEntry.GetPersIsExtOmciSupported()
+	if instFsm.isExtendedOmci {
+		instFsm.omciDownloadSectionSize = cOmciDownloadSectionSizeExtLine
+		instFsm.omciDownloadWindowSizeLimit = cOmciDownloadWindowSizeLimitExtLine
+	} else {
+		instFsm.omciDownloadSectionSize = cOmciDownloadSectionSizeBaseLine
+		instFsm.omciDownloadWindowSizeLimit = cOmciDownloadWindowSizeLimitBaseLine
+	}
 
 	instFsm.PAdaptFsm = cmn.NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
 	if instFsm.PAdaptFsm == nil {
@@ -670,16 +682,20 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		return
 	}
 	//provide slice capacity already with the reserve of one section to avoid inflation of the slice to double size at append
-	oFsm.imageBuffer = make([]byte, fileLen, fileLen+cOmciDownloadSectionSize)
+	oFsm.imageBuffer = make([]byte, fileLen, fileLen+oFsm.omciDownloadSectionSize)
 	//better use a copy of the read image buffer in case the buffer/file is modified from outside,
 	//  this also limits the slice len to the expected maximum fileLen
 	copy(oFsm.imageBuffer, imageBuffer)
 
-	oFsm.noOfSections = uint32(fileLen / cOmciDownloadSectionSize)
-	if fileLen%cOmciDownloadSectionSize > 0 {
-		bufferPadding := make([]byte, cOmciDownloadSectionSize-uint32((fileLen)%cOmciDownloadSectionSize))
-		//expand the imageBuffer to exactly fit multiples of cOmciDownloadSectionSize with padding
-		oFsm.imageBuffer = append(oFsm.imageBuffer, bufferPadding...)
+	oFsm.noOfSections = uint32(fileLen / oFsm.omciDownloadSectionSize)
+	if fileLen%oFsm.omciDownloadSectionSize > 0 {
+		// Because the extended message format allows for variable length,
+		// software image sections are only padded in baseline message format
+		if !oFsm.isExtendedOmci {
+			bufferPadding := make([]byte, oFsm.omciDownloadSectionSize-fileLen%oFsm.omciDownloadSectionSize)
+			//expand the imageBuffer to exactly fit multiples of cOmciDownloadSectionSize with padding
+			oFsm.imageBuffer = append(oFsm.imageBuffer, bufferPadding...)
+		}
 		oFsm.noOfSections++
 	}
 	oFsm.origImageLength = uint32(fileLen)
@@ -700,7 +716,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	go oFsm.waitOnDownloadToOnuReady(ctx, oFsm.chOnuDlReady) // start supervision of the complete download-to-ONU procedure
 
 	err = oFsm.pOmciCC.SendStartSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
-		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, oFsm.omciDownloadWindowSizeLimit, oFsm.origImageLength)
+		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, oFsm.omciDownloadWindowSizeLimit, oFsm.origImageLength, oFsm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "StartSwDl abort: can't send section", log.Fields{
 			"device-id": oFsm.deviceID, "error": err})
@@ -757,8 +773,13 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 		}
 		oFsm.mutexAbortRequest.RUnlock()
 
-		bufferStartOffset = oFsm.nextDownloadSectionsAbsolute * cOmciDownloadSectionSize
-		bufferEndOffset = bufferStartOffset + cOmciDownloadSectionSize - 1 //for representing cOmciDownloadSectionSizeLimit values
+		bufferStartOffset = oFsm.nextDownloadSectionsAbsolute * uint32(oFsm.omciDownloadSectionSize)
+		bufferEndOffset = bufferStartOffset + uint32(oFsm.omciDownloadSectionSize) - 1
+		if oFsm.isExtendedOmci {
+			if bufferEndOffset > oFsm.origImageLength-1 {
+				bufferEndOffset = oFsm.origImageLength - 1
+			}
+		}
 		logger.Debugw(ctx, "DlSection values are", log.Fields{
 			"DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute,
 			"DlSectionWindow":     oFsm.nextDownloadSectionsWindow,
@@ -793,7 +814,7 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 		}
 		oFsm.mutexUpgradeParams.Unlock() //unlock here to give other functions some chance to process during/after the send request
 		omciTxReq, err := oFsm.pOmciCC.PrepareOnuSectionsOfWindow(log.WithSpanFromContext(context.Background(), ctx),
-			oFsm.InactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, omciMsgsPerSection)
+			oFsm.InactiveImageMeID, windowAckRequest, oFsm.nextDownloadSectionsWindow, downloadSection, omciMsgsPerSection, oFsm.isExtendedOmci)
 		if err != nil {
 			logger.Errorw(ctx, "DlSection abort: can't send section", log.Fields{
 				"device-id": oFsm.deviceID, "section absolute": oFsm.nextDownloadSectionsAbsolute, "error": err})
@@ -880,7 +901,7 @@ func (oFsm *OnuUpgradeFsm) delayAndSendEndSwDl(ctx context.Context) {
 		return
 	}
 	err := oFsm.pOmciCC.SendEndSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
-		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, oFsm.origImageLength, oFsm.imageCRC)
+		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, oFsm.origImageLength, oFsm.imageCRC, oFsm.isExtendedOmci)
 
 	if err != nil {
 		logger.Errorw(ctx, "EndSwDl abort: error sending EndSwDl", log.Fields{
@@ -994,7 +1015,7 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
 
 	err := oFsm.pOmciCC.SendActivateSoftware(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
-		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID)
+		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, oFsm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "ActivateSw abort: can't send activate frame", log.Fields{
 			"device-id": oFsm.deviceID, "error": err})
@@ -1023,7 +1044,7 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 			oFsm.upgradePhase = cUpgradeCommitting //start of image commitment for ONU
 			oFsm.mutexUpgradeParams.Unlock()
 			err := oFsm.pOmciCC.SendCommitSoftware(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
-				oFsm.PAdaptFsm.CommChan, inactiveImageID) //more efficient activeImageID with above check
+				oFsm.PAdaptFsm.CommChan, inactiveImageID, oFsm.isExtendedOmci) //more efficient activeImageID with above check
 			if err != nil {
 				logger.Errorw(ctx, "CommitSw abort: can't send commit sw frame", log.Fields{
 					"device-id": oFsm.deviceID, "error": err})
@@ -1126,7 +1147,7 @@ func (oFsm *OnuUpgradeFsm) enterAbortingDL(ctx context.Context, e *fsm.Event) {
 	}
 	// abort the download operation by sending an end software download message with invalid CRC and image size
 	err := oFsm.pOmciCC.SendEndSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
-		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, 0, 0xFFFFFFFF)
+		oFsm.PAdaptFsm.CommChan, oFsm.InactiveImageMeID, 0, 0xFFFFFFFF, oFsm.isExtendedOmci)
 
 	if err != nil {
 		logger.Errorw(ctx, "OnuUpgradeFsm aborting download: can't send EndSwDl request", log.Fields{"device-id": oFsm.deviceID})
