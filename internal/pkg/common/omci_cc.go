@@ -878,23 +878,22 @@ func (oo *OmciCC) SendReboot(ctx context.Context, timeout int, highPrio bool, re
 }
 
 // SendMibUpload sends MibUploadRequest
-func (oo *OmciCC) SendMibUpload(ctx context.Context, timeout int, highPrio bool) error {
+func (oo *OmciCC) SendMibUpload(ctx context.Context, timeout int, highPrio bool, isExtOmciSupported bool) error {
 	logger.Debugw(ctx, "send MibUpload-msg to:", log.Fields{"device-id": oo.deviceID})
 
 	tid := oo.GetNextTid(highPrio)
-	isExtended := oo.pOnuDeviceEntry.GetPersIsExtOmciSupported()
 
 	omciLayer := &omci.OMCI{
 		TransactionID: tid,
 		MessageType:   omci.MibUploadRequestType,
 	}
-	if isExtended {
+	if isExtOmciSupported {
 		omciLayer.DeviceIdentifier = omci.ExtendedIdent
 	}
 	request := &omci.MibUploadRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
-			Extended:    isExtended,
+			Extended:    isExtOmciSupported,
 		},
 	}
 	var options gopacket.SerializeOptions
@@ -918,23 +917,22 @@ func (oo *OmciCC) SendMibUpload(ctx context.Context, timeout int, highPrio bool)
 }
 
 // SendMibUploadNext sends MibUploadNextRequest
-func (oo *OmciCC) SendMibUploadNext(ctx context.Context, timeout int, highPrio bool) error {
+func (oo *OmciCC) SendMibUploadNext(ctx context.Context, timeout int, highPrio bool, isExtOmciSupported bool) error {
 	logger.Debugw(ctx, "send MibUploadNext-msg to:", log.Fields{"device-id": oo.deviceID, "UploadSequNo": oo.UploadSequNo})
 
 	tid := oo.GetNextTid(highPrio)
-	isExtended := oo.pOnuDeviceEntry.GetPersIsExtOmciSupported()
 
 	omciLayer := &omci.OMCI{
 		TransactionID: tid,
 		MessageType:   omci.MibUploadNextRequestType,
 	}
-	if isExtended {
+	if isExtOmciSupported {
 		omciLayer.DeviceIdentifier = omci.ExtendedIdent
 	}
 	request := &omci.MibUploadNextRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
-			Extended:    isExtended,
+			Extended:    isExtOmciSupported,
 		},
 		CommandSequenceNumber: oo.UploadSequNo,
 	}
@@ -4214,7 +4212,7 @@ func (oo *OmciCC) SendCreateOrDeleteGemPortHistoryME(ctx context.Context, timeou
 
 // SendStartSoftwareDownload sends StartSoftwareDownloadRequest
 func (oo *OmciCC) SendStartSoftwareDownload(ctx context.Context, timeout int, highPrio bool,
-	rxChan chan Message, aImageMeID uint16, aDownloadWindowSize uint8, aFileLen uint32) error {
+	rxChan chan Message, aImageMeID uint16, aDownloadWindowSize uint8, aFileLen uint32, aIsExtendedOmci bool) error {
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send StartSwDlRequest:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
@@ -4226,10 +4224,14 @@ func (oo *OmciCC) SendStartSoftwareDownload(ctx context.Context, timeout int, hi
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
+	if aIsExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.StartSoftwareDownloadRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass:    me.SoftwareImageClassID,
 			EntityInstance: aImageMeID, //inactive image
+			Extended:       aIsExtendedOmci,
 		},
 		WindowSize:           aDownloadWindowSize,
 		ImageSize:            aFileLen,
@@ -4266,7 +4268,7 @@ func (oo *OmciCC) SendStartSoftwareDownload(ctx context.Context, timeout int, hi
 //GetOnuSwSecNextTid can be invoked without further locking
 func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 	aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte,
-	omciMsgsPerWindow *ia.OmciMessages) (OmciTransferStructure, error) {
+	omciMsgsPerWindow *ia.OmciMessages, aIsExtendedOmci bool) (OmciTransferStructure, error) {
 	//onuswsections uses only low prioirity tids
 	tid := oo.GetOnuSwSecNextTid()
 	logger.Infow(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
@@ -4286,6 +4288,9 @@ func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
+	if aIsExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	localSectionData := make([]byte, len(aSection))
 
 	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
@@ -4293,6 +4298,7 @@ func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass:    me.SoftwareImageClassID,
 			EntityInstance: aImageMeID, //inactive image
+			Extended:       aIsExtendedOmci,
 		},
 		SectionNumber: aDownloadSectionNo,
 		SectionData:   localSectionData,
@@ -4419,7 +4425,7 @@ func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest O
 
 // SendDownloadSection sends DownloadSectionRequestWithResponse
 func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPrio bool,
-	rxChan chan Message, aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte, aPrint bool) error {
+	rxChan chan Message, aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte, aPrint bool, aIsExtendedOmci bool) error {
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
@@ -4439,6 +4445,9 @@ func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPri
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
+	if aIsExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	localSectionData := make([]byte, len(aSection))
 
 	copy(localSectionData[:], aSection) // as long as DownloadSectionRequest defines array for SectionData we need to copy into the array
@@ -4446,6 +4455,7 @@ func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPri
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass:    me.SoftwareImageClassID,
 			EntityInstance: aImageMeID, //inactive image
+			Extended:       aIsExtendedOmci,
 		},
 		SectionNumber: aDownloadSectionNo,
 		SectionData:   localSectionData,
@@ -4485,7 +4495,7 @@ func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPri
 
 //SendEndSoftwareDownload sends EndSoftwareDownloadRequest
 func (oo *OmciCC) SendEndSoftwareDownload(ctx context.Context, timeout int, highPrio bool,
-	rxChan chan Message, aImageMeID uint16, aFileLen uint32, aImageCrc uint32) error {
+	rxChan chan Message, aImageMeID uint16, aFileLen uint32, aImageCrc uint32, aIsExtendedOmci bool) error {
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send EndSwDlRequest:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
@@ -4497,10 +4507,14 @@ func (oo *OmciCC) SendEndSoftwareDownload(ctx context.Context, timeout int, high
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
+	if aIsExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.EndSoftwareDownloadRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass:    me.SoftwareImageClassID,
 			EntityInstance: aImageMeID, //inactive image
+			Extended:       aIsExtendedOmci,
 		},
 		CRC32:             aImageCrc,
 		ImageSize:         aFileLen,
@@ -4534,7 +4548,7 @@ func (oo *OmciCC) SendEndSoftwareDownload(ctx context.Context, timeout int, high
 
 // SendActivateSoftware sends ActivateSoftwareRequest
 func (oo *OmciCC) SendActivateSoftware(ctx context.Context, timeout int, highPrio bool,
-	rxChan chan Message, aImageMeID uint16) error {
+	rxChan chan Message, aImageMeID uint16, aIsExtendedOmci bool) error {
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send ActivateSwRequest:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
@@ -4546,10 +4560,14 @@ func (oo *OmciCC) SendActivateSoftware(ctx context.Context, timeout int, highPri
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
+	if aIsExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.ActivateSoftwareRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass:    me.SoftwareImageClassID,
 			EntityInstance: aImageMeID, //inactive image
+			Extended:       aIsExtendedOmci,
 		},
 		ActivateFlags: 0, //unconditionally reset as the only relevant option here (regardless of VOIP)
 	}
@@ -4580,7 +4598,7 @@ func (oo *OmciCC) SendActivateSoftware(ctx context.Context, timeout int, highPri
 
 // SendCommitSoftware sends CommitSoftwareRequest
 func (oo *OmciCC) SendCommitSoftware(ctx context.Context, timeout int, highPrio bool,
-	rxChan chan Message, aImageMeID uint16) error {
+	rxChan chan Message, aImageMeID uint16, aIsExtendedOmci bool) error {
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send CommitSwRequest:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
@@ -4592,10 +4610,14 @@ func (oo *OmciCC) SendCommitSoftware(ctx context.Context, timeout int, highPrio 
 		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
 		// Length:           0x28,						// Optional, defaults to 40 octets
 	}
+	if aIsExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.CommitSoftwareRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass:    me.SoftwareImageClassID,
 			EntityInstance: aImageMeID, //inactive image
+			Extended:       aIsExtendedOmci,
 		},
 	}
 
