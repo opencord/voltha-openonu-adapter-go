@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "57cc2d52_e8e4a286",
+        "filename": "internal/pkg/swupg/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 777,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2022-06-01T09:51:59Z",
+      "side": 1,
+      "message": "is this still valid ?",
+      "revId": "10ce0f6d2bfd9a34bfbf97d71bbd73e7743b5502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
