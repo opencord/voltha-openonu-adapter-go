@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"strings"
 	"sync"
 	"time"
 
@@ -412,6 +413,9 @@ func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsIn
 func (oo *OpenONUAC) DownloadImage(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	ctx = log.WithSpanFromContext(context.Background(), ctx)
 	if imageInfo != nil && imageInfo.Image != nil && imageInfo.Image.Name != "" {
+		if strings.Contains(imageInfo.Image.Url, "https:") {
+			return nil, errors.New("image download via https not supported")
+		}
 		if !oo.pDownloadManager.ImageExists(ctx, imageInfo.Image) {
 			logger.Debugw(ctx, "start image download", log.Fields{"image-description": imageInfo.Image})
 			// Download_image is not supposed to be blocking, anyway let's call the DownloadManager still synchronously to detect 'fast' problems
@@ -496,6 +500,9 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 //   if the image is not yet present on the adapter it has to be automatically downloaded
 func (oo *OpenONUAC) DownloadOnuImage(ctx context.Context, request *voltha.DeviceImageDownloadRequest) (*voltha.DeviceImageResponse, error) {
 	if request != nil && len((*request).DeviceId) > 0 && (*request).Image.Version != "" {
+		if strings.Contains((*request).Image.Url, "https:") {
+			return nil, errors.New("image download via https not supported")
+		}
 		loResponse := voltha.DeviceImageResponse{}
 		imageIdentifier := (*request).Image.Version
 		downloadStartDone := false
