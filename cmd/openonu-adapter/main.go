@@ -199,7 +199,7 @@ func (a *adapter) stop(ctx context.Context) {
 			logger.Infow(ctx, "fail-to-release-all-reservations", log.Fields{"error": err})
 		}
 		// Close the DB connection
-		a.kvClient.Close(ctx)
+		go a.kvClient.Close(ctx)
 	}
 
 	if a.eventProxy != nil {
@@ -587,8 +587,12 @@ func main() {
 	// Set the ONU adapter GRPC service as not ready. This will prevent any request from coming to this adapter instance
 	probe.UpdateStatusFromContext(probeCtx, onuAdapterService, probe.ServiceStatusStopped)
 
+	// Use context with cancel as etcd-client stop could take more time sometimes to stop slowing down container shutdown.
+	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	// Cleanup before leaving
-	ad.stop(ctx)
+	ad.stop(ctxWithCancel)
+	// Will halt any long-running stop routine gracefully
+	cancelFunc()
 
 	elapsed := time.Since(start)
 	logger.Infow(ctx, "run-time", log.Fields{"Name": "openadapter", "time": elapsed / time.Microsecond})
