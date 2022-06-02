@@ -34,6 +34,24 @@
       "parentUuid": "57cc2d52_e8e4a286",
       "revId": "10ce0f6d2bfd9a34bfbf97d71bbd73e7743b5502",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "af27f848_6753df95",
+        "filename": "internal/pkg/swupg/omci_onu_upgrade.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 777,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-06-02T07:10:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fe27f84e_df6dcd69",
+      "revId": "10ce0f6d2bfd9a34bfbf97d71bbd73e7743b5502",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
