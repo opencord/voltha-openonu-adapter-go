@@ -16,6 +16,23 @@
       "message": "recheck",
       "revId": "4a475dd04d8217ed54c2bcb6fa19c32652f7940d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d20a82a6_3c99140e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-06-03T00:33:57Z",
+      "side": 1,
+      "message": "LGTM. Should this be merged and later tested with hardware OR the expectation to test with hardware and then merge. I am ok either way.",
+      "revId": "4a475dd04d8217ed54c2bcb6fa19c32652f7940d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
