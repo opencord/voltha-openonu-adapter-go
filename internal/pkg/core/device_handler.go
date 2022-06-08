@@ -2357,10 +2357,25 @@ func (dh *deviceHandler) processUniLockStateDoneEvent(ctx context.Context, devEv
 
 func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "MibDownloadDone event received, unlocking the ONU interfaces", log.Fields{"device-id": dh.DeviceID})
-	//initiate DevStateUpdate
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
+		return
+	}
 	if !dh.IsReconciling() {
-		logger.Debugw(ctx, "call DeviceStateUpdate upon mib-download done", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
+		logger.Debugw(ctx, "call DeviceUpdate and DeviceStateUpdate upon mib-download done", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 			"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.DeviceID})
+		// update device info in core
+		pDevEntry.MutexPersOnuConfig.RLock()
+		dh.device.Vendor = pDevEntry.SOnuPersistentData.PersVendorID
+		dh.device.VendorId = pDevEntry.SOnuPersistentData.PersVendorID
+		dh.device.Model = pDevEntry.SOnuPersistentData.PersVersion
+		pDevEntry.MutexPersOnuConfig.RUnlock()
+		dh.logicalDeviceID = dh.DeviceID
+		if err := dh.updateDeviceInCore(ctx, dh.device); err != nil {
+			logger.Errorw(ctx, "device-update-failed", log.Fields{"device-id": dh.device.Id, "error": err})
+		}
+		// update device state in core
 		//we allow a possible OnuSw image commit only in the normal startup, not at reconciling
 		// in case of adapter restart connected to an ONU upgrade I would not rely on the image quality
 		// maybe some 'forced' commitment can be done in this situation from system management (or upgrade restarted)
@@ -2376,7 +2391,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 			logger.Debugw(ctx, "dev state updated to 'Oper.Active'", log.Fields{"device-id": dh.DeviceID})
 		}
 	} else {
-		logger.Debugw(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVE",
+		logger.Debugw(ctx, "reconciling - don't notify core about updated device info and DeviceStateUpdate to ACTIVE",
 			log.Fields{"device-id": dh.DeviceID})
 	}
 	_ = dh.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
@@ -2411,11 +2426,6 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 
 	dh.SetReadyForOmciConfig(true)
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
-	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
-		return
-	}
 	pDevEntry.MutexPersOnuConfig.RLock()
 	if dh.IsReconciling() && pDevEntry.SOnuPersistentData.PersUniDisableDone {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
@@ -2834,12 +2844,11 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 	eventContext["num-of-unis"] = strconv.Itoa(len(dh.uniEntityMap))
 	if deviceEntry := dh.GetOnuDeviceEntry(ctx, false); deviceEntry != nil {
 		deviceEntry.MutexPersOnuConfig.RLock()
+		eventContext["vendor-id"] = deviceEntry.SOnuPersistentData.PersVendorID
+		eventContext["model"] = deviceEntry.SOnuPersistentData.PersVersion
 		eventContext["equipment-id"] = deviceEntry.SOnuPersistentData.PersEquipmentID
 		deviceEntry.MutexPersOnuConfig.RUnlock()
 		eventContext["software-version"] = deviceEntry.GetActiveImageVersion(ctx)
-		deviceEntry.MutexPersOnuConfig.RLock()
-		eventContext["vendor"] = deviceEntry.SOnuPersistentData.PersVendorID
-		deviceEntry.MutexPersOnuConfig.RUnlock()
 		eventContext["inactive-software-version"] = deviceEntry.GetInactiveImageVersion(ctx)
 		logger.Debugw(ctx, "prepare ONU_ACTIVATED event",
 			log.Fields{"device-id": aDeviceID, "EventContext": eventContext})
