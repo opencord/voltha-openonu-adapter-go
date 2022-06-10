@@ -16,6 +16,24 @@
       "message": "Functional ok, nevertheless some remark:\nMaybe the reason to use a seperate state on top of the existing \u0027UlStGettingVendorAndSerial\u0027 and a new/further Get(ONU-G) is that all these attributes would not fit into a single get response message (\u003e25 bytes)?\nBut even then I would prefer to handle it in one state and let state internal processing decide whether multiple get requests are required (similar to what the processing is e.g. in the PM data requests). This approach would make it easier to integrate a possible change towards the extended message format use (with only one get request at this point).",
       "revId": "3d3c2c587f4540e31de4271d3b099d7d2b13af68",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "befce82a_46f81ea5",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-06-10T10:05:03Z",
+      "side": 1,
+      "message": "After Michael and I discussed the issue, we came to the following conclusion: \nCurrently, there is no added value to moving OMCI communications to the extended message set at this stage of the ONU startup. If this should be tackled anyway, the additional OMCI request required in the baseline format can be saved by simply skipping one of the states of the MibSync-FSM and requesting the ONU version together with vendor ID and SW version in one extended request from the ONU.",
+      "parentUuid": "11f674ca_3bb80a27",
+      "revId": "3d3c2c587f4540e31de4271d3b099d7d2b13af68",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
