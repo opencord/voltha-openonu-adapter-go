@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "11f674ca_3bb80a27",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-06-10T07:34:58Z",
+      "side": 1,
+      "message": "Functional ok, nevertheless some remark:\nMaybe the reason to use a seperate state on top of the existing \u0027UlStGettingVendorAndSerial\u0027 and a new/further Get(ONU-G) is that all these attributes would not fit into a single get response message (\u003e25 bytes)?\nBut even then I would prefer to handle it in one state and let state internal processing decide whether multiple get requests are required (similar to what the processing is e.g. in the PM data requests). This approach would make it easier to integrate a possible change towards the extended message format use (with only one get request at this point).",
+      "revId": "3d3c2c587f4540e31de4271d3b099d7d2b13af68",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
