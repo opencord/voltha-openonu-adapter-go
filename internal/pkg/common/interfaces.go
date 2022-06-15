@@ -131,6 +131,7 @@ type IonuDeviceEntry interface {
 	GetOnuDB() *devdb.OnuDeviceDB
 	GetPersSerialNumber() string
 	GetPersVendorID() string
+	GetPersVersion() string
 	GetPersEquipmentID() string
 	GetPersIsExtOmciSupported() bool
 

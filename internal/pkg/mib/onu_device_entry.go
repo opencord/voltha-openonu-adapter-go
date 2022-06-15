@@ -877,7 +877,8 @@ func (oo *OnuDeviceEntry) GetInactiveImageVersion(ctx context.Context) string {
 func (oo *OnuDeviceEntry) buildMibTemplatePath() string {
 	oo.MutexPersOnuConfig.RLock()
 	defer oo.MutexPersOnuConfig.RUnlock()
-	return fmt.Sprintf(cSuffixMibTemplateKvStore, oo.SOnuPersistentData.PersVendorID, oo.SOnuPersistentData.PersEquipmentID, oo.SOnuPersistentData.PersActiveSwVersion)
+	return fmt.Sprintf(cSuffixMibTemplateKvStore, oo.SOnuPersistentData.PersVendorID, oo.SOnuPersistentData.PersVersion,
+		oo.SOnuPersistentData.PersActiveSwVersion)
 }
 
 // AllocateFreeTcont - TODO: add comment
@@ -951,6 +952,14 @@ func (oo *OnuDeviceEntry) GetPersIsExtOmciSupported() bool {
 	oo.MutexPersOnuConfig.RLock()
 	defer oo.MutexPersOnuConfig.RUnlock()
 	value := oo.SOnuPersistentData.PersIsExtOmciSupported
+	return value
+}
+
+// GetPersVersion - TODO: add comment
+func (oo *OnuDeviceEntry) GetPersVersion() string {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
+	value := oo.SOnuPersistentData.PersVersion
 	return value
 }
 

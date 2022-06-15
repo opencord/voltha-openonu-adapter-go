@@ -3094,7 +3094,7 @@ func (mm *OnuMetricsManager) getEthernetFrameExtendedMETypeFromKvStore(ctx conte
 	// Check if the data is already available in KV store, if yes, do not send the request for get me.
 	var data me.ClassID
 	key := fmt.Sprintf("%s/%s/%s", mm.pOnuDeviceEntry.GetPersVendorID(),
-		mm.pOnuDeviceEntry.GetPersEquipmentID(),
+		mm.pOnuDeviceEntry.GetPersVersion(),
 		mm.pOnuDeviceEntry.GetPersActiveSwVersion())
 	Value, err := mm.extPmKvStore.Get(ctx, key)
 	if err == nil {
@@ -3199,7 +3199,7 @@ func (mm *OnuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.Cla
 
 func (mm *OnuMetricsManager) putExtPmMeKvStore(ctx context.Context) {
 	key := fmt.Sprintf("%s/%s/%s", mm.pOnuDeviceEntry.GetPersVendorID(),
-		mm.pOnuDeviceEntry.GetPersEquipmentID(),
+		mm.pOnuDeviceEntry.GetPersVersion(),
 		mm.pOnuDeviceEntry.GetPersActiveSwVersion())
 	// check if we get the supported type me for ethernet frame extended pm class id
 	if mm.supportedEthernetFrameExtendedPMClass == 0 {
