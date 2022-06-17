@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/looplab/fsm"
-	"github.com/opencord/omci-lib-go/v2"
+	omci "github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
@@ -210,8 +210,9 @@ const (
 	// Per Table 11.2.9-1 – OMCI baseline message limitations in G.988 spec, the max GET Response
 	// payload size is 25. We define 24 (one less) to allow for dynamic insertion of IntervalEndTime
 	// attribute (1 byte) in L2 PM GET Requests.
-	MaxL2PMGetPayLoadSize            = 24
-	MaxEthernetFrameExtPmPayloadSize = 25
+	MaxBaselineL2PMGetPayLoadSize = 24
+	// unused: MaxEthernetFrameExtPmPayloadSize = 25
+	MaxExtendedL2PMGetPayLoadSize = omci.MaxExtendedLength - 17 - 1 - 4 // minus header, attribute IntervalEndTime and MIC
 )
 
 // EthernetUniHistoryName specific constants
@@ -328,6 +329,8 @@ type OnuMetricsManager struct {
 	onuEthernetFrameExtendedPmLock                sync.RWMutex
 	isDeviceReadyToCollectExtendedPmStats         bool
 	isEthernetFrameExtendedPmOperationOngoing     bool
+	isExtendedOmci                                bool
+	maxL2PMGetPayLoadSize                         int
 }
 
 // NewOnuMetricsManager returns a new instance of the NewOnuMetricsManager
@@ -754,7 +757,8 @@ loop:
 		opticalMetrics := make(map[string]float32)
 		// Get the ANI-G instance optical power attributes
 		requestedAttributes := me.AttributeValueMap{me.AniG_OpticalSignalLevel: 0, me.AniG_TransmitOpticalLevel: 0}
-		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.AniGClassID, anigInstID, requestedAttributes,
+			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -837,7 +841,8 @@ loop1:
 		var meAttributes me.AttributeValueMap
 		// Get the UNI-G instance optical power attributes
 		requestedAttributes := me.AttributeValueMap{me.UniG_AdministrativeState: 0}
-		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.UniGClassID, unigInstID, requestedAttributes,
+			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 		if err != nil {
 			logger.Errorw(ctx, "UNI-G failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -897,7 +902,7 @@ loop2:
 			me.PhysicalPathTerminationPointEthernetUni_OperationalState:    0,
 			me.PhysicalPathTerminationPointEthernetUni_AdministrativeState: 0}
 		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID,
-			pptpInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+			pptpInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -961,8 +966,10 @@ loop3:
 		var meAttributes me.AttributeValueMap
 		veipMetrics := make(map[string]float32)
 
-		requestedAttributes := me.AttributeValueMap{me.VirtualEthernetInterfacePoint_OperationalState: 0, me.VirtualEthernetInterfacePoint_AdministrativeState: 0}
-		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+		requestedAttributes := me.AttributeValueMap{me.VirtualEthernetInterfacePoint_OperationalState: 0,
+			me.VirtualEthernetInterfacePoint_AdministrativeState: 0}
+		meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, me.VirtualEthernetInterfacePointClassID, veipInstID, requestedAttributes,
+			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 		if err != nil {
 			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -1039,6 +1046,13 @@ func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context, waitForOmc
 	// The ProcessOmciMessages routine will get stopped if startCollector routine (in device_handler.go)
 	// is stopped - as a result of ONU going down.
 	mm.flushMetricCollectionChannels(ctx)
+	// when instantiating mm it was too early, but now we can check for ONU's extended OMCI support
+	mm.isExtendedOmci = mm.pOnuDeviceEntry.GetPersIsExtOmciSupported()
+	if mm.isExtendedOmci {
+		mm.maxL2PMGetPayLoadSize = MaxExtendedL2PMGetPayLoadSize
+	} else {
+		mm.maxL2PMGetPayLoadSize = MaxBaselineL2PMGetPayLoadSize
+	}
 	mm.updateOmciProcessingStatus(true)
 	waitForOmciProcessor.Done()
 	for {
@@ -2074,7 +2088,8 @@ func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 	}
 	// Insert "IntervalEndTime" as part of the requested attributes as we need this to compare the get responses when get request is multipart
 	requestedAttributes[me.EthernetFramePerformanceMonitoringHistoryDataUpstream_IntervalEndTime] = 0
-	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes,
+		mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "GetME failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 		pmFsm := mm.PAdaptFsm
@@ -2182,7 +2197,8 @@ func (mm *OnuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	if _, ok := requestedAttributes["IntervalEndTime"]; !ok {
 		requestedAttributes["IntervalEndTime"] = 0
 	}
-	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes,
+		mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -2284,7 +2300,8 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	if _, ok := requestedAttributes[me.FecPerformanceMonitoringHistoryData_IntervalEndTime]; !ok {
 		requestedAttributes[me.FecPerformanceMonitoringHistoryData_IntervalEndTime] = 0
 	}
-	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes,
+		mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -2350,7 +2367,8 @@ func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 	if _, ok := requestedAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_IntervalEndTime]; !ok {
 		requestedAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_IntervalEndTime] = 0
 	}
-	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes, mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan)
+	meInstance, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendGetMe(ctx, classID, entityID, requestedAttributes,
+		mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "GetMe failed", log.Fields{"device-id": mm.deviceID})
 		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
@@ -2540,7 +2558,7 @@ func (mm *OnuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 			// Exclude ThresholdData12Id as that is of no particular relevance for metrics collection.
 			continue
 		}
-		if (v.Size + size) <= MaxL2PMGetPayLoadSize {
+		if v.Size+size <= mm.maxL2PMGetPayLoadSize {
 			requestedAttributes[v.Name] = v.DefValue
 			size = v.Size + size
 		} else { // We exceeded the allow omci get size
