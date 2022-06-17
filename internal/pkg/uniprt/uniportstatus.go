@@ -61,7 +61,8 @@ func (portStatus *UniPortStatus) GetUniPortStatus(ctx context.Context, uniIdx ui
 				me.PhysicalPathTerminationPointEthernetUni_OperationalState:    0,
 				me.PhysicalPathTerminationPointEthernetUni_ConfigurationInd:    0}
 			// Note: No reference to fetch the OMCI timeout configuration value, so hard code it to 10s
-			meInstance, err := portStatus.pOmiCC.SendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID, uniPort.EntityID, requestedAttributes, 10, true, portStatus.omciRespChn)
+			meInstance, err := portStatus.pOmiCC.SendGetMe(ctx, me.PhysicalPathTerminationPointEthernetUniClassID,
+				uniPort.EntityID, requestedAttributes, 10, true, portStatus.omciRespChn, false)
 			if err != nil {
 				return PostUniStatusErrResponse(extension.GetValueResponse_INTERNAL_ERROR)
 			}

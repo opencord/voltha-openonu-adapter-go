@@ -43,6 +43,7 @@ type OnuImageStatus struct {
 	respChannel            chan cmn.Message
 	mutexPLastTxMeInstance sync.RWMutex
 	pLastTxMeInstance      *me.ManagedEntity
+	isExtendedOmci         bool
 }
 
 const cResponse = "response: "
@@ -57,6 +58,7 @@ func NewOnuImageStatus(apDeviceHandler cmn.IdeviceHandler, apDevEntry cmn.IonuDe
 		requestedAttributes: make(me.AttributeValueMap),
 		waitingForResp:      false,
 		respChannel:         make(chan cmn.Message),
+		isExtendedOmci:      apDevEntry.GetPersIsExtOmciSupported(),
 	}
 }
 
@@ -108,7 +110,7 @@ func (oo *OnuImageStatus) GetOnuImageStatus(ctx context.Context) (*voltha.OnuIma
 func (oo *OnuImageStatus) requestOnuImageAttributes(ctx context.Context, imageID uint16, image *voltha.OnuImage) error {
 	oo.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oo.pOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID,
-		imageID, oo.requestedAttributes, oo.pDeviceHandler.GetOmciTimeout(), true, oo.respChannel)
+		imageID, oo.requestedAttributes, oo.pDeviceHandler.GetOmciTimeout(), true, oo.respChannel, oo.isExtendedOmci)
 	if err != nil {
 		oo.mutexPLastTxMeInstance.Unlock()
 		logger.Errorw(ctx, "can't send omci request to get data for image id", log.Fields{"image-id": imageID, "device-id": oo.deviceID})
