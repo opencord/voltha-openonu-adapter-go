@@ -122,7 +122,7 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 	requestedAttributes := me.AttributeValueMap{me.OnuG_VendorId: "", me.OnuG_SerialNumber: 0}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, cmn.OnugMeID, requestedAttributes,
-		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, false)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -146,7 +146,7 @@ func (oo *OnuDeviceEntry) enterGettingVersionState(ctx context.Context, e *fsm.E
 	requestedAttributes := me.AttributeValueMap{me.OnuG_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.OnuGClassID, cmn.OnugMeID,
-		requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, false)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -170,7 +170,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipIDAndOmccVersState(ctx context.Contex
 	requestedAttributes := me.AttributeValueMap{me.Onu2G_EquipmentId: "", me.Onu2G_OpticalNetworkUnitManagementAndControlChannelOmccVersion: 0}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.Onu2GClassID, cmn.Onu2gMeID, requestedAttributes,
-		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, false)
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -226,7 +226,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.FirstSwImageMeID, requestedAttributes,
-		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, oo.GetPersIsExtOmciSupported())
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -250,7 +250,7 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.SoftwareImageClassID, cmn.SecondSwImageMeID, requestedAttributes,
-		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, oo.GetPersIsExtOmciSupported())
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -274,7 +274,7 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 	requestedAttributes := me.AttributeValueMap{me.IpHostConfigData_MacAddress: ""}
 	oo.mutexLastTxParamStruct.Lock()
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx), me.IpHostConfigDataClassID, cmn.IPHostConfigDataMeID, requestedAttributes,
-		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, oo.GetPersIsExtOmciSupported())
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {
@@ -608,7 +608,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 			logger.Debugw(ctx, "MibSync FSM - repeat MdsGetRequest (updated SequenceNumber)", log.Fields{"device-id": oo.deviceID})
 			requestedAttributes := me.AttributeValueMap{me.OnuData_MibDataSync: ""}
 			_, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
-				me.OnuDataClassID, cmn.OnuDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+				me.OnuDataClassID, cmn.OnuDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan, false)
 			if err != nil {
 				oo.mutexLastTxParamStruct.Unlock()
 				logger.Errorw(ctx, "ONUData get failed, aborting MibSync", log.Fields{"device-id": oo.deviceID})
@@ -1307,7 +1307,8 @@ func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 	logger.Debugw(ctx, "Request MDS value", log.Fields{"device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.OnuData_MibDataSync: ""}
 	meInstance, err := oo.PDevOmciCC.SendGetMe(log.WithSpanFromContext(context.TODO(), ctx),
-		me.OnuDataClassID, cmn.OnuDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true, oo.PMibUploadFsm.CommChan)
+		me.OnuDataClassID, cmn.OnuDataMeID, requestedAttributes, oo.baseDeviceHandler.GetOmciTimeout(), true,
+		oo.PMibUploadFsm.CommChan, oo.GetPersIsExtOmciSupported())
 	//accept also nil as (error) return value for writing to LastTx
 	//  - this avoids misinterpretation of new received OMCI messages
 	if err != nil {

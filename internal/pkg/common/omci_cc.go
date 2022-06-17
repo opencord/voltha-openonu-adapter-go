@@ -1465,7 +1465,7 @@ func (oo *OmciCC) SendSetVeipLS(ctx context.Context, aInstNo uint16, timeout int
 
 // SendGetMe gets ME instance
 func (oo *OmciCC) SendGetMe(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap,
-	timeout int, highPrio bool, rxChan chan Message) (*me.ManagedEntity, error) {
+	timeout int, highPrio bool, rxChan chan Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
 
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send get-request-msg", log.Fields{"classID": classID, "device-id": oo.deviceID,
@@ -1475,10 +1475,14 @@ func (oo *OmciCC) SendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		EntityID:   entityID,
 		Attributes: requestedAttributes,
 	}
+	var messageSet omci.DeviceIdent = omci.BaselineIdent
+	if isExtendedOmci {
+		messageSet = omci.ExtendedIdent
+	}
 	meInstance, omciErr := me.LoadManagedEntityDefinition(classID, meParams)
 	if omciErr.GetError() == nil {
 		meClassIDName := meInstance.GetName()
-		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.GetRequestType, oframe.TransactionID(tid))
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.GetRequestType, oframe.TransactionID(tid), oframe.FrameFormat(messageSet))
 		if err != nil {
 			logger.Errorf(ctx, "Cannot encode instance for get-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
 			return nil, err

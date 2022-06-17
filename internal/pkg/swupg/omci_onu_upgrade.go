@@ -1000,7 +1000,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckImageName(ctx context.Context, e *fsm.Event
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	meInstance, err := oFsm.pOmciCC.SendGetMe(log.WithSpanFromContext(context.Background(), ctx),
 		me.SoftwareImageClassID, oFsm.InactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.GetOmciTimeout(),
-		false, oFsm.PAdaptFsm.CommChan)
+		false, oFsm.PAdaptFsm.CommChan, oFsm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "OnuUpgradeFsm get Software Image ME result error",
 			log.Fields{"device-id": oFsm.deviceID, "Error": err})
@@ -1077,7 +1077,8 @@ func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
 	meInstance, err := oFsm.pOmciCC.SendGetMe(log.WithSpanFromContext(context.Background(), ctx),
-		me.SoftwareImageClassID, oFsm.InactiveImageMeID, requestedAttributes, oFsm.pDeviceHandler.GetOmciTimeout(), false, oFsm.PAdaptFsm.CommChan)
+		me.SoftwareImageClassID, oFsm.InactiveImageMeID, requestedAttributes,
+		oFsm.pDeviceHandler.GetOmciTimeout(), false, oFsm.PAdaptFsm.CommChan, oFsm.isExtendedOmci)
 	if err != nil {
 		logger.Errorw(ctx, "OnuUpgradeFsm get Software Image ME result error",
 			log.Fields{"device-id": oFsm.deviceID, "Error": err})
