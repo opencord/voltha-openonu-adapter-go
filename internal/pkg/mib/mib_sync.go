@@ -847,6 +847,11 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 					omccVersion = onu2GOmccVersion.(uint8)
 					if _, ok := omccVersionSupportsExtendedOmciFormat[omccVersion]; ok {
 						oo.SOnuPersistentData.PersIsExtOmciSupported = omccVersionSupportsExtendedOmciFormat[omccVersion]
+						if oo.SOnuPersistentData.PersIsExtOmciSupported && !oo.baseDeviceHandler.GetExtendedOmciSupportEnabled() {
+							logger.Infow(ctx, "MibSync FSM - ONU supports extended OMCI, but support is disabled in the adapter: reset flag",
+								log.Fields{"device-id": oo.deviceID})
+							oo.SOnuPersistentData.PersIsExtOmciSupported = false
+						}
 					} else {
 						logger.Infow(ctx, "MibSync FSM - unknown OMCC version in Onu2G instance - disable extended OMCI support",
 							log.Fields{"device-id": oo.deviceID})

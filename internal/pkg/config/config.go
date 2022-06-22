@@ -59,6 +59,7 @@ type AdapterFlags struct {
 	LogCorrelationEnabled       bool
 	OnuVendorIds                string
 	MetricsEnabled              bool
+	ExtendedOmciSupportEnabled  bool
 	MibAuditInterval            time.Duration
 	OmciTimeout                 time.Duration
 	AlarmAuditInterval          time.Duration
@@ -208,6 +209,11 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"metrics_enabled",
 		false,
 		"Whether to enable metrics collection")
+
+	fs.BoolVar(&(so.ExtendedOmciSupportEnabled),
+		"extended_omci_support_enabled",
+		false,
+		"Whether to enable extended OMCI support")
 
 	fs.DurationVar(&(so.MibAuditInterval),
 		"mib_audit_interval",

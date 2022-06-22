@@ -4516,6 +4516,11 @@ func (dh *deviceHandler) GetMetricsEnabled() bool {
 	return dh.pOpenOnuAc.MetricsEnabled
 }
 
+// GetExtendedOmciSupportEnabled - TODO: add comment
+func (dh *deviceHandler) GetExtendedOmciSupportEnabled() bool {
+	return dh.pOpenOnuAc.ExtendedOmciSupportEnabled
+}
+
 // InitPmConfigs - TODO: add comment
 func (dh *deviceHandler) InitPmConfigs() {
 	dh.pmConfigs = &voltha.PmConfigs{}

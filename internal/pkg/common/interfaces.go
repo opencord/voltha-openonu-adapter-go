@@ -62,6 +62,7 @@ type IdeviceHandler interface {
 	GetOnuIndication() *openolt.OnuIndication
 	GetUniVlanConfigFsm(uint8) IuniVlanConfigFsm
 	GetTechProfileInstanceFromParentAdapter(context.Context, uint8, string) (*ia.TechProfileDownloadMessage, error)
+	GetExtendedOmciSupportEnabled() bool
 
 	GetDeviceReasonString() string
 	ReasonUpdate(context.Context, uint8, bool) error

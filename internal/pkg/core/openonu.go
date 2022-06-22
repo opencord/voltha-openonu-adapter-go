@@ -90,6 +90,7 @@ type OpenONUAC struct {
 	pDownloadManager            *swupg.AdapterDownloadManager
 	pFileManager                *swupg.FileDownloadManager //let coexist 'old and new' DownloadManager as long as 'old' does not get obsolete
 	MetricsEnabled              bool
+	ExtendedOmciSupportEnabled  bool
 	mibAuditInterval            time.Duration
 	omciTimeout                 int // in seconds
 	alarmAuditInterval          time.Duration
@@ -126,6 +127,7 @@ func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy even
 	openOnuAc.maxTimeoutReconciling = cfg.MaxTimeoutReconciling
 	//openOnuAc.GrpcTimeoutInterval = cfg.GrpcTimeoutInterval
 	openOnuAc.MetricsEnabled = cfg.MetricsEnabled
+	openOnuAc.ExtendedOmciSupportEnabled = cfg.ExtendedOmciSupportEnabled
 	openOnuAc.mibAuditInterval = cfg.MibAuditInterval
 	// since consumers of OMCI timeout value everywhere in code is in "int seconds", do this useful conversion
 	openOnuAc.omciTimeout = int(cfg.OmciTimeout.Seconds())
