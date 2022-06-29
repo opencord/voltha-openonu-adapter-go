@@ -35,7 +35,7 @@ Some highlights:
 
 - The `docker-*` targets for building and pushing Docker images depend on the
   variables `DOCKER_REGISTRY`, `DOCKER_REPOSITORY`, and `DOCKER_TAG` as
-  [described in the CORD documentation](https://guide.opencord.org/developer/test_release_software.html#publish-docker-container-images-to-public-dockerhub-job-docker-publish)
+  [described in the CORD documentation](https://guide.opencord.org/master/developer/test_release_software.html#publish-docker-container-images-to-public-dockerhub-job-docker-publish)
 
 - If you make changes the dependencies in the `go.mod` file, you will need to
   run `make mod-update` to update the `go.sum` and `vendor` directory.
