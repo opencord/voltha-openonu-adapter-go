@@ -3302,7 +3302,11 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) {
 		logger.Debugw(ctx, "flow-add vlan-any/copy", log.Fields{"device-id": dh.DeviceID})
 		loSetVlan = loMatchVlan //both 'transparent' (copy any)
-	} else {
+	} else if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) &&
+                 loInnerCvlan != uint16(of.OfpVlanId_OFPVID_NONE) {
+             loSetVlan = loMatchVlan
+	     logger.Debugw(ctx, "flow-add vlan-any/copy", log.Fields{"device-id": dh.DeviceID, "loSetVlan": loSetVlan, "loMatchVlan": loMatchVlan})
+        } else {
 		//looks like OMCI value 4097 (copyFromOuter - for Uni double tagged) is not supported here
 		if loSetVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) {
 			// not set to transparent
