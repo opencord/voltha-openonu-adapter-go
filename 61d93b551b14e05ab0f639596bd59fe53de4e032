@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e503c281_295bb63a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-07-07T10:42:18Z",
+      "side": 1,
+      "message": "Perhaps some debug print modification or at least some comment extension would be helpful.",
+      "revId": "61d93b551b14e05ab0f639596bd59fe53de4e032",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b51db7ac_dc275b10",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3308,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-07-07T10:42:18Z",
+      "side": 1,
+      "message": "Would you please update the debug entry: Current print would be very easy to be confused with the similar log entry from line 3303. For me it does not really look to be a vlan-any/copy rule, but a vlan-set rule with the match VID (for double tagged frames). So the difference might be that here the user traffic is filtered on the received VlanId compared to above case where any user traffic is admitted?",
+      "revId": "61d93b551b14e05ab0f639596bd59fe53de4e032",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
