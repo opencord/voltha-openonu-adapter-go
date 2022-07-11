@@ -51,6 +51,24 @@
       "parentUuid": "ef9ebdad_649709d5",
       "revId": "3b29a8a54b5003fbd5919a8c22e3b7acf5052aa3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "742274af_eee8fdc7",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 493,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-07-11T13:14:12Z",
+      "side": 1,
+      "message": "Ack.\nJust looking at the PptpEthernet alarms for 4 (or maybe even 8) UNI\u0027s the output may still be acceptable. Keep in mind that the ONU might deliver a lot more alarms also for other ME\u0027s (which we might not be interested in), that could make the output quite big. But maybe this is not that probable ...",
+      "parentUuid": "1cef63ac_41ffbcb8",
+      "revId": "3b29a8a54b5003fbd5919a8c22e3b7acf5052aa3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
