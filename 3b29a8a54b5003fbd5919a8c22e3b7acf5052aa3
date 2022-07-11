@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f22fd473_e1207244",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-07-11T08:00:58Z",
+      "side": 1,
+      "message": "Just a comment for the debug logs.",
+      "revId": "3b29a8a54b5003fbd5919a8c22e3b7acf5052aa3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ef9ebdad_649709d5",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 493,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-07-11T08:00:58Z",
+      "side": 1,
+      "message": "Might AdditionalAlarms nit get possibly quite long? Perhaps better to print that in the loop below similar to how it is done in line 475 for the first entry?",
+      "revId": "3b29a8a54b5003fbd5919a8c22e3b7acf5052aa3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
