@@ -33,6 +33,24 @@
       "message": "Might AdditionalAlarms nit get possibly quite long? Perhaps better to print that in the loop below similar to how it is done in line 475 for the first entry?",
       "revId": "3b29a8a54b5003fbd5919a8c22e3b7acf5052aa3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1cef63ac_41ffbcb8",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 493,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-07-11T12:51:26Z",
+      "side": 1,
+      "message": "Since the alarm status table is retrieved after each alarm audit interval, I would like to reduce the number of rows to be output as much as possible. On the other hand, I think that the output in one line is not so cluttered. :-)\n\n{\"level\":\"debug\",\"ts\":\"2022-07-11T04:42:36.200Z\",\"caller\":\"almgr/alarm_manager.go:492\",\"msg\":\"get-all-alarms-next-response-additional-data\",\"instanceId\":\"voltha-voltha-adapter-openonu-5ff9754c7d-5s2t2\",\"pkg\":\"almgr\",\"op-id\":\"7c5d7f92b0ccfc1f\",\"op-name\":\"/voltha.VolthaService/EnableDevice\",\"task-id\":\"7890d37caea091e4\",\"task-name\":\"/adapter_service.AdapterService/AdoptDevice\",\"device-id\":\"3cd0e321-0e41-4ca8-9a17-932c1791bf20\",\"device-id\":\"a0b52c30-ca01-4bb3-b122-b15ff6de39d2\",\"additional-data\":[{\"AlarmEntityClass\":11,\"AlarmEntityInstance\":258,\"AlarmBitMap\":[128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{\"AlarmEntityClass\":11,\"AlarmEntityInstance\":259,\"AlarmBitMap\":[128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{\"AlarmEntityClass\":11,\"AlarmEntityInstance\":260,\"AlarmBitMap\":[128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}]}",
+      "parentUuid": "ef9ebdad_649709d5",
+      "revId": "3b29a8a54b5003fbd5919a8c22e3b7acf5052aa3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
