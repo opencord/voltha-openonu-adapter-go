@@ -959,55 +959,99 @@ func (oo *OmciCC) SendMibUploadNext(ctx context.Context, timeout int, highPrio b
 }
 
 // SendGetAllAlarm gets all alarm ME instances
-func (oo *OmciCC) SendGetAllAlarm(ctx context.Context, alarmRetreivalMode uint8, timeout int, highPrio bool) error {
+func (oo *OmciCC) SendGetAllAlarm(ctx context.Context, alarmRetreivalMode uint8, timeout int, highPrio bool, isExtendedOmci bool) error {
 	logger.Debugw(ctx, "send GetAllAlarms-msg to:", log.Fields{"device-id": oo.deviceID})
+
+	tid := oo.GetNextTid(highPrio)
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.GetAllAlarmsRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+	}
+	if isExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.GetAllAlarmsRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
+			Extended:    isExtendedOmci,
 		},
 		AlarmRetrievalMode: byte(alarmRetreivalMode),
 	}
-	tid := oo.GetNextTid(highPrio)
-	pkt, err := Serialize(ctx, omci.GetAllAlarmsRequestType, request, tid)
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
 	if err != nil {
-		logger.Errorw(ctx, "Cannot serialize GetAllAlarmsRequest", log.Fields{
-			"Err": err, "device-id": oo.deviceID})
+		logger.Errorw(ctx, "Cannot serialize GetAllAlarmsRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
 		return err
 	}
+	outgoingPacket := buffer.Bytes()
+
 	oo.pOnuAlarmManager.ResetAlarmUploadCounters()
 
 	omciRxCallbackPair := CallbackPair{
 		CbKey:   tid,
 		CbEntry: CallbackPairEntry{oo.pOnuAlarmManager.GetAlarmMgrEventChannel(), oo.receiveOmciResponse, true},
 	}
-	return oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+	err = oo.Send(ctx, outgoingPacket, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send GetAllAlarmsRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send GetAllAlarmsRequest done")
+	return nil
 }
 
 // SendGetAllAlarmNext gets next alarm ME instance
-func (oo *OmciCC) SendGetAllAlarmNext(ctx context.Context, timeout int, highPrio bool) error {
+func (oo *OmciCC) SendGetAllAlarmNext(ctx context.Context, timeout int, highPrio bool, isExtendedOmci bool) error {
 	alarmUploadSeqNo := oo.pOnuAlarmManager.GetAlarmUploadSeqNo()
 	logger.Debugw(ctx, "send SendGetAllAlarmNext-msg to:", log.Fields{"device-id": oo.deviceID,
 		"alarmUploadSeqNo": alarmUploadSeqNo})
+
+	tid := oo.GetNextTid(highPrio)
+	omciLayer := &omci.OMCI{
+		TransactionID: tid,
+		MessageType:   omci.GetAllAlarmsNextRequestType,
+		// DeviceIdentifier: omci.BaselineIdent,		// Optional, defaults to Baseline
+	}
+	if isExtendedOmci {
+		omciLayer.DeviceIdentifier = omci.ExtendedIdent
+	}
 	request := &omci.GetAllAlarmsNextRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
+			Extended:    isExtendedOmci,
 		},
 		CommandSequenceNumber: alarmUploadSeqNo,
 	}
-	tid := oo.GetNextTid(highPrio)
-	pkt, err := Serialize(ctx, omci.GetAllAlarmsNextRequestType, request, tid)
+	var options gopacket.SerializeOptions
+	options.FixLengths = true
+	buffer := gopacket.NewSerializeBuffer()
+	err := gopacket.SerializeLayers(buffer, options, omciLayer, request)
 	if err != nil {
-		logger.Errorw(ctx, "Cannot serialize GetAllAlarmsNextRequest", log.Fields{
-			"Err": err, "device-id": oo.deviceID})
+		logger.Errorw(ctx, "Cannot serialize GetAllAlarmsNextRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
 		return err
 	}
+	outgoingPacket := buffer.Bytes()
+
 	oo.pOnuAlarmManager.IncrementAlarmUploadSeqNo()
 
 	omciRxCallbackPair := CallbackPair{
 		CbKey:   tid,
 		CbEntry: CallbackPairEntry{oo.pOnuAlarmManager.GetAlarmMgrEventChannel(), oo.receiveOmciResponse, true},
 	}
-	return oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+	err = oo.Send(ctx, outgoingPacket, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+	if err != nil {
+		logger.Errorw(ctx, "Cannot send GetAllAlarmsNextRequest", log.Fields{"Err": err,
+			"device-id": oo.deviceID})
+		return err
+	}
+	logger.Debug(ctx, "send GetAllAlarmsNextRequest done")
+	return nil
 }
 
 // SendCreateGalEthernetProfile creates GalEthernetProfile ME instance

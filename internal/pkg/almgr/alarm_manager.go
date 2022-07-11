@@ -111,8 +111,9 @@ type OnuAlarmManager struct {
 	onuDBCopy                  alarmBitMapDB
 	bufferedNotifications      []*omci.AlarmNotificationMsg
 	alarmUploadSeqNo           uint16
-	alarmUploadNoOfCmds        uint16
+	alarmUploadNoOfCmdsOrMEs   uint16
 	StopAlarmAuditTimer        chan struct{}
+	isExtendedOmci             bool
 }
 
 // NewAlarmManager - TODO: add comment
@@ -231,7 +232,7 @@ func (am *OnuAlarmManager) asFsmAuditing(ctx context.Context, e *fsm.Event) {
 		}
 	}
 	if err := am.pOnuDeviceEntry.GetDevOmciCC().SendGetAllAlarm(log.WithSpanFromContext(context.TODO(), ctx), 0,
-		am.pDeviceHandler.GetOmciTimeout(), true); err != nil {
+		am.pDeviceHandler.GetOmciTimeout(), true, am.isExtendedOmci); err != nil {
 		// Transition to failure so that alarm sync can be restarted again
 		go failureTransition()
 	}
@@ -366,7 +367,7 @@ func (am *OnuAlarmManager) processAlarmSyncMessages(ctx context.Context) {
 			am.processMessage = false
 			am.activeAlarms = nil
 			am.alarmBitMapDB = nil
-			am.alarmUploadNoOfCmds = 0
+			am.alarmUploadNoOfCmdsOrMEs = 0
 			am.alarmUploadSeqNo = 0
 			am.onuAlarmManagerLock.Unlock()
 			return
@@ -406,7 +407,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		return
 	}
 	am.onuAlarmManagerLock.Lock()
-	am.alarmUploadNoOfCmds = msgObj.NumberOfCommands
+	am.alarmUploadNoOfCmdsOrMEs = msgObj.NumberOfCommands
 	am.onuAlarmManagerLock.Unlock()
 	failureTransition := func() {
 		if err := am.AlarmSyncFsm.PFsm.Event(AsEvFailure); err != nil {
@@ -414,7 +415,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		}
 	}
 	am.onuAlarmManagerLock.Lock()
-	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmds {
+	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmdsOrMEs {
 		// Reset Onu Alarm Sequence
 		am.resetAlarmSequence()
 		// Get a copy of the alarm bit map db.
@@ -423,11 +424,11 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		}
 		am.onuAlarmManagerLock.Unlock()
 		if err := am.pOnuDeviceEntry.GetDevOmciCC().SendGetAllAlarmNext(
-			log.WithSpanFromContext(context.TODO(), ctx), am.pDeviceHandler.GetOmciTimeout(), true); err != nil {
+			log.WithSpanFromContext(context.TODO(), ctx), am.pDeviceHandler.GetOmciTimeout(), true, am.isExtendedOmci); err != nil {
 			// Transition to failure
 			go failureTransition()
 		}
-	} else if am.alarmUploadNoOfCmds == 0 {
+	} else if am.alarmUploadNoOfCmdsOrMEs == 0 {
 		// Reset Onu Alarm Sequence
 		am.resetAlarmSequence()
 		// Get a copy of the alarm bit map db.
@@ -452,7 +453,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 		}
 	} else {
 		logger.Errorw(ctx, "invalid-number-of-commands-received", log.Fields{"device-id": am.deviceID,
-			"upload-no-of-cmds": am.alarmUploadNoOfCmds, "upload-seq-no": am.alarmUploadSeqNo})
+			"upload-no-of-cmds": am.alarmUploadNoOfCmdsOrMEs, "upload-seq-no": am.alarmUploadSeqNo})
 		am.onuAlarmManagerLock.Unlock()
 		go failureTransition()
 	}
@@ -487,11 +488,30 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.deviceID, "err": err})
 		}
 	}
+	if msg.OmciMsg.DeviceIdentifier == omci.ExtendedIdent {
+		logger.Debugw(ctx, "get-all-alarms-next-response-additional-data",
+			log.Fields{"device-id": am.deviceID, "additional-data": msgObj.AdditionalAlarms})
+
+		for _, additionalAlarmReport := range msgObj.AdditionalAlarms {
+			meClassID := additionalAlarmReport.AlarmEntityClass
+			meEntityID := additionalAlarmReport.AlarmEntityInstance
+			meAlarmBitMap := additionalAlarmReport.AlarmBitMap
+
+			am.onuAlarmManagerLock.Lock()
+			am.onuDBCopy[meAlarmKey{
+				classID:    meClassID,
+				instanceID: meEntityID,
+			}] = meAlarmBitMap
+			am.onuAlarmManagerLock.Unlock()
+
+			am.IncrementAlarmUploadSeqNo()
+		}
+	}
 	am.onuAlarmManagerLock.RLock()
-	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmds {
+	if am.alarmUploadSeqNo < am.alarmUploadNoOfCmdsOrMEs {
 		am.onuAlarmManagerLock.RUnlock()
 		if err := am.pOnuDeviceEntry.GetDevOmciCC().SendGetAllAlarmNext(
-			log.WithSpanFromContext(context.TODO(), ctx), am.pDeviceHandler.GetOmciTimeout(), true); err != nil {
+			log.WithSpanFromContext(context.TODO(), ctx), am.pDeviceHandler.GetOmciTimeout(), true, am.isExtendedOmci); err != nil {
 			// Transition to failure
 			go failureTransition()
 		} //TODO: needs to handle timeouts
@@ -524,6 +544,8 @@ func (am *OnuAlarmManager) StartOMCIAlarmMessageProcessing(ctx context.Context) 
 		am.activeAlarms = make(map[alarmInfo]struct{})
 	}
 	am.alarmBitMapDB = make(map[meAlarmKey][alarmBitMapSizeBytes]byte)
+	// when instantiating alarm manager it was too early, but now we can check for ONU's extended OMCI support
+	am.isExtendedOmci = am.pOnuDeviceEntry.GetPersIsExtOmciSupported()
 	am.onuAlarmManagerLock.Unlock()
 	am.flushAlarmSyncChannels(ctx) // Need to do this first as there might be stale data on the channels and the start state waits on same channels
 
@@ -778,7 +800,7 @@ func (am *OnuAlarmManager) getDeviceEventData(ctx context.Context, classID me.Cl
 func (am *OnuAlarmManager) ResetAlarmUploadCounters() {
 	am.onuAlarmManagerLock.Lock()
 	am.alarmUploadSeqNo = 0
-	am.alarmUploadNoOfCmds = 0
+	am.alarmUploadNoOfCmdsOrMEs = 0
 	am.onuAlarmManagerLock.Unlock()
 }
 
