@@ -832,7 +832,7 @@ func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint
 		return fmt.Errorf("no valid OnuDevice: %s", onuTP.deviceID)
 	}
 	pAniCfgFsm := NewUniPonAniConfigFsm(ctx, onuTP.onuDevice.GetDevOmciCC(), apCurrentUniPort, onuTP,
-		onuTP.onuDevice.GetOnuDB(), aTpID, devEvent,
+		onuTP.onuDevice.GetOnuDB(), aTpID, onuTP.mapUniTpIndication[uniTPKey].techProfileType, devEvent,
 		"AniConfigFsm", onuTP.baseDeviceHandler, onuTP.onuDevice, chAniConfigFsm)
 	if pAniCfgFsm == nil {
 		logger.Errorw(ctx, "AniConfigFSM could not be created - abort!!", log.Fields{"device-id": onuTP.deviceID})
