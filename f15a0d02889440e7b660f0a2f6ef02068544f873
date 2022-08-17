@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c61c2c2e_d4cf2faf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-08-17T11:03:38Z",
+      "side": 1,
+      "message": "Should be fine, just maybe occasional some code cleanup may be done, see comment inline.",
+      "revId": "f15a0d02889440e7b660f0a2f6ef02068544f873",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4b453add_3426e3cd",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 3292,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-08-17T11:03:38Z",
+      "side": 1,
+      "message": "Looks like some code restructuring could make sense meanwhile, maybe then also the debug outputs could be revised a bit to give a better exlanation on what is really done and why\nif loSetVlan \u003d\u003d uint16(of.OfpVlanId_OFPVID_NONE) {\n    //outer set-vlan undefined\n    if loMatchVlan !\u003d uint16(of.OfpVlanId_OFPVID_PRESENT) \u0026\u0026 (loMatchPcp \u003d\u003d 8) \u0026\u0026\n\t\tloInnerCvlan \u003d\u003d uint16(of.OfpVlanId_OFPVID_NONE) {\n    ...\n    }\n    else if ....\n    ...\n}\nelse {\n    //outer set-vlan configured or transparent\n    if loSetVlan !\u003d uint16(of.OfpVlanId_OFPVID_PRESENT) {\n    ...\n    }\n    ...\n}",
+      "revId": "f15a0d02889440e7b660f0a2f6ef02068544f873",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
