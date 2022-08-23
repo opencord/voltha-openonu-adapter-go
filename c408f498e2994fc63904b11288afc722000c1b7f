@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "32963c04_b0338aaa",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-08-23T08:49:07Z",
+      "side": 1,
+      "message": "Patch has been tested with the XGS PON ONUs successfully.",
+      "revId": "c408f498e2994fc63904b11288afc722000c1b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
