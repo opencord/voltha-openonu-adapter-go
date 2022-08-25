@@ -71,6 +71,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "cb9ba69c_7e6e2882",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-08-25T11:10:28Z",
+      "side": 1,
+      "message": "Unfortunately, the corresponding constant is not exported in voltha-lib-go:\n\nhttps://github.com/opencord/voltha-lib-go/blob/e4e80d6dc036ec69df9ba16beb5238f07bec4b2e/pkg/techprofile/tech_profile.go#L130",
+      "parentUuid": "4f1cc8b8_2ec16300",
+      "revId": "c408f498e2994fc63904b11288afc722000c1b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "33fe6795_74d26e32",
         "filename": "internal/pkg/avcfg/omci_ani_config.go",
         "patchSetId": 3
