@@ -50,6 +50,24 @@
       "message": "Should you set this only if encryption is enabled, or it does not matter on encryption setting?",
       "revId": "c408f498e2994fc63904b11288afc722000c1b7f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1c61df94_00be7147",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1484,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-08-25T08:20:38Z",
+      "side": 1,
+      "message": "Enable/disable of encryption is done via PLOAM messages, not via OMCI. A corresponding setting of the attribute EncryptionKeyRing in the ME GemPortNetworkCtp can therefore be done independently before or after activation of encryption and must then only be taken into account by the driver when creating/modifying the corresponding GEM port.",
+      "parentUuid": "33fe6795_74d26e32",
+      "revId": "c408f498e2994fc63904b11288afc722000c1b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
