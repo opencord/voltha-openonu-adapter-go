@@ -35,6 +35,40 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "8e2197cf_b83c5397",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-08-25T09:06:00Z",
+      "side": 1,
+      "message": "Looks good to me, just a minor question for consistency with core, should not prevent submitting.",
+      "revId": "c408f498e2994fc63904b11288afc722000c1b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4f1cc8b8_2ec16300",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2022-08-25T09:06:00Z",
+      "side": 1,
+      "message": "Is it not possible to re-use one of the \u0027core\u0027 related lib files with an according definition there? As the core uses this string-part for writing the tech profile path name it might be defined there somewhere. Would be better if core and adapter use the same string definitions.",
+      "revId": "c408f498e2994fc63904b11288afc722000c1b7f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "33fe6795_74d26e32",
