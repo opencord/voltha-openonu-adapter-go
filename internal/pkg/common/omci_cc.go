@@ -72,6 +72,8 @@ const (
 // CDefaultRetries - TODO: add comment
 const CDefaultRetries = 2
 
+const cMaxConsecutiveOmciTimeouts = 3
+
 // ### OMCI related definitions - end
 
 //CallbackPairEntry to be used for OMCI send/receive correlation
@@ -121,15 +123,19 @@ type OmciCC struct {
 	UploadSequNo   uint16
 	UploadNoOfCmds uint16
 
-	mutexSendQueuedRequests sync.Mutex
-	mutexLowPrioTxQueue     sync.Mutex
-	lowPrioTxQueue          *list.List
-	mutexHighPrioTxQueue    sync.Mutex
-	highPrioTxQueue         *list.List
-	mutexRxSchedMap         sync.Mutex
-	rxSchedulerMap          map[uint16]CallbackPairEntry
-	mutexMonReq             sync.RWMutex
-	monitoredRequests       map[uint16]OmciTransferStructure
+	mutexSendQueuedRequests      sync.Mutex
+	mutexLowPrioTxQueue          sync.Mutex
+	lowPrioTxQueue               *list.List
+	mutexHighPrioTxQueue         sync.Mutex
+	highPrioTxQueue              *list.List
+	mutexRxSchedMap              sync.Mutex
+	rxSchedulerMap               map[uint16]CallbackPairEntry
+	mutexMonReq                  sync.RWMutex
+	monitoredRequests            map[uint16]OmciTransferStructure
+	mutexConsecutiveOmciTimeouts sync.RWMutex
+	consecutiveOmciTimeouts      uint8
+	mutexOmciAbortInProgress     sync.RWMutex
+	omciAbortInProgress          bool
 }
 
 var responsesWithMibDataSync = []omci.MessageType{
@@ -170,7 +176,8 @@ func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandle
 	omciCC.highPrioTxQueue = list.New()
 	omciCC.rxSchedulerMap = make(map[uint16]CallbackPairEntry)
 	omciCC.monitoredRequests = make(map[uint16]OmciTransferStructure)
-
+	omciCC.consecutiveOmciTimeouts = 0
+	omciCC.omciAbortInProgress = false
 	return &omciCC
 }
 
@@ -400,6 +407,12 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	oo.mutexRxSchedMap.Lock()
 	rxCallbackEntry, ok := oo.rxSchedulerMap[omciMsg.TransactionID]
 	if ok && rxCallbackEntry.CbFunction != nil {
+
+		// valid OMCI Response Message received - reset counter of consecutive OMCI timeouts
+		oo.mutexConsecutiveOmciTimeouts.Lock()
+		oo.consecutiveOmciTimeouts = 0
+		oo.mutexConsecutiveOmciTimeouts.Unlock()
+
 		if rxCallbackEntry.FramePrint {
 			oo.printRxMessage(ctx, rxMsg)
 		}
@@ -4440,6 +4453,31 @@ loop:
 				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureSwUpgrade, OnuOmciCommunicationFailureSwUpgradeDesc)
+				oo.mutexConsecutiveOmciTimeouts.Lock()
+				if oo.consecutiveOmciTimeouts < cMaxConsecutiveOmciTimeouts {
+					oo.consecutiveOmciTimeouts++
+					oo.mutexConsecutiveOmciTimeouts.Unlock()
+				} else {
+					oo.consecutiveOmciTimeouts = 0
+					oo.mutexConsecutiveOmciTimeouts.Unlock()
+					oo.mutexOmciAbortInProgress.Lock()
+					if !oo.omciAbortInProgress {
+						oo.omciAbortInProgress = true
+						oo.mutexOmciAbortInProgress.Unlock()
+						logger.Errorw(ctx, "reqMon: communication aborted - no of max consecutive timeouts reached - stopping device and send ONU device event!",
+							log.Fields{"tid": tid, "device-id": oo.deviceID})
+						oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationAbortSwUpgrade, OnuOmciCommunicationAbortSwUpgradeDesc)
+						// stop all running FSM processing
+						_ = oo.pBaseDeviceHandler.UpdateInterface(ctx)
+						oo.mutexOmciAbortInProgress.Lock()
+						oo.omciAbortInProgress = false
+						oo.mutexOmciAbortInProgress.Unlock()
+					} else {
+						oo.mutexOmciAbortInProgress.Unlock()
+						logger.Infow(ctx, "reqMon: communication aborted - corresponding processing already running",
+							log.Fields{"tid": tid, "device-id": oo.deviceID})
+					}
+				}
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
@@ -4927,6 +4965,31 @@ loop:
 				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureConfig, OnuOmciCommunicationFailureConfigDesc)
+				oo.mutexConsecutiveOmciTimeouts.Lock()
+				if oo.consecutiveOmciTimeouts < cMaxConsecutiveOmciTimeouts {
+					oo.consecutiveOmciTimeouts++
+					oo.mutexConsecutiveOmciTimeouts.Unlock()
+				} else {
+					oo.consecutiveOmciTimeouts = 0
+					oo.mutexConsecutiveOmciTimeouts.Unlock()
+					oo.mutexOmciAbortInProgress.Lock()
+					if !oo.omciAbortInProgress {
+						oo.omciAbortInProgress = true
+						oo.mutexOmciAbortInProgress.Unlock()
+						logger.Errorw(ctx, "reqMon: communication aborted - no of max consecutive timeouts reached - stopping device and send ONU device event!",
+							log.Fields{"tid": tid, "device-id": oo.deviceID})
+						oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationAbortConfig, OnuOmciCommunicationAbortConfigDesc)
+						// stop all running FSM processing
+						_ = oo.pBaseDeviceHandler.UpdateInterface(ctx)
+						oo.mutexOmciAbortInProgress.Lock()
+						oo.omciAbortInProgress = false
+						oo.mutexOmciAbortInProgress.Unlock()
+					} else {
+						oo.mutexOmciAbortInProgress.Unlock()
+						logger.Infow(ctx, "reqMon: communication aborted - corresponding processing already running",
+							log.Fields{"tid": tid, "device-id": oo.deviceID})
+					}
+				}
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
