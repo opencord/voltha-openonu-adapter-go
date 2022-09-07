@@ -20,6 +20,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "f4f58b41_52585823",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-09-07T20:06:01Z",
+      "side": 1,
+      "message": "Do we really need to persist this data? Is it important to be restored in adapter reconciliation? It may be better to keep them in memory and loose in an adapter restart.",
+      "range": {
+        "startLine": 172,
+        "startChar": 0,
+        "endLine": 175,
+        "endChar": 78
+      },
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e9d15921_0cffd441",
         "filename": "internal/pkg/mib/onu_device_entry.go",
         "patchSetId": 1
