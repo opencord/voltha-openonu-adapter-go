@@ -3825,6 +3825,32 @@ func (dh *deviceHandler) getOnuOMCICounters(ctx context.Context, onuInfo *extens
 	return resp
 }
 
+func (dh *deviceHandler) getOnuOMCIStats(ctx context.Context) (*extension.SingleGetValueResponse, error) {
+
+	var err error
+	var pDevOmciCC *cmn.OmciCC
+	if dh.pOnuOmciDevice == nil {
+		logger.Errorw(ctx, "No valid DeviceEntry", log.Fields{"device-id": dh.DeviceID})
+		err = fmt.Errorf("no-valid-DeviceEntry-%s", dh.DeviceID)
+	} else {
+		pDevOmciCC = dh.pOnuOmciDevice.GetDevOmciCC()
+		if pDevOmciCC == nil {
+			logger.Errorw(ctx, "No valid DeviceOmciCCEntry", log.Fields{"device-id": dh.DeviceID})
+			err = fmt.Errorf("no-valid-DeviceOmciCCEntry-%s", dh.DeviceID)
+		}
+	}
+	if err != nil {
+		return &extension.SingleGetValueResponse{
+				Response: &extension.GetValueResponse{
+					Status:    extension.GetValueResponse_ERROR,
+					ErrReason: extension.GetValueResponse_INTERNAL_ERROR,
+				},
+			},
+			err
+	}
+	return pDevOmciCC.GetOmciCounters(), nil
+}
+
 func (dh *deviceHandler) isFsmInOmciIdleState(ctx context.Context, PFsm *fsm.FSM, wantedState string) bool {
 	if PFsm == nil {
 		return true //FSM not active - so there is no activity on omci

@@ -40,6 +40,7 @@ import (
 
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	"github.com/opencord/voltha-protos/v5/go/common"
+	"github.com/opencord/voltha-protos/v5/go/extension"
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 )
 
@@ -99,6 +100,13 @@ type OmciTransferStructure struct {
 	OnuSwWindow    *ia.OmciMessages
 }
 
+type txRxCounters struct {
+	txArFrames   uint32
+	txNoArFrames uint32
+	rxAkFrames   uint32
+	rxNoAkFrames uint32
+}
+
 //OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
 type OmciCC struct {
 	enabled            bool
@@ -110,8 +118,11 @@ type OmciCC struct {
 	supportExtMsg      bool
 	rxOmciFrameError   tOmciReceiveError
 
-	txFrames, txOnuFrames                uint32
-	rxFrames, rxOnuFrames, rxOnuDiscards uint32
+	mutexCounters sync.RWMutex
+	countersBase  txRxCounters
+	countersExt   txRxCounters
+	txRetries     uint32
+	txTimeouts    uint32
 
 	// OMCI params
 	mutexTid       sync.Mutex
@@ -157,11 +168,10 @@ func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandle
 	omciCC.coreClient = coreClient
 	omciCC.supportExtMsg = false
 	omciCC.rxOmciFrameError = cOmciMessageReceiveNoError
-	omciCC.txFrames = 0
-	omciCC.txOnuFrames = 0
-	omciCC.rxFrames = 0
-	omciCC.rxOnuFrames = 0
-	omciCC.rxOnuDiscards = 0
+	omciCC.countersBase = txRxCounters{0, 0, 0, 0}
+	omciCC.countersExt = txRxCounters{0, 0, 0, 0}
+	omciCC.txRetries = 0
+	omciCC.txTimeouts = 0
 	omciCC.tid = 0x1
 	omciCC.hpTid = 0x8000
 	omciCC.UploadSequNo = 0
@@ -204,13 +214,14 @@ func (oo *OmciCC) Stop(ctx context.Context) error {
 	oo.UploadSequNo = 0
 	oo.UploadNoOfCmds = 0
 	oo.rxOmciFrameError = cOmciMessageReceiveNoError
-	//reset the stats counter - which might be topic of discussion ...
-	oo.txFrames = 0
-	oo.txOnuFrames = 0
-	oo.rxFrames = 0
-	oo.rxOnuFrames = 0
-	oo.rxOnuDiscards = 0
 
+	//reset the stats counter
+	oo.mutexCounters.Lock()
+	oo.countersBase = txRxCounters{0, 0, 0, 0}
+	oo.countersExt = txRxCounters{0, 0, 0, 0}
+	oo.txRetries = 0
+	oo.txTimeouts = 0
+	oo.mutexCounters.Unlock()
 	return nil
 }
 
@@ -389,6 +400,11 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.printRxMessage(ctx, rxMsg)
 		logger.Debugw(ctx, "RxMsg is no Omci Response Message", log.Fields{"device-id": oo.deviceID})
 		if omciMsg.TransactionID == 0 {
+			if rxMsg[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+				oo.incrementBaseRxNoAkFrames()
+			} else {
+				oo.incrementExtRxNoAkFrames()
+			}
 			return oo.receiveOnuMessage(ctx, omciMsg, &packet)
 		}
 		logger.Errorw(ctx, "Unexpected TransCorrId != 0  not accepted for autonomous messages",
@@ -402,6 +418,11 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	if ok && rxCallbackEntry.CbFunction != nil {
 		if rxCallbackEntry.FramePrint {
 			oo.printRxMessage(ctx, rxMsg)
+		}
+		if rxMsg[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+			oo.incrementBaseRxAkFrames()
+		} else {
+			oo.incrementExtRxAkFrames()
 		}
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
@@ -687,6 +708,11 @@ func (oo *OmciCC) sendOMCIRequest(ctx context.Context, omciTxRequest OmciTransfe
 	if sendErr != nil {
 		logger.Errorw(ctx, "send omci request error", log.Fields{"device-id": oo.deviceID, "ChildId": oo.deviceID, "error": sendErr})
 		return sendErr
+	}
+	if omciTxRequest.txFrame[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+		oo.incrementBaseTxArFrames()
+	} else {
+		oo.incrementExtTxArFrames()
 	}
 	return nil
 }
@@ -4440,10 +4466,12 @@ loop:
 				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureSwUpgrade, OnuOmciCommunicationFailureSwUpgradeDesc)
+				oo.incrementTxTimesouts()
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				oo.incrementTxRetries()
 			}
 		}
 		retryCounter++
@@ -4454,9 +4482,15 @@ loop:
 }
 
 func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest OmciTransferStructure) error {
-	if omciTxRequest.withFramePrint && omciTxRequest.OnuSwWindow != nil {
-		lastSection := omciTxRequest.OnuSwWindow.Messages[len(omciTxRequest.OnuSwWindow.Messages)-1]
-		logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
+	var lastSection []byte
+	if omciTxRequest.OnuSwWindow != nil {
+		lastSection = omciTxRequest.OnuSwWindow.Messages[len(omciTxRequest.OnuSwWindow.Messages)-1]
+	} else {
+		logger.Errorw(ctx, "invalid sw window received", log.Fields{"device-id": oo.deviceID})
+		return fmt.Errorf("invalid sw window received")
+	}
+	if omciTxRequest.withFramePrint {
+		logger.Debugw(ctx, "sw-section-omci-message-to-send:", log.Fields{
 			"TxOmciMessage": hex.EncodeToString(lastSection),
 			"device-id":     oo.deviceID,
 			"toDeviceType":  oo.pBaseDeviceHandler.GetProxyAddressType(),
@@ -4465,8 +4499,16 @@ func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest O
 	}
 	sendErr := oo.pBaseDeviceHandler.SendOnuSwSectionsOfWindow(ctx, oo.pBaseDeviceHandler.GetProxyAddress().AdapterEndpoint, omciTxRequest.OnuSwWindow)
 	if sendErr != nil {
-		logger.Errorw(ctx, "send onu sw sections omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
+		logger.Errorw(ctx, "send onu sw sections omci request error", log.Fields{"device-id": oo.deviceID, "error": sendErr})
 		return sendErr
+	}
+	numberOfNoArSections := len(omciTxRequest.OnuSwWindow.Messages) - 1 // last section of window is sent with AR expected
+	if lastSection[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+		oo.increaseBaseTxNoArFramesBy(ctx, uint32(numberOfNoArSections))
+		oo.incrementBaseTxArFrames()
+	} else {
+		oo.increaseExtTxNoArFramesBy(ctx, uint32(numberOfNoArSections))
+		oo.incrementExtTxArFrames()
 	}
 	return nil
 }
@@ -4927,10 +4969,12 @@ loop:
 				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureConfig, OnuOmciCommunicationFailureConfigDesc)
+				oo.incrementTxTimesouts()
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				oo.incrementTxRetries()
 			}
 		}
 		retryCounter++
@@ -4943,6 +4987,22 @@ loop:
 //CancelRequestMonitoring terminates monitoring of outstanding omci requests
 func (oo *OmciCC) CancelRequestMonitoring(ctx context.Context) {
 	logger.Debugw(ctx, "CancelRequestMonitoring entered", log.Fields{"device-id": oo.deviceID})
+
+	/////////////////////////////////////////////////////
+	logger.Debugw(ctx, "*** OMCI Counter ***", log.Fields{
+		"oo.countersBase.txArFrames":   oo.countersBase.txArFrames,
+		"oo.countersBase.rxAkFrames":   oo.countersBase.rxAkFrames,
+		"oo.countersBase.txNoArFrames": oo.countersBase.txNoArFrames,
+		"oo.countersBase.rxNoAkFrames": oo.countersBase.rxNoAkFrames,
+		"oo.countersExt.txArFrames":    oo.countersExt.txArFrames,
+		"oo.countersExt.rxAkFrames":    oo.countersExt.rxAkFrames,
+		"oo.countersExt.txNoArFrames":  oo.countersExt.txNoArFrames,
+		"oo.countersExt.rxNoAkFrames":  oo.countersExt.rxNoAkFrames,
+		"oo.txRetries":                 oo.txRetries,
+		"oo.txTimeouts":                oo.txTimeouts,
+		"device-id":                    oo.deviceID})
+	//////////////////////////////////////////////////////
+
 	oo.mutexMonReq.RLock()
 	for k := range oo.monitoredRequests {
 		//implement non-blocking channel send to avoid blocking on mutexMonReq later
@@ -5101,4 +5161,91 @@ func (oo *OmciCC) PrepareForGarbageCollection(ctx context.Context, aDeviceID str
 	oo.pBaseDeviceHandler = nil
 	oo.pOnuDeviceEntry = nil
 	oo.pOnuAlarmManager = nil
+}
+
+// GetOmciCounters - TODO: add comment
+func (oo *OmciCC) GetOmciCounters() *extension.SingleGetValueResponse {
+	oo.mutexCounters.RLock()
+	defer oo.mutexCounters.RUnlock()
+	resp := extension.SingleGetValueResponse{
+		Response: &extension.GetValueResponse{
+			Status: extension.GetValueResponse_OK,
+			Response: &extension.GetValueResponse_OnuOmciStats{
+				OnuOmciStats: &extension.GetOnuOmciTxRxStatsResponse{},
+			},
+		},
+	}
+	resp.Response.GetOnuOmciStats().BaseTxArFrames = oo.countersBase.txArFrames
+	resp.Response.GetOnuOmciStats().BaseTxNoArFrames = oo.countersBase.txNoArFrames
+	resp.Response.GetOnuOmciStats().BaseRxAkFrames = oo.countersBase.rxAkFrames
+	resp.Response.GetOnuOmciStats().BaseRxNoAkFrames = oo.countersBase.rxNoAkFrames
+	resp.Response.GetOnuOmciStats().ExtTxArFrames = oo.countersExt.txArFrames
+	resp.Response.GetOnuOmciStats().ExtTxNoArFrames = oo.countersExt.txNoArFrames
+	resp.Response.GetOnuOmciStats().ExtRxAkFrames = oo.countersExt.rxAkFrames
+	resp.Response.GetOnuOmciStats().ExtRxNoAkFrames = oo.countersExt.rxNoAkFrames
+	resp.Response.GetOnuOmciStats().TxOmciCounterRetries = oo.txRetries
+	resp.Response.GetOnuOmciStats().TxOmciCounterTimeouts = oo.txTimeouts
+	return &resp
+}
+
+// For more speed, separate functions for each counter
+
+func (oo *OmciCC) incrementBaseTxArFrames() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersBase.txArFrames++
+}
+
+func (oo *OmciCC) incrementExtTxArFrames() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersExt.txArFrames++
+}
+
+func (oo *OmciCC) incrementBaseRxAkFrames() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersBase.rxAkFrames++
+}
+
+func (oo *OmciCC) incrementExtRxAkFrames() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersExt.rxAkFrames++
+}
+
+func (oo *OmciCC) increaseBaseTxNoArFramesBy(ctx context.Context, value uint32) {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersBase.txNoArFrames += value
+}
+
+func (oo *OmciCC) increaseExtTxNoArFramesBy(ctx context.Context, value uint32) {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersExt.txNoArFrames += value
+}
+
+func (oo *OmciCC) incrementBaseRxNoAkFrames() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersBase.rxNoAkFrames++
+}
+
+func (oo *OmciCC) incrementExtRxNoAkFrames() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.countersExt.rxNoAkFrames++
+}
+
+func (oo *OmciCC) incrementTxRetries() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.txRetries++
+}
+
+func (oo *OmciCC) incrementTxTimesouts() {
+	oo.mutexCounters.Lock()
+	defer oo.mutexCounters.Unlock()
+	oo.txTimeouts++
 }
