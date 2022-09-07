@@ -483,9 +483,10 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			return &resp, nil
 		case *extension.GetValueRequest_OnuInfo:
 			return handler.getOnuOMCICounters(ctx, reqType.OnuInfo), nil
+		case *extension.GetValueRequest_OnuOmciStats:
+			return handler.getOnuOMCIStats(ctx)
 		default:
 			return uniprt.PostUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
-
 		}
 	}
 	logger.Errorw(ctx, "Single_get_value_request failed ", log.Fields{"request": request})

@@ -544,7 +544,8 @@ func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0,
+			make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
 	oo.mutexOnuKVStore.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.mutexOnuKVStore.RUnlock()
@@ -599,7 +600,8 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 
 	oo.SOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0,
+			make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.mutexOnuKVStore.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
