@@ -389,6 +389,11 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		oo.printRxMessage(ctx, rxMsg)
 		logger.Debugw(ctx, "RxMsg is no Omci Response Message", log.Fields{"device-id": oo.deviceID})
 		if omciMsg.TransactionID == 0 {
+			if rxMsg[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+				oo.pOnuDeviceEntry.IncrementOmciBaseRxNoAkFrames()
+			} else {
+				oo.pOnuDeviceEntry.IncrementOmciExtRxNoAkFrames()
+			}
 			return oo.receiveOnuMessage(ctx, omciMsg, &packet)
 		}
 		logger.Errorw(ctx, "Unexpected TransCorrId != 0  not accepted for autonomous messages",
@@ -402,6 +407,11 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	if ok && rxCallbackEntry.CbFunction != nil {
 		if rxCallbackEntry.FramePrint {
 			oo.printRxMessage(ctx, rxMsg)
+		}
+		if rxMsg[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+			oo.pOnuDeviceEntry.IncrementOmciBaseRxAkFrames()
+		} else {
+			oo.pOnuDeviceEntry.IncrementOmciExtRxAkFrames()
 		}
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
@@ -687,6 +697,11 @@ func (oo *OmciCC) sendOMCIRequest(ctx context.Context, omciTxRequest OmciTransfe
 	if sendErr != nil {
 		logger.Errorw(ctx, "send omci request error", log.Fields{"device-id": oo.deviceID, "ChildId": oo.deviceID, "error": sendErr})
 		return sendErr
+	}
+	if omciTxRequest.txFrame[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+		oo.pOnuDeviceEntry.IncrementOmciBaseTxArFrames()
+	} else {
+		oo.pOnuDeviceEntry.IncrementOmciExtTxArFrames()
 	}
 	return nil
 }
@@ -4440,10 +4455,12 @@ loop:
 				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureSwUpgrade, OnuOmciCommunicationFailureSwUpgradeDesc)
+				oo.pOnuDeviceEntry.IncrementOmciTxTimesouts()
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				oo.pOnuDeviceEntry.IncrementOmciTxRetries()
 			}
 		}
 		retryCounter++
@@ -4454,9 +4471,15 @@ loop:
 }
 
 func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest OmciTransferStructure) error {
-	if omciTxRequest.withFramePrint && omciTxRequest.OnuSwWindow != nil {
-		lastSection := omciTxRequest.OnuSwWindow.Messages[len(omciTxRequest.OnuSwWindow.Messages)-1]
-		logger.Debugw(ctx, "omci-message-to-send:", log.Fields{
+	var lastSection []byte
+	if omciTxRequest.OnuSwWindow != nil {
+		lastSection = omciTxRequest.OnuSwWindow.Messages[len(omciTxRequest.OnuSwWindow.Messages)-1]
+	} else {
+		logger.Errorw(ctx, "invalid sw window received", log.Fields{"device-id": oo.deviceID})
+		return fmt.Errorf("invalid sw window received")
+	}
+	if omciTxRequest.withFramePrint {
+		logger.Debugw(ctx, "sw-section-omci-message-to-send:", log.Fields{
 			"TxOmciMessage": hex.EncodeToString(lastSection),
 			"device-id":     oo.deviceID,
 			"toDeviceType":  oo.pBaseDeviceHandler.GetProxyAddressType(),
@@ -4465,8 +4488,16 @@ func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest O
 	}
 	sendErr := oo.pBaseDeviceHandler.SendOnuSwSectionsOfWindow(ctx, oo.pBaseDeviceHandler.GetProxyAddress().AdapterEndpoint, omciTxRequest.OnuSwWindow)
 	if sendErr != nil {
-		logger.Errorw(ctx, "send onu sw sections omci request error", log.Fields{"ChildId": oo.deviceID, "error": sendErr})
+		logger.Errorw(ctx, "send onu sw sections omci request error", log.Fields{"device-id": oo.deviceID, "error": sendErr})
 		return sendErr
+	}
+	numberOfNoArSections := len(omciTxRequest.OnuSwWindow.Messages) - 1 // last section of window is sent with AR expected
+	if lastSection[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
+		oo.pOnuDeviceEntry.IncreaseOmciBaseTxNoArFramesBy(ctx, uint32(numberOfNoArSections))
+		oo.pOnuDeviceEntry.IncrementOmciBaseTxArFrames()
+	} else {
+		oo.pOnuDeviceEntry.IncreaseOmciExtTxNoArFramesBy(ctx, uint32(numberOfNoArSections))
+		oo.pOnuDeviceEntry.IncrementOmciExtTxArFrames()
 	}
 	return nil
 }
@@ -4927,10 +4958,12 @@ loop:
 				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureConfig, OnuOmciCommunicationFailureConfigDesc)
+				oo.pOnuDeviceEntry.IncrementOmciTxTimesouts()
 				break loop
 			} else {
 				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				oo.pOnuDeviceEntry.IncrementOmciTxRetries()
 			}
 		}
 		retryCounter++

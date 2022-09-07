@@ -33,6 +33,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	"github.com/opencord/voltha-protos/v5/go/extension"
 	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 
@@ -141,26 +142,37 @@ type uniPersConfig struct {
 	PersFlowParams []cmn.UniVlanFlowParams `json:"flow_params"`   //as defined in omci_ani_config.go
 }
 
+type omciCounters struct {
+	PersTxArFrames   uint32 `json:"tx_ar_frames"`
+	PersRxAkFrames   uint32 `json:"rx_ak_frames"`
+	PersTxNoArFrames uint32 `json:"tx_no_ar_frames"`
+	PersRxNoAkFrames uint32 `json:"rx_no_ak_frames"`
+}
+
 type onuPersistentData struct {
-	PersOnuID              uint32            `json:"onu_id"`
-	PersIntfID             uint32            `json:"intf_id"`
-	PersSerialNumber       string            `json:"serial_number"`
-	PersMacAddress         string            `json:"mac_address"`
-	PersVendorID           string            `json:"vendor_id"`
-	PersVersion            string            `json:"version"`
-	PersEquipmentID        string            `json:"equipment_id"`
-	PersIsExtOmciSupported bool              `json:"is_ext_omci_supported"`
-	PersActiveSwVersion    string            `json:"active_sw_version"`
-	PersAdminState         string            `json:"admin_state"`
-	PersOperState          string            `json:"oper_state"`
-	PersUniUnlockDone      bool              `json:"uni_unlock_done"`
-	PersUniDisableDone     bool              `json:"uni_disable_done"`
-	PersMibAuditInterval   time.Duration     `json:"mib_audit_interval"`
-	PersMibLastDbSync      uint32            `json:"mib_last_db_sync"`
-	PersMibDataSyncAdpt    uint8             `json:"mib_data_sync_adpt"`
-	PersUniConfig          []uniPersConfig   `json:"uni_config"`
-	PersAlarmAuditInterval time.Duration     `json:"alarm_audit_interval"`
-	PersTcontMap           map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
+	PersOnuID                 uint32            `json:"onu_id"`
+	PersIntfID                uint32            `json:"intf_id"`
+	PersSerialNumber          string            `json:"serial_number"`
+	PersMacAddress            string            `json:"mac_address"`
+	PersVendorID              string            `json:"vendor_id"`
+	PersVersion               string            `json:"version"`
+	PersEquipmentID           string            `json:"equipment_id"`
+	PersIsExtOmciSupported    bool              `json:"is_ext_omci_supported"`
+	PersActiveSwVersion       string            `json:"active_sw_version"`
+	PersAdminState            string            `json:"admin_state"`
+	PersOperState             string            `json:"oper_state"`
+	PersUniUnlockDone         bool              `json:"uni_unlock_done"`
+	PersUniDisableDone        bool              `json:"uni_disable_done"`
+	PersMibAuditInterval      time.Duration     `json:"mib_audit_interval"`
+	PersMibLastDbSync         uint32            `json:"mib_last_db_sync"`
+	PersMibDataSyncAdpt       uint8             `json:"mib_data_sync_adpt"`
+	PersUniConfig             []uniPersConfig   `json:"uni_config"`
+	PersAlarmAuditInterval    time.Duration     `json:"alarm_audit_interval"`
+	PersTcontMap              map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
+	PersOmciCountersBase      omciCounters      `json:"omci_counters_base"`
+	PersOmciCountersExt       omciCounters      `json:"omci_counters_ext"`
+	PersOmciCounterTxRetries  uint32            `json:"tx_omci_counter_retries"`
+	PersOmciCounterTxTimeouts uint32            `json:"tx_omci_counter_timeouts"`
 }
 
 //type UniTpidInstances map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage
@@ -544,7 +556,8 @@ func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0),
+			oo.alarmAuditInterval, make(map[uint16]uint16), omciCounters{0, 0, 0, 0}, omciCounters{0, 0, 0, 0}, 0, 0}
 	oo.mutexOnuKVStore.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.mutexOnuKVStore.RUnlock()
@@ -599,7 +612,8 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 
 	oo.SOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0, make([]uniPersConfig, 0),
+			oo.alarmAuditInterval, make(map[uint16]uint16), omciCounters{0, 0, 0, 0}, omciCounters{0, 0, 0, 0}, 0, 0}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.mutexOnuKVStore.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
@@ -1056,4 +1070,115 @@ func (oo *OnuDeviceEntry) SendOnuDeviceEvent(ctx context.Context, aDeviceEventNa
 		Context:         context,
 	}
 	_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
+}
+
+// For more speed, separate functions for each counter
+
+// IncrementOmciBaseTxArFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciBaseTxArFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersBase.PersTxArFrames++
+}
+
+// IncrementOmciExtTxArFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciExtTxArFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersExt.PersTxArFrames++
+}
+
+// IncrementOmciBaseRxAkFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciBaseRxAkFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersBase.PersRxAkFrames++
+}
+
+// IncrementOmciExtRxAkFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciExtRxAkFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersExt.PersRxAkFrames++
+}
+
+// IncrementOmciBaseTxNoArFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciBaseTxNoArFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersBase.PersTxNoArFrames++
+}
+
+// IncrementOmciExtTxNoArFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciExtTxNoArFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersExt.PersTxNoArFrames++
+}
+
+// IncreaseOmciBaseTxNoArFramesBy - TODO: add comment
+func (oo *OnuDeviceEntry) IncreaseOmciBaseTxNoArFramesBy(ctx context.Context, value uint32) {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersBase.PersTxNoArFrames += value
+}
+
+// IncreaseOmciExtTxNoArFramesBy - TODO: add comment
+func (oo *OnuDeviceEntry) IncreaseOmciExtTxNoArFramesBy(ctx context.Context, value uint32) {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersExt.PersTxNoArFrames += value
+}
+
+// IncrementOmciBaseRxNoAkFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciBaseRxNoAkFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersBase.PersRxNoAkFrames++
+}
+
+// IncrementOmciExtRxNoAkFrames - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciExtRxNoAkFrames() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCountersExt.PersRxNoAkFrames++
+}
+
+// IncrementOmciTxRetries - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciTxRetries() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCounterTxRetries++
+}
+
+// IncrementOmciTxTimesouts - TODO: add comment
+func (oo *OnuDeviceEntry) IncrementOmciTxTimesouts() {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	oo.SOnuPersistentData.PersOmciCounterTxTimeouts++
+}
+
+// GetOmciCounters - TODO: add comment
+func (oo *OnuDeviceEntry) GetOmciCounters() *extension.SingleGetValueResponse {
+	oo.MutexPersOnuConfig.RLock()
+	defer oo.MutexPersOnuConfig.RUnlock()
+	resp := extension.SingleGetValueResponse{
+		Response: &extension.GetValueResponse{
+			Status: extension.GetValueResponse_OK,
+			Response: &extension.GetValueResponse_OnuOmciStats{
+				OnuOmciStats: &extension.GetOnuOmciTxRxStatsResponse{},
+			},
+		},
+	}
+	resp.Response.GetOnuOmciStats().BaseRxAkFrames = oo.SOnuPersistentData.PersOmciCountersBase.PersRxAkFrames
+	resp.Response.GetOnuOmciStats().BaseRxNoAkFrames = oo.SOnuPersistentData.PersOmciCountersBase.PersRxNoAkFrames
+	resp.Response.GetOnuOmciStats().BaseTxArFrames = oo.SOnuPersistentData.PersOmciCountersBase.PersTxArFrames
+	resp.Response.GetOnuOmciStats().BaseTxNoArFrames = oo.SOnuPersistentData.PersOmciCountersBase.PersTxNoArFrames
+	resp.Response.GetOnuOmciStats().ExtRxAkFrames = oo.SOnuPersistentData.PersOmciCountersExt.PersRxAkFrames
+	resp.Response.GetOnuOmciStats().ExtRxNoAkFrames = oo.SOnuPersistentData.PersOmciCountersExt.PersRxNoAkFrames
+	resp.Response.GetOnuOmciStats().ExtTxArFrames = oo.SOnuPersistentData.PersOmciCountersExt.PersTxArFrames
+	resp.Response.GetOnuOmciStats().ExtTxNoArFrames = oo.SOnuPersistentData.PersOmciCountersExt.PersTxNoArFrames
+	resp.Response.GetOnuOmciStats().TxOmciCounterRetries = oo.SOnuPersistentData.PersOmciCounterTxRetries
+	resp.Response.GetOnuOmciStats().TxOmciCounterTimeouts = oo.SOnuPersistentData.PersOmciCounterTxTimeouts
+	return &resp
 }

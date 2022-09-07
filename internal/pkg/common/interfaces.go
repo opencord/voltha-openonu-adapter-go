@@ -144,6 +144,19 @@ type IonuDeviceEntry interface {
 
 	IncrementMibDataSync(context.Context)
 
+	IncrementOmciBaseTxArFrames()
+	IncrementOmciExtTxArFrames()
+	IncrementOmciBaseRxAkFrames()
+	IncrementOmciExtRxAkFrames()
+	IncrementOmciBaseTxNoArFrames()
+	IncrementOmciExtTxNoArFrames()
+	IncreaseOmciBaseTxNoArFramesBy(context.Context, uint32)
+	IncreaseOmciExtTxNoArFramesBy(context.Context, uint32)
+	IncrementOmciBaseRxNoAkFrames()
+	IncrementOmciExtRxNoAkFrames()
+	IncrementOmciTxRetries()
+	IncrementOmciTxTimesouts()
+
 	GetActiveImageMeID(context.Context) (uint16, error)
 	HandleSwImageIndications(context.Context, uint16, me.AttributeValueMap) bool
 	GetPersActiveSwVersion() string
