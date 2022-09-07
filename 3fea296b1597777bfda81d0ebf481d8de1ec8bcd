@@ -16,6 +16,23 @@
       "message": "@Amit, @Mahir, @Joey:\nWe need to address the issue of semantic versioning once again. If we stick to https://semver.org/#semantic-versioning-specification-semver, we would have to increment at least the minor version of the ONU adapter for the current patch - i.e. from 2.3.1 to 2.4.0. However, with the ONF, the minor version has so far mostly been incremented only after a release and the patch version has been used for potential backporting. If we now use the incrementing scheme of semantic versioning thus\n\n    MAJOR version when you make incompatible API changes\n    MINOR version when you add functionality in a backwards compatible manner\n    PATCH version when you make backwards compatible bug fixes\n\nwe would have the problem of how to version any backporting actions after a voltha release.  \nSo we have to come up with a concept that satisfies both requirements.",
       "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e9d15921_0cffd441",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1081,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-09-07T19:02:19Z",
+      "side": 1,
+      "message": "Are we really persisting the counters on etcd? How often ? Or they reset on restart?\nThere are pros and cons to each approach.",
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
