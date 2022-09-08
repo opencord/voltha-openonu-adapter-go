@@ -18,6 +18,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "070eee32_f9fd123b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-09-08T11:12:07Z",
+      "side": 1,
+      "message": "@Girish, @Mahir:\nThe idea behind making the counters persistent was to be able to find a possibly faulty ONU in case of an adapter restart, which could have caused the restart. However, the storage of the data in the etcd is not so fine-granular that one would catch every error situation with it. Another approach could be to store the counters transiently and to let the Metrics Manager output the counters periodically via kafka events together with the other performance counters in a second step, besides the output possibility via the new voltctl command intoduced with this patch at adapter side.\n\nWhat is your opinion on this?",
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f4f58b41_52585823",
