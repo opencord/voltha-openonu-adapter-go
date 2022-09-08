@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4dfb4a4d_dc5c2de6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2022-09-08T15:01:00Z",
+      "side": 1,
+      "message": "I would also think like the others that we try and avoid storing these counters in the persistent storage. Maybe having it in the memory is good for now. We were thinking of using Prometheus (we have an item in the roadmap wishlist but have not been able to start on it) so that the counters can be taken out of voltha.",
+      "parentUuid": "070eee32_f9fd123b",
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f4f58b41_52585823",
