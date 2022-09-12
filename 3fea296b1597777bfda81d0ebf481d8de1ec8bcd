@@ -53,6 +53,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "8ee28441_783402ee",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2022-09-12T16:12:57Z",
+      "side": 1,
+      "message": "Until publishing the counters to Kafka, I\u0027m in favor to use them in memory.",
+      "parentUuid": "4dfb4a4d_dc5c2de6",
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f4f58b41_52585823",
