@@ -71,6 +71,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "594dfa75_a1d43c0c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-09-13T07:41:09Z",
+      "side": 1,
+      "message": "Correct, therefore the counters were moved from the persistent storage in OnuDeviceEntry::SOnuPersistentData to the transient storage of the OmciCC object. Or did I misunderstand your statement?",
+      "parentUuid": "8ee28441_783402ee",
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f4f58b41_52585823",
@@ -94,6 +112,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "8e8be291_129cf6e8",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-09-13T07:41:09Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f4f58b41_52585823",
+      "range": {
+        "startLine": 172,
+        "startChar": 0,
+        "endLine": 175,
+        "endChar": 78
+      },
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e9d15921_0cffd441",
@@ -107,6 +149,24 @@
       "writtenOn": "2022-09-07T19:02:19Z",
       "side": 1,
       "message": "Are we really persisting the counters on etcd? How often ? Or they reset on restart?\nThere are pros and cons to each approach.",
+      "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f75bdeb9_3f76faae",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1081,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-09-13T07:41:09Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e9d15921_0cffd441",
       "revId": "3fea296b1597777bfda81d0ebf481d8de1ec8bcd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
