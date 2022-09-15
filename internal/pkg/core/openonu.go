@@ -898,7 +898,7 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 			}
 			return &empty.Empty{}, nil
 		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
-			if err := handler.updateInterface(ctx, onuIndication); err != nil {
+			if err := handler.UpdateInterface(ctx); err != nil {
 				return nil, err
 			}
 			return &empty.Empty{}, nil

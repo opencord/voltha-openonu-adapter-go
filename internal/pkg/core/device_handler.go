@@ -2131,7 +2131,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	return nil
 }
 
-func (dh *deviceHandler) updateInterface(ctx context.Context, onuind *oop.OnuIndication) error {
+func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 	//state checking to prevent unneeded processing (eg. on ONU 'unreachable' and 'down')
 	// (but note that the deviceReason may also have changed to e.g. TechProf*Delete_Success in between)
 	if dh.getDeviceReason() != cmn.DrStoppingOpenomci {
