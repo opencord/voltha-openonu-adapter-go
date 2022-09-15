@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ff8f12f8_dad002fd",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-09-15T07:52:03Z",
+      "side": 1,
+      "message": "Hi Joey,\nunfortunately switching to the 2.10 branch did not work for this patch. It ended up in the master branch again (see the output for \"Repo | Branch\").",
+      "revId": "a8cfd126b8c04e7f8d22806207c6b49d490aa902",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
