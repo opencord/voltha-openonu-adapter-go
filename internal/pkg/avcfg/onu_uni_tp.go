@@ -992,6 +992,17 @@ func (onuTP *OnuUniTechProf) GetAllBidirectionalGemPortIDsForOnu() []uint16 {
 	return gemPortInstIDs
 }
 
+// GetNumberOfConfiguredGemPorts - provides the number of Gem ports for each UNI/TP combination
+func (onuTP *OnuUniTechProf) GetNumberOfConfiguredGemPorts(ctx context.Context) int {
+	onuTP.mutexTPState.RLock()
+	defer onuTP.mutexTPState.RUnlock()
+	numberOfConfGemPorts := 0
+	for _, tcontGemList := range onuTP.mapPonAniConfig {
+		numberOfConfGemPorts += len(tcontGemList.mapGemPortParams)
+	}
+	return numberOfConfGemPorts
+}
+
 // setProfileResetting sets/resets the indication, that a reset of the TechProfileConfig/Removal is ongoing
 func (onuTP *OnuUniTechProf) setProfileResetting(ctx context.Context, aUniID uint8, aTpID uint8, aState bool) {
 	uniTpKey := uniTP{uniID: aUniID, tpID: aTpID}

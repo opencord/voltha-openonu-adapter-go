@@ -386,7 +386,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 				// MibDb usage: downstream PrioQueue.RelatedPort = xxyyzzzz with xx=slot, yy=UniPort and zzzz=prio
 				// i.e.: search PrioQueue list with yy=actual pOnuUniPort.UniID,
 				// from that list use the PrioQueue.Entity with gemEntry.prioQueueIndex == zzzz (expect 0..7)
-				// Note: As we do not maintain any slot numbering, slot number will be excluded from seatch pattern.
+				// Note: As we do not maintain any slot numbering, slot number will be excluded from search pattern.
 				//       Furthermore OMCI Onu port-Id is expected to start with 1 (not 0).
 				dsQrelPortMask := uint32((((uint32)(oFsm.pOnuUniPort.UniID + 1)) << 16) + uint32(gemEntry.prioQueueIndex))
 

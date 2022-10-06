@@ -369,4 +369,10 @@ const (
 
 	OnuOmciCommunicationAbortSwUpgrade     = "ONU_OMCI_COMMUNICATION_ABORT_SW_UPGRADE"
 	OnuOmciCommunicationAbortSwUpgradeDesc = "OMCI communication during ONU SW upgrade aborted - max failures reached: stopping device"
+
+	OnuConfigFailureMissingTcont     = "ONU_CONFIG_FAILURE_MISSING_TCONT"
+	OnuConfigFailureMissingTcontDesc = "ONU config failed - no further TCONT resources available at ONU"
+
+	OnuConfigFailureMissingUsPriorityQueue     = "ONU_CONFIG_FAILURE_MISSING_US_PRIORITY_QUEUE"
+	OnuConfigFailureMissingUsPriorityQueueDesc = "ONU config failed - no further upstream PriorityQueue resources available at ONU"
 )

@@ -178,6 +178,7 @@ type IonuAlarmManager interface {
 // IonuUniTechProf interface to onuUniTechProf
 type IonuUniTechProf interface {
 	GetAllBidirectionalGemPortIDsForOnu() []uint16
+	GetNumberOfConfiguredGemPorts(ctx context.Context) int
 	SetProfileToDelete(uint8, uint8, bool)
 }
 
