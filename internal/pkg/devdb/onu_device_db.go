@@ -158,6 +158,13 @@ func (OnuDeviceDB *OnuDeviceDB) GetSortedInstKeys(ctx context.Context, meClassID
 	return meInstKeys
 }
 
+//GetNumberOfInst returns the number of instances of an ME
+func (OnuDeviceDB *OnuDeviceDB) GetNumberOfInst(meClassID me.ClassID) int {
+	OnuDeviceDB.meDbLock.RLock()
+	defer OnuDeviceDB.meDbLock.RUnlock()
+	return len(OnuDeviceDB.MeDb[meClassID])
+}
+
 //LogMeDb logs content of internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) LogMeDb(ctx context.Context) {
 	logger.Debugw(ctx, "ME instances stored for :", log.Fields{"device-id": OnuDeviceDB.deviceID})
