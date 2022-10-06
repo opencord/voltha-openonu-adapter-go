@@ -38,6 +38,13 @@ const (
 	//binaryBit1 = '1'
 )
 
+//as defined in G.988
+const (
+	cGemDirUniToAni = 1
+	cGemDirAniToUni = 2
+	cGemDirBiDirect = 3
+)
+
 // ResourceEntry - TODO: add comment
 type ResourceEntry int
 
@@ -407,7 +414,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			uint16(content.GemportId)
 		//direction can be correlated later with Downstream list,
 		//  for now just assume bidirectional (upstream never exists alone)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].direction = 3 //as defined in G.988
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].direction = cGemDirBiDirect
 		// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
 		if content.PriorityQ > 7 {
 			logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
@@ -472,7 +479,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 
 				//Separate McastGemId is derived from OMCI-lib-go, if not needed first needs to be removed there.
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].gemPortID = mcastGemID
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].direction = 2 // for ANI to UNI as defined in G.988
+				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].direction = cGemDirAniToUni
 
 				if downstreamContent.AesEncryption == "True" {
 					onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].gemPortEncState = 1
@@ -990,6 +997,30 @@ func (onuTP *OnuUniTechProf) GetAllBidirectionalGemPortIDsForOnu() []uint16 {
 		}
 	}
 	return gemPortInstIDs
+}
+
+// GetNumberOfConfiguredUsGemPorts - provides the number of Gem ports for each UNI/TP combination
+func (onuTP *OnuUniTechProf) GetNumberOfConfiguredUsGemPorts(ctx context.Context) int {
+	onuTP.mutexTPState.RLock()
+	defer onuTP.mutexTPState.RUnlock()
+	usGemPorts := make([]uint16, 0)
+	for _, tcontGemList := range onuTP.mapPonAniConfig {
+		for gemPortID, gemPortParams := range tcontGemList.mapGemPortParams {
+			if gemPortParams.direction == cGemDirBiDirect || gemPortParams.direction == cGemDirUniToAni {
+				alreadyConfigured := false
+				for _, foundUsGemPortID := range usGemPorts {
+					if foundUsGemPortID == gemPortID {
+						alreadyConfigured = true
+						break
+					}
+				}
+				if !alreadyConfigured {
+					usGemPorts = append(usGemPorts, gemPortID)
+				}
+			}
+		}
+	}
+	return len(usGemPorts)
 }
 
 // setProfileResetting sets/resets the indication, that a reset of the TechProfileConfig/Removal is ongoing
