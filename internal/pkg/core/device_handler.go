@@ -419,6 +419,15 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 		case *ia.TechProfileDownloadMessage_TpInstance:
 			logger.Debugw(ctx, "onu-uni-tp-path-modified", log.Fields{"device-id": dh.DeviceID,
 				"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
+
+			err = dh.CheckAvailableOnuCapabilities(ctx, pDevEntry, *tpInst.TpInstance)
+			if err != nil {
+				logger.Errorw(ctx, "error-checking-available-onu-capabilities-stopping-device",
+					log.Fields{"device-id": dh.DeviceID, "err": err, "tp-path": techProfMsg.TpInstancePath})
+				// stopping all further processing
+				_ = dh.UpdateInterface(ctx)
+				return err
+			}
 			//	if there has been some change for some uni TechProfilePath
 			//in order to allow concurrent calls to other dh instances we do not wait for execution here
 			//but doing so we can not indicate problems to the caller (who does what with that then?)
@@ -4421,6 +4430,58 @@ func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint str
 				"request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress})
 	}
 	return err
+}
+
+func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDevEntry *mib.OnuDeviceEntry, tpInst tech_profile.TechProfileInstance) error {
+	// Check if there are additional TCONT instances necessary/available
+	pDevEntry.MutexPersOnuConfig.Lock()
+	if _, ok := pDevEntry.SOnuPersistentData.PersTcontMap[uint16(tpInst.UsScheduler.AllocId)]; !ok {
+		numberOfTcontMapEntries := len(pDevEntry.SOnuPersistentData.PersTcontMap)
+		pDevEntry.MutexPersOnuConfig.Unlock()
+		numberOfTcontDbInsts := pDevEntry.GetOnuDB().GetNumberOfInst(me.TContClassID)
+		logger.Debugw(ctx, "checking available TCONT instances",
+			log.Fields{"device-id": dh.DeviceID, "numberOfTcontMapEntries": numberOfTcontMapEntries, "numberOfTcontDbInsts": numberOfTcontDbInsts})
+		if numberOfTcontMapEntries >= numberOfTcontDbInsts {
+			logger.Errorw(ctx, "configuration exceeds ONU capabilities - running out of TCONT instances: send ONU device event!",
+				log.Fields{"device-id": dh.device.Id})
+			pDevEntry.SendOnuDeviceEvent(ctx, cmn.OnuConfigFailureMissingTcont, cmn.OnuConfigFailureMissingTcontDesc)
+			return fmt.Errorf(fmt.Sprintf("configuration exceeds ONU capabilities - running out of TCONT instances: device-id: %s", dh.DeviceID))
+		}
+	} else {
+		pDevEntry.MutexPersOnuConfig.Unlock()
+	}
+	// Check if there are enough PrioQueue instances available
+	if dh.pOnuTP != nil {
+		var numberOfUsPrioQueueDbInsts int
+
+		queueInstKeys := pDevEntry.GetOnuDB().GetSortedInstKeys(ctx, me.PriorityQueueClassID)
+		for _, mgmtEntityID := range queueInstKeys {
+			if mgmtEntityID >= 0x8000 && mgmtEntityID <= 0xFFFF {
+				numberOfUsPrioQueueDbInsts++
+			}
+		}
+		// Check if there is an upstream PriorityQueue instance available for each Gem port
+		numberOfConfiguredGemPorts := dh.pOnuTP.GetNumberOfConfiguredUsGemPorts(ctx)
+		logger.Debugw(ctx, "checking available upstream PriorityQueue instances",
+			log.Fields{"device-id": dh.DeviceID,
+				"numberOfConfiguredGemPorts": numberOfConfiguredGemPorts,
+				"tpInst.NumGemPorts":         tpInst.NumGemPorts,
+				"numberOfUsPrioQueueDbInsts": numberOfUsPrioQueueDbInsts})
+
+		if numberOfConfiguredGemPorts+int(tpInst.NumGemPorts) > numberOfUsPrioQueueDbInsts {
+			logger.Errorw(ctx, "configuration exceeds ONU capabilities - running out of upstream PrioQueue instances: send ONU device event!",
+				log.Fields{"device-id": dh.device.Id})
+			pDevEntry.SendOnuDeviceEvent(ctx, cmn.OnuConfigFailureMissingUsPriorityQueue, cmn.OnuConfigFailureMissingUsPriorityQueueDesc)
+			return fmt.Errorf(fmt.Sprintf("configuration exceeds ONU capabilities - running out of upstream PrioQueue instances: device-id: %s", dh.DeviceID))
+		}
+		// Downstream PrioQueue instances are evaluated in accordance with ONU MIB upload data in function UniPonAniConfigFsm::prepareAndEnterConfigState().
+		// In case of missing downstream PrioQueues the attribute "Priority queue pointer for downstream" of ME "GEM port network CTP" will be set to "0",
+		// which then alternatively activates the queuing mechanisms of the ONU (refer to Rec. ITU-T G.988 chapter 9.2.3).
+	} else {
+		logger.Warnw(ctx, "onuTechProf instance not set up - check for PriorityQueue instances skipped!",
+			log.Fields{"device-id": dh.DeviceID})
+	}
+	return nil
 }
 
 // GetDeviceID - TODO: add comment
