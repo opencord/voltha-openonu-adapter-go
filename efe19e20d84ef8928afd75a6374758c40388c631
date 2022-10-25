@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a127a192_11e27f10",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4444,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2022-10-25T15:53:44Z",
+      "side": 1,
+      "message": "Should this check be \u0027\u003e\u0027",
+      "range": {
+        "startLine": 4444,
+        "startChar": 29,
+        "endLine": 4444,
+        "endChar": 31
+      },
+      "revId": "efe19e20d84ef8928afd75a6374758c40388c631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
