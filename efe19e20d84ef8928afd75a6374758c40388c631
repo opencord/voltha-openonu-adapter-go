@@ -22,6 +22,30 @@
       },
       "revId": "efe19e20d84ef8928afd75a6374758c40388c631",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "356da6c2_e931ee33",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4444,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-10-26T13:23:29Z",
+      "side": 1,
+      "message": "Actually, the check here is to be \"\u003d\u003d\", since all resources are already used up before another TCONT is set up. The \"\u003e\u003d\" is only a kind of safety net, if for some reason the state \"\u003d\u003d\" was missed.",
+      "parentUuid": "a127a192_11e27f10",
+      "range": {
+        "startLine": 4444,
+        "startChar": 29,
+        "endLine": 4444,
+        "endChar": 31
+      },
+      "revId": "efe19e20d84ef8928afd75a6374758c40388c631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
