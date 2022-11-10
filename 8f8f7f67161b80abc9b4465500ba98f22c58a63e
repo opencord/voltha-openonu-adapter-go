@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9f03f8bf_87de8ebc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2022-11-10T08:41:04Z",
+      "side": 1,
+      "message": "Note: Before this patch can be merged, a modification must be made in the BBSIM. The BBSIM reports only 8 upstream priority queues during the MIB upload. This number is not sufficient for the TT scenario with four UNI ports per ONU and must be increased to at least 16. ",
+      "revId": "8f8f7f67161b80abc9b4465500ba98f22c58a63e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
