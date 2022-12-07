@@ -361,12 +361,6 @@ const (
 	OnuOmciCommunicationFailureConfig     = "ONU_OMCI_COMMUNICATION_FAILURE_CONFIG"
 	OnuOmciCommunicationFailureConfigDesc = "OMCI communication during ONU configuration failed"
 
-	OnuOmciCommunicationAbortConfig     = "ONU_OMCI_COMMUNICATION_ABORT_CONFIG"
-	OnuOmciCommunicationAbortConfigDesc = "OMCI communication during ONU configuration aborted - max failures reached: stopping device"
-
 	OnuOmciCommunicationFailureSwUpgrade     = "ONU_OMCI_COMMUNICATION_FAILURE_SW_UPGRADE"
 	OnuOmciCommunicationFailureSwUpgradeDesc = "OMCI communication during ONU SW upgrade failed"
-
-	OnuOmciCommunicationAbortSwUpgrade     = "ONU_OMCI_COMMUNICATION_ABORT_SW_UPGRADE"
-	OnuOmciCommunicationAbortSwUpgradeDesc = "OMCI communication during ONU SW upgrade aborted - max failures reached: stopping device"
 )
