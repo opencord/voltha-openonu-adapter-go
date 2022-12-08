@@ -1,0 +1,9 @@
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Code-Review+1: Mahir Gunyel <mahir.gunyel@netsia.com>
+Code-Review+1: Torsten Thieme <torsten.thieme@adtran.com>
+Code-Review+2: Holger Hildebrandt <holger.hildebrandt@adtran.com>
+Submitted-by: Holger Hildebrandt <holger.hildebrandt@adtran.com>
+Submitted-at: Thu, 08 Dec 2022 12:27:33 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/33510
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/voltha-2.10
