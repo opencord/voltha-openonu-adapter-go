@@ -4463,9 +4463,14 @@ loop:
 			break loop
 		case <-time.After(time.Duration(aTimeout) * time.Second):
 			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
-					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
-				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureSwUpgrade, OnuOmciCommunicationFailureSwUpgradeDesc)
+				if oo.pBaseDeviceHandler.IsOltAvailable() {
+					logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
+						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+					oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureSwUpgrade, OnuOmciCommunicationFailureSwUpgradeDesc)
+				} else {
+					logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - skip ONU device event: OLT unavailable!",
+						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				}
 				oo.incrementTxTimesouts()
 				break loop
 			} else {
@@ -4966,9 +4971,14 @@ loop:
 			break loop
 		case <-time.After(time.Duration(aTimeout) * time.Second):
 			if retryCounter == retries {
-				logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
-					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
-				oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureConfig, OnuOmciCommunicationFailureConfigDesc)
+				if oo.pBaseDeviceHandler.IsOltAvailable() {
+					logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - send ONU device event!",
+						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+					oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuOmciCommunicationFailureConfig, OnuOmciCommunicationFailureConfigDesc)
+				} else {
+					logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - skip ONU device event: OLT unavailable!",
+						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+				}
 				oo.incrementTxTimesouts()
 				break loop
 			} else {

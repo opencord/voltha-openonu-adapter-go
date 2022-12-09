@@ -55,6 +55,8 @@ import (
 	oop "github.com/opencord/voltha-protos/v5/go/openolt"
 	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -224,9 +226,11 @@ type deviceHandler struct {
 	flowCbChan                     []chan FlowCb
 	mutexFlowMonitoringRoutineFlag sync.RWMutex
 	mutexForDisableDeviceRequested sync.RWMutex
+	mutexOltAvailable              sync.RWMutex
 	stopFlowMonitoringRoutine      []chan bool // length of slice equal to number of uni ports
 	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
 	disableDeviceRequested         bool        // this flag identify ONU received disable request or not
+	oltAvailable                   bool
 }
 
 //newDeviceHandler creates a new device handler
@@ -261,6 +265,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.reconcilingReasonUpdate = false
 	dh.reconcilingFirstPass = true
 	dh.disableDeviceRequested = false
+	dh.oltAvailable = false
 	dh.chReconcilingFinished = make(chan bool)
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
@@ -4422,12 +4427,16 @@ func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint str
 	}
 	subCtx, cancel := context.WithTimeout(log.WithSpanFromContext(context.Background(), ctx), dh.config.MaxTimeoutInterAdapterComm)
 	defer cancel()
+	dh.setOltAvailable(true)
 	logger.Debugw(subCtx, "send-omci-request", log.Fields{"device-id": dh.device.Id, "request": request, "parent-endpoint": parentEndpoint})
 	_, err = pgClient.ProxyOmciRequest(subCtx, request)
 	if err != nil {
+		if status.Code(err) == codes.Unavailable {
+			dh.setOltAvailable(false)
+		}
 		logger.Errorw(ctx, "omci-failure",
 			log.Fields{"device-id": dh.device.Id, "request": request, "error": err, "request-parent": request.ParentDeviceId,
-				"request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress})
+				"request-child": request.ChildDeviceId, "request-proxy": request.ProxyAddress, "oltAvailable": dh.IsOltAvailable})
 	}
 	return err
 }
@@ -4600,6 +4609,19 @@ func (dh *deviceHandler) GetLogicalDeviceID() string {
 // GetDevice - TODO: add comment
 func (dh *deviceHandler) GetDevice() *voltha.Device {
 	return dh.device
+}
+
+func (dh *deviceHandler) setOltAvailable(value bool) {
+	dh.mutexOltAvailable.Lock()
+	dh.oltAvailable = value
+	dh.mutexOltAvailable.Unlock()
+}
+
+// IsOltAvailable - TODO: add comment
+func (dh *deviceHandler) IsOltAvailable() bool {
+	dh.mutexOltAvailable.RLock()
+	defer dh.mutexOltAvailable.RUnlock()
+	return dh.oltAvailable
 }
 
 // GetMetricsEnabled - TODO: add comment

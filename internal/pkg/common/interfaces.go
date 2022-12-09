@@ -88,6 +88,7 @@ type IdeviceHandler interface {
 
 	SetReadyForOmciConfig(bool)
 	IsReadyForOmciConfig() bool
+	IsOltAvailable() bool
 
 	StorePersistentData(context.Context) error
 	StorePersUniFlowConfig(context.Context, uint8, *[]UniVlanFlowParams, bool) error
