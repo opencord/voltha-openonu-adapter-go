@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package almgr provides the utilities for managing alarm notifications
+// Package almgr provides the utilities for managing alarm notifications
 package almgr
 
 import (
@@ -31,6 +31,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
+	"github.com/opencord/voltha-protos/v5/go/extension"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
@@ -114,6 +115,9 @@ type OnuAlarmManager struct {
 	alarmUploadNoOfCmdsOrMEs   uint16
 	StopAlarmAuditTimer        chan struct{}
 	isExtendedOmci             bool
+	AsyncAlarmsCommChan        chan struct{}
+	isAsyncAlarmRequest        bool
+	onuAlarmRequestLock        sync.RWMutex
 }
 
 // NewAlarmManager - TODO: add comment
@@ -130,6 +134,8 @@ func NewAlarmManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.Ionu
 	alarmManager.activeAlarms = make(map[alarmInfo]struct{})
 	alarmManager.alarmBitMapDB = make(map[meAlarmKey][alarmBitMapSizeBytes]byte)
 	alarmManager.StopAlarmAuditTimer = make(chan struct{})
+	alarmManager.AsyncAlarmsCommChan = make(chan struct{})
+	alarmManager.isAsyncAlarmRequest = false
 	alarmManager.onuEventsList = map[onuDevice]onuDeviceEvent{
 		{classID: circuitPackClassID, alarmno: 0}: {EventName: "ONU_EQUIPMENT",
 			EventCategory: voltha.EventCategory_EQUIPMENT, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu equipment"},
@@ -186,6 +192,7 @@ func NewAlarmManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.Ionu
 			"enter_" + asStAuditing:        func(e *fsm.Event) { alarmManager.asFsmAuditing(ctx, e) },
 			"enter_" + asStInSync:          func(e *fsm.Event) { alarmManager.asFsmInSync(ctx, e) },
 			"enter_" + asStResynchronizing: func(e *fsm.Event) { alarmManager.asFsmResynchronizing(ctx, e) },
+			"leave_" + asStAuditing:        func(e *fsm.Event) { alarmManager.asFsmLeaveAuditing(ctx, e) },
 		},
 	)
 	return &alarmManager
@@ -237,7 +244,15 @@ func (am *OnuAlarmManager) asFsmAuditing(ctx context.Context, e *fsm.Event) {
 		go failureTransition()
 	}
 }
+func (am *OnuAlarmManager) asFsmLeaveAuditing(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "alarm-sync-fsm-leave-auditing state", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
+	if am.isAsyncAlarmRequest {
+		logger.Errorw(ctx, "alarm-sync-fsm-leave-auditing state process the updated ONU alarms ", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
+		am.AsyncAlarmsCommChan <- struct{}{}
+		am.isAsyncAlarmRequest = false
 
+	}
+}
 func (am *OnuAlarmManager) asFsmResynchronizing(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
 	failureTransition := func() {
@@ -339,6 +354,17 @@ func (am *OnuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 		case <-am.StopAlarmAuditTimer:
 			logger.Infow(ctx, "stopping-alarm-timer", log.Fields{"device-id": am.deviceID})
 			return
+
+		case <-am.AsyncAlarmsCommChan:
+			go func() {
+				logger.Debugw(ctx, "On demand Auditing the ONU for Alarms  ", log.Fields{"device-id": am.deviceID})
+				if err := am.AlarmSyncFsm.PFsm.Event(AsEvAudit); err != nil {
+					logger.Errorw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing, use current snapshot of alarms", log.Fields{"device-id": am.deviceID, "err": err})
+					am.isAsyncAlarmRequest = false
+					am.AsyncAlarmsCommChan <- struct{}{}
+				}
+			}()
+
 		}
 	}
 }
@@ -450,6 +476,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-sync", log.Fields{"device-id": am.deviceID, "err": err})
 				}
 			}()
+
 		}
 	} else {
 		logger.Errorw(ctx, "invalid-number-of-commands-received", log.Fields{"device-id": am.deviceID,
@@ -532,6 +559,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 				}
 			}()
 		}
+
 	}
 }
 
@@ -796,7 +824,7 @@ func (am *OnuAlarmManager) getDeviceEventData(ctx context.Context, classID me.Cl
 	return onuDeviceEvent{}, errors.New("onu Event Detail not found")
 }
 
-//ResetAlarmUploadCounters resets alarm upload sequence number and number of commands
+// ResetAlarmUploadCounters resets alarm upload sequence number and number of commands
 func (am *OnuAlarmManager) ResetAlarmUploadCounters() {
 	am.onuAlarmManagerLock.Lock()
 	am.alarmUploadSeqNo = 0
@@ -804,14 +832,14 @@ func (am *OnuAlarmManager) ResetAlarmUploadCounters() {
 	am.onuAlarmManagerLock.Unlock()
 }
 
-//IncrementAlarmUploadSeqNo increments alarm upload sequence number
+// IncrementAlarmUploadSeqNo increments alarm upload sequence number
 func (am *OnuAlarmManager) IncrementAlarmUploadSeqNo() {
 	am.onuAlarmManagerLock.Lock()
 	am.alarmUploadSeqNo++
 	am.onuAlarmManagerLock.Unlock()
 }
 
-//GetAlarmUploadSeqNo gets alarm upload sequence number
+// GetAlarmUploadSeqNo gets alarm upload sequence number
 func (am *OnuAlarmManager) GetAlarmUploadSeqNo() uint16 {
 	am.onuAlarmManagerLock.RLock()
 	value := am.alarmUploadSeqNo
@@ -819,9 +847,55 @@ func (am *OnuAlarmManager) GetAlarmUploadSeqNo() uint16 {
 	return value
 }
 
-//GetAlarmMgrEventChannel gets alarm manager event channel
+// GetAlarmMgrEventChannel gets alarm manager event channel
 func (am *OnuAlarmManager) GetAlarmMgrEventChannel() chan cmn.Message {
 	return am.eventChannel
+}
+
+// GetOnuActiveAlarms - Fetch the Active Alarms on demand
+func (am *OnuAlarmManager) GetOnuActiveAlarms(ctx context.Context) *extension.SingleGetValueResponse {
+
+	am.onuAlarmRequestLock.Lock()
+	defer am.onuAlarmRequestLock.Unlock()
+
+	resp := extension.SingleGetValueResponse{
+		Response: &extension.GetValueResponse{
+			Status: extension.GetValueResponse_OK,
+			Response: &extension.GetValueResponse_OnuActiveAlarms{
+				OnuActiveAlarms: &extension.GetOnuOmciActiveAlarmsResponse{},
+			},
+		},
+	}
+
+	logger.Debugw(ctx, "Requesting to start audit on demand  ", log.Fields{"device-id": am.deviceID})
+	am.isAsyncAlarmRequest = true
+
+	am.AsyncAlarmsCommChan <- struct{}{}
+
+	select {
+	case <-time.After(10 * time.Second): //the time to wait needs further discussion.
+		logger.Errorw(ctx, "Couldn't get the Alarms with in 10 seconds stipulated time frame ", log.Fields{"device-id": am.deviceID})
+		am.isAsyncAlarmRequest = false
+
+	case <-am.AsyncAlarmsCommChan:
+		logger.Debugw(ctx, "Received response for the alarm audit ", log.Fields{"device-id": am.deviceID})
+
+	}
+
+	for activeAlarm := range am.activeAlarms {
+
+		onuEventDetails := am.onuEventsList[onuDevice{classID: activeAlarm.classID, alarmno: activeAlarm.alarmNo}]
+		activeAlarmData := extension.AlarmData{}
+		activeAlarmData.ClassId = uint32(activeAlarm.classID)
+		activeAlarmData.InstanceId = uint32(activeAlarm.instanceID)
+		activeAlarmData.Name = onuEventDetails.EventName
+		activeAlarmData.Description = onuEventDetails.EventDescription
+
+		resp.Response.GetOnuActiveAlarms().ActiveAlarms = append(resp.Response.GetOnuActiveAlarms().ActiveAlarms, &activeAlarmData)
+
+	}
+
+	return &resp
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
