@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package core provides the utility for onu devices, flows and statistics
+// Package core provides the utility for onu devices, flows and statistics
 package core
 
 import (
@@ -60,7 +60,7 @@ type reachabilityFromRemote struct {
 	keepAliveInterval int64
 }
 
-//OpenONUAC structure holds the ONU core information
+// OpenONUAC structure holds the ONU core information
 type OpenONUAC struct {
 	deviceHandlers              map[string]*deviceHandler
 	deviceHandlersCreateChan    map[string]chan bool //channels for deviceHandler create events
@@ -99,7 +99,7 @@ type OpenONUAC struct {
 	maxConcurrentFlowsPerUni    int
 }
 
-//NewOpenONUAC returns a new instance of OpenONU_AC
+// NewOpenONUAC returns a new instance of OpenONU_AC
 func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy eventif.EventProxy,
 	kvClient kvstore.Client, cfg *config.AdapterFlags, cm *conf.ConfigManager) *OpenONUAC {
 	var openOnuAc OpenONUAC
@@ -160,14 +160,14 @@ func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy even
 	return &openOnuAc
 }
 
-//Start starts (logs) the adapter
+// Start starts (logs) the adapter
 func (oo *OpenONUAC) Start(ctx context.Context) error {
 	logger.Info(ctx, "starting-openonu-adapter")
 
 	return nil
 }
 
-//Stop terminates the session
+// Stop terminates the session
 func (oo *OpenONUAC) Stop(ctx context.Context) error {
 	logger.Info(ctx, "stopping-device-manager")
 	close(oo.exitChannel)
@@ -196,7 +196,7 @@ func (oo *OpenONUAC) deleteDeviceHandlerToMap(agent *deviceHandler) {
 	delete(oo.deviceHandlersCreateChan, agent.DeviceID)
 }
 
-//getDeviceHandler gets the ONU deviceHandler and may wait until it is created
+// getDeviceHandler gets the ONU deviceHandler and may wait until it is created
 func (oo *OpenONUAC) getDeviceHandler(ctx context.Context, deviceID string, aWait bool) *deviceHandler {
 	oo.mutexDeviceHandlersMap.Lock()
 	agent, ok := oo.deviceHandlers[deviceID]
@@ -249,7 +249,7 @@ func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*e
 	return &empty.Empty{}, nil
 }
 
-//ReconcileDevice is called once when the adapter needs to re-create device - usually on core restart
+// ReconcileDevice is called once when the adapter needs to re-create device - usually on core restart
 func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	if device == nil {
 		logger.Warn(ctx, "reconcile-device-voltha-device-is-nil")
@@ -289,7 +289,7 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 	return &empty.Empty{}, nil
 }
 
-//DisableDevice disables the given device
+// DisableDevice disables the given device
 func (oo *OpenONUAC) DisableDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	logger.Infow(ctx, "disable-device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
@@ -300,7 +300,7 @@ func (oo *OpenONUAC) DisableDevice(ctx context.Context, device *voltha.Device) (
 	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
-//ReEnableDevice enables the onu device after disable
+// ReEnableDevice enables the onu device after disable
 func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	logger.Infow(ctx, "reenable-device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
@@ -311,7 +311,7 @@ func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) 
 	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
 }
 
-//RebootDevice reboots the given device
+// RebootDevice reboots the given device
 func (oo *OpenONUAC) RebootDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	logger.Infow(ctx, "reboot-device", log.Fields{"device-id": device.Id})
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
@@ -367,7 +367,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 	return &empty.Empty{}, nil
 }
 
-//UpdateFlowsIncrementally updates (add/remove) the flows on a given device
+// UpdateFlowsIncrementally updates (add/remove) the flows on a given device
 func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca.IncrementalFlows) (*empty.Empty, error) {
 	logger.Infow(ctx, "update-flows-incrementally", log.Fields{"device-id": incrFlows.Device.Id})
 
@@ -397,7 +397,7 @@ func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca
 	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", incrFlows.Device.Id))
 }
 
-//UpdatePmConfig returns PmConfigs nil or error
+// UpdatePmConfig returns PmConfigs nil or error
 func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsInfo) (*empty.Empty, error) {
 	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": configs.DeviceId})
 	if handler := oo.getDeviceHandler(ctx, configs.DeviceId, false); handler != nil {
@@ -410,8 +410,8 @@ func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsIn
 	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", configs.DeviceId))
 }
 
-//DownloadImage requests downloading some image according to indications as given in request
-//The ImageDownload needs to be called `request`due to library reflection requirements
+// DownloadImage requests downloading some image according to indications as given in request
+// The ImageDownload needs to be called `request`due to library reflection requirements
 func (oo *OpenONUAC) DownloadImage(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	ctx = log.WithSpanFromContext(context.Background(), ctx)
 	if imageInfo != nil && imageInfo.Image != nil && imageInfo.Image.Name != "" {
@@ -435,9 +435,11 @@ func (oo *OpenONUAC) DownloadImage(ctx context.Context, imageInfo *ca.ImageDownl
 	return nil, errors.New("invalid image definition")
 }
 
-//ActivateImageUpdate requests downloading some Onu Software image to the ONU via OMCI
-//  according to indications as given in request and on success activate the image on the ONU
-//The ImageDownload needs to be called `request`due to library reflection requirements
+// ActivateImageUpdate requests downloading some Onu Software image to the ONU via OMCI
+//
+//	according to indications as given in request and on success activate the image on the ONU
+//
+// The ImageDownload needs to be called `request`due to library reflection requirements
 func (oo *OpenONUAC) ActivateImageUpdate(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	if imageInfo != nil && imageInfo.Image != nil && imageInfo.Image.Name != "" {
 		if oo.pDownloadManager.ImageLocallyDownloaded(ctx, imageInfo.Image) {
@@ -458,7 +460,7 @@ func (oo *OpenONUAC) ActivateImageUpdate(ctx context.Context, imageInfo *ca.Imag
 	return nil, errors.New("invalid image definition")
 }
 
-//GetSingleValue handles the core request to retrieve uni status
+// GetSingleValue handles the core request to retrieve uni status
 func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.SingleGetValueRequest) (*extension.SingleGetValueResponse, error) {
 	logger.Infow(ctx, "Single_get_value_request", log.Fields{"request": request})
 
@@ -485,6 +487,10 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			return handler.getOnuOMCICounters(ctx, reqType.OnuInfo), nil
 		case *extension.GetValueRequest_OnuOmciStats:
 			return handler.getOnuOMCIStats(ctx)
+		case *extension.GetValueRequest_OnuActiveAlarms:
+			resp := handler.getOnuActiveAlarms(ctx)
+			logger.Debugw(ctx, "Received response for on demand active alarms request ", log.Fields{"response": resp})
+			return resp, nil
 		default:
 			return uniprt.PostUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
 		}
@@ -500,7 +506,8 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 //   To be on the safe side argument names are left here always as defined in iAdapter.go .
 
 // DownloadOnuImage downloads (and optionally activates and commits) the indicated ONU image to the requested ONU(s)
-//   if the image is not yet present on the adapter it has to be automatically downloaded
+//
+//	if the image is not yet present on the adapter it has to be automatically downloaded
 func (oo *OpenONUAC) DownloadOnuImage(ctx context.Context, request *voltha.DeviceImageDownloadRequest) (*voltha.DeviceImageResponse, error) {
 	if request != nil && len((*request).DeviceId) > 0 && (*request).Image.Version != "" {
 		if strings.Contains((*request).Image.Url, "https:") {
@@ -601,7 +608,8 @@ func (oo *OpenONUAC) DownloadOnuImage(ctx context.Context, request *voltha.Devic
 }
 
 // GetOnuImageStatus delivers the adapter-related information about the download/activation/commitment
-//   status for the requested image
+//
+//	status for the requested image
 func (oo *OpenONUAC) GetOnuImageStatus(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
 	if in != nil && len((*in).DeviceId) > 0 && (*in).Version != "" {
 		loResponse := voltha.DeviceImageResponse{}
@@ -765,7 +773,8 @@ func (oo *OpenONUAC) GetOnuImages(ctx context.Context, id *common.ID) (*voltha.O
 }
 
 // ActivateOnuImage initiates the activation of the image for the requested ONU(s)
-//  precondition: image downloaded and not yet activated or image refers to current inactive image
+//
+//	precondition: image downloaded and not yet activated or image refers to current inactive image
 func (oo *OpenONUAC) ActivateOnuImage(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
 	if in != nil && len((*in).DeviceId) > 0 && (*in).Version != "" {
 		loResponse := voltha.DeviceImageResponse{}
@@ -813,7 +822,8 @@ func (oo *OpenONUAC) ActivateOnuImage(ctx context.Context, in *voltha.DeviceImag
 }
 
 // CommitOnuImage enforces the commitment of the image for the requested ONU(s)
-//  precondition: image activated and not yet committed
+//
+//	precondition: image activated and not yet committed
 func (oo *OpenONUAC) CommitOnuImage(ctx context.Context, in *voltha.DeviceImageRequest) (*voltha.DeviceImageResponse, error) {
 	if in != nil && len((*in).DeviceId) > 0 && (*in).Version != "" {
 		loResponse := voltha.DeviceImageResponse{}
@@ -1007,7 +1017,7 @@ func (oo *OpenONUAC) isReachableFromRemote(ctx context.Context, endpoint string,
 	return false
 }
 
-//stopAllGrpcClients stops all grpc clients in use
+// stopAllGrpcClients stops all grpc clients in use
 func (oo *OpenONUAC) stopAllGrpcClients(ctx context.Context) {
 	// Stop the clients that connect to the parent
 	oo.lockParentAdapterClients.Lock()
@@ -1196,54 +1206,53 @@ loop:
  *
  */
 
-//GetOfpDeviceInfo returns OFP information for the given device.  Method not implemented as per [VOL-3202].
+// GetOfpDeviceInfo returns OFP information for the given device.  Method not implemented as per [VOL-3202].
 // OF port info is now to be delivered within UniPort create cmp changes in onu_uni_port.go::CreateVolthaPort()
-//
 func (oo *OpenONUAC) GetOfpDeviceInfo(ctx context.Context, device *voltha.Device) (*ca.SwitchCapability, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//SimulateAlarm is unimplemented
+// SimulateAlarm is unimplemented
 func (oo *OpenONUAC) SimulateAlarm(context.Context, *ca.SimulateAlarmMessage) (*common.OperationResp, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//SetExtValue is unimplemented
+// SetExtValue is unimplemented
 func (oo *OpenONUAC) SetExtValue(context.Context, *ca.SetExtValueMessage) (*empty.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//SetSingleValue is unimplemented
+// SetSingleValue is unimplemented
 func (oo *OpenONUAC) SetSingleValue(context.Context, *extension.SingleSetValueRequest) (*extension.SingleSetValueResponse, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//StartOmciTest not implemented
+// StartOmciTest not implemented
 func (oo *OpenONUAC) StartOmciTest(ctx context.Context, test *ca.OMCITest) (*omci.TestResponse, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//SuppressEvent unimplemented
+// SuppressEvent unimplemented
 func (oo *OpenONUAC) SuppressEvent(ctx context.Context, filter *voltha.EventFilter) (*empty.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//UnSuppressEvent  unimplemented
+// UnSuppressEvent  unimplemented
 func (oo *OpenONUAC) UnSuppressEvent(ctx context.Context, filter *voltha.EventFilter) (*empty.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//GetImageDownloadStatus is unimplemented
+// GetImageDownloadStatus is unimplemented
 func (oo *OpenONUAC) GetImageDownloadStatus(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//CancelImageDownload is unimplemented
+// CancelImageDownload is unimplemented
 func (oo *OpenONUAC) CancelImageDownload(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//RevertImageUpdate is unimplemented
+// RevertImageUpdate is unimplemented
 func (oo *OpenONUAC) RevertImageUpdate(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	return nil, errors.New("unImplemented")
 }
@@ -1253,12 +1262,12 @@ func (oo *OpenONUAC) UpdateFlowsBulk(ctx context.Context, flows *ca.BulkFlows) (
 	return nil, errors.New("unImplemented")
 }
 
-//SelfTestDevice unimplented
+// SelfTestDevice unimplented
 func (oo *OpenONUAC) SelfTestDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
-//SendPacketOut sends packet out to the device
+// SendPacketOut sends packet out to the device
 func (oo *OpenONUAC) SendPacketOut(ctx context.Context, packet *ca.PacketOut) (*empty.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
