@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package common provides global definitions
+// Package common provides global definitions
 package common
 
 import (
@@ -26,6 +26,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
+	"github.com/opencord/voltha-protos/v5/go/extension"
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	"github.com/opencord/voltha-protos/v5/go/openolt"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
@@ -172,6 +173,7 @@ type IonuAlarmManager interface {
 	GetAlarmMgrEventChannel() chan Message
 	GetAlarmUploadSeqNo() uint16
 	IncrementAlarmUploadSeqNo()
+	GetOnuActiveAlarms(ctx context.Context) *extension.SingleGetValueResponse
 }
 
 // IonuUniTechProf interface to onuUniTechProf
