@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package core provides the utility for onu devices, flows and statistics
+// Package core provides the utility for onu devices, flows and statistics
 package core
 
 import (
@@ -95,7 +95,7 @@ const (
 	devStUp        = "devStUp"
 )
 
-//Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
+// Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
 const (
 	pon = voltha.EventSubCategory_PON
 	//olt           = voltha.EventSubCategory_OLT
@@ -149,7 +149,7 @@ type FlowCb struct {
 	respChan     *chan error // channel to report the Flow handling error
 }
 
-//deviceHandler will interact with the ONU ? device.
+// deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
 	DeviceID         string
 	DeviceType       string
@@ -233,7 +233,7 @@ type deviceHandler struct {
 	oltAvailable                   bool
 }
 
-//newDeviceHandler creates a new device handler
+// newDeviceHandler creates a new device handler
 func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventProxy, device *voltha.Device, adapter *OpenONUAC) *deviceHandler {
 	var dh deviceHandler
 	dh.coreClient = cc
@@ -333,7 +333,7 @@ func (dh *deviceHandler) stop(ctx context.Context) {
 // ##########################################################################################
 // deviceHandler methods that implement the adapters interface requests ##### begin #########
 
-//adoptOrReconcileDevice adopts the ONU device
+// adoptOrReconcileDevice adopts the ONU device
 func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "adopt_or_reconcile_device", log.Fields{"device-id": device.Id, "Address": device.GetHostAndPort()})
 
@@ -617,7 +617,7 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 	return nil
 }
 
-//FlowUpdateIncremental removes and/or adds the flow changes on a given device
+// FlowUpdateIncremental removes and/or adds the flow changes on a given device
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *of.FlowChanges,
 	apOfGroupChanges *of.FlowGroupChanges, apFlowMetaData *of.FlowMetadata) error {
@@ -789,9 +789,9 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	return nil
 }
 
-//disableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
-//following are the expected device states after this activity:
-//Device Admin-State : down (on rwCore), Port-State: UNKNOWN, Conn-State: REACHABLE, Reason: omci-admin-lock
+// disableDevice locks the ONU and its UNI/VEIP ports (admin lock via OMCI)
+// following are the expected device states after this activity:
+// Device Admin-State : down (on rwCore), Port-State: UNKNOWN, Conn-State: REACHABLE, Reason: omci-admin-lock
 // (Conn-State: REACHABLE might conflict with some previous ONU Down indication - maybe to be resolved later)
 func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "disable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
@@ -835,7 +835,7 @@ func (dh *deviceHandler) disableDevice(ctx context.Context, device *voltha.Devic
 	}
 }
 
-//reEnableDevice unlocks the ONU and its UNI/VEIP ports (admin unlock via OMCI)
+// reEnableDevice unlocks the ONU and its UNI/VEIP ports (admin unlock via OMCI)
 func (dh *deviceHandler) reEnableDevice(ctx context.Context, device *voltha.Device) {
 	logger.Debugw(ctx, "reenable-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
 
@@ -1148,8 +1148,9 @@ func (dh *deviceHandler) updateReconcileFlowConfig(ctx context.Context, apUniPor
 	} //for all flows of this UNI
 }
 
-//waitOnUniVlanConfigReconcilingReady collects all VlanConfigReady signals from VlanConfig FSM processing in reconciling
-//  and decrements the according handler wait group waiting for these indications
+// waitOnUniVlanConfigReconcilingReady collects all VlanConfigReady signals from VlanConfig FSM processing in reconciling
+//
+//	and decrements the according handler wait group waiting for these indications
 func (dh *deviceHandler) waitOnUniVlanConfigReconcilingReady(ctx context.Context, aSyncChannel chan<- struct{},
 	waitGroup *cmn.WaitGroupWithTimeOut) {
 	var reconciledUniVlanConfigEntries []uint8
@@ -1259,10 +1260,12 @@ func (dh *deviceHandler) deleteDevicePersistencyData(ctx context.Context) error 
 	return pDevEntry.GetKvProcessingErrorIndication()
 }
 
-//func (dh *deviceHandler) rebootDevice(ctx context.Context, device *voltha.Device) error {
+// func (dh *deviceHandler) rebootDevice(ctx context.Context, device *voltha.Device) error {
 // before this change here return like this was used:
-// 		return fmt.Errorf("device-unreachable: %s, %s", dh.DeviceID, device.SerialNumber)
-//was and is called in background - error return does not make sense
+//
+//	return fmt.Errorf("device-unreachable: %s, %s", dh.DeviceID, device.SerialNumber)
+//
+// was and is called in background - error return does not make sense
 func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState bool, device *voltha.Device) {
 	logger.Infow(ctx, "reboot-device", log.Fields{"device-id": dh.DeviceID, "SerialNumber": dh.device.SerialNumber})
 	if aCheckDeviceState && device.ConnectStatus != voltha.ConnectStatus_REACHABLE {
@@ -1300,8 +1303,9 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 	//  all other FSM's should be synchronized again
 }
 
-//doOnuSwUpgrade initiates the SW download transfer to the ONU and on success activates the (inactive) image
-//  used only for old - R2.7 style - upgrade API
+// doOnuSwUpgrade initiates the SW download transfer to the ONU and on success activates the (inactive) image
+//
+//	used only for old - R2.7 style - upgrade API
 func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.ImageDownload,
 	apDownloadManager *swupg.AdapterDownloadManager) error {
 	logger.Debugw(ctx, "onuSwUpgrade requested", log.Fields{
@@ -1353,7 +1357,7 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 	return err
 }
 
-//onuSwUpgradeAfterDownload initiates the SW download transfer to the ONU with activate and commit options
+// onuSwUpgradeAfterDownload initiates the SW download transfer to the ONU with activate and commit options
 // after the OnuImage has been downloaded to the adapter, called in background
 func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageRequest *voltha.DeviceImageDownloadRequest,
 	apDownloadManager *swupg.FileDownloadManager, aImageIdentifier string) {
@@ -1423,7 +1427,7 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 		"device-id": dh.DeviceID, "error": err})
 }
 
-//onuSwActivateRequest ensures activation of the requested image with commit options
+// onuSwActivateRequest ensures activation of the requested image with commit options
 func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context,
 	aVersion string, aCommitRequest bool) (*voltha.ImageState, error) {
 	var err error
@@ -1492,7 +1496,7 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context,
 	return nil, fmt.Errorf("could not start upgradeFsm for device-id: %s", dh.DeviceID)
 }
 
-//onuSwCommitRequest ensures commitment of the requested image
+// onuSwCommitRequest ensures commitment of the requested image
 func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context,
 	aVersion string) (*voltha.ImageState, error) {
 	var err error
@@ -1794,8 +1798,9 @@ func (dh *deviceHandler) postInit(ctx context.Context, e *fsm.Event) {
 
 // doStateConnected get the device info and update to voltha core
 // for comparison of the original method (not that easy to uncomment): compare here:
-//  voltha-openolt-adapter/adaptercore/device_handler.go
-//  -> this one obviously initiates all communication interfaces of the device ...?
+//
+//	voltha-openolt-adapter/adaptercore/device_handler.go
+//	-> this one obviously initiates all communication interfaces of the device ...?
 func (dh *deviceHandler) doStateConnected(ctx context.Context, e *fsm.Event) {
 
 	logger.Debugw(ctx, "doStateConnected-started", log.Fields{"device-id": dh.DeviceID})
@@ -1892,7 +1897,7 @@ func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
 // ###################################################
 // deviceHandler utility methods ##### begin #########
 
-//GetOnuDeviceEntry gets the ONU device entry and may wait until its value is defined
+// GetOnuDeviceEntry gets the ONU device entry and may wait until its value is defined
 func (dh *deviceHandler) GetOnuDeviceEntry(ctx context.Context, aWait bool) *mib.OnuDeviceEntry {
 	dh.lockDevice.RLock()
 	pOnuDeviceEntry := dh.pOnuOmciDevice
@@ -1916,7 +1921,7 @@ func (dh *deviceHandler) GetOnuDeviceEntry(ctx context.Context, aWait bool) *mib
 	return pOnuDeviceEntry
 }
 
-//setDeviceHandlerEntries sets the ONU device entry within the handler
+// setDeviceHandlerEntries sets the ONU device entry within the handler
 func (dh *deviceHandler) setDeviceHandlerEntries(apDeviceEntry *mib.OnuDeviceEntry, apOnuTp *avcfg.OnuUniTechProf,
 	apOnuMetricsMgr *pmmgr.OnuMetricsManager, apOnuAlarmMgr *almgr.OnuAlarmManager, apSelfTestHdlr *otst.SelfTestControlBlock) {
 	dh.lockDevice.Lock()
@@ -1928,7 +1933,7 @@ func (dh *deviceHandler) setDeviceHandlerEntries(apDeviceEntry *mib.OnuDeviceEnt
 	dh.pSelfTestHdlr = apSelfTestHdlr
 }
 
-//addOnuDeviceEntry creates a new ONU device or returns the existing
+// addOnuDeviceEntry creates a new ONU device or returns the existing
 func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 	logger.Debugw(ctx, "adding-deviceEntry", log.Fields{"device-id": dh.DeviceID})
 
@@ -2639,7 +2644,7 @@ func (dh *deviceHandler) processOmciVlanFilterDoneEvent(ctx context.Context, aDe
 	}
 }
 
-//DeviceProcStatusUpdate evaluates possible processing events and initiates according next activities
+// DeviceProcStatusUpdate evaluates possible processing events and initiates according next activities
 func (dh *deviceHandler) DeviceProcStatusUpdate(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	switch devEvent {
 	case cmn.MibDatabaseSync:
@@ -3122,7 +3127,7 @@ func (dh *deviceHandler) checkOnOnuImageCommit(ctx context.Context) {
 	dh.lockUpgradeFsm.RUnlock()
 }
 
-//SetBackend provides a DB backend for the specified path on the existing KV client
+// SetBackend provides a DB backend for the specified path on the existing KV client
 func (dh *deviceHandler) SetBackend(ctx context.Context, aBasePathKvStore string) *db.Backend {
 
 	logger.Debugw(ctx, "SetKVStoreBackend", log.Fields{"IpTarget": dh.pOpenOnuAc.KVStoreAddress,
@@ -3260,7 +3265,7 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *of.OfpF
 	} //for all Actions
 }
 
-//addFlowItemToUniPort parses the actual flow item to add it to the UniPort
+// addFlowItemToUniPort parses the actual flow item to add it to the UniPort
 func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *of.OfpFlowStats, apUniPort *cmn.OnuUniPort,
 	apFlowMetaData *of.FlowMetadata, respChan *chan error) {
 	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
@@ -3361,7 +3366,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	}
 }
 
-//removeFlowItemFromUniPort parses the actual flow item to remove it from the UniPort
+// removeFlowItemFromUniPort parses the actual flow item to remove it from the UniPort
 func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowItem *of.OfpFlowStats, apUniPort *cmn.OnuUniPort, respChan *chan error) {
 	//optimization and assumption: the flow cookie uniquely identifies the flow and with that the internal rule
 	//hence only the cookie is used here to find the relevant flow and possibly remove the rule
@@ -3464,7 +3469,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn
 	return nil
 }
 
-//VerifyVlanConfigRequest checks on existence of a given uniPort
+// VerifyVlanConfigRequest checks on existence of a given uniPort
 // and starts verification of flow config based on that
 func (dh *deviceHandler) VerifyVlanConfigRequest(ctx context.Context, aUniID uint8, aTpID uint8) {
 	//ensure that the given uniID is available (configured) in the UniPort class (used for OMCI entities)
@@ -3484,7 +3489,7 @@ func (dh *deviceHandler) VerifyVlanConfigRequest(ctx context.Context, aUniID uin
 	dh.VerifyUniVlanConfigRequest(ctx, pCurrentUniPort, aTpID)
 }
 
-//VerifyUniVlanConfigRequest checks on existence of flow configuration and starts it accordingly
+// VerifyUniVlanConfigRequest checks on existence of flow configuration and starts it accordingly
 func (dh *deviceHandler) VerifyUniVlanConfigRequest(ctx context.Context, apUniPort *cmn.OnuUniPort, aTpID uint8) {
 	//TODO!! verify and start pending flow configuration
 	//some pending config request my exist in case the UniVlanConfig FSM was already started - with internal data -
@@ -3537,7 +3542,7 @@ func (dh *deviceHandler) VerifyUniVlanConfigRequest(ctx context.Context, apUniPo
 	}
 }
 
-//RemoveVlanFilterFsm deletes the stored pointer to the VlanConfigFsm
+// RemoveVlanFilterFsm deletes the stored pointer to the VlanConfigFsm
 // intention is to provide this method to be called from VlanConfigFsm itself, when resources (and methods!) are cleaned up
 func (dh *deviceHandler) RemoveVlanFilterFsm(ctx context.Context, apUniPort *cmn.OnuUniPort) {
 	logger.Debugw(ctx, "remove UniVlanConfigFsm StateMachine", log.Fields{
@@ -3548,7 +3553,7 @@ func (dh *deviceHandler) RemoveVlanFilterFsm(ctx context.Context, apUniPort *cmn
 	dh.lockVlanConfig.Unlock()
 }
 
-//startWritingOnuDataToKvStore initiates the KVStore write of ONU persistent data
+// startWritingOnuDataToKvStore initiates the KVStore write of ONU persistent data
 func (dh *deviceHandler) startWritingOnuDataToKvStore(ctx context.Context, aPDevEntry *mib.OnuDeviceEntry) error {
 	dh.mutexKvStoreContext.Lock()         //this write routine may (could) be called with the same context,
 	defer dh.mutexKvStoreContext.Unlock() //this write routine may (could) be called with the same context,
@@ -3568,8 +3573,8 @@ func (dh *deviceHandler) startWritingOnuDataToKvStore(ctx context.Context, aPDev
 	return aPDevEntry.GetKvProcessingErrorIndication()
 }
 
-//StorePersUniFlowConfig updates local storage of OnuUniFlowConfig and writes it into kv-store afterwards to have it
-//available for potential reconcilement
+// StorePersUniFlowConfig updates local storage of OnuUniFlowConfig and writes it into kv-store afterwards to have it
+// available for potential reconcilement
 func (dh *deviceHandler) StorePersUniFlowConfig(ctx context.Context, aUniID uint8,
 	aUniVlanFlowParams *[]cmn.UniVlanFlowParams, aWriteToKvStore bool) error {
 
@@ -3599,8 +3604,9 @@ func (dh *deviceHandler) waitForCompletion(ctx context.Context, cancel context.C
 		"device-id": dh.DeviceID, "called from": aCallerIdent})
 }
 
-//ReasonUpdate set the internally store device reason and if requested in notifyCore updates this state in the core
-//  (renamed from previous deviceReasonUpdate to avoid confusing with the core function DeviceReasonUpdate)
+// ReasonUpdate set the internally store device reason and if requested in notifyCore updates this state in the core
+//
+//	(renamed from previous deviceReasonUpdate to avoid confusing with the core function DeviceReasonUpdate)
 func (dh *deviceHandler) ReasonUpdate(ctx context.Context, deviceReason uint8, notifyCore bool) error {
 	// acquire the deviceReason semaphore throughout this function including the possible update processing in core
 	// in order to avoid reversion of the state sequence within core in case of quasi-parallel calls (eg. in multi UNI processing)
@@ -4652,6 +4658,12 @@ func (dh *deviceHandler) anyTpPathExists(aTpPathMap map[uint8]string) bool {
 		}
 	}
 	return tpPathFound
+}
+
+func (dh *deviceHandler) getOnuActiveAlarms(ctx context.Context) *extension.SingleGetValueResponse {
+	resp := dh.GetOnuAlarmManager().GetOnuActiveAlarms(ctx)
+	logger.Debugw(ctx, "Received response from AlarmManager for Active Alarms for DeviceEntry", log.Fields{"device-id": dh.DeviceID})
+	return resp
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection

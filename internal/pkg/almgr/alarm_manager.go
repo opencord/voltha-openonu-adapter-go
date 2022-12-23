@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package almgr provides the utilities for managing alarm notifications
+// Package almgr provides the utilities for managing alarm notifications
 package almgr
 
 import (
@@ -31,6 +31,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
+	"github.com/opencord/voltha-protos/v5/go/extension"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
@@ -92,7 +93,7 @@ type onuDeviceEvent struct {
 	EventDescription string
 }
 
-// OnuAlarmManager holds alarm manager related data
+//OnuAlarmManager holds alarm manager related data
 type OnuAlarmManager struct {
 	deviceID                   string
 	pDeviceHandler             cmn.IdeviceHandler
@@ -114,9 +115,10 @@ type OnuAlarmManager struct {
 	alarmUploadNoOfCmdsOrMEs   uint16
 	StopAlarmAuditTimer        chan struct{}
 	isExtendedOmci             bool
+	AsyncAlarmRequestChan      chan struct{}
 }
 
-// NewAlarmManager - TODO: add comment
+//NewAlarmManager - TODO: add comment
 func NewAlarmManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.IonuDeviceEntry) *OnuAlarmManager {
 	var alarmManager OnuAlarmManager
 	alarmManager.deviceID = dh.GetDeviceID()
@@ -130,6 +132,7 @@ func NewAlarmManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.Ionu
 	alarmManager.activeAlarms = make(map[alarmInfo]struct{})
 	alarmManager.alarmBitMapDB = make(map[meAlarmKey][alarmBitMapSizeBytes]byte)
 	alarmManager.StopAlarmAuditTimer = make(chan struct{})
+	alarmManager.AsyncAlarmRequestChan = make(chan struct{})
 	alarmManager.onuEventsList = map[onuDevice]onuDeviceEvent{
 		{classID: circuitPackClassID, alarmno: 0}: {EventName: "ONU_EQUIPMENT",
 			EventCategory: voltha.EventCategory_EQUIPMENT, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu equipment"},
@@ -339,9 +342,23 @@ func (am *OnuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 		case <-am.StopAlarmAuditTimer:
 			logger.Infow(ctx, "stopping-alarm-timer", log.Fields{"device-id": am.deviceID})
 			return
+		case <-am.AsyncAlarmRequestChan:
+			go func(){
+				defer am.processAlarmResponse(ctx)
+				logger.Debugw(ctx, "On demand Auditing the ONU for Alarms  ", log.Fields{"device-id": am.deviceID})
+				if err := am.AlarmSyncFsm.PFsm.Event(AsEvAudit); err != nil {
+					logger.Errorw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing", log.Fields{"device-id": am.deviceID, "err": err})
+				}
+			}()
 		}
 	}
 }
+
+func (am *OnuAlarmManager) processAlarmResponse(ctx context.Context) {
+	logger.Debugw(ctx, "Post Completion of the Alarm  Audit ", log.Fields{"device-id": am.deviceID})
+	am.AsyncAlarmRequestChan <- struct{}{}
+}
+
 
 func (am *OnuAlarmManager) processAlarmSyncMessages(ctx context.Context) {
 	logger.Debugw(ctx, "start-routine-to-process-omci-messages-for-alarm-sync", log.Fields{"device-id": am.deviceID})
@@ -450,6 +467,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 					logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-sync", log.Fields{"device-id": am.deviceID, "err": err})
 				}
 			}()
+
 		}
 	} else {
 		logger.Errorw(ctx, "invalid-number-of-commands-received", log.Fields{"device-id": am.deviceID,
@@ -532,10 +550,11 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 				}
 			}()
 		}
+
 	}
 }
 
-// StartOMCIAlarmMessageProcessing - TODO: add comment: add comment
+//StartOMCIAlarmMessageProcessing - TODO: add comment: add comment
 func (am *OnuAlarmManager) StartOMCIAlarmMessageProcessing(ctx context.Context) {
 	logger.Infow(ctx, "alarm-manager-start-omci-alarm-message-processing-routines", log.Fields{"device-id": am.deviceID})
 	am.onuAlarmManagerLock.Lock()
@@ -562,7 +581,7 @@ func (am *OnuAlarmManager) StartOMCIAlarmMessageProcessing(ctx context.Context) 
 	logger.Debugw(ctx, "alarm-sync-fsm-started", log.Fields{"state": string(am.AlarmSyncFsm.PFsm.Current())})
 }
 
-// HandleOmciAlarmNotificationMessage - TODO: add comment
+//HandleOmciAlarmNotificationMessage - TODO: add comment
 func (am *OnuAlarmManager) HandleOmciAlarmNotificationMessage(ctx context.Context, msg cmn.OmciMessage) {
 	logger.Debugw(ctx, "omci-alarm-notification-msg", log.Fields{"device-id": am.deviceID,
 		"msg-type": msg.OmciMsg.MessageType})
@@ -773,7 +792,7 @@ func (am *OnuAlarmManager) resetAlarmSequence() {
 	am.lastAlarmSequence = 0
 }
 
-// flushAlarmSyncChannels flushes all alarm sync channels to discard any previous response
+//flushAlarmSyncChannels flushes all alarm sync channels to discard any previous response
 func (am *OnuAlarmManager) flushAlarmSyncChannels(ctx context.Context) {
 	// flush alarm sync channel
 	select {
@@ -788,7 +807,7 @@ func (am *OnuAlarmManager) flushAlarmSyncChannels(ctx context.Context) {
 	}
 }
 
-// getDeviceEventData returns the event data for a device
+//getDeviceEventData returns the event data for a device
 func (am *OnuAlarmManager) getDeviceEventData(ctx context.Context, classID me.ClassID, alarmNo uint8) (onuDeviceEvent, error) {
 	if onuEventDetails, ok := am.onuEventsList[onuDevice{classID: classID, alarmno: alarmNo}]; ok {
 		return onuEventDetails, nil
@@ -824,7 +843,67 @@ func (am *OnuAlarmManager) GetAlarmMgrEventChannel() chan cmn.Message {
 	return am.eventChannel
 }
 
-// PrepareForGarbageCollection - remove references to prepare for garbage collection
+//GetOnuActiveAlarms - Fetch the Active Alarms on demand
+func (am *OnuAlarmManager) GetOnuActiveAlarms(ctx context.Context) *extension.SingleGetValueResponse {
+
+	resp := extension.SingleGetValueResponse{
+		Response: &extension.GetValueResponse{
+			Status: extension.GetValueResponse_OK,
+			Response: &extension.GetValueResponse_OnuActiveAlarms{
+				OnuActiveAlarms: &extension.GetOnuOmciActiveAlarmsResponse{},
+			},
+		},
+	}
+
+	//Check for the Fsm to be in  Sync state, start audit on demand.
+       if am.AlarmSyncFsm.PFsm.Is(asStInSync) {
+
+		logger.Debugw(ctx, "Requesting to start audit on demand  ", log.Fields{"device-id": am.deviceID})
+		am.AsyncAlarmRequestChan <- struct{}{}
+
+		<-am.AsyncAlarmRequestChan
+
+		logger.Debugw(ctx, "Completed processing of the Audit State ", log.Fields{"device-id": am.deviceID})
+
+		for activeAlarm := range am.activeAlarms {
+
+			onuEventDetails := am.onuEventsList[onuDevice{classID: activeAlarm.classID, alarmno: activeAlarm.alarmNo}]
+			activeAlarmData := extension.AlarmData{}
+			activeAlarmData.ClassId = uint32(activeAlarm.classID)
+			activeAlarmData.InstanceId = uint32(activeAlarm.instanceID)
+			activeAlarmData.Name = onuEventDetails.EventName
+			activeAlarmData.Description = onuEventDetails.EventDescription
+
+			resp.Response.GetOnuActiveAlarms().ActiveAlarms = append(resp.Response.GetOnuActiveAlarms().ActiveAlarms, &activeAlarmData)
+
+		}
+
+		return &resp
+
+	} else {
+		logger.Infow(ctx, "alarm-fsm is in other than sync state hence using latest available snapshot alarms", log.Fields{"state": string(am.AlarmSyncFsm.PFsm.Current()),
+			"device-id": am.deviceID})
+
+		for activeAlarm := range am.activeAlarms {
+
+			onuEventDetails := am.onuEventsList[onuDevice{classID: activeAlarm.classID, alarmno: activeAlarm.alarmNo}]
+			activeAlarmData := extension.AlarmData{}
+			activeAlarmData.ClassId = uint32(activeAlarm.classID)
+			activeAlarmData.InstanceId = uint32(activeAlarm.instanceID)
+			activeAlarmData.Name = onuEventDetails.EventName
+			activeAlarmData.Description = onuEventDetails.EventDescription
+
+			resp.Response.GetOnuActiveAlarms().ActiveAlarms = append(resp.Response.GetOnuActiveAlarms().ActiveAlarms, &activeAlarmData)
+
+		}
+
+		return &resp
+	}
+
+}
+
+
+//PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (am *OnuAlarmManager) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
 	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
 	am.pDeviceHandler = nil
