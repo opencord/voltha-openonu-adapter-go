@@ -1,5 +1,6 @@
-#
-# Copyright 2016 the original author or authors.
+# -*- makefile -*-
+# -----------------------------------------------------------------------
+# Copyright 2016-2023 Open Networking Foundation (ONF) and the ONF Contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +13,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+# -----------------------------------------------------------------------
+
+$(if $(DEBUG),$(warning ENTER))
+
+.DEFAULT_GOAL := help
+
+TOP         ?= .
+MAKEDIR     ?= $(TOP)/makefiles
+
+$(if $(VERBOSE),$(eval export VERBOSE=$(VERBOSE))) # visible to include(s)
+
+##--------------------##
+##---]  INCLUDES  [---##
+##--------------------##
+include $(MAKEDIR)/include.mk
+ifdef LOCAL_LINT
+  include $(MAKEDIR)/lint/golang/sca.mk
+endif
 
 # set default shell
 SHELL = bash -e -o pipefail
@@ -24,6 +42,7 @@ DOCKER_LABEL_VCS_DIRTY     = false
 ifneq ($(shell git ls-files --others --modified --exclude-standard 2>/dev/null | wc -l | sed -e 's/ //g'),0)
     DOCKER_LABEL_VCS_DIRTY = true
 endif
+
 ## Docker related
 DOCKER_EXTRA_ARGS        ?=
 DOCKER_REGISTRY          ?=
@@ -59,7 +78,6 @@ GOLANGCI_LINT     = docker run --rm --user $$(id -u):$$(id -g) -v ${CURDIR}:/app
 HADOLINT          = docker run --rm --user $$(id -u):$$(id -g) -v ${CURDIR}:/app voltha/voltha-ci-tools:${VOLTHA_TOOLS_VERSION}-hadolint hadolint
 
 .PHONY: docker-build local-protos local-lib-go help
-.DEFAULT_GOAL := help
 
 ## Local Development Helpers
 local-protos: ## Copies a local version of the voltha-protos dependency into the vendor directory
@@ -78,9 +96,13 @@ ifdef LOCAL_LIB_GO
 	cp -r ${LOCAL_LIB_GO}/pkg/* vendor/github.com/opencord/voltha-lib-go/v7/pkg/
 endif
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 build: docker-build ## Alias for 'docker build'
 
+## -----------------------------------------------------------------------
 ## Docker targets
+## -----------------------------------------------------------------------
 docker-build: local-protos local-lib-go ## Build openonu adapter docker image (set BUILD_PROFILED=true to also build the profiled image)
 	docker build $(DOCKER_BUILD_ARGS) --target=${DOCKER_TARGET} --build-arg CGO_PARAMETER=0 -t ${ADAPTER_IMAGENAME} -f docker/Dockerfile.openonu .
 ifdef BUILD_PROFILED
@@ -90,6 +112,8 @@ ifdef BUILD_RACE
 	docker build $(DOCKER_BUILD_ARGS) --target=dev --build-arg CGO_PARAMETER=1 --build-arg EXTRA_GO_BUILD_TAGS="-race" -t ${ADAPTER_IMAGENAME}-rd -f docker/Dockerfile.openonu .
 endif
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 docker-push: ## Push the docker images to an external repository
 	docker push ${ADAPTER_IMAGENAME}
 ifdef BUILD_PROFILED
@@ -99,18 +123,22 @@ ifdef BUILD_RACE
 	docker push ${ADAPTER_IMAGENAME}-rd
 endif
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 docker-kind-load: ## Load docker images into a KinD cluster
 	@if [ "`kind get clusters | grep voltha-$(TYPE)`" = '' ]; then echo "no voltha-$(TYPE) cluster found" && exit 1; fi
 	kind load docker-image ${ADAPTER_IMAGENAME} --name=voltha-$(TYPE) --nodes $(shell kubectl get nodes --template='{{range .items}}{{.metadata.name}},{{end}}' | sed 's/,$$//')
 
-
+## -----------------------------------------------------------------------
 ## lint and unit tests
-
+## -----------------------------------------------------------------------
 lint-dockerfile: ## Perform static analysis on Dockerfile
 	@echo "Running Dockerfile lint check ..."
 	@${HADOLINT} $$(find . -name "Dockerfile.*")
 	@echo "Dockerfile lint check OK"
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 lint-style: ## Perform lint style checks on source code
 	@echo "Running style check..."
 	@gofmt_out="$$(${GOFMT} -l $$(find . -name '*.go' -not -path './vendor/*'))" ;\
@@ -121,27 +149,44 @@ lint-style: ## Perform lint style checks on source code
 	fi
 	@echo "Style check OK"
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 lint-sanity: ## Perform basic code checks on source
 	@echo "Running sanity check..."
 	@${GO} vet -mod=vendor ./...
 	@echo "Sanity check OK"
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 lint-mod: ## Verify the Go dependencies
-	@echo "Running dependency check..."
-	@${GO} mod verify
-	@echo "Dependency check OK. Running vendor check..."
-	@git status > /dev/null
-	@git diff-index --quiet HEAD -- go.mod go.sum vendor || (echo "ERROR: Staged or modified files must be committed before running this test" && echo "`git status`" && exit 1)
-	@[[ `git ls-files --exclude-standard --others go.mod go.sum vendor` == "" ]] || (echo "ERROR: Untracked files must be cleaned up before running this test" && echo "`git status`" && exit 1)
+	$(HIDE)echo "Running dependency check..."
+	$(HIDE)$(GO) mod verify
+	$(HIDE)echo "Dependency check OK. Running vendor check..."
+	$(HIDE)git status > /dev/null
+	$(HIDE)git diff-index --quiet HEAD -- go.mod go.sum vendor || (echo "ERROR: Staged or modified files must be committed before running this test" && echo "`git status`" && exit 1)
+
+	$(MAKE) --no-print-directory detect-local-edits
 	${GO} mod tidy
 	${GO} mod vendor
-	@git status > /dev/null
-	@git diff-index --quiet HEAD -- go.mod go.sum vendor || (echo "ERROR: Modified files detected after running go mod tidy / go mod vendor" && echo "`git status`" && exit 1)
-	@[[ `git ls-files --exclude-standard --others go.mod go.sum vendor` == "" ]] || (echo "ERROR: Untracked files detected after running go mod tidy / go mod vendor" && echo "`git status`" && exit 1)
-	@echo "Vendor check OK."
+	$(HIDE)git status > /dev/null
+	$(HIDE)git diff-index --quiet HEAD -- go.mod go.sum vendor || (echo "ERROR: Modified files detected after running go mod tidy / go mod vendor" && echo "`git status`" && exit 1)
 
+	$(MAKE) --no-print-directory detect-local-edits
+	$(HIDE)echo "Vendor check OK."
+
+## ---------------------------------------------------------------------
+## Intent: Determine if sandbox contains locally modified files
+## ---------------------------------------------------------------------
+clean-tree := git status --porcelain
+detect-local-edits:
+	$(HIDE)[[ `$(clean-tree)` == "" ]] || (echo "ERROR: Untracked files detected, commit or remove to continue" && echo "`git status`" && exit 1)
+
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 lint: local-lib-go lint-style lint-sanity lint-mod lint-dockerfile ## Run all lint targets
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 test: lint ## Run unit tests
 	@mkdir -p ./tests/results
 	@${GO} test -mod=vendor -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
@@ -150,25 +195,34 @@ test: lint ## Run unit tests
 	${GOCOVER_COBERTURA} < ./tests/results/go-test-coverage.out > ./tests/results/go-test-coverage.xml ;\
 	exit $$RETURN
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 sca: ## Runs static code analysis with the golangci-lint tool
 	@mkdir -p ./sca-report
 	@echo "Running static code analysis..."
 	@${GOLANGCI_LINT} run --deadline=6m --out-format junit-xml ./... | tee ./sca-report/sca-report.xml
 	@echo "Static code analysis OK"
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 clean: distclean ## Removes any local filesystem artifacts generated by a build
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 distclean: ## Removes any local filesystem artifacts generated by a build or test run
-	rm -rf ./sca-report
+	$(RM) -r ./sca-report
 
+## -----------------------------------------------------------------------
+## -----------------------------------------------------------------------
 mod-update: ## Update go mod files
 	${GO} mod tidy
 	${GO} mod vendor
 
 # For each makefile target, add ## <description> on the target line and it will be listed by 'make help'
-help: ## Print help for each Makefile target
-	@echo "Usage: make [<target>]"
-	@echo "where available targets are:"
+help :: ## Print help for each Makefile target
 	@echo
-	@grep '^[[:alpha:]_-]*:.* ##' $(MAKEFILE_LIST) \
-		| sort | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s : %s\n", $$1, $$2};'
+	@grep --no-filename '^[[:alpha:]_-]*:.* ##' $(MAKEFILE_LIST) \
+	    | sort \
+	    | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s : %s\n", $$1, $$2};'
+
+# [EOF]
