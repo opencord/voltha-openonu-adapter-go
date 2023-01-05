@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4026be74_064d078c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-01-05T08:15:58Z",
+      "side": 1,
+      "message": "Complete update of voltha-protos necessary (once released, go mod ...).\nAfter 2.11 has been released, please increment the minor version (major.minor.patch) in the VERSION file.",
+      "revId": "844cfa30b7c6f865680d07cdff00a589ff1fda8d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
