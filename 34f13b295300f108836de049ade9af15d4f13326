@@ -16,6 +16,24 @@
       "message": "LGTM\n\nWas the danging \u0027default:\u0027 case in the garbage collection debug block added for completeness ?",
       "revId": "34f13b295300f108836de049ade9af15d4f13326",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "35bf2cdc_99555fd1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-02-07T15:18:49Z",
+      "side": 1,
+      "message": "The \u0027default\u0027 case is generally used to prevent the select statement from blocking.",
+      "parentUuid": "dc0c85c5_1e09c938",
+      "revId": "34f13b295300f108836de049ade9af15d4f13326",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
