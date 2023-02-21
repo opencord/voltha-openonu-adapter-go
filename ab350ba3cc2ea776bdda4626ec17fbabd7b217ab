@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e8ccb401_6898de67",
+        "filename": "vendor/github.com/opencord/voltha-protos/v5/go/extension/extensions.pb.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 249,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-02-21T11:53:12Z",
+      "side": 0,
+      "message": "Could you add a default header \u0026 copyright notice at the top extensions.pb.go ?\nAll of the other source edits \u0026 notices look good.\n\nJenkins job ran cleanly so can +2 immediately after checkin.",
+      "revId": "ab350ba3cc2ea776bdda4626ec17fbabd7b217ab",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}

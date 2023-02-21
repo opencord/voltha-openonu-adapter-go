@@ -1,6 +1,23 @@
 {
   "comments": [
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4249fb53_1c4513d0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-02-21T11:53:12Z",
+      "side": 1,
+      "message": "Simple copyright notice REQ.\nAlso ACK(nowledged) the other unresolved issue given Serkant(s) note about mutex on the block.",
+      "revId": "73ba8c8307999d4186d90c7baba6f49f07ae425e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f2ead141_b75ebbc6",
@@ -14,6 +31,24 @@
       "writtenOn": "2023-02-20T08:34:46Z",
       "side": 1,
       "message": "I understand the mechanism here and but isn\u0027t it dangerous since there is no lock mechanism here! What if the FSM state changes right after we check the asStInSych state? I guess there would not be any listener of AsyncAlarmRequestChan and would wait forever.",
+      "revId": "73ba8c8307999d4186d90c7baba6f49f07ae425e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "36c3cf9c_8b7b7d98",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 863,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-02-21T11:53:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f2ead141_b75ebbc6",
       "revId": "73ba8c8307999d4186d90c7baba6f49f07ae425e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
