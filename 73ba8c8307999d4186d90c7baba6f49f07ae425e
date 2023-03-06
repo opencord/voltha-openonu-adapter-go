@@ -53,6 +53,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "13496cd4_270e4b3d",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 863,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-03-06T13:00:31Z",
+      "side": 1,
+      "message": "Yes correct. I have uploaded a new set of patch with better control on the request handling, please consider reviewing those changes.",
+      "parentUuid": "36c3cf9c_8b7b7d98",
+      "revId": "73ba8c8307999d4186d90c7baba6f49f07ae425e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "410ba9d4_fb3e96e0",
@@ -66,6 +84,24 @@
       "writtenOn": "2023-02-21T12:01:28Z",
       "side": 1,
       "message": "Should this be a Info level log?",
+      "revId": "73ba8c8307999d4186d90c7baba6f49f07ae425e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7343b803_1acf561e",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 492,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-03-06T13:00:31Z",
+      "side": 1,
+      "message": "Changed it accordingly to log it as info log.",
+      "parentUuid": "410ba9d4_fb3e96e0",
       "revId": "73ba8c8307999d4186d90c7baba6f49f07ae425e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }

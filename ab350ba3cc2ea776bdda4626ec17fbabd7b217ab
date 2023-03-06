@@ -16,6 +16,24 @@
       "message": "Could you add a default header \u0026 copyright notice at the top extensions.pb.go ?\nAll of the other source edits \u0026 notices look good.\n\nJenkins job ran cleanly so can +2 immediately after checkin.",
       "revId": "ab350ba3cc2ea776bdda4626ec17fbabd7b217ab",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5a0ed15d_053c6c2d",
+        "filename": "vendor/github.com/opencord/voltha-protos/v5/go/extension/extensions.pb.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 249,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-03-06T13:00:31Z",
+      "side": 0,
+      "message": "This is a auto generated file by the protocol buffer compiler and hence haven\u0027t modified it .",
+      "parentUuid": "e8ccb401_6898de67",
+      "revId": "ab350ba3cc2ea776bdda4626ec17fbabd7b217ab",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
