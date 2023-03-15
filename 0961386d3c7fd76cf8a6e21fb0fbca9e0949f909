@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fb45871d_2f8d0a32",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 871,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2023-03-15T16:56:11Z",
+      "side": 1,
+      "message": "IMHO mutexes here do not prevent concurrency issues. If different goroutines call GetOnuActiveAlarms at the same time, the expected behavior may change here.",
+      "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "657bd815_758f3cec",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 875,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2023-03-15T16:56:11Z",
+      "side": 1,
+      "message": "For the best practice using am.AsyncAlarmsCommChan \u003c- true or am.AsyncAlarmsCommChan \u003c- struct{}{} is better.",
+      "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "71ca5ff0_c1d204d6",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 884,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2023-03-15T16:56:11Z",
+      "side": 1,
+      "message": "We should expect that if another goroutine sends a message to am.AsyncAlarmsCommChan then it might immediately be received here.",
+      "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
