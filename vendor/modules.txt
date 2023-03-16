@@ -145,7 +145,7 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/looplab/fsm v0.2.0
 ## explicit
 github.com/looplab/fsm
-# github.com/opencord/omci-lib-go/v2 v2.2.2
+# github.com/opencord/omci-lib-go/v2 v2.2.3
 ## explicit
 github.com/opencord/omci-lib-go/v2
 github.com/opencord/omci-lib-go/v2/generated
