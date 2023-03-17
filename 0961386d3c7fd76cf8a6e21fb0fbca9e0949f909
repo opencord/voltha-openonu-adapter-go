@@ -38,6 +38,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "10595384_4debe80f",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 871,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-03-17T06:10:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2a0f70cb_7c3436de",
+      "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "657bd815_758f3cec",
         "filename": "internal/pkg/almgr/alarm_manager.go",
         "patchSetId": 6
@@ -73,6 +91,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "3b62b62f_941f1dc3",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 875,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-03-17T06:10:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dd6669a0_4df18f88",
+      "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "71ca5ff0_c1d204d6",
         "filename": "internal/pkg/almgr/alarm_manager.go",
         "patchSetId": 6
@@ -102,6 +138,24 @@
       "side": 1,
       "message": "IIUC, A go routine spawned to handle the ActiveAlarmsRequest(spwaned out of one of the multiple requests for this particular ONU) might end up  sending a message and can be received immediately, . Hence, simultaneous requests for the same ONU can be serialised and above case can be handled. The new patch has the changes to have a mutex.",
       "parentUuid": "71ca5ff0_c1d204d6",
+      "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "214590f4_33ade652",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 884,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-03-17T06:10:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c3c3ca13_4f8f02dc",
       "revId": "0961386d3c7fd76cf8a6e21fb0fbca9e0949f909",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
