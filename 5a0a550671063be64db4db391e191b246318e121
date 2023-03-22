@@ -33,6 +33,23 @@
       "message": "recheck",
       "revId": "5a0a550671063be64db4db391e191b246318e121",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "77695110_044a6589",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-03-22T09:10:46Z",
+      "side": 1,
+      "message": "@Serkant: Can you please see if the latest changes can address your expressed concerns?",
+      "revId": "5a0a550671063be64db4db391e191b246318e121",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
