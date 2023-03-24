@@ -50,6 +50,41 @@
       "message": "@Serkant: Can you please see if the latest changes can address your expressed concerns?",
       "revId": "5a0a550671063be64db4db391e191b246318e121",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ec902bec_66f558a9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2023-03-24T11:30:31Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "77695110_044a6589",
+      "revId": "5a0a550671063be64db4db391e191b246318e121",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9feaf807_eecbc6c0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2023-03-24T11:30:31Z",
+      "side": 1,
+      "message": "Thanks, all resolved.",
+      "revId": "5a0a550671063be64db4db391e191b246318e121",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
