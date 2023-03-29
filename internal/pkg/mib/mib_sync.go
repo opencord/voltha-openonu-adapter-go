@@ -588,6 +588,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 					oo.MutexPersOnuConfig.Lock()
 					oo.SOnuPersistentData.PersMibDataSyncAdpt = cmn.MdsDefaultMib
 					oo.MutexPersOnuConfig.Unlock()
+					oo.PDevOmciCC.ResetConfFailMEs()
 					// trigger retrieval of VendorId and SerialNumber
 					_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetVendorAndSerial)
 					return
