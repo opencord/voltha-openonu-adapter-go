@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "67ee97c9_2cef143e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2023-03-29T14:43:16Z",
+      "side": 1,
+      "message": "Just some conceptual or minor remarks.",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bbbd31cf_9c2ff715",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2006,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2023-03-29T14:43:16Z",
+      "side": 1,
+      "message": "Basically ok, but generally also a missing response (timeout) could be regarded as \u0027unsupported\u0027/\u0027missing response\u0027. So then also timeout events for specific ME instances could be considered for generating this or similar event.",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "99188bd5_c776c556",
+        "filename": "internal/pkg/common/defines.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 367,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2023-03-29T14:43:16Z",
+      "side": 1,
+      "message": "The event reported by the current implementation would not only include \u0027unsupported\u0027 but any possible OMCI error return, thus the naming could be misleading",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4476f1b3_5a6ddbf5",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5255,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2023-03-29T14:43:16Z",
+      "side": 1,
+      "message": "Looks to me as if \u0027InstanceExists\u0027 is already covered in the FSM\u0027s (should only occur on create), while DeviceBusy should not appear in this context at all (and could be treated as event indication as well)",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "52122349_6145cea4",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5275,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2023-03-29T14:43:16Z",
+      "side": 1,
+      "message": "So here is only the append method.\nThis implies, that the problematic ME classes (while you could consider to extend that to ME instances (class/instance) as well) are only cleared on removal of the complete OmciCC object. I\u0027m not sure, does this imply any possibly MIB synchronisation/MIB reset. It might make sense to generate such events from new after each MIB reset? Or it may be considered bound to the lifetime of the ONU, then it is ok.",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
