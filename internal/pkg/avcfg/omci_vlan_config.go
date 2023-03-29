@@ -2003,7 +2003,9 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(ctx context.Context, m
 			if msgObj.Result != me.Success {
 				logger.Errorw(ctx, "UniVlanConfigFsm Omci SetResponse Error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+				// possibly force FSM into abort or ignore some errors for some messages?
+				oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+					msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 				return
 			}
 			oFsm.mutexPLastTxMeInstance.RLock()
@@ -2065,7 +2067,9 @@ func (oFsm *UniVlanConfigFsm) handleOmciCreateResponseMessage(ctx context.Contex
 	if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": oFsm.deviceID,
 			"Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		return fmt.Errorf("omci CreateResponse Error for device-id %x",
 			oFsm.deviceID)
 	}
@@ -2121,7 +2125,9 @@ func (oFsm *UniVlanConfigFsm) handleOmciDeleteResponseMessage(ctx context.Contex
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniVlanConfigFsm - Omci DeleteResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		return fmt.Errorf("omci DeleteResponse Error for device-id %x",
 			oFsm.deviceID)
 	}
@@ -2868,6 +2874,12 @@ func (oFsm *UniVlanConfigFsm) waitforOmciResponse(ctx context.Context) error {
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
+		oFsm.mutexPLastTxMeInstance.RLock()
+		if oFsm.pLastTxMeInstance != nil {
+			oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureTimeout, oFsm.pLastTxMeInstance.GetClassID(),
+				oFsm.pLastTxMeInstance.GetEntityID(), oFsm.pLastTxMeInstance.GetClassID().String(), 0)
+		}
+		oFsm.mutexPLastTxMeInstance.RUnlock()
 		return fmt.Errorf("uniVlanConfigFsm multi entity timeout %s", oFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {
