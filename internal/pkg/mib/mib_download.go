@@ -182,7 +182,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadCreateResponseMessage
 	logger.Debugw(ctx, "CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 	if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		onuDeviceEntry.PDevOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 		return
 	}
 	// maybe there is a way of pushing the specific create response type generally to the FSM
@@ -245,7 +246,8 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadSetResponseMessage(ct
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID,
 			"Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		onuDeviceEntry.PDevOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 		return
 	}
 	// compare comments above for CreateResponse (apply also here ...)

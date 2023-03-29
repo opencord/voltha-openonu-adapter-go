@@ -1265,7 +1265,8 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 	} else {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"Error": msgObj.Result, "device-id": oFsm.deviceID})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 		return
 	}
 }
@@ -1313,7 +1314,8 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 
 		oFsm.handleOmciAniConfigSetFailResponseMessage(ctx, msgObj)
 		return
@@ -1380,7 +1382,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci DeleteResponse Error",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		//TODO:  - later: possibly force FSM into abort or ignore some errors for some messages?
-		//         store error for mgmt display?
+		oFsm.pOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 		return
 	}
 	oFsm.mutexPLastTxMeInstance.RLock()

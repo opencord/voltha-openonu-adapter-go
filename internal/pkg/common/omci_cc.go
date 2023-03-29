@@ -109,14 +109,16 @@ type txRxCounters struct {
 
 //OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
 type OmciCC struct {
-	enabled            bool
-	pBaseDeviceHandler IdeviceHandler
-	pOnuDeviceEntry    IonuDeviceEntry
-	pOnuAlarmManager   IonuAlarmManager
-	deviceID           string
-	coreClient         *vgrpc.Client
-	supportExtMsg      bool
-	rxOmciFrameError   tOmciReceiveError
+	enabled             bool
+	pBaseDeviceHandler  IdeviceHandler
+	pOnuDeviceEntry     IonuDeviceEntry
+	pOnuAlarmManager    IonuAlarmManager
+	deviceID            string
+	coreClient          *vgrpc.Client
+	supportExtMsg       bool
+	rxOmciFrameError    tOmciReceiveError
+	unsupportedMEs      []me.ClassID
+	mutexUnsupportedMEs sync.RWMutex
 
 	mutexCounters sync.RWMutex
 	countersBase  txRxCounters
@@ -168,6 +170,7 @@ func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandle
 	omciCC.coreClient = coreClient
 	omciCC.supportExtMsg = false
 	omciCC.rxOmciFrameError = cOmciMessageReceiveNoError
+	omciCC.unsupportedMEs = nil
 	omciCC.countersBase = txRxCounters{0, 0, 0, 0}
 	omciCC.countersExt = txRxCounters{0, 0, 0, 0}
 	omciCC.txRetries = 0
@@ -213,6 +216,9 @@ func (oo *OmciCC) Stop(ctx context.Context) error {
 	oo.UploadSequNo = 0
 	oo.UploadNoOfCmds = 0
 	oo.rxOmciFrameError = cOmciMessageReceiveNoError
+	oo.mutexUnsupportedMEs.Lock()
+	oo.unsupportedMEs = nil
+	oo.mutexUnsupportedMEs.Unlock()
 
 	//reset the stats counter
 	oo.mutexCounters.Lock()
@@ -5242,4 +5248,32 @@ func (oo *OmciCC) incrementTxTimesouts() {
 	oo.mutexCounters.Lock()
 	defer oo.mutexCounters.Unlock()
 	oo.txTimeouts++
+}
+
+// NotifyAboutUnsupportedME - trigger ONU DeviceEvent to notify about unsupported OMCI ME
+func (oo *OmciCC) NotifyAboutUnsupportedME(ctx context.Context, meConfResult me.Results, meClassID me.ClassID, meName string) {
+	if meConfResult != me.DeviceBusy && meConfResult != me.InstanceExists {
+		if !oo.unsupportedMeAlreadyHandled(meClassID) {
+			description := OnuConfigFailureUnsupportedOmciMeDesc + meName + " (" + meConfResult.String() + ")"
+			oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, OnuConfigFailureUnsupportedOmciMe, description)
+			oo.appendUnsupportedMe(meClassID)
+		}
+	}
+}
+
+func (oo *OmciCC) unsupportedMeAlreadyHandled(meClassID me.ClassID) bool {
+	oo.mutexUnsupportedMEs.RLock()
+	defer oo.mutexUnsupportedMEs.RUnlock()
+	for _, v := range oo.unsupportedMEs {
+		if v == meClassID {
+			return true
+		}
+	}
+	return false
+}
+
+func (oo *OmciCC) appendUnsupportedMe(meClassID me.ClassID) {
+	oo.mutexUnsupportedMEs.Lock()
+	defer oo.mutexUnsupportedMEs.Unlock()
+	oo.unsupportedMEs = append(oo.unsupportedMEs, meClassID)
 }

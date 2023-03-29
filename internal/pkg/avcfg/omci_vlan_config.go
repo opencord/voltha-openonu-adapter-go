@@ -2003,7 +2003,8 @@ func (oFsm *UniVlanConfigFsm) handleOmciVlanConfigMessage(ctx context.Context, m
 			if msgObj.Result != me.Success {
 				logger.Errorw(ctx, "UniVlanConfigFsm Omci SetResponse Error - later: drive FSM to abort state ?",
 					log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
-				// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+				// possibly force FSM into abort or ignore some errors for some messages?
+				oFsm.pOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 				return
 			}
 			oFsm.mutexPLastTxMeInstance.RLock()
@@ -2065,7 +2066,8 @@ func (oFsm *UniVlanConfigFsm) handleOmciCreateResponseMessage(ctx context.Contex
 	if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": oFsm.deviceID,
 			"Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 		return fmt.Errorf("omci CreateResponse Error for device-id %x",
 			oFsm.deviceID)
 	}
@@ -2121,7 +2123,8 @@ func (oFsm *UniVlanConfigFsm) handleOmciDeleteResponseMessage(ctx context.Contex
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniVlanConfigFsm - Omci DeleteResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutUnsupportedME(ctx, msgObj.Result, msgObj.EntityClass, msgObj.EntityClass.String())
 		return fmt.Errorf("omci DeleteResponse Error for device-id %x",
 			oFsm.deviceID)
 	}

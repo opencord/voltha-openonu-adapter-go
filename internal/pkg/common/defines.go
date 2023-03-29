@@ -364,6 +364,9 @@ const (
 	OnuOmciCommunicationFailureSwUpgrade     = "ONU_OMCI_COMMUNICATION_FAILURE_SW_UPGRADE"
 	OnuOmciCommunicationFailureSwUpgradeDesc = "OMCI communication during ONU SW upgrade failed"
 
+	OnuConfigFailureUnsupportedOmciMe     = "ONU_CONFIG_FAILURE_UNSUPPORTED_OMCI_ME"
+	OnuConfigFailureUnsupportedOmciMeDesc = "ONU config failed - unsupported OMCI ME: "
+
 	OnuConfigFailureMissingTcont     = "ONU_CONFIG_FAILURE_MISSING_TCONT"
 	OnuConfigFailureMissingTcontDesc = "ONU config failed - no further TCONT resources available at ONU"
 
