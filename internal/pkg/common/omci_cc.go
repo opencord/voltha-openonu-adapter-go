@@ -117,6 +117,8 @@ type OmciCC struct {
 	coreClient         *vgrpc.Client
 	supportExtMsg      bool
 	rxOmciFrameError   tOmciReceiveError
+	confFailMEs        []me.ClassID
+	mutexConfFailMEs   sync.RWMutex
 
 	mutexCounters sync.RWMutex
 	countersBase  txRxCounters
@@ -168,6 +170,7 @@ func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandle
 	omciCC.coreClient = coreClient
 	omciCC.supportExtMsg = false
 	omciCC.rxOmciFrameError = cOmciMessageReceiveNoError
+	omciCC.confFailMEs = nil
 	omciCC.countersBase = txRxCounters{0, 0, 0, 0}
 	omciCC.countersExt = txRxCounters{0, 0, 0, 0}
 	omciCC.txRetries = 0
@@ -213,6 +216,7 @@ func (oo *OmciCC) Stop(ctx context.Context) error {
 	oo.UploadSequNo = 0
 	oo.UploadNoOfCmds = 0
 	oo.rxOmciFrameError = cOmciMessageReceiveNoError
+	oo.ResetConfFailMEs()
 
 	//reset the stats counter
 	oo.mutexCounters.Lock()
@@ -5242,4 +5246,49 @@ func (oo *OmciCC) incrementTxTimesouts() {
 	oo.mutexCounters.Lock()
 	defer oo.mutexCounters.Unlock()
 	oo.txTimeouts++
+}
+
+// NotifyAboutOnuConfigFailure - trigger ONU DeviceEvent to notify about ONU config failure
+func (oo *OmciCC) NotifyAboutOnuConfigFailure(ctx context.Context, errID string, meClassID me.ClassID, meEntityID uint16,
+	meName string, meResult me.Results) {
+	var description string
+	if !oo.confFailMeAlreadyHandled(meClassID) {
+		switch errID {
+		case OnuConfigFailureResponseErr:
+			description = OnuConfigFailureResponseErrDesc + meResult.String() +
+				", OMCI ME: " + meName + " / instance: " + fmt.Sprintf("%d", meEntityID) + " (only first instance reported)"
+		case OnuConfigFailureTimeout:
+			description = OnuConfigFailureTimeoutDesc + meName + " / instance: " + fmt.Sprintf("%d", meEntityID) +
+				" (only first instance reported)"
+		default:
+			logger.Warnw(ctx, "method called with undefined errID", log.Fields{"errID": errID, "device-id": oo.deviceID})
+			return
+		}
+		oo.pOnuDeviceEntry.SendOnuDeviceEvent(ctx, errID, description)
+		oo.appendConfFailMe(meClassID)
+	}
+}
+
+func (oo *OmciCC) confFailMeAlreadyHandled(meClassID me.ClassID) bool {
+	oo.mutexConfFailMEs.RLock()
+	defer oo.mutexConfFailMEs.RUnlock()
+	for _, v := range oo.confFailMEs {
+		if v == meClassID {
+			return true
+		}
+	}
+	return false
+}
+
+func (oo *OmciCC) appendConfFailMe(meClassID me.ClassID) {
+	oo.mutexConfFailMEs.Lock()
+	defer oo.mutexConfFailMEs.Unlock()
+	oo.confFailMEs = append(oo.confFailMEs, meClassID)
+}
+
+// ResetConfFailMEs - reset list of stored config failure MEs
+func (oo *OmciCC) ResetConfFailMEs() {
+	oo.mutexConfFailMEs.Lock()
+	defer oo.mutexConfFailMEs.Unlock()
+	oo.confFailMEs = nil
 }

@@ -1265,7 +1265,9 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 	} else {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"Error": msgObj.Result, "device-id": oFsm.deviceID})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		return
 	}
 }
@@ -1313,8 +1315,9 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
-
+		// possibly force FSM into abort or ignore some errors for some messages?
+		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		oFsm.handleOmciAniConfigSetFailResponseMessage(ctx, msgObj)
 		return
 	}
@@ -1380,7 +1383,8 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci DeleteResponse Error",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		//TODO:  - later: possibly force FSM into abort or ignore some errors for some messages?
-		//         store error for mgmt display?
+		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		return
 	}
 	oFsm.mutexPLastTxMeInstance.RLock()
@@ -1807,6 +1811,12 @@ func (oFsm *UniPonAniConfigFsm) waitforOmciResponse(ctx context.Context) error {
 		oFsm.mutexIsAwaitingResponse.Lock()
 		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
+		oFsm.mutexPLastTxMeInstance.RLock()
+		if oFsm.pLastTxMeInstance != nil {
+			oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureTimeout, oFsm.pLastTxMeInstance.GetClassID(),
+				oFsm.pLastTxMeInstance.GetEntityID(), oFsm.pLastTxMeInstance.GetClassID().String(), 0)
+		}
+		oFsm.mutexPLastTxMeInstance.RUnlock()
 		return fmt.Errorf("uniPonAniConfigFsm multi entity timeout %s", oFsm.deviceID)
 	case success := <-oFsm.omciMIdsResponseReceived:
 		if success {

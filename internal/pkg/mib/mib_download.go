@@ -182,7 +182,9 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadCreateResponseMessage
 	logger.Debugw(ctx, "CreateResponse Data", log.Fields{"device-id": onuDeviceEntry.deviceID, "data-fields": msgObj})
 	if msgObj.Result != me.Success && msgObj.Result != me.InstanceExists {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID, "Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		onuDeviceEntry.PDevOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		return
 	}
 	// maybe there is a way of pushing the specific create response type generally to the FSM
@@ -245,7 +247,9 @@ func (onuDeviceEntry *OnuDeviceEntry) handleOmciMibDownloadSetResponseMessage(ct
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "Omci SetResponse Error - later: drive FSM to abort state ?", log.Fields{"device-id": onuDeviceEntry.deviceID,
 			"Error": msgObj.Result})
-		// possibly force FSM into abort or ignore some errors for some messages? store error for mgmt display?
+		// possibly force FSM into abort or ignore some errors for some messages?
+		onuDeviceEntry.PDevOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
+			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
 		return
 	}
 	// compare comments above for CreateResponse (apply also here ...)
@@ -384,6 +388,13 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, a
 	// case <-ctx.Done():
 	// 		logger.Info("MibDownload-bridge-init message reception canceled", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 	case <-time.After(onuDeviceEntry.PDevOmciCC.GetMaxOmciTimeoutWithRetries() * time.Second): //3s was detected to be to less in 8*8 bbsim test with debug Info/Debug
+		onuDeviceEntry.mutexPLastTxMeInstance.RLock()
+		if onuDeviceEntry.pLastTxMeInstance != nil {
+			onuDeviceEntry.PDevOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureTimeout,
+				onuDeviceEntry.pLastTxMeInstance.GetClassID(), onuDeviceEntry.pLastTxMeInstance.GetEntityID(),
+				onuDeviceEntry.pLastTxMeInstance.GetClassID().String(), 0)
+		}
+		onuDeviceEntry.mutexPLastTxMeInstance.RUnlock()
 		logger.Warnw(ctx, "MibDownload-bridge-init timeout", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 		return fmt.Errorf("mibDownloadBridgeInit timeout %s", onuDeviceEntry.deviceID)
 	case success := <-onuDeviceEntry.omciMessageReceived:
