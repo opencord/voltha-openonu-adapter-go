@@ -231,6 +231,7 @@ type deviceHandler struct {
 	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
 	disableDeviceRequested         bool        // this flag identify ONU received disable request or not
 	oltAvailable                   bool
+	reconcilingNoPersConfigOnu     bool
 }
 
 // newDeviceHandler creates a new device handler
@@ -277,6 +278,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.reconcileExpiryVlanConfig = time.Duration(rEVCSeconds) * time.Second //set this duration to some according lower value
 	dh.readyForOmciConfig = false
 	dh.deletionInProgress = false
+	dh.reconcilingNoPersConfigOnu = false
 	dh.pLastUpgradeImageState = &voltha.ImageState{
 		DownloadState: voltha.ImageState_DOWNLOAD_UNKNOWN,
 		Reason:        voltha.ImageState_UNKNOWN_ERROR,
@@ -338,6 +340,14 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 	logger.Debugw(ctx, "adopt_or_reconcile_device", log.Fields{"device-id": device.Id, "Address": device.GetHostAndPort()})
 
 	logger.Debugw(ctx, "Device FSM: ", log.Fields{"device-id": device.Id, "state": string(dh.pDeviceStateFsm.Current())})
+
+	if device.OperStatus == common.OperStatus_ACTIVATING {
+		logger.Debugw(ctx, "Reconcile request for ONU previously in activating state  ", log.Fields{"device-id": device.Id})
+		dh.reconcilingNoPersConfigOnu = true
+	} else {
+		dh.reconcilingNoPersConfigOnu = false
+	}
+
 	if dh.pDeviceStateFsm.Is(devStNull) {
 		if err := dh.pDeviceStateFsm.Event(devEvDeviceInit); err != nil {
 			logger.Errorw(ctx, "Device FSM: Can't go to state DeviceInit", log.Fields{"device-id": device.Id, "err": err})
@@ -2494,10 +2504,27 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 				log.Fields{"device-id": dh.DeviceID, "err": err})
 		}
 	} else {
-		logger.Debugw(ctx, "reconciling - don't notify core that onu went to active but trigger tech profile config",
-			log.Fields{"device-id": dh.DeviceID})
 		dh.ReconcileDeviceTechProf(ctx)
+		logger.Debugw(ctx, "reconciling - don't notify core that onu went to active but triggered tech profile config",
+			log.Fields{"device-id": dh.DeviceID})
 		// reconcilement will be continued after ani config is done
+
+		//Handling the case where the reconciling is being done for ONUs that have no tech profile info as the Adaptor has got restarted during activating the
+		//ONU and prior receiving the config information.
+		if dh.reconcilingNoPersConfigOnu {
+			logger.Infow(ctx, "No Uni Config stored as ONU was still previously in activating state, indicate operstatus active ", log.Fields{"device-id": dh.DeviceID})
+			raisedTs := time.Now().Unix()
+			dh.sendOnuOperStateEvent(ctx, voltha.OperStatus_ACTIVE, dh.DeviceID, raisedTs)
+			pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
+			pDevEntry.MutexPersOnuConfig.Lock()
+			pDevEntry.SOnuPersistentData.PersUniUnlockDone = true
+			pDevEntry.MutexPersOnuConfig.Unlock()
+			if err := dh.StorePersistentData(ctx); err != nil {
+				logger.Warnw(ctx, "store persistent data error - continue for now as there will be additional write attempts",
+					log.Fields{"device-id": dh.DeviceID, "err": err})
+			}
+		}
+
 	}
 }
 
@@ -2710,7 +2737,15 @@ func (dh *deviceHandler) addUniPort(ctx context.Context, aUniInstNo uint16, aUni
 					logger.Infow(ctx, "OnuUniPort-added", log.Fields{"device-id": dh.DeviceID, "for PortNo": uniNo})
 				} //error logging already within UniPort method
 			} else {
-				logger.Debugw(ctx, "reconciling - OnuUniPort already added", log.Fields{"for PortNo": uniNo, "device-id": dh.DeviceID})
+				if dh.reconcilingNoPersConfigOnu {
+					logger.Debugw(ctx, "OnuUniPort to be added as no ports are added previously", log.Fields{"device-id": dh.DeviceID, "for PortNo": uniNo})
+					// create announce the UniPort to the core as VOLTHA Port object
+					if err := pUniPort.CreateVolthaPort(ctx, dh); err == nil {
+						logger.Infow(ctx, "OnuUniPort-added", log.Fields{"device-id": dh.DeviceID, "for PortNo": uniNo})
+					}
+				} else {
+					logger.Debugw(ctx, "reconciling - OnuUniPort already added", log.Fields{"for PortNo": uniNo, "device-id": dh.DeviceID})
+				}
 			}
 		}
 	}
@@ -2803,7 +2838,21 @@ func (dh *deviceHandler) EnableUniPortStateUpdate(ctx context.Context) {
 					}
 				}(uniPort)
 			} else {
-				logger.Debugw(ctx, "reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.DeviceID})
+				if dh.reconcilingNoPersConfigOnu {
+					go func(port *cmn.OnuUniPort) {
+						logger.Debugw(ctx, "port-state-update as previously this is not intimated ", log.Fields{"port-no": uniPort.PortNo, "device-id": dh.DeviceID})
+						if err := dh.updatePortStateInCore(ctx, &ca.PortState{
+							DeviceId:   dh.DeviceID,
+							PortType:   voltha.Port_ETHERNET_UNI,
+							PortNo:     port.PortNo,
+							OperStatus: port.OperState,
+						}); err != nil {
+							logger.Errorw(ctx, "port-state-update-failed", log.Fields{"error": err, "port-no": uniPort.PortNo, "device-id": dh.DeviceID})
+						}
+					}(uniPort)
+				} else {
+					logger.Debugw(ctx, "reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.DeviceID})
+				}
 			}
 		}
 	}
