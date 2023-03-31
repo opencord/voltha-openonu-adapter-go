@@ -338,6 +338,7 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 	logger.Debugw(ctx, "adopt_or_reconcile_device", log.Fields{"device-id": device.Id, "Address": device.GetHostAndPort()})
 
 	logger.Debugw(ctx, "Device FSM: ", log.Fields{"device-id": device.Id, "state": string(dh.pDeviceStateFsm.Current())})
+
 	if dh.pDeviceStateFsm.Is(devStNull) {
 		if err := dh.pDeviceStateFsm.Event(devEvDeviceInit); err != nil {
 			logger.Errorw(ctx, "Device FSM: Can't go to state DeviceInit", log.Fields{"device-id": device.Id, "err": err})
@@ -1971,6 +1972,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
 	}
+
 	if !dh.IsReconciling() {
 		if err := dh.StorePersistentData(ctx); err != nil {
 			logger.Warnw(ctx, "store persistent data error - continue as there will be additional write attempts",
@@ -1997,6 +1999,15 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			logger.Debugw(ctx, "reconciling - uni-ports were not unlocked before adapter restart - resume with a normal start-up",
 				log.Fields{"device-id": dh.DeviceID})
 			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
+
+			//VOL-4965: Recover previously Activating ONU during reconcilation.
+			if dh.device.OperStatus == common.OperStatus_ACTIVATING {
+				logger.Debugw(ctx, "Reconciling an ONU in previously activating state, perform MIB reset and resume normal start up",
+					log.Fields{"device-id": dh.DeviceID})
+				pDevEntry.MutexPersOnuConfig.Lock()
+				pDevEntry.SOnuPersistentData.PersMibLastDbSync = 0
+				pDevEntry.MutexPersOnuConfig.Unlock()
+			}
 		} else {
 			pDevEntry.MutexPersOnuConfig.RUnlock()
 		}
@@ -2494,10 +2505,12 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 				log.Fields{"device-id": dh.DeviceID, "err": err})
 		}
 	} else {
-		logger.Debugw(ctx, "reconciling - don't notify core that onu went to active but trigger tech profile config",
+		logger.Debugw(ctx, "reconciling - don't notify core that onu went to active but triggered tech profile config",
 			log.Fields{"device-id": dh.DeviceID})
 		dh.ReconcileDeviceTechProf(ctx)
+
 		// reconcilement will be continued after ani config is done
+
 	}
 }
 
