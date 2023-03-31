@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f74da337_11db8915",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2006,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-03-31T11:01:14Z",
+      "side": 1,
+      "message": "Interesting aspect - will consider it in the next patch set!",
+      "parentUuid": "bbbd31cf_9c2ff715",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "99188bd5_c776c556",
@@ -48,6 +66,24 @@
       "writtenOn": "2023-03-29T14:43:16Z",
       "side": 1,
       "message": "The event reported by the current implementation would not only include \u0027unsupported\u0027 but any possible OMCI error return, thus the naming could be misleading",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5354fada_eb1916b5",
+        "filename": "internal/pkg/common/defines.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 367,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-03-31T11:01:14Z",
+      "side": 1,
+      "message": "Agreed, the name will be changed.",
+      "parentUuid": "99188bd5_c776c556",
       "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -69,6 +105,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "21c4b473_186a17df",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5255,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-03-31T11:01:14Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4476f1b3_5a6ddbf5",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "52122349_6145cea4",
@@ -82,6 +136,24 @@
       "writtenOn": "2023-03-29T14:43:16Z",
       "side": 1,
       "message": "So here is only the append method.\nThis implies, that the problematic ME classes (while you could consider to extend that to ME instances (class/instance) as well) are only cleared on removal of the complete OmciCC object. I\u0027m not sure, does this imply any possibly MIB synchronisation/MIB reset. It might make sense to generate such events from new after each MIB reset? Or it may be considered bound to the lifetime of the ONU, then it is ok.",
+      "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9e83da75_2e4d351c",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5275,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-03-31T11:01:14Z",
+      "side": 1,
+      "message": "Agreed - since an OMCI communication problem could be a temporary SW error in addition to the general inability to handle a corresponding ME, it makes sense to reset the MEs already handled in a failure output even on a successful MIB reset.\n\nME instances will be considered in next patch set.",
+      "parentUuid": "52122349_6145cea4",
       "revId": "8d6b018c924118627a2ca6ea3a6c60d0c3436d81",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
