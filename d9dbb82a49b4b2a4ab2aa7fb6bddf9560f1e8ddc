@@ -16,6 +16,46 @@
       "message": "recheck",
       "revId": "d9dbb82a49b4b2a4ab2aa7fb6bddf9560f1e8ddc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f5f08b89_f5a3a515",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-04-07T17:39:11Z",
+      "side": 1,
+      "message": "After reading the task I was expecting to reinitialize the device related data in onu-adapter with MibReset, and do everything in scratch. Instead there is only port addition and portState change admission allowed.  How can we be sure that everything else is initialized appropriately but the ports?",
+      "revId": "d9dbb82a49b4b2a4ab2aa7fb6bddf9560f1e8ddc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf3a4eaa_e3709e6d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2521,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-04-07T17:39:11Z",
+      "side": 1,
+      "message": "I didn\u0027t get this. Why do we set the state to ACTIVE when the TechProfile reconciliation fails?",
+      "range": {
+        "startLine": 2508,
+        "startChar": 0,
+        "endLine": 2521,
+        "endChar": 1
+      },
+      "revId": "d9dbb82a49b4b2a4ab2aa7fb6bddf9560f1e8ddc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
