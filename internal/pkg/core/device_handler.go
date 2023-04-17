@@ -262,7 +262,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.mutexForDisableDeviceRequested = sync.RWMutex{}
 	dh.UniVlanConfigFsmMap = make(map[uint8]*avcfg.UniVlanConfigFsm)
 	dh.reconciling = cNoReconciling
-	dh.reconcilingReasonUpdate = false
+	dh.reconcilingReasonUpdate = true
 	dh.reconcilingFirstPass = true
 	dh.disableDeviceRequested = false
 	dh.oltAvailable = false
