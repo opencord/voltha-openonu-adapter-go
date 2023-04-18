@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "744285d7_f7c9d8d7",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-04-18T23:06:53Z",
+      "side": 1,
+      "message": "Do you really need this flag? This seems indicating the deviceState \u003d\u003d ACTIVATING in reconcile. So can\u0027t we use if(dh.device.Operstate \u003d\u003d common.OperStatus_ACTIVATING \u0026\u0026 dh.IsReconciling()) where needed, instead of managing this flag?",
+      "range": {
+        "startLine": 343,
+        "startChar": 0,
+        "endLine": 349,
+        "endChar": 2
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b3f06a1b_134956a2",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2529,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-04-18T23:06:53Z",
+      "side": 1,
+      "message": "Instead of duplicating this code you can add an OR statement to if !dh.IsReconciling() check. You can replace the line with :\nif !dh.IsReconciling() || (dh.IsReconciling() \u0026\u0026 dh.device.Operstate \u003d\u003d common.OperStatus_ACTIVATING )",
+      "range": {
+        "startLine": 2514,
+        "startChar": 0,
+        "endLine": 2529,
+        "endChar": 1
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "27008192_d56ab253",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2749,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-04-18T23:06:53Z",
+      "side": 1,
+      "message": "same as above.",
+      "range": {
+        "startLine": 2740,
+        "startChar": 0,
+        "endLine": 2749,
+        "endChar": 0
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a46b1aa6_cb6688fe",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2855,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-04-18T23:06:53Z",
+      "side": 1,
+      "message": "same as above",
+      "range": {
+        "startLine": 2841,
+        "startChar": 0,
+        "endLine": 2855,
+        "endChar": 0
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
