@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0a7601a1_b68639e7",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 265,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-04-18T06:09:30Z",
+      "side": 0,
+      "message": "This change eliminates the very purpose of this flag, to prevent all reason updates passed through from being sent to the core during reconciling.",
+      "range": {
+        "startLine": 265,
+        "startChar": 4,
+        "endLine": 265,
+        "endChar": 28
+      },
+      "revId": "5a0a550671063be64db4db391e191b246318e121",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
