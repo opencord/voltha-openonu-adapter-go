@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "42c54058_4f1d14c9",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-04-28T06:21:28Z",
+      "side": 1,
+      "message": "In the latest patch set I have cleaned up this changes, modified the functionality to stop reconcilement, perform MIB reset and move ahead with normal start up. Please review.",
+      "parentUuid": "744285d7_f7c9d8d7",
+      "range": {
+        "startLine": 343,
+        "startChar": 0,
+        "endLine": 349,
+        "endChar": 2
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "b3f06a1b_134956a2",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 3
@@ -37,6 +61,30 @@
       "writtenOn": "2023-04-18T23:06:53Z",
       "side": 1,
       "message": "Instead of duplicating this code you can add an OR statement to if !dh.IsReconciling() check. You can replace the line with :\nif !dh.IsReconciling() || (dh.IsReconciling() \u0026\u0026 dh.device.Operstate \u003d\u003d common.OperStatus_ACTIVATING )",
+      "range": {
+        "startLine": 2514,
+        "startChar": 0,
+        "endLine": 2529,
+        "endChar": 1
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3f9a9ab4_badfc7bc",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2529,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-04-28T06:21:28Z",
+      "side": 1,
+      "message": "In the latest patch set I have cleaned up this changes, modified the functionality to stop reconcilement, perform MIB reset and move ahead with normal start up. Please review.",
+      "parentUuid": "b3f06a1b_134956a2",
       "range": {
         "startLine": 2514,
         "startChar": 0,
@@ -72,6 +120,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "64a9f97a_0052bd93",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2749,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-04-28T06:21:28Z",
+      "side": 1,
+      "message": "In the latest patch set I have cleaned up this changes, modified the functionality to stop reconcilement, perform MIB reset and move ahead with normal start up. Please review.",
+      "parentUuid": "27008192_d56ab253",
+      "range": {
+        "startLine": 2740,
+        "startChar": 0,
+        "endLine": 2749,
+        "endChar": 0
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a46b1aa6_cb6688fe",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 3
@@ -83,6 +155,30 @@
       "writtenOn": "2023-04-18T23:06:53Z",
       "side": 1,
       "message": "same as above",
+      "range": {
+        "startLine": 2841,
+        "startChar": 0,
+        "endLine": 2855,
+        "endChar": 0
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6b2d6ee8_e2350e8b",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2855,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-04-28T06:21:28Z",
+      "side": 1,
+      "message": "In the latest patch set I have cleaned up this changes, modified the functionality to stop reconcilement, perform MIB reset and move ahead with normal start up. Please review.",
+      "parentUuid": "a46b1aa6_cb6688fe",
       "range": {
         "startLine": 2841,
         "startChar": 0,

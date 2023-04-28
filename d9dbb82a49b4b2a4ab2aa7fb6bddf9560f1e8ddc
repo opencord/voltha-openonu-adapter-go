@@ -35,6 +35,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "758595a8_63c12c4c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-04-28T06:21:28Z",
+      "side": 1,
+      "message": "This reconcile is when the ONU adaptor has restarted and is alive again. \nAll of the entities for the ONU are already  created afresh, device handler, device entry, alarm manager , stats manager, flow handlers etc.,\nThe MDS value will be not matching in the case and the code to automatically trigger a MIB reset in this case is being taken place with the existing code. The missing events of the ports creation which has not been taken place earlier are handled as part of this MR.",
+      "parentUuid": "f5f08b89_f5a3a515",
+      "revId": "d9dbb82a49b4b2a4ab2aa7fb6bddf9560f1e8ddc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "bf3a4eaa_e3709e6d",
@@ -48,6 +66,30 @@
       "writtenOn": "2023-04-07T17:39:11Z",
       "side": 1,
       "message": "I didn\u0027t get this. Why do we set the state to ACTIVE when the TechProfile reconciliation fails?",
+      "range": {
+        "startLine": 2508,
+        "startChar": 0,
+        "endLine": 2521,
+        "endChar": 1
+      },
+      "revId": "d9dbb82a49b4b2a4ab2aa7fb6bddf9560f1e8ddc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "299ed5c4_ea4675b3",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2521,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-04-28T06:21:28Z",
+      "side": 1,
+      "message": "In the normal case, when the MIB download happens and the ports are unlocked we declare the ONU state to be up for the subsequent flows and tech profile to be pushed if any configured for this ONU. Since, in this case we couldn\u0027t retreive the tech profiles due to ONU Adaptor having gone for a restart, we are again indicating the state to be active for subeqeuent config to be applied for this ONU. \nI will refine the code to make it more readable and add appropriate comments.",
+      "parentUuid": "bf3a4eaa_e3709e6d",
       "range": {
         "startLine": 2508,
         "startChar": 0,
