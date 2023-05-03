@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0056cbee_ca2bd068",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1981,
+      "author": {
+        "id": 1000671
+      },
+      "writtenOn": "2023-05-03T07:39:46Z",
+      "side": 1,
+      "message": "Have you already tested this? Is it guaranteed that the ONU comes up without problems after the MIB reset, even though the system is still set to reconciling?",
+      "range": {
+        "startLine": 1981,
+        "startChar": 31,
+        "endLine": 1981,
+        "endChar": 49
+      },
+      "revId": "d2e9f9252ebea72e083a2cdd00d48fc6973ca628",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
