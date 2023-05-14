@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package pmmgr provides the utilities to manage onu metrics
+// Package pmmgr provides the utilities to manage onu metrics
 package pmmgr
 
 import (
@@ -331,6 +331,8 @@ type OnuMetricsManager struct {
 	isEthernetFrameExtendedPmOperationOngoing     bool
 	isExtendedOmci                                bool
 	maxL2PMGetPayLoadSize                         int
+	onuOpticalMetricstimer                        *time.Timer
+	onuUniStatusMetricstimer                      *time.Timer
 }
 
 // NewOnuMetricsManager returns a new instance of the NewOnuMetricsManager
@@ -405,6 +407,14 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 			log.Fields{"device-id": metricsManager.deviceID, "service": baseExtPmKvStorePath})
 		return nil
 	}
+
+	//Metrics collection timers are initialized with a default timer value,  will be stopped immediately and further
+	//timers are  reset during the actual stats collection begins.
+	metricsManager.onuOpticalMetricstimer = time.NewTimer(DefaultMetricCollectionFrequency)
+	metricsManager.onuOpticalMetricstimer.Stop()
+
+	metricsManager.onuUniStatusMetricstimer = time.NewTimer(DefaultMetricCollectionFrequency)
+	metricsManager.onuUniStatusMetricstimer.Stop()
 
 	logger.Info(ctx, "init-OnuMetricsManager completed", log.Fields{"device-id": metricsManager.deviceID})
 	return &metricsManager
@@ -766,9 +776,11 @@ loop:
 		}
 
 		if meInstance != nil {
+			mm.onuOpticalMetricstimer.Reset(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second)
 			select {
 			case meAttributes = <-mm.opticalMetricsChan:
-				logger.Debugw(ctx, "received optical metrics", log.Fields{"device-id": mm.deviceID})
+				mm.onuOpticalMetricstimer.Stop()
+				logger.Debugw(ctx, "received optical metrics, stopping the optical metrics collection timer", log.Fields{"device-id": mm.deviceID})
 			case <-time.After(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.deviceID})
 				// The metrics will be empty in this case
@@ -849,10 +861,12 @@ loop1:
 			return nil, err
 		}
 		if meInstance != nil {
+			mm.onuUniStatusMetricstimer.Reset(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second)
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
-				logger.Debugw(ctx, "received uni-g metrics", log.Fields{"device-id": mm.deviceID})
+				mm.onuUniStatusMetricstimer.Stop()
+				logger.Debugw(ctx, "received uni-g metrics, stopping Onu Uni status metrics timer ", log.Fields{"device-id": mm.deviceID})
 			case <-time.After(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.deviceID})
 				// The metrics could be empty in this case
@@ -909,10 +923,12 @@ loop2:
 			return nil, err
 		}
 		if meInstance != nil {
+			mm.onuUniStatusMetricstimer.Reset(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second)
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
-				logger.Debugw(ctx, "received pptp metrics", log.Fields{"device-id": mm.deviceID})
+				mm.onuUniStatusMetricstimer.Stop()
+				logger.Debugw(ctx, "received pptp metrics, stopping Onu Uni Status metrics timer ", log.Fields{"device-id": mm.deviceID})
 			case <-time.After(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.deviceID})
 				// The metrics could be empty in this case
@@ -976,10 +992,12 @@ loop3:
 			return nil, err
 		}
 		if meInstance != nil {
+			mm.onuUniStatusMetricstimer.Reset(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second)
 			// Wait for metrics or timeout
 			select {
 			case meAttributes = <-mm.uniStatusMetricsChan:
-				logger.Debugw(ctx, "received veip metrics", log.Fields{"device-id": mm.deviceID})
+				mm.onuUniStatusMetricstimer.Stop()
+				logger.Debugw(ctx, "received veip metrics, stopping Onu Uni status metrics timer ", log.Fields{"device-id": mm.deviceID})
 			case <-time.After(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second):
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.deviceID})
 				// The metrics could be empty in this case
