@@ -3750,7 +3750,10 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 	// reset like onu rebooted.
 	dh.pOnuMetricsMgr.InitializeMetricCollectionTime(ctx)
 	dh.setCollectorIsRunning(true)
+	statsCollectionticker := time.NewTicker((pmmgr.FrequencyGranularity) * time.Second)
+	defer statsCollectionticker.Stop()
 	for {
+
 		select {
 		case <-dh.stopCollector:
 			dh.setCollectorIsRunning(false)
@@ -3773,7 +3776,7 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 			}
 
 			return
-		case <-time.After(time.Duration(pmmgr.FrequencyGranularity) * time.Second): // Check every FrequencyGranularity to see if it is time for collecting metrics
+		case <-statsCollectionticker.C: // Check every FrequencyGranularity to see if it is time for collecting metrics
 			if !dh.pmConfigs.FreqOverride { // If FreqOverride is false, then NextGlobalMetricCollectionTime applies
 				// If the current time is eqaul to or greater than the NextGlobalMetricCollectionTime, collect the group and standalone metrics
 				if time.Now().Equal(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) || time.Now().After(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) {
