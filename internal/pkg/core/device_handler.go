@@ -3751,9 +3751,11 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 	dh.pOnuMetricsMgr.InitializeMetricCollectionTime(ctx)
 	dh.setCollectorIsRunning(true)
 	for {
+		statsCollectiontimer := time.NewTimer((pmmgr.FrequencyGranularity) * time.Second)
 		select {
 		case <-dh.stopCollector:
 			dh.setCollectorIsRunning(false)
+			statsCollectiontimer.Stop()
 			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
 			// Stop the L2 PM FSM
 			go func() {
@@ -3773,7 +3775,7 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 			}
 
 			return
-		case <-time.After(time.Duration(pmmgr.FrequencyGranularity) * time.Second): // Check every FrequencyGranularity to see if it is time for collecting metrics
+		case <-statsCollectiontimer.C: // Check every FrequencyGranularity to see if it is time for collecting metrics
 			if !dh.pmConfigs.FreqOverride { // If FreqOverride is false, then NextGlobalMetricCollectionTime applies
 				// If the current time is eqaul to or greater than the NextGlobalMetricCollectionTime, collect the group and standalone metrics
 				if time.Now().Equal(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) || time.Now().After(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) {
