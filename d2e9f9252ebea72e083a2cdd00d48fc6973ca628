@@ -22,6 +22,30 @@
       },
       "revId": "d2e9f9252ebea72e083a2cdd00d48fc6973ca628",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "685a734f_05317790",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1981,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-14T06:07:15Z",
+      "side": 1,
+      "message": "Yes Holger, I have tested these changes by simulating the exception . \nThe reconciling is stopped and further after the MIB reset the ONU gets into service.",
+      "parentUuid": "0056cbee_ca2bd068",
+      "range": {
+        "startLine": 1981,
+        "startChar": 31,
+        "endLine": 1981,
+        "endChar": 49
+      },
+      "revId": "d2e9f9252ebea72e083a2cdd00d48fc6973ca628",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
