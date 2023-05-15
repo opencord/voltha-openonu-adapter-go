@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "70819541_4fa072d0",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1975,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-15T15:45:45Z",
+      "side": 1,
+      "message": "This if statement have the same intention as the else below(else of !dh.IsReconciling()). There, with checking the uni unlock state, I guess it aims the same think that you are trying to do by checking operStatus. I think they may need to be merged. Otherwise, the code may call the dh.stopReconciling twice.",
+      "range": {
+        "startLine": 1975,
+        "startChar": 0,
+        "endLine": 1975,
+        "endChar": 82
+      },
+      "revId": "d2e9f9252ebea72e083a2cdd00d48fc6973ca628",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "0056cbee_ca2bd068",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 4
