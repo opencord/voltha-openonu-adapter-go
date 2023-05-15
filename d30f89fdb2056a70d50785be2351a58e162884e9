@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e25a5839_e173e85f",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3754,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-15T16:13:37Z",
+      "side": 1,
+      "message": "You may use a Thicker instead of a Timer.",
+      "range": {
+        "startLine": 3754,
+        "startChar": 0,
+        "endLine": 3754,
+        "endChar": 83
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dcca64ad_2458d7a3",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 784,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-15T16:13:37Z",
+      "side": 1,
+      "message": "why not timer.C?",
+      "range": {
+        "startLine": 784,
+        "startChar": 0,
+        "endLine": 784,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4fb11b2_32460043",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 870,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-15T16:13:37Z",
+      "side": 1,
+      "message": "why not timer.C?",
+      "range": {
+        "startLine": 870,
+        "startChar": 0,
+        "endLine": 870,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "29c6a837_53848920",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 932,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-15T16:13:37Z",
+      "side": 1,
+      "message": "why not timer.C?",
+      "range": {
+        "startLine": 932,
+        "startChar": 0,
+        "endLine": 932,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a8de9af9_8712bd0e",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1001,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-15T16:13:37Z",
+      "side": 1,
+      "message": "why not timer.C?",
+      "range": {
+        "startLine": 1001,
+        "startChar": 0,
+        "endLine": 1001,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
