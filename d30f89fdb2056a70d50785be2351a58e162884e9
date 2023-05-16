@@ -24,6 +24,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "53d415bf_5a2ba6be",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 3754,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-16T10:15:09Z",
+      "side": 1,
+      "message": "Thanks for the suggestion. I was not aware of the ticker functionality , modified it in the newer patch set.",
+      "parentUuid": "e25a5839_e173e85f",
+      "range": {
+        "startLine": 3754,
+        "startChar": 0,
+        "endLine": 3754,
+        "endChar": 83
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "dcca64ad_2458d7a3",
@@ -37,6 +61,30 @@
       "writtenOn": "2023-05-15T16:13:37Z",
       "side": 1,
       "message": "why not timer.C?",
+      "range": {
+        "startLine": 784,
+        "startChar": 0,
+        "endLine": 784,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6849c711_f7390c1d",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 784,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-16T10:15:09Z",
+      "side": 1,
+      "message": "It actually should be timer.C , I messed it up while raising the review, I have tested the changes on an internal fork with timer.C . Thanks for pointing it out, I corrected it appropriately now.",
+      "parentUuid": "dcca64ad_2458d7a3",
       "range": {
         "startLine": 784,
         "startChar": 0,
@@ -70,6 +118,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "1d3b9e7a_0c176cf1",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 870,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-16T10:15:09Z",
+      "side": 1,
+      "message": "It actually should be timer.C , I messed it up while raising the review, I have tested the changes on an internal fork with timer.C . Thanks for pointing it out, I corrected it appropriately now.",
+      "parentUuid": "f4fb11b2_32460043",
+      "range": {
+        "startLine": 870,
+        "startChar": 0,
+        "endLine": 870,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "29c6a837_53848920",
@@ -93,6 +165,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "bf120b7b_ae3d3cf7",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 932,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-16T10:15:09Z",
+      "side": 1,
+      "message": "It actually should be timer.C , I messed it up while raising the review, I have tested the changes on an internal fork with timer.C . Thanks for pointing it out, I corrected it appropriately now.",
+      "parentUuid": "29c6a837_53848920",
+      "range": {
+        "startLine": 932,
+        "startChar": 0,
+        "endLine": 932,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a8de9af9_8712bd0e",
@@ -106,6 +202,30 @@
       "writtenOn": "2023-05-15T16:13:37Z",
       "side": 1,
       "message": "why not timer.C?",
+      "range": {
+        "startLine": 1001,
+        "startChar": 0,
+        "endLine": 1001,
+        "endChar": 101
+      },
+      "revId": "d30f89fdb2056a70d50785be2351a58e162884e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9ca143ee_1bb1ab36",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1001,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-16T10:15:09Z",
+      "side": 1,
+      "message": "It actually should be timer.C , I messed it up while raising the review, I have tested the changes on an internal fork with timer.C . Thanks for pointing it out, I corrected it appropriately now.",
+      "parentUuid": "a8de9af9_8712bd0e",
       "range": {
         "startLine": 1001,
         "startChar": 0,
