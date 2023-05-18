@@ -24,6 +24,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "472bcf8e_1c69bc1b",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 1975,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-18T05:23:51Z",
+      "side": 1,
+      "message": "Agree. I have changed it as part of the latest patch",
+      "parentUuid": "70819541_4fa072d0",
+      "range": {
+        "startLine": 1975,
+        "startChar": 0,
+        "endLine": 1975,
+        "endChar": 82
+      },
+      "revId": "d2e9f9252ebea72e083a2cdd00d48fc6973ca628",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "0056cbee_ca2bd068",
