@@ -178,7 +178,7 @@ func (onuTP *OnuUniTechProf) GetTpProcessingErrorIndication(aUniID uint8, aTpID 
 func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
 	aUniID uint8, aPathString string, tpInst tech_profile.TechProfileInstance, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
-	logger.Debugw(ctx, "configure the Uni according to TpPath", log.Fields{
+	logger.Info(ctx, "configure the Uni according to TpPath", log.Fields{
 		"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString})
 	tpID, err := cmn.GetTpIDFromTpPath(aPathString)
 	uniTpKey := uniTP{uniID: aUniID, tpID: tpID}
@@ -831,7 +831,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 // createAniConfigFsm initializes and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
 func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint8, aTpID uint8,
 	apCurrentUniPort *cmn.OnuUniPort, devEvent cmn.OnuDeviceEvent, aProcessingStep uint8) error {
-	logger.Debugw(ctx, "createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
+	logger.Info(ctx, "createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
 	chAniConfigFsm := make(chan cmn.Message, 2048)
 	uniTPKey := uniTP{uniID: aUniID, tpID: aTpID}
 	if onuTP.onuDevice == nil {
@@ -857,6 +857,8 @@ func (onuTP *OnuUniTechProf) runAniConfigFsm(ctx context.Context, aEvent string,
 	/*  Uni related ANI config procedure -
 	 ***** should run via 'aniConfigDone' state and generate the argument requested event *****
 	 */
+	logger.Info(ctx, "Run AniConfigFSM with", log.Fields{
+		"ProcessingStep": aProcessingStep, "device-id": onuTP.deviceID,"UniId":aUniID,"TpID":aTpID ,"event": aEvent})
 	uniTpKey := uniTP{uniID: aUniID, tpID: aTpID}
 
 	pACStatemachine := onuTP.PAniConfigFsm[uniTpKey].PAdaptFsm.PFsm
