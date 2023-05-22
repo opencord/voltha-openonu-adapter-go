@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package common provides global definitions
+// Package common provides global definitions
 package common
 
 import (
@@ -34,7 +34,7 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
-//NewOnuUniPort returns a new instance of a OnuUniPort
+// NewOnuUniPort returns a new instance of a OnuUniPort
 func NewOnuUniPort(ctx context.Context, aUniID uint8, aPortNo uint32, aInstNo uint16,
 	aPortType UniPortType) *OnuUniPort {
 	logger.Infow(ctx, "init-onuUniPort", log.Fields{"uniID": aUniID,
@@ -55,9 +55,9 @@ func NewOnuUniPort(ctx context.Context, aUniID uint8, aPortNo uint32, aInstNo ui
 	return &OnuUniPort
 }
 
-//CreateVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
+// CreateVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it
 func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler IdeviceHandler) error {
-	logger.Debugw(ctx, "creating-voltha-uni-port", log.Fields{
+	logger.Infow(ctx, "creating-voltha-uni-port", log.Fields{
 		"device-id": apDeviceHandler.GetDevice().Id, "portNo": oo.PortNo})
 	//200630: per [VOL-3202] OF port info is now to be delivered within UniPort create
 	//  not doing so crashes rw_core processing (at least still in 200630 version)
@@ -89,7 +89,7 @@ func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler Idev
 			ofUniPortState = of.OfpPortState_OFPPS_LIVE
 		}
 	*/
-	logger.Debugw(ctx, "ofPort values", log.Fields{
+	logger.Infow(ctx, "ofPort values", log.Fields{
 		"forUniPortName": oo.Name, "forMacBase": hwAddr,
 		"name": name, "hwAddr": ofHwAddr, "OperState": ofUniPortState, "capacity": capacity})
 
@@ -138,7 +138,7 @@ func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler Idev
 	return nil
 }
 
-//SetOperState modifies OperState of the the UniPort
+// SetOperState modifies OperState of the the UniPort
 func (oo *OnuUniPort) SetOperState(aNewOperState vc.OperStatus_Types) {
 	oo.OperState = aNewOperState
 }
@@ -150,7 +150,7 @@ func genMacFromOctets(aOctets [6]uint8) string {
 		aOctets[2], aOctets[1], aOctets[0])
 }
 
-//copied from OLT Adapter: unify centrally ?
+// copied from OLT Adapter: unify centrally ?
 func macAddressToUint32Array(mac string) []uint32 {
 	slist := strings.Split(mac, ":")
 	result := make([]uint32, len(slist))

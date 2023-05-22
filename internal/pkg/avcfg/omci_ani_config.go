@@ -280,7 +280,7 @@ func (oFsm *UniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, a
 
 //CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
-	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
+	logger.Info(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
 	//early indication about started reset processing
 	oFsm.pUniTechProf.setProfileResetting(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID, true)
 	//mutex protection is required for possible concurrent access to FSM members
@@ -470,7 +470,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 }
 
 func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm start", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm start", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	// in case the used channel is not yet defined (can be re-used after restarts)
 	if oFsm.omciMIdsResponseReceived == nil {
@@ -534,7 +534,7 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingDot1PMapper(ctx context.Context, e 
 }
 
 func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm Tx Create::MBPCD", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm Tx Create::MBPCD", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.macBPCD0ID), 16),
 		"TPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
@@ -574,7 +574,7 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 }
 
 func (oFsm *UniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm Tx Set::Tcont", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm Tx Set::Tcont", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 		"AllocId":   strconv.FormatInt(int64(oFsm.alloc0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
@@ -620,30 +620,30 @@ func (oFsm *UniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 }
 
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemNCTPs(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	go oFsm.performCreatingGemNCTPs(ctx)
 }
 
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemIWs(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start creating GemIwTP loop", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start creating GemIwTP loop", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	go oFsm.performCreatingGemIWs(ctx)
 }
 
 func (oFsm *UniPonAniConfigFsm) enterSettingPQs(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start setting PrioQueue loop", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start setting PrioQueue loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
 	go oFsm.performSettingPQs(ctx)
 }
 
 func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *fsm.Event) {
 
-	logger.Debugw(ctx, "UniPonAniConfigFsm Tx Set::.1pMapper with all PBits set", log.Fields{"EntitytId": 0x8042, /*cmp above*/
+	logger.Info(ctx, "UniPonAniConfigFsm Tx Set::.1pMapper with all PBits set", log.Fields{"EntitytId": 0x8042, /*cmp above*/
 		"toGemIw":   1024, /* cmp above */
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 
-	logger.Debugw(ctx, "UniPonAniConfigFsm Tx Set::1pMapper", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm Tx Set::1pMapper", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"in state":  e.FSM.Current(), "device-id": oFsm.deviceID})
 
@@ -711,7 +711,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 	meParams.Attributes[me.Ieee8021PMapperServiceProfile_TpPointer] = 0xffff
 
 	if !foundIwPtr {
-		logger.Debugw(ctx, "UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
+		logger.Info(ctx, "UniPonAniConfigFsm no GemIwPtr found for .1pMapper - abort", log.Fields{
 			"device-id": oFsm.deviceID})
 		//TODO With multicast is possible that no upstream gem ports are not present in the tech profile,
 		// this reset needs to be performed only if the tech profile provides upstream gem ports but no priority is set
@@ -762,7 +762,7 @@ func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *
 }
 
 func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm ani config done", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm ani config done", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID, "techProfile-id": oFsm.techProfileID})
 	//store that the UNI related techProfile processing is done for the given Profile and Uni
 	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.UniID, oFsm.techProfileID, true)
@@ -929,7 +929,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	oFsm.pUniTechProf.mutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
 	oFsm.pUniTechProf.mutexTPState.RUnlock()
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start removing one GemNCTP", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start removing one GemNCTP", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
 		"GemNCTP-entity-id": loGemPortID})
 	// this state entry is only expected in a suitable state (checked outside in onu_uni_tp)
@@ -964,7 +964,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingTD(ctx context.Context, e *fsm.Even
 	oFsm.pUniTechProf.mutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
 	oFsm.pUniTechProf.mutexTPState.RUnlock()
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start removing Traffic Descriptor", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start removing Traffic Descriptor", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
 		"TD-entity-id": loGemPortID})
 
@@ -992,7 +992,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingTD(ctx context.Context, e *fsm.Even
 }
 
 func (oFsm *UniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start resetting the TCont", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start resetting the TCont", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 
 	oFsm.requestEventOffset = 1 //offset 1 for last remove activity
@@ -1027,7 +1027,7 @@ func (oFsm *UniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 }
 
 func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
 	unicastGemCount := 0
@@ -1077,7 +1077,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 }
 
 func (oFsm *UniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 
 	oFsm.mutexPLastTxMeInstance.Lock()
@@ -1103,7 +1103,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm
 }
 
 func (oFsm *UniPonAniConfigFsm) enterAniRemoveDone(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "UniPonAniConfigFsm ani removal done", log.Fields{
+	logger.Info(ctx, "UniPonAniConfigFsm ani removal done", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	//use DeviceHandler event notification directly
 	oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
@@ -1175,7 +1175,7 @@ func (oFsm *UniPonAniConfigFsm) enterDisabledState(ctx context.Context, e *fsm.E
 }
 
 func (oFsm *UniPonAniConfigFsm) processOmciAniMessages(ctx context.Context) {
-	logger.Debugw(ctx, "Start UniPonAniConfigFsm Msg processing", log.Fields{"for device-id": oFsm.deviceID})
+	logger.Info(ctx, "Start UniPonAniConfigFsm Msg processing", log.Fields{"for device-id": oFsm.deviceID})
 loop:
 	for {
 		// case <-ctx.Done():
@@ -1468,7 +1468,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigMessage(ctx context.Context, 
 func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
 	for gemIndex, gemPortAttribs := range oFsm.gemPortAttribsSlice {
-		logger.Debugw(ctx, "UniPonAniConfigFsm Tx Create::GemNWCtp", log.Fields{
+		logger.Info(ctx, "UniPonAniConfigFsm Tx Create::GemNWCtp", log.Fields{
 			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
 			"TcontId":   strconv.FormatInt(int64(oFsm.tcont0ID), 16),
 			"device-id": oFsm.deviceID})
@@ -1533,7 +1533,7 @@ func (oFsm *UniPonAniConfigFsm) hasMulticastGem(ctx context.Context) bool {
 func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 	// for all GemPorts of this T-Cont as given by the size of set gemPortAttribsSlice
 	for gemIndex, gemPortAttribs := range oFsm.gemPortAttribsSlice {
-		logger.Debugw(ctx, "UniPonAniConfigFsm Tx Create::GemIwTp", log.Fields{
+		logger.Info(ctx, "UniPonAniConfigFsm Tx Create::GemIwTp", log.Fields{
 			"EntitytId": strconv.FormatInt(int64(gemPortAttribs.gemPortID), 16),
 			"SPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 			"device-id": oFsm.deviceID})
@@ -1850,7 +1850,7 @@ func (oFsm *UniPonAniConfigFsm) isChanSet() bool {
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (oFsm *UniPonAniConfigFsm) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
-	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": oFsm.deviceID})
+	logger.Info(ctx, "prepare for garbage collection", log.Fields{"device-id": oFsm.deviceID})
 	oFsm.pDeviceHandler = nil
 	oFsm.pOnuDeviceEntry = nil
 	oFsm.pOmciCC = nil
