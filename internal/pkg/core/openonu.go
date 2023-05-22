@@ -938,7 +938,7 @@ func (oo *OpenONUAC) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*
 
 // DownloadTechProfile is part of the ONU Inter-adapter service API.
 func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*empty.Empty, error) {
-	logger.Debugw(ctx, "download-tech-profile", log.Fields{"device-id": tProfile.DeviceId, "uni-id": tProfile.UniId})
+	logger.Info(ctx, "download-tech-profile", log.Fields{"device-id": tProfile.DeviceId, "uni-id": tProfile.UniId})
 
 	if handler := oo.getDeviceHandler(ctx, tProfile.DeviceId, false); handler != nil {
 		if err := handler.handleTechProfileDownloadRequest(log.WithSpanFromContext(context.Background(), ctx), tProfile); err != nil {
