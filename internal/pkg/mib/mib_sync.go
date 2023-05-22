@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package mib provides the utilities for managing the onu mib
+// Package mib provides the utilities for managing the onu mib
 package mib
 
 import (
@@ -583,7 +583,7 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 		if msgLayer != nil {
 			msgObj, msgOk := msgLayer.(*omci.MibResetResponse)
 			if msgOk {
-				logger.Debugw(ctx, "MibResetResponse Data", log.Fields{"data-fields": msgObj})
+				logger.Infow(ctx, "MibResetResponse Data", log.Fields{"data-fields": msgObj})
 				if msgObj.Result == me.Success {
 					oo.MutexPersOnuConfig.Lock()
 					oo.SOnuPersistentData.PersMibDataSyncAdpt = cmn.MdsDefaultMib
@@ -958,7 +958,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseMessage(ctx context.Context, msg 
 	return err
 }
 
-//HandleSwImageIndications updates onuSwImageIndications with the ONU data just received
+// HandleSwImageIndications updates onuSwImageIndications with the ONU data just received
 func (oo *OnuDeviceEntry) HandleSwImageIndications(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap) bool {
 
 	var imageVersion string
@@ -1382,7 +1382,7 @@ func (oo *OnuDeviceEntry) checkMdsValue(ctx context.Context, mibDataSyncOnu uint
 	}
 }
 
-//GetActiveImageMeID returns the Omci MeId of the active ONU image together with error code for validity
+// GetActiveImageMeID returns the Omci MeId of the active ONU image together with error code for validity
 func (oo *OnuDeviceEntry) GetActiveImageMeID(ctx context.Context) (uint16, error) {
 	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.ActiveEntityEntry.Valid {
@@ -1394,7 +1394,7 @@ func (oo *OnuDeviceEntry) GetActiveImageMeID(ctx context.Context) (uint16, error
 	return 0xFFFF, fmt.Errorf("no valid active image found: %s", oo.deviceID)
 }
 
-//GetInactiveImageMeID returns the Omci MeId of the inactive ONU image together with error code for validity
+// GetInactiveImageMeID returns the Omci MeId of the inactive ONU image together with error code for validity
 func (oo *OnuDeviceEntry) GetInactiveImageMeID(ctx context.Context) (uint16, error) {
 	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.InActiveEntityEntry.Valid {
@@ -1406,7 +1406,7 @@ func (oo *OnuDeviceEntry) GetInactiveImageMeID(ctx context.Context) (uint16, err
 	return 0xFFFF, fmt.Errorf("no valid inactive image found: %s", oo.deviceID)
 }
 
-//IsImageToBeCommitted returns true if the active image is still uncommitted
+// IsImageToBeCommitted returns true if the active image is still uncommitted
 func (oo *OnuDeviceEntry) IsImageToBeCommitted(ctx context.Context, aImageID uint16) bool {
 	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.ActiveEntityEntry.Valid {
@@ -1475,7 +1475,7 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 				}
 			}
 		} else {
-			logger.Debugw(ctx, "No MIB template found", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+			logger.Infow(ctx, "No MIB template found", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
 		}
 	} else {
 		logger.Errorf(ctx, "Get from kvstore operation failed for path",
@@ -1528,7 +1528,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 	return allTpInstPresent
 }
 
-//CancelProcessing terminates potentially running reconciling processes and stops the FSM
+// CancelProcessing terminates potentially running reconciling processes and stops the FSM
 func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oo.deviceID})
 	if oo.isReconcilingFlows() {
