@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package common provides global definitions
+// Package common provides global definitions
 package common
 
 import (
@@ -75,14 +75,14 @@ const CDefaultRetries = 2
 
 // ### OMCI related definitions - end
 
-//CallbackPairEntry to be used for OMCI send/receive correlation
+// CallbackPairEntry to be used for OMCI send/receive correlation
 type CallbackPairEntry struct {
 	CbRespChannel chan Message
 	CbFunction    func(context.Context, *omci.OMCI, *gp.Packet, chan Message) error
 	FramePrint    bool //true for printing
 }
 
-//CallbackPair to be used for ReceiveCallback init
+// CallbackPair to be used for ReceiveCallback init
 type CallbackPair struct {
 	CbKey   uint16
 	CbEntry CallbackPairEntry
@@ -155,8 +155,8 @@ var responsesWithMibDataSync = []omci.MessageType{
 	omci.CommitSoftwareResponseType,
 }
 
-//NewOmciCC constructor returns a new instance of a OmciCC
-//mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
+// NewOmciCC constructor returns a new instance of a OmciCC
+// mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandler,
 	onuDeviceEntry IonuDeviceEntry, onuAlarmManager IonuAlarmManager,
 	coreClient *vgrpc.Client) *OmciCC {
@@ -186,7 +186,7 @@ func NewOmciCC(ctx context.Context, deviceID string, deviceHandler IdeviceHandle
 	return &omciCC
 }
 
-//Stop stops/resets the omciCC
+// Stop stops/resets the omciCC
 func (oo *OmciCC) Stop(ctx context.Context) error {
 	logger.Debugw(ctx, "omciCC-stopping", log.Fields{"device-id": oo.deviceID})
 	//reseting all internal data, which might also be helpful for discarding any lingering tx/rx requests
@@ -297,7 +297,9 @@ func (oo *OmciCC) printRxMessage(ctx context.Context, rxMsg []byte) {
 }
 
 // ReceiveMessage - Rx handler for onu messages
-//    e.g. would call ReceiveOnuMessage() in case of TID=0 or Action=test ...
+//
+//	e.g. would call ReceiveOnuMessage() in case of TID=0 or Action=test ...
+//
 // nolint: gocyclo
 func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 	//logger.Debugw(ctx,"cc-receive-omci-message", log.Fields{"RxOmciMessage-x2s": hex.EncodeToString(rxMsg)})
@@ -744,9 +746,9 @@ func (oo *OmciCC) GetNextTid(highPriority bool) uint16 {
 	return next
 }
 
-//GetOnuSwSecNextTid get the next low prio tid for the onu sw sections
-//onu sw sections uses only low priority tids
-//The mutexTid lock should be taken prior to using this function
+// GetOnuSwSecNextTid get the next low prio tid for the onu sw sections
+// onu sw sections uses only low priority tids
+// The mutexTid lock should be taken prior to using this function
 func (oo *OmciCC) GetOnuSwSecNextTid() uint16 {
 	next := oo.tid
 	oo.tid++
@@ -756,20 +758,20 @@ func (oo *OmciCC) GetOnuSwSecNextTid() uint16 {
 	return next
 }
 
-//GetOnuSwSecLastTid gets the last allocated tid
-//The mutexTid lock should be taken prior to using this function
+// GetOnuSwSecLastTid gets the last allocated tid
+// The mutexTid lock should be taken prior to using this function
 func (oo *OmciCC) GetOnuSwSecLastTid() uint16 {
 	next := oo.tid
 	lastAllocatedTid := next - 1
 	return lastAllocatedTid
 }
 
-//LockMutexTID locks mutexTid
+// LockMutexTID locks mutexTid
 func (oo *OmciCC) LockMutexTID() {
 	oo.mutexTid.Lock()
 }
 
-//UnLockMutexTID unlocks mutexTid
+// UnLockMutexTID unlocks mutexTid
 func (oo *OmciCC) UnLockMutexTID() {
 	oo.mutexTid.Unlock()
 }
@@ -808,7 +810,7 @@ func hexEncode(omciPkt []byte) ([]byte, error) {
 }
 */
 
-//supply a response handler for omci response messages to be transferred to the requested FSM
+// supply a response handler for omci response messages to be transferred to the requested FSM
 func (oo *OmciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
 
 	logger.Debugw(ctx, "omci-message-response - transfer on omciRespChannel", log.Fields{"omciMsgType": omciMsg.MessageType,
@@ -852,7 +854,7 @@ func (oo *OmciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, p
 // SendMibReset sends MibResetRequest
 func (oo *OmciCC) SendMibReset(ctx context.Context, timeout int, highPrio bool) error {
 
-	logger.Debugw(ctx, "send MibReset-msg to:", log.Fields{"device-id": oo.deviceID})
+	logger.Infow(ctx, "send MibReset-msg to:", log.Fields{"device-id": oo.deviceID})
 	request := &omci.MibResetRequest{
 		MeBasePacket: omci.MeBasePacket{
 			EntityClass: me.OnuDataClassID,
@@ -4342,8 +4344,8 @@ func (oo *OmciCC) SendStartSoftwareDownload(ctx context.Context, timeout int, hi
 }
 
 // PrepareOnuSectionsOfWindow prepares a list of sections for each window
-//Before invoking this function the oo.mutexTid  needs to be be locked so that
-//GetOnuSwSecNextTid can be invoked without further locking
+// Before invoking this function the oo.mutexTid  needs to be be locked so that
+// GetOnuSwSecNextTid can be invoked without further locking
 func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 	aImageMeID uint16, aAckRequest uint8, aDownloadSectionNo uint8, aSection []byte,
 	omciMsgsPerWindow *ia.OmciMessages, aIsExtendedOmci bool) (OmciTransferStructure, error) {
@@ -4407,7 +4409,7 @@ func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 	return omciTxReq, nil
 }
 
-//SendOnuSwSectionsWindowWithRxSupervision sends onu swd sections
+// SendOnuSwSectionsWindowWithRxSupervision sends onu swd sections
 func (oo *OmciCC) SendOnuSwSectionsWindowWithRxSupervision(ctx context.Context,
 	aOmciTxRequest OmciTransferStructure, aTimeout int, rxChan chan Message) {
 	if aOmciTxRequest.OnuSwWindow == nil {
@@ -4592,7 +4594,7 @@ func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPri
 	return nil
 }
 
-//SendEndSoftwareDownload sends EndSoftwareDownloadRequest
+// SendEndSoftwareDownload sends EndSoftwareDownloadRequest
 func (oo *OmciCC) SendEndSoftwareDownload(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aImageMeID uint16, aFileLen uint32, aImageCrc uint32, aIsExtendedOmci bool) error {
 	tid := oo.GetNextTid(highPrio)
@@ -4744,7 +4746,7 @@ func (oo *OmciCC) SendCommitSoftware(ctx context.Context, timeout int, highPrio 
 	return nil
 }
 
-//SendSelfTestReq sends TestRequest
+// SendSelfTestReq sends TestRequest
 func (oo *OmciCC) SendSelfTestReq(ctx context.Context, classID me.ClassID, instdID uint16, timeout int, highPrio bool, rxChan chan Message) error {
 	tid := oo.GetNextTid(highPrio)
 	logger.Debugw(ctx, "send self test request:", log.Fields{"device-id": oo.deviceID,
@@ -4799,7 +4801,7 @@ func (oo *OmciCC) SendSelfTestReq(ctx context.Context, classID me.ClassID, instd
 	return nil
 }
 
-//nolint: gocyclo
+// nolint: gocyclo
 func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet) (bool, error) {
 
 	nextLayer, err := omci.MsgTypeToNextLayer(omciMsg.MessageType, false)
@@ -4814,7 +4816,7 @@ func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciM
 			if nextLayer == omci.LayerTypeMibUploadNextResponse {
 				// In the case of MibUploadNextResponse, we let the packet pass so that later processing
 				// can examine for UnkonwnMEs and UnknownAttributes
-				logger.Infow(ctx, "omci-message: MibUploadNextResponse packet with ErrorLayer - let it pass",
+				logger.Debug(ctx, "omci-message: MibUploadNextResponse packet with ErrorLayer - let it pass",
 					log.Fields{"device-id": oo.deviceID, "error": failure.Error()})
 				return false, nil
 			} else if nextLayer == omci.LayerTypeGetResponse {
@@ -4998,7 +5000,7 @@ loop:
 	oo.mutexMonReq.Unlock()
 }
 
-//CancelRequestMonitoring terminates monitoring of outstanding omci requests
+// CancelRequestMonitoring terminates monitoring of outstanding omci requests
 func (oo *OmciCC) CancelRequestMonitoring(ctx context.Context) {
 	logger.Debugw(ctx, "CancelRequestMonitoring entered", log.Fields{"device-id": oo.deviceID})
 	oo.mutexMonReq.RLock()
@@ -5016,8 +5018,8 @@ func (oo *OmciCC) CancelRequestMonitoring(ctx context.Context) {
 	oo.mutexMonReq.RUnlock()
 }
 
-//GetMaxOmciTimeoutWithRetries provides a timeout value greater than the maximum
-//time consumed for retry processing of a particular OMCI-request
+// GetMaxOmciTimeoutWithRetries provides a timeout value greater than the maximum
+// time consumed for retry processing of a particular OMCI-request
 func (oo *OmciCC) GetMaxOmciTimeoutWithRetries() time.Duration {
 	return time.Duration((CDefaultRetries+1)*oo.pBaseDeviceHandler.GetOmciTimeout() + 1)
 }
@@ -5026,7 +5028,7 @@ func (oo *OmciCC) GetMaxOmciTimeoutWithRetries() time.Duration {
 func (oo *OmciCC) SendCreateOrDeleteEthernetFrameExtendedPMME(ctx context.Context, timeout int, highPrio bool,
 	upstream bool, create bool, rxChan chan Message, entityID uint16, classID me.ClassID, controlBlock []uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
-	logger.Debugw(ctx, "send-ethernet-frame-extended-pm-me-msg:", log.Fields{"device-id": oo.deviceID,
+	logger.Info(ctx, "send-ethernet-frame-extended-pm-me-msg:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(entityID), 16), "create": create, "upstream": upstream})
 
 	meParam := me.ParamData{EntityID: entityID,
