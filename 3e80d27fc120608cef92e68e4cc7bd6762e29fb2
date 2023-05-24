@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7d9f1425_3d30dc82",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 537,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "now that we changed it to info, please change the log so that it is easily understandable not only by developers",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d30bce02_44c109df",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 577,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "same as above comment",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "610f0c68_6ba42e76",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 714,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "is it info or warning or error, it should be warning",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bebffa4f_2ee022b8",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1186,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "watrning/error instead of info",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "789eac16_43364cad",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 4819,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "this is info or debug ?,",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "64bd5f65_6acaa86f",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 5031,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "this should be an info",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dd1b3f11_f05cef07",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1726,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "this can be a debug",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "be2dabce_0794b1d1",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2806,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "this can be a debug",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f5a85429_79eb3832",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2835,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "same here, this can remain debug",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5ae9798b_184efb23",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 586,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-05-24T11:16:07Z",
+      "side": 1,
+      "message": "do we need to print the whole message object here?",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
