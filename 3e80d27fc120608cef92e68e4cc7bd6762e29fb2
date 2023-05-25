@@ -122,6 +122,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "0f828dad_94ae986d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1726,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-25T05:31:05Z",
+      "side": 1,
+      "message": "In some of the scale runs, PON port for some of the ONUs are not reported , hence would like to have this as Info log to understand if this part of the code flow is taken.",
+      "parentUuid": "dd1b3f11_f05cef07",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "be2dabce_0794b1d1",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 3
@@ -167,6 +185,24 @@
       "writtenOn": "2023-05-24T11:16:07Z",
       "side": 1,
       "message": "do we need to print the whole message object here?",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6e76b70e_4700949a",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 586,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-05-25T05:31:05Z",
+      "side": 1,
+      "message": "The msgObj for a MIB Reset response message  doesn\u0027t hold large amount of information, it provides result status, classid and instance id. Hence, we are good with printing the msgObj.",
+      "parentUuid": "5ae9798b_184efb23",
       "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
