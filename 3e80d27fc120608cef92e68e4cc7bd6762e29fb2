@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "6fec7eaa_ba373562",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 537,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "7d9f1425_3d30dc82",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d30bce02_44c109df",
         "filename": "internal/pkg/avcfg/omci_ani_config.go",
         "patchSetId": 3
@@ -31,6 +49,24 @@
       "writtenOn": "2023-05-24T11:16:07Z",
       "side": 1,
       "message": "same as above comment",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2ee5a73d_801173a0",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 577,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "d30bce02_44c109df",
       "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -54,6 +90,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "f7b4d88a_abd004dc",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 714,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "610f0c68_6ba42e76",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "bebffa4f_2ee022b8",
         "filename": "internal/pkg/avcfg/omci_ani_config.go",
         "patchSetId": 3
@@ -65,6 +119,24 @@
       "writtenOn": "2023-05-24T11:16:07Z",
       "side": 1,
       "message": "watrning/error instead of info",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "24b0c9c9_a0bd9152",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1186,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "bebffa4f_2ee022b8",
       "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -88,6 +160,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "af2c4ae5_d8722b1e",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 4819,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "789eac16_43364cad",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "64bd5f65_6acaa86f",
         "filename": "internal/pkg/common/omci_cc.go",
         "patchSetId": 3
@@ -99,6 +189,24 @@
       "writtenOn": "2023-05-24T11:16:07Z",
       "side": 1,
       "message": "this should be an info",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "db851f0e_f0c0202b",
+        "filename": "internal/pkg/common/omci_cc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 5031,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "64bd5f65_6acaa86f",
       "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
@@ -157,6 +265,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ad41cb33_0a256159",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2806,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "be2dabce_0794b1d1",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f5a85429_79eb3832",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 3
@@ -168,6 +294,24 @@
       "writtenOn": "2023-05-24T11:16:07Z",
       "side": 1,
       "message": "same here, this can remain debug",
+      "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6944de0a_a979de94",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2835,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-05-25T07:00:57Z",
+      "side": 1,
+      "message": "fixed in next patch",
+      "parentUuid": "f5a85429_79eb3832",
       "revId": "3e80d27fc120608cef92e68e4cc7bd6762e29fb2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
