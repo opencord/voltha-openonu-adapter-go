@@ -48,6 +48,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c6fe41f4_e78a1f33",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-30T14:46:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "42c54058_4f1d14c9",
+      "range": {
+        "startLine": 343,
+        "startChar": 0,
+        "endLine": 349,
+        "endChar": 2
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b3f06a1b_134956a2",
@@ -85,6 +109,30 @@
       "side": 1,
       "message": "In the latest patch set I have cleaned up this changes, modified the functionality to stop reconcilement, perform MIB reset and move ahead with normal start up. Please review.",
       "parentUuid": "b3f06a1b_134956a2",
+      "range": {
+        "startLine": 2514,
+        "startChar": 0,
+        "endLine": 2529,
+        "endChar": 1
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cccf95f3_f19bed83",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2529,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-30T14:46:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3f9a9ab4_badfc7bc",
       "range": {
         "startLine": 2514,
         "startChar": 0,
@@ -142,6 +190,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "3cd9d2c3_5de7bb83",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2749,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-30T14:46:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "64a9f97a_0052bd93",
+      "range": {
+        "startLine": 2740,
+        "startChar": 0,
+        "endLine": 2749,
+        "endChar": 0
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a46b1aa6_cb6688fe",
@@ -179,6 +251,30 @@
       "side": 1,
       "message": "In the latest patch set I have cleaned up this changes, modified the functionality to stop reconcilement, perform MIB reset and move ahead with normal start up. Please review.",
       "parentUuid": "a46b1aa6_cb6688fe",
+      "range": {
+        "startLine": 2841,
+        "startChar": 0,
+        "endLine": 2855,
+        "endChar": 0
+      },
+      "revId": "692d62c090076f2d4d4429297c3d7764680a8bfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9909bc7e_32f0f229",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2855,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-05-30T14:46:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6b2d6ee8_e2350e8b",
       "range": {
         "startLine": 2841,
         "startChar": 0,
