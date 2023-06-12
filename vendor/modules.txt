@@ -150,7 +150,7 @@ github.com/looplab/fsm
 github.com/opencord/omci-lib-go/v2
 github.com/opencord/omci-lib-go/v2/generated
 github.com/opencord/omci-lib-go/v2/meframe
-# github.com/opencord/voltha-lib-go/v7 v7.3.2
+# github.com/opencord/voltha-lib-go/v7 v7.4.2
 ## explicit
 github.com/opencord/voltha-lib-go/v7/pkg/config
 github.com/opencord/voltha-lib-go/v7/pkg/db
@@ -165,7 +165,7 @@ github.com/opencord/voltha-lib-go/v7/pkg/meters
 github.com/opencord/voltha-lib-go/v7/pkg/platform
 github.com/opencord/voltha-lib-go/v7/pkg/probe
 github.com/opencord/voltha-lib-go/v7/pkg/version
-# github.com/opencord/voltha-protos/v5 v5.4.1
+# github.com/opencord/voltha-protos/v5 v5.4.6
 ## explicit
 github.com/opencord/voltha-protos/v5/go/adapter_service
 github.com/opencord/voltha-protos/v5/go/common
@@ -181,6 +181,8 @@ github.com/opencord/voltha-protos/v5/go/onu_inter_adapter_service
 github.com/opencord/voltha-protos/v5/go/openflow_13
 github.com/opencord/voltha-protos/v5/go/openolt
 github.com/opencord/voltha-protos/v5/go/tech_profile
+github.com/opencord/voltha-protos/v5/go/voip_system_profile
+github.com/opencord/voltha-protos/v5/go/voip_user_profile
 github.com/opencord/voltha-protos/v5/go/voltha
 # github.com/opentracing/opentracing-go v1.2.0
 github.com/opentracing/opentracing-go
