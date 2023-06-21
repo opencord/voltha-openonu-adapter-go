@@ -1,0 +1,8 @@
+Code-Review+1: Serkant Uluderya <serkant.uluderya@netsia.com>
+Code-Review+2: Abhilash Laxmeshwar <abhilash.laxmeshwar@radisys.com>
+Verified+1: Joey Armstrong <joey@opennetworking.org>
+Submitted-by: Abhilash Laxmeshwar <abhilash.laxmeshwar@radisys.com>
+Submitted-at: Wed, 21 Jun 2023 13:56:23 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/34187
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
