@@ -187,3 +187,5 @@ type IonuUniTechProf interface {
 type IuniVlanConfigFsm interface {
 	IsFlowRemovePending(context.Context, chan<- bool) bool
 }
+
+// [EOF]
