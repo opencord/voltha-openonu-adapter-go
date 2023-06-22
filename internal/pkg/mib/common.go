@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package mib provides the utilities for managing the onu mib
+// Package mib provides the utilities for managing the onu mib
 package mib
 
 import (
@@ -31,3 +31,5 @@ func init() {
 		panic(err)
 	}
 }
+
+// [EOF]

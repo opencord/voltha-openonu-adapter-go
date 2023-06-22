@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package core provides the utility for onu devices, flows and statistics
+// Package core provides the utility for onu devices, flows and statistics
 package core
 
 import (
@@ -31,3 +31,5 @@ func init() {
 		panic(err)
 	}
 }
+
+// [EOF]
