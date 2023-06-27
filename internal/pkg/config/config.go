@@ -73,6 +73,8 @@ type AdapterFlags struct {
 	CoreEndpoint                string
 	RPCTimeout                  time.Duration
 	MaxConcurrentFlowsPerUni    int
+	PerRPCRetryTimeout          time.Duration
+	MaxRetries                  uint
 }
 
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
@@ -265,7 +267,7 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 
 	fs.DurationVar(&(so.RPCTimeout),
 		"rpc_timeout",
-		10*time.Second,
+		150*time.Second,
 		"The default timeout when making an RPC request")
 
 	fs.DurationVar(&(so.MinBackoffRetryDelay),
@@ -281,7 +283,14 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"max_concurrent_flows_per_uni",
 		16,
 		"The max number of concurrent flows (add/remove) that can be queued per UNI")
-
+	fs.DurationVar(&(so.PerRPCRetryTimeout),
+		"per_rpc_retry_timeout",
+		30*time.Second,
+		"The default timeout per RPC retry")
+	fs.UintVar(&(so.MaxRetries),
+		"max_grpc_client_retry",
+		5,
+		"The maximum number of times olt adaptor will retry in case grpc request timeouts")
 	_ = fs.Parse(args)
 	containerName := getContainerInfo()
 	if len(containerName) > 0 {
