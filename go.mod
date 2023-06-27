@@ -14,6 +14,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
 	github.com/google/gopacket v1.1.17
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/looplab/fsm v0.2.0
 	github.com/opencord/omci-lib-go/v2 v2.2.3
 	github.com/opencord/voltha-lib-go/v7 v7.4.3
