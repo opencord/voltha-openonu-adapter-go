@@ -28,6 +28,7 @@ import (
 	"syscall"
 	"time"
 
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events"
@@ -42,6 +43,7 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/onu_inter_adapter_service"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 	"google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	"github.com/opencord/voltha-protos/v5/go/core_adapter"
 
@@ -137,7 +139,15 @@ func (a *adapter) start(ctx context.Context) error {
 		logger.Fatal(ctx, "grpc-client-not-created")
 	}
 	// Start the core grpc client
-	go a.coreClient.Start(ctx, getCoreServiceClientHandler)
+	backoffCtxOption := grpc_retry.WithBackoff(grpc_retry.BackoffLinearWithJitter(a.config.PerRPCRetryTimeout, 0.2))
+
+	retryCodes := []codes.Code{
+		codes.Unavailable,      // server is currently unavailable
+		codes.DeadlineExceeded, // deadline for the operation was exceeded
+	}
+	grpcRetryOptions := grpc_retry.UnaryClientInterceptor(grpc_retry.WithMax(a.config.MaxRetries), grpc_retry.WithPerRetryTimeout(a.config.PerRPCRetryTimeout), grpc_retry.WithCodes(retryCodes...), backoffCtxOption)
+	logger.Debug(ctx, "Configuration values", log.Fields{"RETRY": a.config.MaxRetries, "TIMEOUT": a.config.PerRPCRetryTimeout})
+	go a.coreClient.Start(ctx, getCoreServiceClientHandler, grpcRetryOptions)
 
 	// Create the open ONU interface adapter
 	if a.onuAdapter, err = a.startONUAdapter(ctx, a.coreClient, a.eventProxy, a.config, cm); err != nil {
