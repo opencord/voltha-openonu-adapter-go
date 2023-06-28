@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "955d87ae_7f01e44f",
+        "filename": "cmd/openonu-adapter/main.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-06-28T09:24:26Z",
+      "side": 1,
+      "message": "can you please put a comment on the backoff jitter and why it is .2",
+      "revId": "08bdba7f4b1544f6933444911436204cfe396db6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
