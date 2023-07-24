@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ffbc034b_e54193ea",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-07-24T13:46:53Z",
+      "side": 1,
+      "message": "Cannot run \u0027make lint LOCAL_FIX_PERMS\u003d1\u0027 to verify syntax, vendor/modules.txt and docker linting until another makefile patch sitting in the gerrit queue is merged in.\n\nVisual inspection of the updates looks good so +2",
+      "revId": "00554c698ef837d8b6d9971933efc12fcaae0dcf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
