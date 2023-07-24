@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-present Open Networking Foundation
+ * Copyright 2018-2023 Open Networking Foundation (ONF) and the ONF Contributors
 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ const (
 	TpRange = TpIDEnd - TpIDStart
 )
 
-//MkUniPortNum returns new UNIportNum based on intfID, inuID and uniID
+// MkUniPortNum returns new UNIportNum based on intfID, inuID and uniID
 func MkUniPortNum(ctx context.Context, intfID, onuID, uniID uint32) uint32 {
 	var limit = int(intfID)
 	if limit > MaxPonsPerOlt {
@@ -117,22 +117,22 @@ func MkUniPortNum(ctx context.Context, intfID, onuID, uniID uint32) uint32 {
 	return (intfID << (bitsForUniID + bitsForONUID)) | (onuID << bitsForUniID) | uniID
 }
 
-//OnuIDFromPortNum returns ONUID derived from portNumber
+// OnuIDFromPortNum returns ONUID derived from portNumber
 func OnuIDFromPortNum(portNum uint32) uint32 {
 	return (portNum >> bitsForUniID) & (MaxOnusPerPon - 1)
 }
 
-//IntfIDFromUniPortNum returns IntfID derived from portNum
+// IntfIDFromUniPortNum returns IntfID derived from portNum
 func IntfIDFromUniPortNum(portNum uint32) uint32 {
 	return (portNum >> (bitsForUniID + bitsForONUID)) & (MaxPonsPerOlt - 1)
 }
 
-//UniIDFromPortNum return UniID derived from portNum
+// UniIDFromPortNum return UniID derived from portNum
 func UniIDFromPortNum(portNum uint32) uint32 {
 	return (portNum) & (MaxUnisPerOnu - 1)
 }
 
-//IntfIDToPortNo returns portId derived from intftype, intfId and portType
+// IntfIDToPortNo returns portId derived from intftype, intfId and portType
 func IntfIDToPortNo(intfID uint32, intfType voltha.Port_PortType) uint32 {
 	if (intfType) == voltha.Port_ETHERNET_NNI {
 		return (1 << nniUniDiffPos) | intfID
@@ -143,7 +143,7 @@ func IntfIDToPortNo(intfID uint32, intfType voltha.Port_PortType) uint32 {
 	return 0
 }
 
-//PortNoToIntfID returns portnumber derived from interfaceID
+// PortNoToIntfID returns portnumber derived from interfaceID
 func PortNoToIntfID(portno uint32, intfType voltha.Port_PortType) uint32 {
 	if (intfType) == voltha.Port_ETHERNET_NNI {
 		return (1 << nniUniDiffPos) ^ portno
@@ -154,7 +154,7 @@ func PortNoToIntfID(portno uint32, intfType voltha.Port_PortType) uint32 {
 	return 0
 }
 
-//IntfIDFromNniPortNum returns Intf ID derived from portNum
+// IntfIDFromNniPortNum returns Intf ID derived from portNum
 func IntfIDFromNniPortNum(ctx context.Context, portNum uint32) (uint32, error) {
 	if portNum < minNniPortNum || portNum > maxNniPortNum {
 		logger.Errorw(ctx, "nniportnumber-is-not-in-valid-range", log.Fields{"portnum": portNum})
@@ -163,7 +163,7 @@ func IntfIDFromNniPortNum(ctx context.Context, portNum uint32) (uint32, error) {
 	return (portNum & (minNniPortNum - 1)), nil
 }
 
-//IntfIDFromPonPortNum returns Intf ID derived from portNum
+// IntfIDFromPonPortNum returns Intf ID derived from portNum
 func IntfIDFromPonPortNum(ctx context.Context, portNum uint32) (uint32, error) {
 	if portNum < minPonIntfPortNum || portNum > maxPonIntfPortNum {
 		logger.Errorw(ctx, "ponportnumber-is-not-in-valid-range", log.Fields{"portnum": portNum})
@@ -172,7 +172,7 @@ func IntfIDFromPonPortNum(ctx context.Context, portNum uint32) (uint32, error) {
 	return (portNum & ((1 << ponIntfMarkerPos) - 1)), nil
 }
 
-//IntfIDToPortTypeName returns port type derived from the intfId
+// IntfIDToPortTypeName returns port type derived from the intfId
 func IntfIDToPortTypeName(intfID uint32) voltha.Port_PortType {
 	if ((ponIntfMarkerValue << ponIntfMarkerPos) ^ intfID) < MaxPonsPerOlt {
 		return voltha.Port_PON_OLT
@@ -183,7 +183,7 @@ func IntfIDToPortTypeName(intfID uint32) voltha.Port_PortType {
 	return voltha.Port_ETHERNET_UNI
 }
 
-//ExtractAccessFromFlow returns AccessDevice information
+// ExtractAccessFromFlow returns AccessDevice information
 func ExtractAccessFromFlow(inPort, outPort uint32) (uint32, uint32, uint32, uint32) {
 	if IsUpstream(outPort) {
 		return inPort, IntfIDFromUniPortNum(inPort), OnuIDFromPortNum(inPort), UniIDFromPortNum(inPort)
@@ -191,7 +191,7 @@ func ExtractAccessFromFlow(inPort, outPort uint32) (uint32, uint32, uint32, uint
 	return outPort, IntfIDFromUniPortNum(outPort), OnuIDFromPortNum(outPort), UniIDFromPortNum(outPort)
 }
 
-//IsUpstream returns true for Upstream and false for downstream
+// IsUpstream returns true for Upstream and false for downstream
 func IsUpstream(outPort uint32) bool {
 	if IsControllerBoundFlow(outPort) {
 		return true
@@ -199,17 +199,17 @@ func IsUpstream(outPort uint32) bool {
 	return (outPort & (1 << nniUniDiffPos)) == (1 << nniUniDiffPos)
 }
 
-//IsControllerBoundFlow returns true/false
+// IsControllerBoundFlow returns true/false
 func IsControllerBoundFlow(outPort uint32) bool {
 	return outPort == uint32(ofp.OfpPortNo_OFPP_CONTROLLER)
 }
 
-//OnuIDFromUniPortNum returns onuId from give portNum information.
+// OnuIDFromUniPortNum returns onuId from give portNum information.
 func OnuIDFromUniPortNum(portNum uint32) uint32 {
 	return (portNum >> bitsForUniID) & (MaxOnusPerPon - 1)
 }
 
-//FlowExtractInfo fetches uniport from the flow, based on which it gets and returns ponInf, onuID, uniID, inPort and ethType
+// FlowExtractInfo fetches uniport from the flow, based on which it gets and returns ponInf, onuID, uniID, inPort and ethType
 func FlowExtractInfo(ctx context.Context, flow *ofp.OfpFlowStats, flowDirection string) (uint32, uint32, uint32, uint32, uint32, uint32, error) {
 	var uniPortNo uint32
 	var ponIntf uint32
