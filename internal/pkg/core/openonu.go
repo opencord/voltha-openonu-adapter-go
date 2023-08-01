@@ -21,13 +21,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -35,7 +36,6 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/health"
 	"github.com/opencord/voltha-protos/v5/go/olt_inter_adapter_service"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -1048,11 +1048,15 @@ func (oo *OpenONUAC) setupParentInterAdapterClient(ctx context.Context, endpoint
 	if err != nil {
 		return err
 	}
+	retryCodes := []codes.Code{
+		codes.Unavailable,      // server is currently unavailable
+		codes.DeadlineExceeded, // deadline for the operation was exceeded
+	}
+	backoffCtxOption := grpc_retry.WithBackoff(grpc_retry.BackoffLinearWithJitter(oo.config.PerRPCRetryTimeout, 0.2))
+	grpcRetryOptions := grpc_retry.UnaryClientInterceptor(grpc_retry.WithMax(oo.config.MaxRetries), grpc_retry.WithPerRetryTimeout(oo.config.PerRPCRetryTimeout), grpc_retry.WithCodes(retryCodes...), backoffCtxOption)
 
 	oo.parentAdapterClients[endpoint] = childClient
-
-	go oo.parentAdapterClients[endpoint].Start(log.WithSpanFromContext(context.TODO(), ctx), getOltInterAdapterServiceClientHandler)
-
+	go oo.parentAdapterClients[endpoint].Start(log.WithSpanFromContext(context.TODO(), ctx), getOltInterAdapterServiceClientHandler, grpcRetryOptions)
 	// Wait until we have a connection to the child adapter.
 	// Unlimited retries or until context expires
 	subCtx := log.WithSpanFromContext(context.TODO(), ctx)
