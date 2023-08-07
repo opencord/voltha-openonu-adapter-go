@@ -339,6 +339,8 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		if handler.pOnuMetricsMgr != nil {
 			handler.pOnuMetricsMgr.SetdeviceDeletionInProgress(true)
 		}
+
+		handler.deviceDeleteCommChan <- true
 		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}

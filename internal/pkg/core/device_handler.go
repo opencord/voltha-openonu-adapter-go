@@ -231,6 +231,7 @@ type deviceHandler struct {
 	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
 	disableDeviceRequested         bool        // this flag identify ONU received disable request or not
 	oltAvailable                   bool
+	deviceDeleteCommChan           chan bool
 }
 
 // newDeviceHandler creates a new device handler
@@ -283,6 +284,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 		ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
 	}
 	dh.upgradeFsmChan = make(chan struct{})
+	dh.deviceDeleteCommChan = make(chan bool, 2)
 
 	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
 		dh.pmConfigs = cloned.PmConfigs
@@ -2046,6 +2048,9 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Warnw(ctx, "omci start-verification timed out (continue normal)", log.Fields{"device-id": dh.DeviceID})
 	case testresult := <-verifyExec:
 		logger.Infow(ctx, "Omci start verification done", log.Fields{"device-id": dh.DeviceID, "result": testresult})
+	case <-dh.deviceDeleteCommChan:
+		logger.Warnw(ctx, "Deleting device, stopping the omci test activity", log.Fields{"device-id": dh.DeviceID})
+		return nil
 	}
 
 	/* In py code it looks earlier (on activate ..)
