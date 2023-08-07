@@ -337,6 +337,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		// Setting the device deletion progress flag will cause the PM FSM to cleanup for GC after FSM moves to NULL state
 		handler.pOnuMetricsMgr.SetdeviceDeletionInProgress(true)
 
+		handler.deviceDeleteCommChan <- true
 		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}
