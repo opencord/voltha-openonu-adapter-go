@@ -16,6 +16,24 @@
       "message": "Hi,\n\nNot yet clear yet what the source is but something is unhappy around volthaInfraDeploy.\nPotential sources: kubernetes \u0026 chart files.\n\n** vars/volthaInfraDeploy.groovy::main: ENTER\n\n% helm dep update\n  Getting updates for unmanaged Helm repositories...\n  ...Successfully got an update from the \"onf\" chart repository\n  Update Complete. ⎈Happy Helming!⎈\n\nError: can\u0027t get a valid version for repositories etcd, kafka.\nTry changing the version constraint in Chart.yaml\n\n** vars/volthaInfraDeploy.groovy::main: EXCEPTION hudson.AbortException: script returned exit code 1\n** vars/volthaInfraDeploy.groovy::main: LEAVE\n",
       "revId": "b46cc359e5ca63052a46180f23b0e2cdd8ec4ebc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "db03d642_0a7ec6e6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-08-30T13:17:03Z",
+      "side": 1,
+      "message": "Nothing obvious in repo:voltha-helm-charts\n\n% git clone ssh://gerrit.opencord.org:29418/voltha-helm-charts.git\n% cd voltha-helm-charts\n\n% make help | grep lint\n% make lint-chart\n% make lint-helm\n\nChecking chart: ./voltha-adapter-openonu\n\u003d\u003d\u003e Linting ./voltha-adapter-openonu\n\n1 chart(s) linted, 0 chart(s) failed\n\n\nTicket opened: https://jira.opencord.org/browse/VOL-5168",
+      "parentUuid": "4e2ce891_afbde815",
+      "revId": "b46cc359e5ca63052a46180f23b0e2cdd8ec4ebc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
