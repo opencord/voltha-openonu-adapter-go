@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
-	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -236,7 +237,6 @@ func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*e
 	var handler *deviceHandler
 	if handler = oo.getDeviceHandler(ctx, device.Id, false); handler == nil {
 		handler := newDeviceHandler(ctx, oo.coreClient, oo.eventProxy, device, oo)
-		oo.addDeviceHandlerToMap(ctx, handler)
 
 		// Setup the grpc communication with the parent adapter
 		if err := oo.setupParentInterAdapterClient(ctx, device.ProxyAddress.AdapterEndpoint); err != nil {
@@ -244,7 +244,8 @@ func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*e
 			return nil, err
 		}
 
-		go handler.adoptOrReconcileDevice(log.WithSpanFromContext(context.Background(), ctx), device)
+		handler.adoptOrReconcileDevice(log.WithSpanFromContext(context.Background(), ctx), device)
+		oo.addDeviceHandlerToMap(ctx, handler)
 	}
 	return &empty.Empty{}, nil
 }
@@ -898,23 +899,32 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 		waitForDhInstPresent = true
 	}
 	if handler := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent); handler != nil {
+
 		logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": onuInd.DeviceId,
 			"OnuId":      onuIndication.GetOnuId(),
 			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
 			"SNR": onuIndication.GetSerialNumber()})
 
-		if onuOperstate == "up" {
+		if onuOperstate == "up" && (handler.pDeviceStateFsm.Can(devEvDeviceUpInd)) {
 			if err := handler.createInterface(ctx, onuIndication); err != nil {
 				return nil, err
 			}
+			if err := handler.pDeviceStateFsm.Event(devEvDeviceUpInd); err != nil {
+				logger.Errorw(ctx, "Device State FSM Failure !!", log.Fields{"device-id": handler.DeviceID, "err": err})
+				return nil, err
+			}
 			return &empty.Empty{}, nil
-		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
+		} else if ((onuOperstate == "down") || (onuOperstate == "unreachable")) && (handler.pDeviceStateFsm.Can(devEvDeviceDownInd)) {
 			if err := handler.UpdateInterface(ctx); err != nil {
+				return nil, err
+			}
+			if err := handler.pDeviceStateFsm.Event(devEvDeviceDownInd); err != nil {
+				logger.Errorw(ctx, "Device State FSM Failure !!", log.Fields{"device-id": handler.DeviceID, "err": err})
 				return nil, err
 			}
 			return &empty.Empty{}, nil
 		} else {
-			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
+			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId(), "fsmState": string(handler.pDeviceStateFsm.Current())})
 			return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, onuInd.DeviceId)
 		}
 	}
