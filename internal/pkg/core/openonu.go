@@ -898,6 +898,13 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 		waitForDhInstPresent = true
 	}
 	if handler := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent); handler != nil {
+		if handler.GetonuIndicationInProgress(ctx) {
+			logger.Infow(ctx, "An OnuIndication is under process, ignore!", log.Fields{"device-id": handler.DeviceID})
+			return &empty.Empty{}, nil
+		}
+		handler.SetonuIndicationInProgress(ctx, true)
+		defer handler.SetonuIndicationInProgress(ctx, false)
+
 		logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": onuInd.DeviceId,
 			"OnuId":      onuIndication.GetOnuId(),
 			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
