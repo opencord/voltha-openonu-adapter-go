@@ -231,6 +231,8 @@ type deviceHandler struct {
 	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
 	disableDeviceRequested         bool        // this flag identify ONU received disable request or not
 	oltAvailable                   bool
+	mutexOnuIndInProgressFlag      sync.RWMutex
+	onuIndicationInProgress        bool
 }
 
 // newDeviceHandler creates a new device handler
@@ -283,6 +285,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 		ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
 	}
 	dh.upgradeFsmChan = make(chan struct{})
+	dh.onuIndicationInProgress = false
 
 	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
 		dh.pmConfigs = cloned.PmConfigs
@@ -887,6 +890,8 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 	onuIndication.OperState = pDevEntry.SOnuPersistentData.PersOperState
 	onuIndication.AdminState = pDevEntry.SOnuPersistentData.PersAdminState
 	pDevEntry.MutexPersOnuConfig.RUnlock()
+	dh.SetonuIndicationInProgress(ctx, true)
+	defer dh.SetonuIndicationInProgress(ctx, false)
 	_ = dh.createInterface(ctx, &onuIndication)
 }
 
@@ -4745,4 +4750,18 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 	dh.pLockStateFsm = nil
 	dh.pUnlockStateFsm = nil
 	dh.pOnuUpradeFsm = nil
+}
+
+// GetOnuIndicationInProgress - Returns if ONUIndication is in process for this device
+func (dh *deviceHandler) GetonuIndicationInProgress(ctx context.Context) bool {
+	dh.mutexOnuIndInProgressFlag.RLock()
+	defer dh.mutexOnuIndInProgressFlag.RUnlock()
+	return dh.onuIndicationInProgress
+}
+
+// SetOnuIndicationInProgress - Set/Reset the value to indicate the ONU indication processing for this device
+func (dh *deviceHandler) SetonuIndicationInProgress(ctx context.Context, value bool) {
+	dh.mutexOnuIndInProgressFlag.Lock()
+	dh.onuIndicationInProgress = value
+	dh.mutexOnuIndInProgressFlag.Unlock()
 }
