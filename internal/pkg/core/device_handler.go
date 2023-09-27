@@ -80,19 +80,16 @@ const (
 
 const (
 	// events of Device FSM
-	devEvDeviceInit       = "devEvDeviceInit"
-	devEvGrpcConnected    = "devEvGrpcConnected"
-	devEvGrpcDisconnected = "devEvGrpcDisconnected"
-	devEvDeviceUpInd      = "devEvDeviceUpInd"
-	devEvDeviceDownInd    = "devEvDeviceDownInd"
+	devEvDeviceInit    = "devEvDeviceInit"
+	devEvDeviceUpInd   = "devEvDeviceUpInd"
+	devEvDeviceDownInd = "devEvDeviceDownInd"
 )
 const (
 	// states of Device FSM
-	devStNull      = "devStNull"
-	devStDown      = "devStDown"
-	devStInit      = "devStInit"
-	devStConnected = "devStConnected"
-	devStUp        = "devStUp"
+	devStNull = "devStNull"
+	devStDown = "devStDown"
+	devStInit = "devStInit"
+	devStUp   = "devStUp"
 )
 
 // Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
@@ -295,20 +292,15 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 		devStNull,
 		fsm.Events{
 			{Name: devEvDeviceInit, Src: []string{devStNull, devStDown}, Dst: devStInit},
-			{Name: devEvGrpcConnected, Src: []string{devStInit}, Dst: devStConnected},
-			{Name: devEvGrpcDisconnected, Src: []string{devStConnected, devStDown}, Dst: devStInit},
-			{Name: devEvDeviceUpInd, Src: []string{devStConnected, devStDown}, Dst: devStUp},
+			{Name: devEvDeviceUpInd, Src: []string{devStInit, devStDown}, Dst: devStUp},
 			{Name: devEvDeviceDownInd, Src: []string{devStUp}, Dst: devStDown},
 		},
 		fsm.Callbacks{
-			"before_event":                      func(e *fsm.Event) { dh.logStateChange(ctx, e) },
-			("before_" + devEvDeviceInit):       func(e *fsm.Event) { dh.doStateInit(ctx, e) },
-			("after_" + devEvDeviceInit):        func(e *fsm.Event) { dh.postInit(ctx, e) },
-			("before_" + devEvGrpcConnected):    func(e *fsm.Event) { dh.doStateConnected(ctx, e) },
-			("before_" + devEvGrpcDisconnected): func(e *fsm.Event) { dh.doStateInit(ctx, e) },
-			("after_" + devEvGrpcDisconnected):  func(e *fsm.Event) { dh.postInit(ctx, e) },
-			("before_" + devEvDeviceUpInd):      func(e *fsm.Event) { dh.doStateUp(ctx, e) },
-			("before_" + devEvDeviceDownInd):    func(e *fsm.Event) { dh.doStateDown(ctx, e) },
+			"before_event":                  func(e *fsm.Event) { dh.logStateChange(ctx, e) },
+			("before_" + devEvDeviceInit):   func(e *fsm.Event) { dh.doStateInit(ctx, e) },
+			("after_" + devEvDeviceInit):    func(e *fsm.Event) { dh.postInit(ctx, e) },
+			("enter_" + devEvDeviceUpInd):   func(e *fsm.Event) { dh.doStateUp(ctx, e) },
+			("enter_" + devEvDeviceDownInd): func(e *fsm.Event) { dh.doStateDown(ctx, e) },
 		},
 	)
 
@@ -888,6 +880,10 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 	onuIndication.AdminState = pDevEntry.SOnuPersistentData.PersAdminState
 	pDevEntry.MutexPersOnuConfig.RUnlock()
 	_ = dh.createInterface(ctx, &onuIndication)
+
+	if err := dh.pDeviceStateFsm.Event(devEvDeviceUpInd); err != nil {
+		logger.Errorw(ctx, "Device State FSM Failure !!", log.Fields{"device-id": dh.DeviceID, "err": err})
+	}
 }
 
 func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
@@ -1795,19 +1791,6 @@ func (dh *deviceHandler) postInit(ctx context.Context, e *fsm.Event) {
 	*/
 
 	logger.Debugw(ctx, "postInit-done", log.Fields{"device-id": dh.DeviceID})
-}
-
-// doStateConnected get the device info and update to voltha core
-// for comparison of the original method (not that easy to uncomment): compare here:
-//
-//	voltha-openolt-adapter/adaptercore/device_handler.go
-//	-> this one obviously initiates all communication interfaces of the device ...?
-func (dh *deviceHandler) doStateConnected(ctx context.Context, e *fsm.Event) {
-
-	logger.Debugw(ctx, "doStateConnected-started", log.Fields{"device-id": dh.DeviceID})
-	err := errors.New("device FSM: function not implemented yet")
-	e.Cancel(err)
-	logger.Debugw(ctx, "doStateConnected-done", log.Fields{"device-id": dh.DeviceID})
 }
 
 // doStateUp handle the onu up indication and update to voltha core
