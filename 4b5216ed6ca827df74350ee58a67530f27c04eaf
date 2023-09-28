@@ -16,6 +16,24 @@
       "message": "Please edit the VERSION file as well.",
       "revId": "4b5216ed6ca827df74350ee58a67530f27c04eaf",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e7a0fc22_50f5c80d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-09-28T07:27:04Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "8c020f3d_f05bb8ed",
+      "revId": "4b5216ed6ca827df74350ee58a67530f27c04eaf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
