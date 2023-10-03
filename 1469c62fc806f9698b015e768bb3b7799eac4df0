@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "56ff68cc_fc36f157",
+        "filename": "go.mod",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-10-03T21:35:05Z",
+      "side": 1,
+      "message": "Why do we put a replace line here instead of updating the version of the voltha-protos above?",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 99
+      },
+      "revId": "1469c62fc806f9698b015e768bb3b7799eac4df0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
