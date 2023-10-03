@@ -22,3 +22,5 @@ require (
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.44.0
 )
+
+replace github.com/opencord/voltha-protos/v5 v5.4.6 => github.com/opencord/voltha-protos/v5 v5.4.10
