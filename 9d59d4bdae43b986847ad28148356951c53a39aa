@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "abfe278f_6ab5f0a5",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-10-09T14:56:05Z",
+      "side": 1,
+      "message": "instead of having flags can we check the states instead?",
+      "revId": "9d59d4bdae43b986847ad28148356951c53a39aa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
