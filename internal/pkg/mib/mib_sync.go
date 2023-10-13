@@ -1437,8 +1437,9 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 			oo.MutexPersOnuConfig.RLock()
 			mibTmpString2 := strings.Replace(mibTmpString, "%SERIAL_NUMBER%", oo.SOnuPersistentData.PersSerialNumber, -1)
 			mibTmpString = strings.Replace(mibTmpString2, "%MAC_ADDRESS%", oo.SOnuPersistentData.PersMacAddress, -1)
+			mibTmpString2 = strings.ReplaceAll(mibTmpString, "\x00", "")
 			oo.MutexPersOnuConfig.RUnlock()
-			mibTmpBytes := []byte(mibTmpString)
+			mibTmpBytes := []byte(mibTmpString2)
 			logger.Debugf(ctx, "MibSync FSM - Mib template tokens swapped out: %s", mibTmpBytes)
 
 			var firstLevelMap map[string]interface{}
