@@ -16,6 +16,23 @@
       "message": "Re-add approvals, rebase-with-master patch cleared attributes a second time.\n\nPost updating commit message:\n\n  - re-add +1 approval from Mahir\n  - re-add +1 approval from Serkant\n  - re-add +1 verify from jenkins",
       "revId": "23b9bf7963f0f26888286915fde5606a0aeafb66",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9b8bdd29_c6d8d73c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-10-30T14:04:34Z",
+      "side": 1,
+      "message": "Joey, shouldn\u0027t this tag check done during verification, before the merge?",
+      "revId": "23b9bf7963f0f26888286915fde5606a0aeafb66",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
