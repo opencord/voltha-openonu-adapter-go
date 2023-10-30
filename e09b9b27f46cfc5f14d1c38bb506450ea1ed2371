@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1d173faa_c020cfaf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-10-30T13:13:26Z",
+      "side": 1,
+      "message": "Updated commit message with context added in patch gerrit:34782.\n\nInline a URL to document required VERSION file edits.\nInline a 2nd URL for the tool \u0027go mod vendor\u0027 to document automated changes made beneath the vendor/ directory.",
+      "revId": "e09b9b27f46cfc5f14d1c38bb506450ea1ed2371",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
