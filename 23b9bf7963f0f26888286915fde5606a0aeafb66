@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "09ef554b_4ade11bc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-10-30T13:40:28Z",
+      "side": 1,
+      "message": "Re-add approvals, rebase-with-master patch cleared attributes a second time.\n\nPost updating commit message:\n\n  - re-add +1 approval from Mahir\n  - re-add +1 approval from Serkant\n  - re-add +1 verify from jenkins",
+      "revId": "23b9bf7963f0f26888286915fde5606a0aeafb66",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
