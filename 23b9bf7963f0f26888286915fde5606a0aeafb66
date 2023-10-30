@@ -33,6 +33,24 @@
       "message": "Joey, shouldn\u0027t this tag check done during verification, before the merge?",
       "revId": "23b9bf7963f0f26888286915fde5606a0aeafb66",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "de5766c0_3cbe3753",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-10-30T14:26:50Z",
+      "side": 1,
+      "message": "Yes VERSION/wildcard tag checking is normally performed every job.\n\nThis job is strange (see comments \u0026 history, need to research).  The rebase-with-master job ran successfully so either we had:\n  o A timing problem -- not likely, last merge 2 weeks ago\n  o Pipeline tag check did not run for some reason.\n\nIn any event, opening a jira ticket for this behavior.\n\n\nOddity #2\n---------\n  This failed job URL was sent as email status but is not reflected in the history.  Was the pipeline stage re-run , succeeded and 2nd status masked the underlying failure condition (?)\n\nhttps://jenkins.opencord.org/job/version-tag_wildcard/490/console\n\n\nOddity #3\n---------\n  Patch was reverted (click on revert link in gerrit, top right).  Apply was displayed as status for a time in gerrit.  After revert job passed status reverted to \u0027merged\u0027 which seems to have merged the patch out of existence (cannot apply changes to a patch in the merged state).",
+      "parentUuid": "9b8bdd29_c6d8d73c",
+      "revId": "23b9bf7963f0f26888286915fde5606a0aeafb66",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
