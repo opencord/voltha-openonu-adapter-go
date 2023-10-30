@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fa642972_5587c5e3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-10-30T16:09:50Z",
+      "side": 1,
+      "message": "Apply revert patch so the original patch 34777 can be re-created.\n\nFrom history, manually re-apply:\n  +1 approve -- Mahir\n  +1 verify  -- Jenkins",
+      "revId": "2d05f151534e1f81bf42a7f3700f642d7410df06",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
