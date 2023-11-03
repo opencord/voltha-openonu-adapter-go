@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "798113b9_11335cb6",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-11-03T17:48:13Z",
+      "side": 1,
+      "message": "If the intention is to add the handler to the Map after all the initializations done successfully, then we need to check the response of the handler.adoptOrReconcileDevice() as well. And for this to be effective we also need to make the state transition functions(doStateInit() and others) return error in error cases.",
+      "range": {
+        "startLine": 248,
+        "startChar": 2,
+        "endLine": 248,
+        "endChar": 26
+      },
+      "revId": "126be9d5375ed656c31c95f5668650793d9116eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3e0eec2f_905f8970",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 908,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-11-03T17:48:13Z",
+      "side": 1,
+      "message": "There is still a race here. A new indication can be received when the first one still is in handler.createInterface() function. This should be protested by a mutex per device. I suggest to call a function on device_handler immediately (like dh.OnuIndication()), and move all this code block to there in a mutex defined on dh.",
+      "range": {
+        "startLine": 908,
+        "startChar": 30,
+        "endLine": 908,
+        "endChar": 57
+      },
+      "revId": "126be9d5375ed656c31c95f5668650793d9116eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
