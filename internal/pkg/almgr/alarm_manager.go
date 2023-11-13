@@ -167,6 +167,10 @@ func NewAlarmManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.Ionu
 			EventCategory: voltha.EventCategory_COMMUNICATION, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu low rx optical power"},
 		{classID: aniGClassID, alarmno: 1}: {EventName: "ONU_HIGH_RX_OPTICAL",
 			EventCategory: voltha.EventCategory_COMMUNICATION, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu high rx optical power"},
+		{classID: aniGClassID, alarmno: 2}: {EventName: "ONU_BIT_ERROR_BASED_SIGNAL_FAIL",
+			EventCategory: voltha.EventCategory_COMMUNICATION, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu bit error based signal fail"},
+		{classID: aniGClassID, alarmno: 3}: {EventName: "ONU_BIT_ERROR_BASED_SIGNAL_DEGRADE",
+			EventCategory: voltha.EventCategory_COMMUNICATION, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu bit error based signal degrade"},
 		{classID: aniGClassID, alarmno: 4}: {EventName: "ONU_LOW_TX_OPTICAL",
 			EventCategory: voltha.EventCategory_COMMUNICATION, EventSubCategory: voltha.EventSubCategory_ONU, EventDescription: "onu low tx optical power"},
 		{classID: aniGClassID, alarmno: 5}: {EventName: "ONU_HIGH_TX_OPTICAL",
@@ -770,12 +774,14 @@ func (am *OnuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 		return
 	}
 	suffixDesc := "Raised"
+	clearOrRaiseEvent := "RAISE_EVENT"
 	if !raised {
 		suffixDesc = "Cleared"
+		clearOrRaiseEvent = "CLEAR_EVENT"
 	}
 	deviceEvent := &voltha.DeviceEvent{
 		ResourceId:      onuID,
-		DeviceEventName: fmt.Sprintf("%s_RAISE_EVENT", eventDetails.EventName),
+		DeviceEventName: fmt.Sprintf("%s_%s", eventDetails.EventName, clearOrRaiseEvent),
 		Description: fmt.Sprintf("%s Event - %s - %s", eventDetails.EventDescription, eventDetails.EventName,
 			suffixDesc),
 		Context: context,
