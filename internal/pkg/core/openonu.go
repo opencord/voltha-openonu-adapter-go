@@ -335,8 +335,9 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		handler.mutexDeletionInProgressFlag.Unlock()
 
 		// Setting the device deletion progress flag will cause the PM FSM to cleanup for GC after FSM moves to NULL state
-		handler.pOnuMetricsMgr.SetdeviceDeletionInProgress(true)
-
+		if handler.pOnuMetricsMgr != nil {
+			handler.pOnuMetricsMgr.SetdeviceDeletionInProgress(true)
+		}
 		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}
@@ -952,8 +953,11 @@ func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechP
 // DeleteGemPort is part of the ONU Inter-adapter service API.
 func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortMessage) (*empty.Empty, error) {
 	logger.Debugw(ctx, "delete-gem-port", log.Fields{"device-id": gPort.DeviceId, "uni-id": gPort.UniId})
-
 	if handler := oo.getDeviceHandler(ctx, gPort.DeviceId, false); handler != nil {
+		if handler.GetDeletionInProgress() {
+			logger.Error(ctx, "device deletion in progres", log.Fields{"device-id": gPort.DeviceId})
+			return nil, fmt.Errorf("device deletion in progress for device-id: %s", gPort.DeviceId)
+		}
 		if err := handler.handleDeleteGemPortRequest(log.WithSpanFromContext(context.Background(), ctx), gPort); err != nil {
 			return nil, err
 		}
@@ -967,8 +971,11 @@ func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortM
 // DeleteTCont is part of the ONU Inter-adapter service API.
 func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*empty.Empty, error) {
 	logger.Debugw(ctx, "delete-tcont", log.Fields{"device-id": tConf.DeviceId, "tconf": tConf})
-
 	if handler := oo.getDeviceHandler(ctx, tConf.DeviceId, false); handler != nil {
+		if handler.GetDeletionInProgress() {
+			logger.Error(ctx, "device deletion in progres", log.Fields{"device-id": tConf.DeviceId})
+			return nil, fmt.Errorf("device deletion in progress for device-id: %s", tConf.DeviceId)
+		}
 		if err := handler.handleDeleteTcontRequest(log.WithSpanFromContext(context.Background(), ctx), tConf); err != nil {
 			return nil, err
 		}
