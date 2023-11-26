@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package mib provides the utilities for managing the onu mib
+// Package mib provides the utilities for managing the onu mib
 package mib
 
 import (
@@ -220,8 +220,8 @@ type OnuDeviceEntry struct {
 	omciRebootMessageReceivedChannel chan cmn.Message // channel needed by reboot request
 }
 
-//NewOnuDeviceEntry returns a new instance of a OnuDeviceEntry
-//mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
+// NewOnuDeviceEntry returns a new instance of a OnuDeviceEntry
+// mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHandler,
 	openonu cmn.IopenONUAC) *OnuDeviceEntry {
 	var onuDeviceEntry OnuDeviceEntry
@@ -438,7 +438,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	return &onuDeviceEntry
 }
 
-//Start starts (logs) the omci agent
+// Start starts (logs) the omci agent
 func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 	logger.Debugw(ctx, "OnuDeviceEntry-starting", log.Fields{"for device-id": oo.deviceID})
 	if oo.PDevOmciCC == nil {
@@ -451,7 +451,7 @@ func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 	return nil
 }
 
-//Stop stops/resets the omciCC
+// Stop stops/resets the omciCC
 func (oo *OnuDeviceEntry) Stop(ctx context.Context, abResetOmciCC bool) error {
 	logger.Debugw(ctx, "OnuDeviceEntry-stopping", log.Fields{"for device-id": oo.deviceID})
 	if abResetOmciCC && (oo.PDevOmciCC != nil) {
@@ -507,7 +507,7 @@ func (oo *OnuDeviceEntry) WaitForRebootResponse(ctx context.Context, responseCha
 	}
 }
 
-//Relay the InSync message via Handler to Rw core - Status update
+// Relay the InSync message via Handler to Rw core - Status update
 func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "relaying system-event", log.Fields{"device-id": oo.deviceID, "Event": devEvent})
 	// decouple the handler transfer from further processing here
@@ -637,23 +637,7 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
-	//assign values which are not already present when NewOnuDeviceEntry() is called
-	onuIndication := oo.baseDeviceHandler.GetOnuIndication()
-	oo.SOnuPersistentData.PersOnuID = onuIndication.OnuId
-	oo.SOnuPersistentData.PersIntfID = onuIndication.IntfId
-	//TODO: verify usage of these values during restart UC
-	oo.SOnuPersistentData.PersAdminState = onuIndication.AdminState
-	oo.SOnuPersistentData.PersOperState = onuIndication.OperState
 
-	logger.Debugw(ctx, "Update ONU-data in KVStore", log.Fields{"device-id": oo.deviceID, "SOnuPersistentData": oo.SOnuPersistentData})
-
-	Value, err := json.Marshal(oo.SOnuPersistentData)
-	if err != nil {
-		logger.Errorw(ctx, "unable to marshal ONU-data", log.Fields{"SOnuPersistentData": oo.SOnuPersistentData,
-			"device-id": oo.deviceID, "err": err})
-		oo.chOnuKvProcessingStep <- 0 //error indication
-		return
-	}
 	oo.pOpenOnuAc.RLockMutexDeviceHandlersMap()
 	if _, exist := oo.pOpenOnuAc.GetDeviceHandler(oo.deviceID); !exist {
 		logger.Debugw(ctx, "delete_device in progress - skip write request", log.Fields{"device-id": oo.deviceID})
@@ -671,6 +655,30 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	}
 	oo.pOpenOnuAc.RUnlockMutexDeviceHandlersMap()
 	oo.baseDeviceHandler.RUnlockMutexDeletionInProgressFlag()
+
+	//assign values which are not already present when NewOnuDeviceEntry() is called
+	onuIndication := oo.baseDeviceHandler.GetOnuIndication()
+	if onuIndication != nil {
+		oo.SOnuPersistentData.PersOnuID = onuIndication.OnuId
+		oo.SOnuPersistentData.PersIntfID = onuIndication.IntfId
+		//TODO: verify usage of these values during restart UC
+		oo.SOnuPersistentData.PersAdminState = onuIndication.AdminState
+		oo.SOnuPersistentData.PersOperState = onuIndication.OperState
+	} else {
+		logger.Errorw(ctx, "onuIndication not set, unable to load ONU-data", log.Fields{"device-id": oo.deviceID})
+		oo.chOnuKvProcessingStep <- 0 //error indication
+		return
+	}
+
+	logger.Debugw(ctx, "Update ONU-data in KVStore", log.Fields{"device-id": oo.deviceID, "SOnuPersistentData": oo.SOnuPersistentData})
+
+	Value, err := json.Marshal(oo.SOnuPersistentData)
+	if err != nil {
+		logger.Errorw(ctx, "unable to marshal ONU-data", log.Fields{"SOnuPersistentData": oo.SOnuPersistentData,
+			"device-id": oo.deviceID, "err": err})
+		oo.chOnuKvProcessingStep <- 0 //error indication
+		return
+	}
 
 	oo.mutexOnuKVStore.Lock()
 	err = oo.onuKVStore.Put(ctx, oo.onuKVStorePath, Value)
@@ -1041,7 +1049,7 @@ func (oo *OnuDeviceEntry) PrepareForGarbageCollection(ctx context.Context, aDevi
 	oo.PDevOmciCC = nil
 }
 
-//SendOnuDeviceEvent sends an ONU DeviceEvent via eventProxy
+// SendOnuDeviceEvent sends an ONU DeviceEvent via eventProxy
 func (oo *OnuDeviceEntry) SendOnuDeviceEvent(ctx context.Context, aDeviceEventName string, aDescription string) {
 
 	oo.MutexPersOnuConfig.RLock()

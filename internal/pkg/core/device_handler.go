@@ -4737,6 +4737,7 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 		v.PrepareForGarbageCollection(ctx, aDeviceID)
 		delete(dh.UniVlanConfigFsmMap, k)
 	}
+	dh.pOnuIndication = nil
 	dh.pOnuOmciDevice = nil
 	dh.pOnuTP = nil
 	dh.pOnuMetricsMgr = nil
