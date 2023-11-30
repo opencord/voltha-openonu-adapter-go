@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "d5dce333_6b06c25b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2023-11-30T06:11:59Z",
+      "side": 1,
+      "message": "Sure , will check and resolve the conflicts ASAP.",
+      "parentUuid": "a5e9a99a_53d1e0bd",
+      "revId": "126be9d5375ed656c31c95f5668650793d9116eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "798113b9_11335cb6",
         "filename": "internal/pkg/core/openonu.go",
         "patchSetId": 7
