@@ -20,19 +20,7 @@
 
 $(if $(DEBUG),$(warning ENTER))
 
-MAKEDIR ?= $(error MAKEDIR= is required)
-
-## -----------------------------------------------------------------------
-## -----------------------------------------------------------------------
-help::
-	@echo "USAGE: $(MAKE) [options] [target] ..."
-        # @echo "  test                          Sanity check chart versions"
-
-ONF_MAKEDIR := $(MAKEDIR)
-include $(MAKEDIR)/consts.mk
-include $(ONF_MAKEDIR)/etc/include.mk        # banner macros
-include $(MAKEDIR)/todo.mk
-include $(MAKEDIR)/lint/include.mk
+include $(ONF_MAKEDIR)/etc/features.mk
 
 $(if $(DEBUG),$(warning LEAVE))
 

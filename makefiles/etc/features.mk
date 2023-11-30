@@ -17,22 +17,31 @@
 # SPDX-FileCopyrightText: 2017-2023 Open Networking Foundation (ONF) and the ONF Contributors
 # SPDX-License-Identifier: Apache-2.0
 # -----------------------------------------------------------------------
+# Usage:
+#
+# mytarget:
+#     $(call banner-enter,target $@)
+#     @echo "Hello World"
+#     $(call banner-leave,target $@)
+# -----------------------------------------------------------------------
 
 $(if $(DEBUG),$(warning ENTER))
 
-MAKEDIR ?= $(error MAKEDIR= is required)
+target-banner = ** ---------------------------------------------------------------------------
 
 ## -----------------------------------------------------------------------
+## Intent: Return a command line able to display a banner hilighting
+##         make target processing within a logfile.
 ## -----------------------------------------------------------------------
-help::
-	@echo "USAGE: $(MAKE) [options] [target] ..."
-        # @echo "  test                          Sanity check chart versions"
+banner-enter=\
+    @echo -e \
+    "\n"\
+    "$(target-banner)\n"\
+    "** $(MAKE) ENTER: $(1)\n"\
+    "$(target-banner)"\
 
-ONF_MAKEDIR := $(MAKEDIR)
-include $(MAKEDIR)/consts.mk
-include $(ONF_MAKEDIR)/etc/include.mk        # banner macros
-include $(MAKEDIR)/todo.mk
-include $(MAKEDIR)/lint/include.mk
+banner-leave=\
+    @echo -e "** $(MAKE) LEAVE: $(1)"
 
 $(if $(DEBUG),$(warning LEAVE))
 
