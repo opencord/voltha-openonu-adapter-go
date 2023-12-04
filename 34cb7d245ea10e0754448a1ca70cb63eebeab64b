@@ -33,6 +33,23 @@
       "message": "LGTM",
       "revId": "34cb7d245ea10e0754448a1ca70cb63eebeab64b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e475f8b8_d5521e76",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-12-04T15:00:46Z",
+      "side": 1,
+      "message": "conflicts will need to be resolved before patch can be merged and submitted.",
+      "revId": "34cb7d245ea10e0754448a1ca70cb63eebeab64b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
