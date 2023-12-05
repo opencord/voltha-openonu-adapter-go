@@ -36,6 +36,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b87cf456_262aa622",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-12-05T13:58:23Z",
+      "side": 1,
+      "message": "just an fyi\u003e\nThere are a few unresolved review input items in the history (showing a total of 4 beneath the commit message window in the gerrit UI).  After responding or remediating you can click the \u0027DONE\u0027 option in the lower right hand corner of the dialog and that will help drive the count to zero.  \n\nThat or select \u0027Unresolved\u0027 in the Files/Comments/Findings section and the review input can be updated individually.\n\nNot sure if unresolved review input items might block the ability to merge patches.\n",
+      "revId": "126be9d5375ed656c31c95f5668650793d9116eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "798113b9_11335cb6",
