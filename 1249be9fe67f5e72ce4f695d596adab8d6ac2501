@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "49af90f4_b56e6a55",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-12-05T22:05:46Z",
+      "side": 1,
+      "message": "Re-adding +2 approval(s) cleared by the last amended patch:\n+1 - Mahir\n+1 - Joey",
+      "revId": "1249be9fe67f5e72ce4f695d596adab8d6ac2501",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
