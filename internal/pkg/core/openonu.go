@@ -284,7 +284,7 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 		go handler.adoptOrReconcileDevice(log.WithSpanFromContext(context.Background(), ctx), handler.device)
 		// reconcilement will be continued after onu-device entry is added
 	} else {
-		return nil, fmt.Errorf(fmt.Sprintf("device-already-reconciled-or-active-%s", device.Id))
+		logger.Warnf(ctx, "device-already-reconciled-or-active", log.Fields{"device-id": device.Id, "parent-id": device.ParentId})
 	}
 	return &empty.Empty{}, nil
 }
