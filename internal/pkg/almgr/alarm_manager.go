@@ -33,6 +33,8 @@ import (
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-protos/v5/go/extension"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -250,13 +252,8 @@ func (am *OnuAlarmManager) asFsmAuditing(ctx context.Context, e *fsm.Event) {
 }
 func (am *OnuAlarmManager) asFsmLeaveAuditing(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "alarm-sync-fsm-leave-auditing state", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
-	if am.isAsyncAlarmRequest {
-		logger.Errorw(ctx, "alarm-sync-fsm-leave-auditing state process the updated ONU alarms ", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
-		am.AsyncAlarmsCommChan <- struct{}{}
-		am.isAsyncAlarmRequest = false
-
-	}
 }
+
 func (am *OnuAlarmManager) asFsmResynchronizing(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
 	failureTransition := func() {
@@ -264,80 +261,27 @@ func (am *OnuAlarmManager) asFsmResynchronizing(ctx context.Context, e *fsm.Even
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-failure", log.Fields{"device-id": am.deviceID, "err": err})
 		}
 	}
-	// See if there is any onu only diff, meaning the class and entity is only in onu DB
-	for alarm := range am.onuDBCopy {
-		if _, exists := am.oltDbCopy[meAlarmKey{
-			classID:    alarm.classID,
-			instanceID: alarm.instanceID,
-		}]; !exists {
-			// We need to raise all such alarms as OLT wont have received notification for these alarms
-			omciAlarmMessage := &omci.AlarmNotificationMsg{
-				MeBasePacket: omci.MeBasePacket{
-					EntityClass:    alarm.classID,
-					EntityInstance: alarm.instanceID,
-				},
-				AlarmBitmap: am.onuDBCopy[alarm],
-			}
-			if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
-				logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.deviceID})
-				// Transition to failure.
-				go failureTransition()
-				return
-			}
-		}
+
+	// Process onu only differences
+	if err := am.processOnuOnlyDifferences(ctx, failureTransition); err != nil {
+		return
 	}
-	// See if there is any olt only diff, meaning the class and entity is only in olt DB
-	for alarm := range am.oltDbCopy {
-		if _, exists := am.onuDBCopy[meAlarmKey{
-			classID:    alarm.classID,
-			instanceID: alarm.instanceID,
-		}]; !exists {
-			// We need to clear all such alarms as OLT might have stale data and the alarms are already cleared.
-			omciAlarmMessage := &omci.AlarmNotificationMsg{
-				MeBasePacket: omci.MeBasePacket{
-					EntityClass:    alarm.classID,
-					EntityInstance: alarm.instanceID,
-				},
-				AlarmBitmap: am.oltDbCopy[alarm],
-			}
-			if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
-				logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.deviceID})
-				// Transition to failure
-				go failureTransition()
-				return
-			}
-		}
+
+	// Process olt only differences
+	if err := am.processOltOnlyDifferences(ctx, failureTransition); err != nil {
+		return
 	}
-	// See if there is any attribute difference
-	for alarm := range am.onuDBCopy {
-		if _, exists := am.oltDbCopy[alarm]; exists {
-			if am.onuDBCopy[alarm] != am.oltDbCopy[alarm] {
-				omciAlarmMessage := &omci.AlarmNotificationMsg{
-					MeBasePacket: omci.MeBasePacket{
-						EntityClass:    alarm.classID,
-						EntityInstance: alarm.instanceID,
-					},
-					AlarmBitmap: am.onuDBCopy[alarm],
-				}
-				// We will assume that onudb is correct always in this case and process the changed bitmap.
-				if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
-					logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.deviceID})
-					// Transition to failure
-					go failureTransition()
-					return
-				}
-			}
-		}
+
+	// Process attribute differences
+	if err := am.processAttributeDifferences(ctx, failureTransition); err != nil {
+		return
 	}
-	// Send the buffered notifications if no failure.
-	for _, notif := range am.bufferedNotifications {
-		logger.Debugw(ctx, "processing-buffered-alarm-notification", log.Fields{"device-id": am.deviceID,
-			"notification": notif})
-		if err := am.processAlarmData(ctx, notif); err != nil {
-			logger.Errorw(ctx, "unable-to-process-alarm-notification", log.Fields{"device-id": am.deviceID})
-			go failureTransition()
-		}
+
+	// Process buffered notifications
+	if err := am.processBufferedNotifications(ctx, failureTransition); err != nil {
+		return
 	}
+
 	go func() {
 		if err := am.AlarmSyncFsm.PFsm.Event(AsEvSuccess); err != nil {
 			logger.Debugw(ctx, "alarm-sync-fsm-cannot-go-to-state-sync", log.Fields{"device-id": am.deviceID, "err": err})
@@ -347,6 +291,14 @@ func (am *OnuAlarmManager) asFsmResynchronizing(ctx context.Context, e *fsm.Even
 
 func (am *OnuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "alarm-sync-fsm", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
+
+	if am.isAsyncAlarmRequest {
+		logger.Debugw(ctx, "alarm-sync-fsm-before entering the sync state process the updated ONU alarms ", log.Fields{"state": e.FSM.Current(), "device-id": am.deviceID})
+		am.AsyncAlarmsCommChan <- struct{}{}
+		am.isAsyncAlarmRequest = false
+
+	}
+
 	if am.pDeviceHandler.GetAlarmAuditInterval() > 0 {
 		select {
 		case <-time.After(am.pDeviceHandler.GetAlarmAuditInterval()):
@@ -370,6 +322,16 @@ func (am *OnuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 			}()
 
 		}
+	} else {
+		<-am.AsyncAlarmsCommChan
+		go func() {
+			logger.Debugw(ctx, "On demand Auditing the ONU for Alarms  ", log.Fields{"device-id": am.deviceID})
+			if err := am.AlarmSyncFsm.PFsm.Event(AsEvAudit); err != nil {
+				logger.Errorw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing, use current snapshot of alarms", log.Fields{"device-id": am.deviceID, "err": err})
+				am.isAsyncAlarmRequest = false
+				am.AsyncAlarmsCommChan <- struct{}{}
+			}
+		}()
 	}
 }
 
@@ -632,12 +594,12 @@ func (am *OnuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 	if !am.processMessage {
 		logger.Warnw(ctx, "ignoring-alarm-notification-received-for-me-as-channel-for-processing-is-closed",
 			log.Fields{"device-id": am.deviceID})
-		return fmt.Errorf("alarm-manager-is-in-stopped-state")
+		return status.Error(codes.Unavailable, "alarm-manager-is-in-stopped-state")
 	}
 	if _, present := am.pOnuDeviceEntry.GetOnuDB().MeDb[classID][meInstance]; !present {
 		logger.Errorw(ctx, "me-class-instance-not-present",
 			log.Fields{"class-id": classID, "instance-id": meInstance, "device-id": am.deviceID})
-		return fmt.Errorf("me-class-%d-instance-%d-not-present", classID, meInstance)
+		return status.Error(codes.NotFound, "me-class-instance-not-present")
 	}
 	if sequenceNo > 0 {
 		if am.AlarmSyncFsm.PFsm.Is(asStAuditing) || am.AlarmSyncFsm.PFsm.Is(asStResynchronizing) {
@@ -661,12 +623,12 @@ func (am *OnuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 	if omciErr.StatusCode() != me.Success {
 		//log error and return
 		logger.Error(ctx, "unable-to-get-managed-entity", log.Fields{"class-id": classID, "instance-id": meInstance})
-		return fmt.Errorf("unable-to-get-managed-entity-class-%d-instance-%d", classID, meInstance)
+		return status.Error(codes.NotFound, "unable-to-get-managed-entity")
 	}
 	meAlarmMap := entity.GetAlarmMap()
 	if meAlarmMap == nil {
 		logger.Error(ctx, "unable-to-get-managed-entity-alarm-map", log.Fields{"class-id": classID, "instance-id": meInstance})
-		return fmt.Errorf("unable-to-get-managed-entity-alarm-map-%d-instance-%d", classID, meInstance)
+		return status.Error(codes.NotFound, "unable-to-get-managed-entity-alarm-map")
 	}
 
 	am.alarmBitMapDB[meAlarmKey{
@@ -909,4 +871,79 @@ func (am *OnuAlarmManager) PrepareForGarbageCollection(ctx context.Context, aDev
 	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
 	am.pDeviceHandler = nil
 	am.pOnuDeviceEntry = nil
+}
+
+func (am *OnuAlarmManager) processOnuOnlyDifferences(ctx context.Context, failureTransition func()) error {
+	for alarm := range am.onuDBCopy {
+		if _, exists := am.oltDbCopy[meAlarmKey{classID: alarm.classID, instanceID: alarm.instanceID}]; !exists {
+			omciAlarmMessage := createOmciAlarmMessage(alarm, am.onuDBCopy[alarm])
+			if err := am.processAlarm(ctx, omciAlarmMessage, failureTransition); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (am *OnuAlarmManager) processOltOnlyDifferences(ctx context.Context, failureTransition func()) error {
+	for alarm := range am.oltDbCopy {
+		if _, exists := am.onuDBCopy[meAlarmKey{classID: alarm.classID, instanceID: alarm.instanceID}]; !exists {
+			omciAlarmMessage := createOmciAlarmMessage(alarm, am.oltDbCopy[alarm])
+			if err := am.processAlarm(ctx, omciAlarmMessage, failureTransition); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (am *OnuAlarmManager) processAttributeDifferences(ctx context.Context, failureTransition func()) error {
+	for alarm := range am.onuDBCopy {
+		if _, exists := am.oltDbCopy[alarm]; exists && am.onuDBCopy[alarm] != am.oltDbCopy[alarm] {
+			omciAlarmMessage := createOmciAlarmMessage(alarm, am.onuDBCopy[alarm])
+			if err := am.processAlarm(ctx, omciAlarmMessage, failureTransition); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (am *OnuAlarmManager) processBufferedNotifications(ctx context.Context, failureTransition func()) error {
+	for _, notif := range am.bufferedNotifications {
+		logger.Debugw(ctx, "processing-buffered-alarm-notification", log.Fields{"device-id": am.deviceID, "notification": notif})
+		if err := am.processAlarm(ctx, notif, failureTransition); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (am *OnuAlarmManager) processAlarm(ctx context.Context, omciAlarmMessage *omci.AlarmNotificationMsg, failureTransition func()) error {
+	if err := am.processAlarmData(ctx, omciAlarmMessage); err != nil {
+		if statusErr, ok := status.FromError(err); ok {
+			switch statusErr.Code() {
+			case codes.NotFound:
+				logger.Warnw(ctx, "ME Instance or ME Alarm Map not found in ONUDB", log.Fields{"device-id": am.deviceID, "Error": err})
+			case codes.Unavailable:
+				logger.Warnw(ctx, "Alarm Mgr is stopped, stop further processing", log.Fields{"device-id": am.deviceID, "Error": err})
+				return err
+			default:
+				logger.Errorw(ctx, "Unexpected error", log.Fields{"device-id": am.deviceID, "Error": err})
+				go failureTransition()
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func createOmciAlarmMessage(alarm meAlarmKey, alarmBitmap [alarmBitMapSizeBytes]byte) *omci.AlarmNotificationMsg {
+	return &omci.AlarmNotificationMsg{
+		MeBasePacket: omci.MeBasePacket{
+			EntityClass:    alarm.classID,
+			EntityInstance: alarm.instanceID,
+		},
+		AlarmBitmap: alarmBitmap,
+	}
 }

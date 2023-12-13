@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package devdb provides access to internal device ME DB
+// Package devdb provides access to internal device ME DB
 package devdb
 
 import (
@@ -50,7 +50,7 @@ type unknownAttribs struct {
 }
 type unknownMeAndAttribDbMap map[UnknownMeOrAttribName]map[me.ClassID]map[uint16]unknownAttribs
 
-//OnuDeviceDB structure holds information about ME's
+// OnuDeviceDB structure holds information about ME's
 type OnuDeviceDB struct {
 	ctx                  context.Context
 	deviceID             string
@@ -59,7 +59,7 @@ type OnuDeviceDB struct {
 	UnknownMeAndAttribDb unknownMeAndAttribDbMap
 }
 
-//NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
+// NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
 func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	logger.Debugw(ctx, "Init OnuDeviceDB for:", log.Fields{"device-id": aDeviceID})
 	var OnuDeviceDB OnuDeviceDB
@@ -71,7 +71,7 @@ func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	return &OnuDeviceDB
 }
 
-//PutMe puts an ME instance into internal ONU DB
+// PutMe puts an ME instance into internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
 	OnuDeviceDB.meDbLock.Lock()
 	defer OnuDeviceDB.meDbLock.Unlock()
@@ -99,7 +99,7 @@ func (OnuDeviceDB *OnuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID,
 	}
 }
 
-//GetMe returns an ME instance from internal ONU DB
+// GetMe returns an ME instance from internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
 	OnuDeviceDB.meDbLock.RLock()
 	defer OnuDeviceDB.meDbLock.RUnlock()
@@ -113,7 +113,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) m
 	return nil
 }
 
-//GetUint32Attrib converts JSON numbers to uint32
+// GetUint32Attrib converts JSON numbers to uint32
 func (OnuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32, error) {
 
 	switch reflect.TypeOf(meAttribute).Kind() {
@@ -127,7 +127,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32
 	}
 }
 
-//GetUint16Attrib converts JSON numbers to uint16
+// GetUint16Attrib converts JSON numbers to uint16
 func (OnuDeviceDB *OnuDeviceDB) GetUint16Attrib(meAttribute interface{}) (uint16, error) {
 
 	switch reflect.TypeOf(meAttribute).Kind() {
@@ -141,7 +141,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint16Attrib(meAttribute interface{}) (uint16
 	}
 }
 
-//GetSortedInstKeys returns a sorted list of all instances of an ME
+// GetSortedInstKeys returns a sorted list of all instances of an ME
 func (OnuDeviceDB *OnuDeviceDB) GetSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
@@ -158,14 +158,14 @@ func (OnuDeviceDB *OnuDeviceDB) GetSortedInstKeys(ctx context.Context, meClassID
 	return meInstKeys
 }
 
-//GetNumberOfInst returns the number of instances of an ME
+// GetNumberOfInst returns the number of instances of an ME
 func (OnuDeviceDB *OnuDeviceDB) GetNumberOfInst(meClassID me.ClassID) int {
 	OnuDeviceDB.meDbLock.RLock()
 	defer OnuDeviceDB.meDbLock.RUnlock()
 	return len(OnuDeviceDB.MeDb[meClassID])
 }
 
-//LogMeDb logs content of internal ONU DB
+// LogMeDb logs content of internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) LogMeDb(ctx context.Context) {
 	logger.Debugw(ctx, "ME instances stored for :", log.Fields{"device-id": OnuDeviceDB.deviceID})
 	for meClassID, meInstMap := range OnuDeviceDB.MeDb {
@@ -176,7 +176,7 @@ func (OnuDeviceDB *OnuDeviceDB) LogMeDb(ctx context.Context) {
 	}
 }
 
-//PutUnknownMeOrAttrib puts an instance with unknown ME or attributes into internal ONU DB
+// PutUnknownMeOrAttrib puts an instance with unknown ME or attributes into internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) PutUnknownMeOrAttrib(ctx context.Context, aMeName UnknownMeOrAttribName, aMeClassID me.ClassID, aMeEntityID uint16,
 	aMeAttributeMask uint16, aMePayload []byte) {
 
@@ -200,4 +200,11 @@ func (OnuDeviceDB *OnuDeviceDB) PutUnknownMeOrAttrib(ctx context.Context, aMeNam
 			}
 		}
 	}
+}
+
+// DeleteMe deletes an ME instance from internal ONU DB
+func (OnuDeviceDB *OnuDeviceDB) DeleteMe(meClassID me.ClassID, meEntityID uint16) {
+	OnuDeviceDB.meDbLock.Lock()
+	defer OnuDeviceDB.meDbLock.Unlock()
+	delete(OnuDeviceDB.MeDb[meClassID], meEntityID)
 }
