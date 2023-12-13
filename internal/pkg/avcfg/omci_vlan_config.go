@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package avcfg provides anig and vlan configuration functionality
+// Package avcfg provides anig and vlan configuration functionality
 package avcfg
 
 import (
@@ -143,8 +143,9 @@ type uniRemoveVlanFlowParams struct {
 	respChan         *chan error
 }
 
-//UniVlanConfigFsm defines the structure for the state machine for configuration of the VLAN related setting via OMCI
-//  builds upon 'VLAN rules' that are derived from multiple flows
+// UniVlanConfigFsm defines the structure for the state machine for configuration of the VLAN related setting via OMCI
+//
+//	builds upon 'VLAN rules' that are derived from multiple flows
 type UniVlanConfigFsm struct {
 	pDeviceHandler              cmn.IdeviceHandler
 	pOnuDeviceEntry             cmn.IonuDeviceEntry
@@ -184,8 +185,9 @@ type UniVlanConfigFsm struct {
 	lastFlowToReconcile bool
 }
 
-//NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
-//  of ONU UNI ports via OMCI
+// NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
+//
+//	of ONU UNI ports via OMCI
 func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, apDevOmciCC *cmn.OmciCC, apUniPort *cmn.OnuUniPort,
 	apUniTechProf *OnuUniTechProf, apOnuDB *devdb.OnuDeviceDB, aTechProfileID uint8,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message, aAcceptIncrementalEvto bool,
@@ -279,7 +281,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 	return instFsm
 }
 
-//initUniFlowParams is a simplified form of SetUniFlowParams() used for first flow parameters configuration
+// initUniFlowParams is a simplified form of SetUniFlowParams() used for first flow parameters configuration
 func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
 	aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	loRuleParams := cmn.UniVlanRuleParams{
@@ -352,13 +354,13 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 	return nil
 }
 
-//CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
+// CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
-	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
 	if oFsm == nil {
 		logger.Error(ctx, "no valid UniVlanConfigFsm!")
 		return
 	}
+	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexIsAwaitingResponse.Lock()
 	oFsm.isCanceled = true
@@ -382,7 +384,7 @@ func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 	}
 }
 
-//GetWaitingTpID returns the TpId that the FSM might be waiting for continuation (0 if none)
+// GetWaitingTpID returns the TpId that the FSM might be waiting for continuation (0 if none)
 func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
 	if oFsm == nil {
 		logger.Error(ctx, "no valid UniVlanConfigFsm!")
@@ -394,7 +396,7 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
 	return oFsm.TpIDWaitingFor
 }
 
-//SetUniFlowParams verifies on existence of flow parameters to be configured,
+// SetUniFlowParams verifies on existence of flow parameters to be configured,
 // optionally udates the cookie list or appends a new flow if there is space
 // if possible the FSM is trigggerd to start with the processing
 // ignore complexity by now
@@ -784,7 +786,7 @@ func (oFsm *UniVlanConfigFsm) suspendIfRequiredNewRule(ctx context.Context, aCoo
 	return delayedCookie, deleteSuccess
 }
 
-//returns flowModified, RuleAppendRequest
+// returns flowModified, RuleAppendRequest
 func (oFsm *UniVlanConfigFsm) reviseFlowConstellation(ctx context.Context, aCookie uint64, aUniVlanRuleParams cmn.UniVlanRuleParams) (bool, bool) {
 	flowEntryMatch := false
 	oFsm.mutexFlowParams.Lock()
@@ -822,7 +824,7 @@ func (oFsm *UniVlanConfigFsm) reviseFlowConstellation(ctx context.Context, aCook
 
 // VOL-3828 flow config sequence workaround ###########  end ##########
 
-//RemoveUniFlowParams verifies on existence of flow cookie,
+// RemoveUniFlowParams verifies on existence of flow cookie,
 // if found removes cookie from flow cookie list and if this is empty
 // initiates removal of the flow related configuration from the ONU (via OMCI)
 func (oFsm *UniVlanConfigFsm) RemoveUniFlowParams(ctx context.Context, aCookie uint64, respChan *chan error) error {
@@ -994,10 +996,12 @@ func (oFsm *UniVlanConfigFsm) removeRuleComplete(ctx context.Context,
 	return true
 }
 
-//removeFlowFromParamsSlice removes a flow from stored  uniVlanFlowParamsSlice based on the cookie
-//  it assumes that adding cookies for this flow (including the actual one to delete) was prevented
-//  from the start of the deletion request to avoid to much interference
-//  so when called, there can only be one cookie active for this flow
+// removeFlowFromParamsSlice removes a flow from stored  uniVlanFlowParamsSlice based on the cookie
+//
+//	it assumes that adding cookies for this flow (including the actual one to delete) was prevented
+//	from the start of the deletion request to avoid to much interference
+//	so when called, there can only be one cookie active for this flow
+//
 // requires mutexFlowParams to be locked at call
 func (oFsm *UniVlanConfigFsm) removeFlowFromParamsSlice(ctx context.Context, aCookie uint64, aWasConfigured bool) error {
 	logger.Debugw(ctx, "UniVlanConfigFsm flow removal from ParamsSlice", log.Fields{

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package avcfg provides anig and vlan configuration functionality
+// Package avcfg provides anig and vlan configuration functionality
 package avcfg
 
 import (
@@ -125,7 +125,7 @@ type ponAniGemPortAttribs struct {
 	dynamicACL     string
 }
 
-//UniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
+// UniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type UniPonAniConfigFsm struct {
 	deviceID                 string
 	pDeviceHandler           cmn.IdeviceHandler
@@ -160,7 +160,7 @@ type UniPonAniConfigFsm struct {
 	tcontSetBefore           bool
 }
 
-//NewUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
+// NewUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPort *cmn.OnuUniPort, apUniTechProf *OnuUniTechProf,
 	apOnuDB *devdb.OnuDeviceDB, aTechProfileID uint8, aTechProfileType string, aRequestEvent cmn.OnuDeviceEvent, aName string,
 	apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, aCommChannel chan cmn.Message) *UniPonAniConfigFsm {
@@ -271,14 +271,14 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 	return instFsm
 }
 
-//setFsmCompleteChannel sets the requested channel and channel result for transfer on success
+// setFsmCompleteChannel sets the requested channel and channel result for transfer on success
 func (oFsm *UniPonAniConfigFsm) setFsmCompleteChannel(aChSuccess chan<- uint8, aProcStep uint8) {
 	oFsm.chSuccess = aChSuccess
 	oFsm.procStep = aProcStep
 	oFsm.setChanSet(true)
 }
 
-//CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
+// CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	logger.Info(ctx, "CancelProcessing entered", log.Fields{"device-id": oFsm.deviceID})
 	//early indication about started reset processing
@@ -325,8 +325,8 @@ func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID)
 }
 
-//nolint: gocyclo
-//TODO:visit here for refactoring for gocyclo
+// nolint: gocyclo
+// TODO:visit here for refactoring for gocyclo
 func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, aPAFsm *cmn.AdapterFsm) {
 	if aPAFsm != nil && aPAFsm.PFsm != nil {
 		var err error
@@ -459,6 +459,24 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			}
 
 			oFsm.gemPortAttribsSlice = append(oFsm.gemPortAttribsSlice, loGemPortAttribs)
+			if oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
+				meParams := me.ParamData{
+					EntityID: loGemPortAttribs.gemPortID,
+					Attributes: me.AttributeValueMap{
+						me.GemPortNetworkCtp_PortId:                              loGemPortAttribs.gemPortID,
+						me.GemPortNetworkCtp_TContPointer:                        oFsm.tcont0ID,
+						me.GemPortNetworkCtp_Direction:                           loGemPortAttribs.direction,
+						me.GemPortNetworkCtp_TrafficManagementPointerForUpstream: loGemPortAttribs.upQueueID,
+						me.GemPortNetworkCtp_PriorityQueuePointerForDownStream:   loGemPortAttribs.downQueueID,
+					},
+				}
+				oFsm.pOnuDB.PutMe(ctx, me.GemPortNetworkCtpClassID, loGemPortAttribs.gemPortID, meParams.Attributes)
+				var meAttributes me.AttributeValueMap //dummy , anyways we are not going to use the values.
+				oFsm.pOnuDB.PutMe(ctx, me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, loGemPortAttribs.gemPortID, meAttributes)
+
+				oFsm.pOnuDB.PutMe(ctx, me.GemInterworkingTerminationPointClassID, loGemPortAttribs.gemPortID, meAttributes)
+
+			}
 		}
 		if !oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
 			_ = aPAFsm.PFsm.Event(aniEvStartConfig)
@@ -853,6 +871,8 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	}
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
+	logger.Infow(ctx, "Deleting  GemIWTP at  the ONU DB ", log.Fields{"device-id": oFsm.deviceID, "GEMID": loGemPortID})
+	oFsm.pOnuDB.DeleteMe(me.GemInterworkingTerminationPointClassID, loGemPortID)
 }
 
 func (oFsm *UniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.Event) {
@@ -953,7 +973,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 	}
 	oFsm.pLastTxMeInstance = meInstance
 	oFsm.mutexPLastTxMeInstance.Unlock()
-
+	oFsm.pOnuDB.DeleteMe(me.GemPortNetworkCtpClassID, loGemPortID)
 	// Mark the gem port to be removed for Performance History monitoring
 	OnuMetricsManager := oFsm.pDeviceHandler.GetOnuMetricsManager()
 	if OnuMetricsManager != nil {
@@ -1509,6 +1529,7 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 			_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
 			return
 		}
+		oFsm.pOnuDB.PutMe(ctx, me.GemPortNetworkCtpClassID, gemPortAttribs.gemPortID, meParams.Attributes)
 		// Mark the gem port to be added for Performance History monitoring
 		OnuMetricsManager := oFsm.pDeviceHandler.GetOnuMetricsManager()
 		if OnuMetricsManager != nil {
@@ -1538,10 +1559,11 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			"SPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 			"device-id": oFsm.deviceID})
 
+		var meParams me.ParamData
 		//TODO if the port has only downstream direction the isMulticast flag can be removed.
 		if gemPortAttribs.isMulticast {
 
-			meParams := me.ParamData{
+			meParams = me.ParamData{
 				EntityID: gemPortAttribs.multicastGemID,
 				Attributes: me.AttributeValueMap{
 					me.MulticastGemInterworkingTerminationPoint_GemPortNetworkCtpConnectivityPointer: gemPortAttribs.multicastGemID,
@@ -1605,7 +1627,7 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			oFsm.mutexPLastTxMeInstance.Unlock()
 
 		} else {
-			meParams := me.ParamData{
+			meParams = me.ParamData{
 				EntityID: gemPortAttribs.gemPortID,
 				Attributes: me.AttributeValueMap{
 					me.GemInterworkingTerminationPoint_GemPortNetworkCtpConnectivityPointer: gemPortAttribs.gemPortID, //same as EntityID, see above
@@ -1638,6 +1660,9 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
 			return
 		}
+		logger.Infow(ctx, "Adding GemIWTP to the ONU DB ", log.Fields{"device-id": oFsm.deviceID, "GEMID": gemPortAttribs.gemPortID})
+		oFsm.pOnuDB.PutMe(ctx, me.GemInterworkingTerminationPointClassID, gemPortAttribs.gemPortID, meParams.Attributes)
+
 	} //for all GemPort's of this T-Cont
 
 	// if Config has been done for all GemPort instances let the FSM proceed
