@@ -2824,6 +2824,7 @@ func (mm *OnuMetricsManager) populateLocalGroupMetricData(ctx context.Context) {
 func (mm *OnuMetricsManager) AddGemPortForPerfMonitoring(ctx context.Context, gemPortNTPInstID uint16) {
 	mm.OnuMetricsManagerLock.Lock()
 	defer mm.OnuMetricsManagerLock.Unlock()
+	var meAttributes me.AttributeValueMap
 	logger.Debugw(ctx, "add gemport for perf monitoring - start", log.Fields{"device-id": mm.deviceID, "gemPortID": gemPortNTPInstID})
 	// mark the instance for addition
 	mm.GroupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd = mm.appendIfMissingUnt16(mm.GroupMetricMap[GemPortHistoryName].pmMEData.InstancesToAdd, gemPortNTPInstID)
@@ -2845,6 +2846,7 @@ func (mm *OnuMetricsManager) AddGemPortForPerfMonitoring(ctx context.Context, ge
 			logger.Warnw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
 		}
 	}()
+	mm.pOnuDeviceEntry.GetOnuDB().PutMe(ctx, me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, gemPortNTPInstID, meAttributes)
 }
 
 // RemoveGemPortForPerfMonitoring - TODO: add comment
@@ -2871,6 +2873,7 @@ func (mm *OnuMetricsManager) RemoveGemPortForPerfMonitoring(ctx context.Context,
 			logger.Warnw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
 		}
 	}()
+	mm.pOnuDeviceEntry.GetOnuDB().DeleteMe(me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, gemPortNTPInstID)
 }
 
 func (mm *OnuMetricsManager) updateGemPortNTPInstanceToAddForPerfMonitoring(ctx context.Context) {
