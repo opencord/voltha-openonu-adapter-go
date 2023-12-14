@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "efd6b59b_3f0e33a5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-12-14T03:54:00Z",
+      "side": 1,
+      "message": "need to return error codes, and core should handle the returned error codes, to cover a few corner cases",
+      "revId": "8210a192f49d45c8cdb6e22373d32e94545322af",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
