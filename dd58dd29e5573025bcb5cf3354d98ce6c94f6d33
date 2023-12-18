@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4588b250_ebd3106a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2023-12-18T18:36:46Z",
+      "side": 1,
+      "message": "Holger\u0027s comment is important here.",
+      "revId": "dd58dd29e5573025bcb5cf3354d98ce6c94f6d33",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
