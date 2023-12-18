@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c8213eb3_9e47b15e",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-12-18T13:25:46Z",
+      "side": 1,
+      "message": "log  warning here",
+      "revId": "8c2532db9a5cfe260cbea20fe0e4516902bef780",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
