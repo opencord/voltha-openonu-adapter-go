@@ -34,6 +34,24 @@
       "parentUuid": "c8213eb3_9e47b15e",
       "revId": "8c2532db9a5cfe260cbea20fe0e4516902bef780",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2260208a_667e5d18",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2023-12-19T07:42:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f73da826_00ed8aab",
+      "revId": "8c2532db9a5cfe260cbea20fe0e4516902bef780",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
