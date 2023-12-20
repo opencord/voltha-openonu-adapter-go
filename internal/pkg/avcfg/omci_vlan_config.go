@@ -242,7 +242,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 			// exceptional treatment for all states except VlanStResetting
 			{Name: VlanEvReset, Src: []string{VlanStStarting, VlanStWaitingTechProf,
 				VlanStConfigVtfd, VlanStConfigEvtocd, VlanStConfigDone, VlanStConfigIncrFlow,
-				VlanStRemoveFlow, VlanStCleanupDone},
+				VlanStRemoveFlow, VlanStCleanupDone, VlanStPreparing},
 				Dst: VlanStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: VlanEvRestart, Src: []string{VlanStResetting}, Dst: VlanStDisabled},
@@ -1899,9 +1899,10 @@ func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) 
 				} else {
 					// reset (cancel) of all Fsm is always accompanied by global persistency data removal
 					//  no need to remove specific data in this case here
-					//  TODO: cancelation may also abort a running flowAdd activity in which case it would be better
-					//     to also resopnd on the respChan with some error ("config canceled"), but that is a bit hard to decide here
-					//     so just left open by now
+					for _, vlanRule := range oFsm.uniVlanFlowParamsSlice {
+						// Send response on response channel if the caller is waiting on it with according error indication.
+						oFsm.pushReponseOnFlowResponseChannel(ctx, vlanRule.RespChan, fmt.Errorf("config-cancelled"))
+					}
 					logger.Debugw(ctx, "UniVlanConfigFsm persistency data not cleared", log.Fields{"device-id": oFsm.deviceID})
 				}
 			}
