@@ -14,7 +14,7 @@
 * limitations under the License.
  */
 
-//Package config provides the Log, kvstore, Kafka configuration
+// Package config provides the Log, kvstore, Kafka configuration
 package config
 
 import (
@@ -26,7 +26,7 @@ import (
 // Open ONU default constants
 const (
 	EtcdStoreName = "etcd"
-	OnuVendorIds  = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX"
+	OnuVendorIds  = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX,ZYXE"
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
