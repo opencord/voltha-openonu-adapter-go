@@ -180,3 +180,4 @@ func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(ctx context.Context, omciMs
 
 	return nil
 }
+# [EOF] - delta:force

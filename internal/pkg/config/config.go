@@ -304,3 +304,4 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 func getContainerInfo() string {
 	return os.Getenv("HOSTNAME")
 }
+# [EOF] - delta:force

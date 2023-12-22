@@ -26,3 +26,4 @@ import (
 func Test_adapter_main(t *testing.T) {
 	assert.True(t, true)
 }
+# [EOF] - delta:force

@@ -417,3 +417,4 @@ func (selfTestCb *SelfTestControlBlock) PrepareForGarbageCollection(ctx context.
 	selfTestCb.pDeviceHandler = nil
 	selfTestCb.pDevEntry = nil
 }
+# [EOF] - delta:force

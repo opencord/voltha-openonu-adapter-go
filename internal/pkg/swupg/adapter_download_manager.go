@@ -288,3 +288,4 @@ func (dm *AdapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aF
 
 	return bytes, err
 }
+# [EOF] - delta:force

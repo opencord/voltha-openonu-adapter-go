@@ -1345,3 +1345,4 @@ func (oo *OpenONUAC) GetDeviceHandler(deviceID string) (value cmn.IdeviceHandler
 	value, exist = oo.deviceHandlers[deviceID]
 	return value, exist
 }
+# [EOF] - delta:force

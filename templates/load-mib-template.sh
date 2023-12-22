@@ -20,3 +20,4 @@ ETCD_IP=${DOCKER_HOST_IP:=172.17.0.1}
 
 set -x
 cat BBSM-v0.0.1-BBSM_IMG_00001-v1.json| ETCDCTL_API=3 etcdctl --endpoints=$ETCD_IP:2379 put service/voltha/omci_mibs/go_templates/BBSM/v0.0.1/BBSM_IMG_00001
+# [EOF] - delta:force

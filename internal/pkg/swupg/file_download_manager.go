@@ -489,3 +489,4 @@ func (dm *FileDownloadManager) CancelDownload(ctx context.Context, aImageName st
 	}
 	dm.mutexDownloadImageDsc.RUnlock()
 }
+# [EOF] - delta:force

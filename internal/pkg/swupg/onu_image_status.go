@@ -310,3 +310,4 @@ func (oo *OnuImageStatus) CancelProcessing(ctx context.Context) {
 		oo.respChannel <- abortMsg
 	}
 }
+# [EOF] - delta:force

@@ -4011,3 +4011,4 @@ func (mm *OnuMetricsManager) SetdeviceDeletionInProgress(deleted bool) {
 	defer mm.OnuMetricsManagerLock.Unlock()
 	mm.deviceDeletionInProgress = true
 }
+# [EOF] - delta:force

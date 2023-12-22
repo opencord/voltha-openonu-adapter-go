@@ -1068,3 +1068,4 @@ func (oo *OnuDeviceEntry) SendOnuDeviceEvent(ctx context.Context, aDeviceEventNa
 	logger.Debugw(ctx, "send device event", log.Fields{"deviceEvent": deviceEvent, "device-id": oo.deviceID})
 	_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
 }
+# [EOF] - delta:force

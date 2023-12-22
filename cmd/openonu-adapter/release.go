@@ -24,3 +24,4 @@ import "context"
 func realMain(ctx context.Context) {
 	logger.Infoln(ctx, "NOT PROFILING")
 }
+# [EOF] - delta:force

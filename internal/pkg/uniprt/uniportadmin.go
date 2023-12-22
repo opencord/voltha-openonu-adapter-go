@@ -546,3 +546,4 @@ func (oFsm *LockStateFsm) PrepareForGarbageCollection(ctx context.Context, aDevi
 	oFsm.pOnuDeviceEntry = nil
 	oFsm.pOmciCC = nil
 }
+# [EOF] - delta:force
