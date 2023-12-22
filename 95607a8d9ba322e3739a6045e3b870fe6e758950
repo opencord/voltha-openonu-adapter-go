@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "292f9503_795b9ea3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2023-12-22T12:56:40Z",
+      "side": 1,
+      "message": "[x] copyright notice contains 2023\n[x] make lint LOCAL_FIX_PERMS\u003d1\n[x] make sca\n[x] make build\n[x] make test\n[x] make build-docker\n\nLGTM\n\nOne request:\n\n% go version\ngo version go1.21.4 linux/amd64\n\n% gofmt -s -e -w internal/pkg/avcfg/omci_vlan_config.go \n% go status\n        modified:   internal/pkg/avcfg/omci_vlan_config.go\n\nCan you run gofmt on the source to adjust comment strings so this will not surface as a linting error later on ?",
+      "revId": "95607a8d9ba322e3739a6045e3b870fe6e758950",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
