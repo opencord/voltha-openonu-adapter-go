@@ -33,6 +33,24 @@
       "message": "Also the patch has merge conflicts to resolve.",
       "revId": "95607a8d9ba322e3739a6045e3b870fe6e758950",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1a37e753_5e5a0e93",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000963
+      },
+      "writtenOn": "2023-12-24T05:57:07Z",
+      "side": 1,
+      "message": "after running gofmt, i did not see any changes",
+      "parentUuid": "292f9503_795b9ea3",
+      "revId": "95607a8d9ba322e3739a6045e3b870fe6e758950",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
