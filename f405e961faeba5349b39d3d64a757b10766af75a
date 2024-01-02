@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8af68428_b6c606ea",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-02T21:42:05Z",
+      "side": 1,
+      "message": "LGTM -- race condition question was the only potential item.",
+      "revId": "f405e961faeba5349b39d3d64a757b10766af75a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "18e20f78_2cd44832",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 343,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-02T21:42:05Z",
+      "side": 1,
+      "message": "Is there any potential for a race condition here ?\n\nWill the underlying device deletion be handled as an asynchronous or blocking event ?  Should we check for confirmation the device has been deleted before proceeding ?",
+      "revId": "f405e961faeba5349b39d3d64a757b10766af75a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
