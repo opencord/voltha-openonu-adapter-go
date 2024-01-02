@@ -1,6 +1,6 @@
 # -*- makefile -*-
 # -----------------------------------------------------------------------
-# Copyright 2016-2023 Open Networking Foundation (ONF) and the ONF Contributors
+# Copyright 2016-2024 Open Networking Foundation (ONF) and the ONF Contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,6 +43,8 @@ ifneq ($(shell git ls-files --others --modified --exclude-standard 2>/dev/null |
     DOCKER_LABEL_VCS_DIRTY = true
 endif
 
+## [TODO] Refactor with repo:onf-make:makefiles/docker/include.mk
+
 ## Docker related
 DOCKER_EXTRA_ARGS        ?=
 DOCKER_REGISTRY          ?=
@@ -79,7 +81,9 @@ HADOLINT          = docker run --rm --user $$(id -u):$$(id -g) -v ${CURDIR}:/app
 
 .PHONY: docker-build local-protos local-lib-go help
 
+## -----------------------------------------------------------------------
 ## Local Development Helpers
+## -----------------------------------------------------------------------
 local-protos: ## Copies a local version of the voltha-protos dependency into the vendor directory
 ifdef LOCAL_PROTOS
 	rm -rf vendor/github.com/opencord/voltha-protos/v5/go
@@ -88,7 +92,9 @@ ifdef LOCAL_PROTOS
 	rm -rf vendor/github.com/opencord/voltha-protos/v5/go/vendor
 endif
 
+## -----------------------------------------------------------------------
 ## Local Development Helpers
+## -----------------------------------------------------------------------
 local-lib-go: ## Copies a local version of the voltha-lib-go dependency into the vendor directory
 ifdef LOCAL_LIB_GO
 	rm -rf vendor/github.com/opencord/voltha-lib-go/v7/pkg
@@ -144,7 +150,7 @@ lint-style: ## Perform lint style checks on source code
 	@gofmt_out="$$(${GOFMT} -l $$(find . -name '*.go' -not -path './vendor/*'))" ;\
 	if [ ! -z "$$gofmt_out" ]; then \
 	  echo "$$gofmt_out" ;\
-	  echo "Style check failed on one or more files ^, run 'go fmt' to fix." ;\
+	  echo "Style check failed on one or more files ^, run 'go fmt -s -e -w' to fix." ;\
 	  exit 1 ;\
 	fi
 	@echo "Style check OK"
@@ -188,13 +194,26 @@ lint: local-lib-go lint-style lint-sanity lint-mod lint-dockerfile
 
 ## -----------------------------------------------------------------------
 ## -----------------------------------------------------------------------
+results-dir   := ./tests/results
+coverage-stem := $(results-dir)/go-test-coverage
+results-stem  := $(results-dir)/go-test-results
+
 test: lint ## Run unit tests
-	@mkdir -p ./tests/results
-	@${GO} test -mod=vendor -v -coverprofile ./tests/results/go-test-coverage.out -covermode count ./... 2>&1 | tee ./tests/results/go-test-results.out ;\
+
+	$(call banner-enter,Target $@)
+	@mkdir -p $(results-dir)
+	$(HIDE)$(if $(LOCAL_FIX_PERMS),chmod o+w "$(results-dir)")
+
+    # Running remotely
+	${GO} test -mod=vendor -v -coverprofile $(coverage-stem).out -covermode count ./... 2>&1 \
+        | tee $(results-stem).out ;\
 	RETURN=$$? ;\
-	${GO_JUNIT_REPORT} < ./tests/results/go-test-results.out > ./tests/results/go-test-results.xml ;\
-	${GOCOVER_COBERTURA} < ./tests/results/go-test-coverage.out > ./tests/results/go-test-coverage.xml ;\
+	${GO_JUNIT_REPORT}   < $(results-stem).out  > $(results-stem).xml ;\
+	${GOCOVER_COBERTURA} < $(coverage-stem).out > $(coverage-stem).xml ;\
 	exit $$RETURN
+
+	$(HIDE)$(if $(LOCAL_FIX_PERMS),chmod o-w "$(results-dir)")
+	$(call banner-enter,Target $@)
 
 ## -----------------------------------------------------------------------
 ## -----------------------------------------------------------------------
@@ -237,11 +256,22 @@ mod-vendor :
 	$(if $(LOCAL_FIX_PERMS),chmod o-w $(CURDIR))
 	$(call banner-leave,Target $@)
 
-# For each makefile target, add ## <description> on the target line and it will be listed by 'make help'
+## -----------------------------------------------------------------------
+## For each makefile target, add ## <description> on the target line and it will be listed by 'make help'
+## -----------------------------------------------------------------------
+## [TODO] Replace with simple printf(s), awk logic confused by double-colons
+## -----------------------------------------------------------------------
 help :: ## Print help for each Makefile target
 	@echo
 	@grep --no-filename '^[[:alpha:]_-]*:.* ##' $(MAKEFILE_LIST) \
 	    | sort \
 	    | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s : %s\n", $$1, $$2};'
+	@printf '\n'
+	@printf '  %-33.33s %s\n' 'mod-update' \
+	  'Alias for makefile targets mod-tidy + mod-vendor
+	@printf '  %-33.33s %s\n' 'mod-tidy' \
+	  'Refresh packages, update go.mod and go.sum'
+	@printf '  %-33.33s %s\n' 'mod-vendor' \
+	  'Update go package dependencies beneath vendor'.
 
 # [EOF]
