@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3af12d7a_c95f4c00",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 265,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-02T22:24:26Z",
+      "side": 1,
+      "message": "Thumbs up wrt refactoring:\n  relocate into detached/testable methods.",
+      "revId": "82750ae051f92ae46e7e728632eb1a3d17c93a73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4af477ad_2a07ed1f",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 923,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-02T22:24:26Z",
+      "side": 1,
+      "message": "minor nit: VOL-5223 -- also inline a copy-and-paste-able url for new community members who many not be familiar with the jira server URL:\n\nhttp://jira.opencord.org/browse/VOL-5223\n\n{gerrit,github} can also render URLs so they may become clickable during a code review.",
+      "revId": "82750ae051f92ae46e7e728632eb1a3d17c93a73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c7205c53_6d44161c",
+        "filename": "internal/pkg/almgr/alarm_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 925,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-02T22:24:26Z",
+      "side": 1,
+      "message": "Reformatting may help avoid long lines/line wrap in comments.\n\nTest Scenario:\n  - Unconfigured ONT [...]\n  - Responded with Voip map [...]",
+      "revId": "82750ae051f92ae46e7e728632eb1a3d17c93a73",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
