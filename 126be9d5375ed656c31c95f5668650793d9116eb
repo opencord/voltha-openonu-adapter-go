@@ -87,6 +87,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "9108adab_dce48fe1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-03T11:19:13Z",
+      "side": 1,
+      "message": "Patch is on hold for a bit, refactoring needed to avoid race conditions.",
+      "revId": "126be9d5375ed656c31c95f5668650793d9116eb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "798113b9_11335cb6",
