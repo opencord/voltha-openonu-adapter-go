@@ -33,6 +33,24 @@
       "message": "Is there any potential for a race condition here ?\n\nWill the underlying device deletion be handled as an asynchronous or blocking event ?  Should we check for confirmation the device has been deleted before proceeding ?",
       "revId": "f405e961faeba5349b39d3d64a757b10766af75a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1c8035f3_1cf8e821",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 343,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-01-04T06:46:41Z",
+      "side": 1,
+      "message": "Deletion of device happens as part of this thread of execution,the write on this channel will help unblock the device indication processing goroutine if at all it is waiting else no op. IIUIC, I see no other thread of deletion and hence could see no race conditions.",
+      "parentUuid": "18e20f78_2cd44832",
+      "revId": "f405e961faeba5349b39d3d64a757b10766af75a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
