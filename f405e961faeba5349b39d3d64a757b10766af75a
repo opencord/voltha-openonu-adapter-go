@@ -18,6 +18,23 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "6aee343a_4033ab21",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-01-04T14:50:24Z",
+      "side": 1,
+      "message": "Race condition addressed.\n+1 Abhilash\n+1 Joey\n+1 Jenkins\n\nUpgrading my vote to an explicit +2 for merge.",
+      "revId": "f405e961faeba5349b39d3d64a757b10766af75a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "18e20f78_2cd44832",
