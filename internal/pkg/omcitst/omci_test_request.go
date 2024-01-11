@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package omcitst provides the omci test functionality
+// Package omcitst provides the omci test functionality
 package omcitst
 
 import (
@@ -31,7 +31,7 @@ import (
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 )
 
-//OmciTestRequest structure holds the information for the OMCI test
+// OmciTestRequest structure holds the information for the OMCI test
 type OmciTestRequest struct {
 	deviceID     string
 	pDevOmciCC   *cmn.OmciCC
@@ -47,7 +47,7 @@ type OmciTestRequest struct {
 // CTestRequestOmciTimeout - Special OMCI timeout for low prio test request
 const CTestRequestOmciTimeout = 5
 
-//NewOmciTestRequest returns a new instance of OmciTestRequest
+// NewOmciTestRequest returns a new instance of OmciTestRequest
 func NewOmciTestRequest(ctx context.Context,
 	deviceID string, omciCc *cmn.OmciCC, extended bool,
 	exclusive bool, allowFailure bool) *OmciTestRequest {
@@ -94,7 +94,7 @@ func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, execChannel chan
 
 // these are OMCI related functions, could/should be collected in a separate file? TODO!!!
 // for a simple start just included in here
-//basic approach copied from bbsim, cmp /devices/onu.go and /internal/common/omci/mibpackets.go
+// basic approach copied from bbsim, cmp /devices/onu.go and /internal/common/omci/mibpackets.go
 func (oo *OmciTestRequest) createOnu2gGet(ctx context.Context, tid uint16) ([]byte, error) {
 
 	meParams := me.ParamData{
@@ -131,7 +131,7 @@ func (oo *OmciTestRequest) createOnu2gGet(ctx context.Context, tid uint16) ([]by
 	return nil, omciErr.GetError()
 }
 
-//ReceiveOmciVerifyResponse supply a response handler - in this testobject the message is evaluated directly, no response channel used
+// ReceiveOmciVerifyResponse supply a response handler - in this testobject the message is evaluated directly, no response channel used
 func (oo *OmciTestRequest) ReceiveOmciVerifyResponse(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet, respChan chan cmn.Message) error {
 
 	logger.Debugw(ctx, "verify-omci-message-response received:", log.Fields{"omciMsgType": omciMsg.MessageType,

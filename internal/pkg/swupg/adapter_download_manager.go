@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package swupg provides the utilities for onu sw upgrade
+// Package swupg provides the utilities for onu sw upgrade
 package swupg
 
 import (
@@ -43,14 +43,14 @@ import (
 
 // ### downloadToAdapter  			    - end ####
 
-//AdapterDownloadManager structure holds information needed for downloading to and storing images within the adapter
+// AdapterDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type AdapterDownloadManager struct {
 	mutexDownloadImageDsc sync.RWMutex
 	downloadImageDscSlice []*voltha.ImageDownload
 }
 
-//NewAdapterDownloadManager constructor returns a new instance of a AdapterDownloadManager
-//mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
+// NewAdapterDownloadManager constructor returns a new instance of a AdapterDownloadManager
+// mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func NewAdapterDownloadManager(ctx context.Context) *AdapterDownloadManager {
 	logger.Debug(ctx, "init-AdapterDownloadManager")
 	var localDnldMgr AdapterDownloadManager
@@ -58,7 +58,7 @@ func NewAdapterDownloadManager(ctx context.Context) *AdapterDownloadManager {
 	return &localDnldMgr
 }
 
-//ImageExists returns true if the requested image already exists within the adapter
+// ImageExists returns true if the requested image already exists within the adapter
 func (dm *AdapterDownloadManager) ImageExists(ctx context.Context, apImageDsc *voltha.ImageDownload) bool {
 	logger.Debugw(ctx, "checking on existence of the image", log.Fields{"image-name": (*apImageDsc).Name})
 	dm.mutexDownloadImageDsc.RLock()
@@ -74,7 +74,7 @@ func (dm *AdapterDownloadManager) ImageExists(ctx context.Context, apImageDsc *v
 	return false
 }
 
-//ImageLocallyDownloaded returns true if the requested image already exists within the adapter
+// ImageLocallyDownloaded returns true if the requested image already exists within the adapter
 func (dm *AdapterDownloadManager) ImageLocallyDownloaded(ctx context.Context, apImageDsc *voltha.ImageDownload) bool {
 	logger.Debugw(ctx, "checking if image is fully downloaded", log.Fields{"image-name": (*apImageDsc).Name})
 	dm.mutexDownloadImageDsc.RLock()
@@ -96,7 +96,7 @@ func (dm *AdapterDownloadManager) ImageLocallyDownloaded(ctx context.Context, ap
 	return false
 }
 
-//StartDownload returns true if the download of the requested image could be started
+// StartDownload returns true if the download of the requested image could be started
 func (dm *AdapterDownloadManager) StartDownload(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
 	if apImageDsc.LocalDir != "" {
 		logger.Infow(ctx, "image download-to-adapter requested", log.Fields{
@@ -119,7 +119,7 @@ func (dm *AdapterDownloadManager) StartDownload(ctx context.Context, apImageDsc 
 	return errors.New("could not start download: no valid local directory to write to")
 }
 
-//downloadFile downloads the specified file from the given http location
+// downloadFile downloads the specified file from the given http location
 func (dm *AdapterDownloadManager) downloadFile(ctx context.Context, aURLName string, aFilePath string, aFileName string) error {
 	// Get the data
 	logger.Infow(ctx, "downloading from http", log.Fields{"url": aURLName, "localPath": aFilePath})
@@ -237,7 +237,7 @@ func (dm *AdapterDownloadManager) requestDownload(ctx context.Context, urlBase *
 	}
 }
 
-//getImageBufferLen returns the length of the specified file in bytes (file size)
+// getImageBufferLen returns the length of the specified file in bytes (file size)
 func (dm *AdapterDownloadManager) getImageBufferLen(ctx context.Context, aFileName string,
 	aLocalPath string) (int64, error) {
 	//maybe we can also use FileSize from dm.downloadImageDscSlice - future option?
@@ -261,7 +261,7 @@ func (dm *AdapterDownloadManager) getImageBufferLen(ctx context.Context, aFileNa
 	return stats.Size(), nil
 }
 
-//getDownloadImageBuffer returns the content of the requested file as byte slice
+// getDownloadImageBuffer returns the content of the requested file as byte slice
 func (dm *AdapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aFileName string,
 	aLocalPath string) ([]byte, error) {
 	file, err := os.Open(filepath.Clean(aLocalPath + "/" + aFileName))

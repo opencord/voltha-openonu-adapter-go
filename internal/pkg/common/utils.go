@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package common provides global definitions
+// Package common provides global definitions
 package common
 
 import (
@@ -52,7 +52,7 @@ func GetTpIDFromTpPath(tpPath string) (uint8, error) {
 	return uint8(tpID), err
 }
 
-//IPToInt32 transforms an IP of net.Ip type to int32
+// IPToInt32 transforms an IP of net.Ip type to int32
 func IPToInt32(ip net.IP) uint32 {
 	if len(ip) == 16 {
 		return binary.BigEndian.Uint32(ip[12:16])
@@ -60,7 +60,7 @@ func IPToInt32(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip)
 }
 
-//AsByteSlice transforms a string of manually set bits to a byt array
+// AsByteSlice transforms a string of manually set bits to a byt array
 func AsByteSlice(bitString string) []byte {
 	var out []byte
 	var str string
@@ -98,7 +98,7 @@ func TrimStringFromMeOctet(input interface{}) string {
 
 ////////////////////////////////////////////////////////////////////////
 
-//NewAdapterFsm - FSM details including event, device and channel.
+// NewAdapterFsm - FSM details including event, device and channel.
 func NewAdapterFsm(aName string, aDeviceID string, aCommChannel chan Message) *AdapterFsm {
 	aFsm := &AdapterFsm{
 		fsmName:  aName,
@@ -163,8 +163,9 @@ func GenerateVoipUNISideMEID(uniPortMacBpNo uint16) (uint16, error) {
 	return (VoipUniBaseEID + uniPortMacBpNo), nil
 }
 
-//WaitTimeout of waitGroupWithTimeOut is blocking
-//  returns true, if the wg request was executed successfully, false on timeout
+// WaitTimeout of waitGroupWithTimeOut is blocking
+//
+//	returns true, if the wg request was executed successfully, false on timeout
 func (wg *WaitGroupWithTimeOut) WaitTimeout(timeout time.Duration) bool {
 	done := make(chan struct{})
 

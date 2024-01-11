@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package uniprt provides the utilities for uni port configuration
+// Package uniprt provides the utilities for uni port configuration
 package uniprt
 
 import (
@@ -30,7 +30,7 @@ import (
 
 const uniStatusTimeout = 3
 
-//UniPortStatus implements methods to get uni port status info
+// UniPortStatus implements methods to get uni port status info
 type UniPortStatus struct {
 	deviceID          string
 	pDeviceHandler    cmn.IdeviceHandler
@@ -39,7 +39,7 @@ type UniPortStatus struct {
 	pLastTxMeInstance *me.ManagedEntity
 }
 
-//NewUniPortStatus creates a new instance of UniPortStatus
+// NewUniPortStatus creates a new instance of UniPortStatus
 func NewUniPortStatus(apDeviceHandler cmn.IdeviceHandler, apOmicc *cmn.OmciCC) *UniPortStatus {
 	return &UniPortStatus{
 		deviceID:       apDeviceHandler.GetDeviceID(),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package swupg provides the utilities for onu sw upgrade
+// Package swupg provides the utilities for onu sw upgrade
 package swupg
 
 import (
@@ -31,7 +31,7 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 )
 
-//OnuImageStatus implements methods to get status info of onu images
+// OnuImageStatus implements methods to get status info of onu images
 type OnuImageStatus struct {
 	deviceID               string
 	pDeviceHandler         cmn.IdeviceHandler
@@ -48,7 +48,7 @@ type OnuImageStatus struct {
 
 const cResponse = "response: "
 
-//NewOnuImageStatus creates a new instance of OnuImageStatus
+// NewOnuImageStatus creates a new instance of OnuImageStatus
 func NewOnuImageStatus(apDeviceHandler cmn.IdeviceHandler, apDevEntry cmn.IonuDeviceEntry) *OnuImageStatus {
 	return &OnuImageStatus{
 		deviceID:            apDeviceHandler.GetDeviceID(),
@@ -297,7 +297,7 @@ func (oo *OnuImageStatus) isWaitingForResp() bool {
 	return value
 }
 
-//CancelProcessing ensures that interrupted processing is canceled while waiting for a response
+// CancelProcessing ensures that interrupted processing is canceled while waiting for a response
 func (oo *OnuImageStatus) CancelProcessing(ctx context.Context) {
 	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oo.deviceID})
 	if oo.isWaitingForResp() {
