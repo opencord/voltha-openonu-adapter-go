@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package avcfg provides anig and vlan configuration functionality
+// Package avcfg provides anig and vlan configuration functionality
 package avcfg
 
 import (
@@ -29,8 +29,9 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 )
 
-//definitions for TechProfileProcessing - copied from OltAdapter:openolt_flowmgr.go
-//  could perhaps be defined more globally
+// definitions for TechProfileProcessing - copied from OltAdapter:openolt_flowmgr.go
+//
+//	could perhaps be defined more globally
 const (
 	// binaryStringPrefix is binary string prefix
 	binaryStringPrefix = "0b"
@@ -38,7 +39,7 @@ const (
 	//binaryBit1 = '1'
 )
 
-//as defined in G.988
+// as defined in G.988
 const (
 	cGemDirUniToAni = 1
 	cGemDirAniToUni = 2
@@ -85,7 +86,7 @@ type gemPortParamStruct struct {
 	dynamicACL         string
 }
 
-//refers to one tcont and its properties and all assigned GemPorts and their properties
+// refers to one tcont and its properties and all assigned GemPorts and their properties
 type tcontGemList struct {
 	tcontParams      tcontParamStruct
 	mapGemPortParams map[uint16]*gemPortParamStruct
@@ -97,7 +98,7 @@ type uniTP struct {
 	tpID  uint8
 }
 
-//OnuUniTechProf structure holds information about the TechProfiles attached to Uni Ports of the ONU
+// OnuUniTechProf structure holds information about the TechProfiles attached to Uni Ports of the ONU
 type OnuUniTechProf struct {
 	deviceID                 string
 	baseDeviceHandler        cmn.IdeviceHandler
@@ -126,8 +127,8 @@ func (onuTP *OnuUniTechProf) multicastConfiguredForOtherUniTps(ctx context.Conte
 	return false
 }
 
-//NewOnuUniTechProf returns the instance of a OnuUniTechProf
-//(one instance per ONU/deviceHandler for all possible UNI's)
+// NewOnuUniTechProf returns the instance of a OnuUniTechProf
+// (one instance per ONU/deviceHandler for all possible UNI's)
 func NewOnuUniTechProf(ctx context.Context, aDeviceHandler cmn.IdeviceHandler, aOnuDev cmn.IonuDeviceEntry) *OnuUniTechProf {
 
 	var onuTP OnuUniTechProf
@@ -174,7 +175,8 @@ func (onuTP *OnuUniTechProf) GetTpProcessingErrorIndication(aUniID uint8, aTpID 
 // ConfigureUniTp checks existing tp resources to configure and starts the corresponding OMCI configuation of the UNI port
 // all possibly blocking processing must be run in background to allow for deadline supervision!
 // but take care on sequential background processing when needed (logical dependencies)
-//   use waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) for internal synchronization
+//
+//	use waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) for internal synchronization
 func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
 	aUniID uint8, aPathString string, tpInst tech_profile.TechProfileInstance, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return

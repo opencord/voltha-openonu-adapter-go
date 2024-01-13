@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package main -> this is the entry point of the OpenOnuAdapter
+// Package main -> this is the entry point of the OpenOnuAdapter
 package main
 
 import (
@@ -375,7 +375,8 @@ func (a *adapter) addOnuInterAdapterService(ctx context.Context, server *vgrpc.G
 	})
 }
 
-/**
+/*
+*
 This function checks the liveliness and readiness of the kakfa and kv-client services
 and update the status in the probe.
 */
@@ -387,7 +388,8 @@ func (a *adapter) checkServicesReadiness(ctx context.Context) {
 	go a.checkKvStoreReadiness(ctx)
 }
 
-/**
+/*
+*
 This function checks the liveliness and readiness of the kv-store service
 and update the status in the probe.
 */
