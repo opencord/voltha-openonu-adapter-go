@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package swupg provides the utilities for onu sw upgrade
+// Package swupg provides the utilities for onu sw upgrade
 package swupg
 
 import (
@@ -134,10 +134,10 @@ const (
 	UpgradeStAbortingDL         = "UpgradeStAbortingDL"
 )
 
-//COnuUpgradeFsmIdleState - required definition for IdleState detection for activities on OMCI
+// COnuUpgradeFsmIdleState - required definition for IdleState detection for activities on OMCI
 const COnuUpgradeFsmIdleState = UpgradeStWaitForCommit
 
-//OnuUpgradeFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
+// OnuUpgradeFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type OnuUpgradeFsm struct {
 	pDeviceHandler   cmn.IdeviceHandler
 	pDownloadManager *AdapterDownloadManager
@@ -194,8 +194,9 @@ type OnuUpgradeFsm struct {
 	omciDownloadSectionSize          int64
 }
 
-//NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
-//  of ONU UNI ports via OMCI
+// NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
+//
+//	of ONU UNI ports via OMCI
 func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler,
 	apDevEntry cmn.IonuDeviceEntry, apOnuDB *devdb.OnuDeviceDB,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message) *OnuUpgradeFsm {
@@ -315,8 +316,9 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler,
 	return instFsm
 }
 
-//SetDownloadParams configures the needed parameters for a specific download to the ONU
-//  called from 'old' API Activate_image_update()
+// SetDownloadParams configures the needed parameters for a specific download to the ONU
+//
+//	called from 'old' API Activate_image_update()
 func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImageID uint16,
 	apImageDsc *voltha.ImageDownload, apDownloadManager *AdapterDownloadManager) error {
 	pBaseFsm := oFsm.PAdaptFsm.PFsm
@@ -342,9 +344,10 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
 }
 
-//SetDownloadParamsAfterDownload configures the needed parameters for a specific download to the ONU according to
-//  updated API interface with R2.8: start download to ONU if the image is downloaded to the adapter
-//  called from 'new' API Download_onu_image
+// SetDownloadParamsAfterDownload configures the needed parameters for a specific download to the ONU according to
+//
+//	updated API interface with R2.8: start download to ONU if the image is downloaded to the adapter
+//	called from 'new' API Download_onu_image
 func (oFsm *OnuUpgradeFsm) SetDownloadParamsAfterDownload(ctx context.Context, aInactiveImageID uint16,
 	apImageRequest *voltha.DeviceImageDownloadRequest, apDownloadManager *FileDownloadManager,
 	aImageIdentifier string) error {
@@ -374,8 +377,9 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParamsAfterDownload(ctx context.Context, a
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
 }
 
-//SetActivationParamsRunning sets the activate and commit flags for a running download to the ONU according to adapters rpc call
-//  called from 'new' API Activate_onu_image
+// SetActivationParamsRunning sets the activate and commit flags for a running download to the ONU according to adapters rpc call
+//
+//	called from 'new' API Activate_onu_image
 func (oFsm *OnuUpgradeFsm) SetActivationParamsRunning(ctx context.Context,
 	aImageIdentifier string, aCommit bool) error {
 	logger.Debugw(ctx, "OnuUpgradeFsm activate/commit parameter setting", log.Fields{
@@ -412,8 +416,9 @@ func (oFsm *OnuUpgradeFsm) SetActivationParamsRunning(ctx context.Context,
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer for device-id: %s", oFsm.deviceID))
 }
 
-//SetActivationParamsStart starts upgrade processing with immediate activation
-//  called from 'new' API Activate_onu_image
+// SetActivationParamsStart starts upgrade processing with immediate activation
+//
+//	called from 'new' API Activate_onu_image
 func (oFsm *OnuUpgradeFsm) SetActivationParamsStart(ctx context.Context, aImageVersion string, aInactiveImageID uint16, aCommit bool) error {
 	oFsm.mutexUpgradeParams.Lock()
 	var pBaseFsm *fsm.FSM = nil
@@ -441,8 +446,9 @@ func (oFsm *OnuUpgradeFsm) SetActivationParamsStart(ctx context.Context, aImageV
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
 }
 
-//SetCommitmentParamsRunning sets the commit flag for a running download to the ONU according to adapters rpc call
-//  called from 'new' API Commit_onu_image
+// SetCommitmentParamsRunning sets the commit flag for a running download to the ONU according to adapters rpc call
+//
+//	called from 'new' API Commit_onu_image
 func (oFsm *OnuUpgradeFsm) SetCommitmentParamsRunning(ctx context.Context,
 	aImageIdentifier string, aImageVersion string) error {
 	oFsm.mutexUpgradeParams.Lock()
@@ -477,8 +483,9 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsRunning(ctx context.Context,
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer for device-id: %s", oFsm.deviceID))
 }
 
-//SetCommitmentParamsStart starts upgrade processing with immediate commitment
-//  called from 'new' API Commit_onu_image
+// SetCommitmentParamsStart starts upgrade processing with immediate commitment
+//
+//	called from 'new' API Commit_onu_image
 func (oFsm *OnuUpgradeFsm) SetCommitmentParamsStart(ctx context.Context, aImageVersion string, aActiveImageID uint16) error {
 	oFsm.mutexUpgradeParams.Lock()
 	var pBaseFsm *fsm.FSM = nil
@@ -504,14 +511,14 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsStart(ctx context.Context, aImageV
 	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
 }
 
-//GetCommitFlag delivers the commit flag that was configured here
+// GetCommitFlag delivers the commit flag that was configured here
 func (oFsm *OnuUpgradeFsm) GetCommitFlag(ctx context.Context) bool {
 	oFsm.mutexUpgradeParams.RLock()
 	defer oFsm.mutexUpgradeParams.RUnlock()
 	return oFsm.commitImage
 }
 
-//GetImageStates delivers the download/image states as per device proto buf definition
+// GetImageStates delivers the download/image states as per device proto buf definition
 func (oFsm *OnuUpgradeFsm) GetImageStates(ctx context.Context,
 	aImageIdentifier string, aVersion string) *voltha.ImageState {
 	pImageState := &voltha.ImageState{}
@@ -531,7 +538,7 @@ func (oFsm *OnuUpgradeFsm) GetImageStates(ctx context.Context,
 	return pImageState
 }
 
-//SetImageStateActive sets the FSM internal volthaImageState to ImageState_IMAGE_ACTIVE
+// SetImageStateActive sets the FSM internal volthaImageState to ImageState_IMAGE_ACTIVE
 func (oFsm *OnuUpgradeFsm) SetImageStateActive(ctx context.Context) {
 	oFsm.mutexUpgradeParams.Lock()
 	defer oFsm.mutexUpgradeParams.Unlock()
@@ -539,7 +546,7 @@ func (oFsm *OnuUpgradeFsm) SetImageStateActive(ctx context.Context) {
 	oFsm.volthaImageState = voltha.ImageState_IMAGE_ACTIVE
 }
 
-//CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
+// CancelProcessing ensures that suspended processing at waiting on some response is aborted and reset of FSM
 func (oFsm *OnuUpgradeFsm) CancelProcessing(ctx context.Context, abCompleteAbort bool,
 	aReason voltha.ImageState_ImageFailureReason) {
 	pAdaptFsm := oFsm.PAdaptFsm
@@ -625,7 +632,7 @@ func (oFsm *OnuUpgradeFsm) enterStarting(ctx context.Context, e *fsm.Event) {
 	go oFsm.processOmciUpgradeMessages(ctx)
 }
 
-//enterWaitingAdapterDL state can only be reached with useAPIVersion43
+// enterWaitingAdapterDL state can only be reached with useAPIVersion43
 func (oFsm *OnuUpgradeFsm) enterWaitingAdapterDL(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm waiting for adapter download", log.Fields{"in state": e.FSM.Current(),
 		"device-id": oFsm.deviceID})
@@ -734,8 +741,9 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 	go oFsm.runSwDlSectionWindow(ctx)
 }
 
-//runSwDlSectionWindow runs a loop to send all DlSection frames of one window in background
-//  may be aborted by parallel change of abortRequested
+// runSwDlSectionWindow runs a loop to send all DlSection frames of one window in background
+//
+//	may be aborted by parallel change of abortRequested
 func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 	var windowAckRequest uint8 = 0
 	var bufferStartOffset uint32
@@ -868,8 +876,9 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 	go oFsm.delayAndSendEndSwDl(ctx)
 }
 
-//delayAndSendEndSwDl ensures a delay before sending the EndSwDl request
-//  may also be aborted by parallel channel reception on chAbortEndSwDl
+// delayAndSendEndSwDl ensures a delay before sending the EndSwDl request
+//
+//	may also be aborted by parallel channel reception on chAbortEndSwDl
 func (oFsm *OnuUpgradeFsm) delayAndSendEndSwDl(ctx context.Context) {
 	oFsm.mutexUpgradeParams.RLock()
 	if oFsm.delayEndSwDl {
@@ -1166,7 +1175,7 @@ func (oFsm *OnuUpgradeFsm) enterAbortingDL(ctx context.Context, e *fsm.Event) {
 	go oFsm.waitOnAbortEndSwDlResponse(ctx)
 }
 
-//abortingDlEvaluateResponse  waits for a channel indication with decision to proceed the FSM processing
+// abortingDlEvaluateResponse  waits for a channel indication with decision to proceed the FSM processing
 func (oFsm *OnuUpgradeFsm) abortingDlEvaluateResponse(ctx context.Context,
 	pBaseFsm *cmn.AdapterFsm, aResponseResult tEndSwDlResponseResult) bool {
 	switch aResponseResult {
@@ -1788,8 +1797,9 @@ func (oFsm *OnuUpgradeFsm) verifyOnuSwStatusAfterDownload(ctx context.Context, a
 	_ = oFsm.PAdaptFsm.PFsm.Event(UpgradeEvAbort)
 } //verifyOnuSwStatusAfterDownload
 
-//abortOnOmciError aborts the upgrade processing with evAbort
-//  asynchronous/synchronous based on parameter aAsync
+// abortOnOmciError aborts the upgrade processing with evAbort
+//
+//	asynchronous/synchronous based on parameter aAsync
 func (oFsm *OnuUpgradeFsm) abortOnOmciError(ctx context.Context, aAsync bool) {
 	oFsm.mutexUpgradeParams.Lock()
 	oFsm.conditionalCancelRequested = false //any conditional cancelRequest is superseded by this abortion
@@ -1816,8 +1826,9 @@ func (oFsm *OnuUpgradeFsm) abortOnOmciError(ctx context.Context, aAsync bool) {
 	}
 }
 
-//waitOnDownloadToAdapterReady state can only be reached with useAPIVersion43 (usage of pFileManager)
-//  precondition: mutexIsAwaitingAdapterDlResponse is lockek on call
+// waitOnDownloadToAdapterReady state can only be reached with useAPIVersion43 (usage of pFileManager)
+//
+//	precondition: mutexIsAwaitingAdapterDlResponse is lockek on call
 func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aSyncChannel chan<- struct{},
 	aWaitChannel chan bool) {
 	oFsm.mutexIsAwaitingAdapterDlResponse.Lock()
@@ -1878,7 +1889,7 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aSy
 	}
 }
 
-//waitOnDownloadToOnuReady state can only be reached with useAPIVersion43 (usage of pFileManager)
+// waitOnDownloadToOnuReady state can only be reached with useAPIVersion43 (usage of pFileManager)
 func (oFsm *OnuUpgradeFsm) waitOnDownloadToOnuReady(ctx context.Context, aWaitChannel chan bool) {
 	downloadToOnuTimeout := time.Duration(1+(oFsm.imageLength/0x400000)) * oFsm.downloadToOnuTimeout4MB
 	logger.Debugw(ctx, "OnuUpgradeFsm start download-to-ONU timer", log.Fields{"device-id": oFsm.deviceID,
@@ -1907,7 +1918,7 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToOnuReady(ctx context.Context, aWaitCh
 	}
 }
 
-//waitOnAbortEndSwDlResponse waits for either abort/success or timeout of EndSwDownload (for abortion)
+// waitOnAbortEndSwDlResponse waits for either abort/success or timeout of EndSwDownload (for abortion)
 func (oFsm *OnuUpgradeFsm) waitOnAbortEndSwDlResponse(ctx context.Context) {
 	logger.Debugw(ctx, "OnuUpgradeFsm start wait for EndSwDl response (abort)", log.Fields{"device-id": oFsm.deviceID})
 	select {
@@ -1936,7 +1947,7 @@ func (oFsm *OnuUpgradeFsm) waitOnAbortEndSwDlResponse(ctx context.Context) {
 	} //select
 }
 
-//stateUpdateOnReset writes the download and/or image state on entering the reset state according to FSM internal indications
+// stateUpdateOnReset writes the download and/or image state on entering the reset state according to FSM internal indications
 func (oFsm *OnuUpgradeFsm) stateUpdateOnReset(ctx context.Context) {
 	oFsm.mutexUpgradeParams.Lock()
 	defer oFsm.mutexUpgradeParams.Unlock()

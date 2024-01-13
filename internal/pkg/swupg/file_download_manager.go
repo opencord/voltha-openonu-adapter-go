@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package swupg provides the utilities for onu sw upgrade
+// Package swupg provides the utilities for onu sw upgrade
 package swupg
 
 import (
@@ -63,7 +63,7 @@ type downloadImageParams struct {
 
 type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map for easier (unique) element appending
 
-//FileDownloadManager structure holds information needed for downloading to and storing images within the adapter
+// FileDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type FileDownloadManager struct {
 	mutexFileState        sync.RWMutex
 	mutexDownloadImageDsc sync.RWMutex
@@ -72,8 +72,8 @@ type FileDownloadManager struct {
 	dlToAdapterTimeout    time.Duration
 }
 
-//NewFileDownloadManager constructor returns a new instance of a FileDownloadManager
-//mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
+// NewFileDownloadManager constructor returns a new instance of a FileDownloadManager
+// mib_db (as well as not inluded alarm_db not really used in this code? VERIFY!!)
 func NewFileDownloadManager(ctx context.Context) *FileDownloadManager {
 	logger.Debug(ctx, "init-FileDownloadManager")
 	var localDnldMgr FileDownloadManager
@@ -83,7 +83,7 @@ func NewFileDownloadManager(ctx context.Context) *FileDownloadManager {
 	return &localDnldMgr
 }
 
-//SetDownloadTimeout configures the timeout used to supervice the download of the image to the adapter (assumed in seconds)
+// SetDownloadTimeout configures the timeout used to supervice the download of the image to the adapter (assumed in seconds)
 func (dm *FileDownloadManager) SetDownloadTimeout(ctx context.Context, aDlTimeout time.Duration) {
 	dm.mutexDownloadImageDsc.Lock()
 	defer dm.mutexDownloadImageDsc.Unlock()
@@ -91,14 +91,14 @@ func (dm *FileDownloadManager) SetDownloadTimeout(ctx context.Context, aDlTimeou
 	dm.dlToAdapterTimeout = aDlTimeout
 }
 
-//GetDownloadTimeout delivers the timeout used to supervice the download of the image to the adapter (assumed in seconds)
+// GetDownloadTimeout delivers the timeout used to supervice the download of the image to the adapter (assumed in seconds)
 func (dm *FileDownloadManager) GetDownloadTimeout(ctx context.Context) time.Duration {
 	dm.mutexDownloadImageDsc.RLock()
 	defer dm.mutexDownloadImageDsc.RUnlock()
 	return dm.dlToAdapterTimeout
 }
 
-//StartDownload returns FileState and error code from download request for the given file name and URL
+// StartDownload returns FileState and error code from download request for the given file name and URL
 func (dm *FileDownloadManager) StartDownload(ctx context.Context, aImageName string, aURLCommand string) (FileState, error) {
 	logger.Infow(ctx, "image download-to-adapter requested", log.Fields{
 		"image-name": aImageName, "url-command": aURLCommand})
@@ -140,7 +140,7 @@ func (dm *FileDownloadManager) StartDownload(ctx context.Context, aImageName str
 	return fileState, nil
 }
 
-//GetImageBufferLen returns the length of the specified file in bytes (file size) - as detected after download
+// GetImageBufferLen returns the length of the specified file in bytes (file size) - as detected after download
 func (dm *FileDownloadManager) GetImageBufferLen(ctx context.Context, aFileName string) (int64, error) {
 	dm.mutexDownloadImageDsc.RLock()
 	defer dm.mutexDownloadImageDsc.RUnlock()
@@ -153,9 +153,10 @@ func (dm *FileDownloadManager) GetImageBufferLen(ctx context.Context, aFileName 
 	return 0, fmt.Errorf("no downloaded image found: %s", aFileName)
 }
 
-//GetDownloadImageBuffer returns the content of the requested file as byte slice
-//precondition: it is assumed that a check is done immediately before if the file was downloaded to adapter correctly from caller
-//  straightforward approach is here to e.g. immediately call and verify GetImageBufferLen() before this
+// GetDownloadImageBuffer returns the content of the requested file as byte slice
+// precondition: it is assumed that a check is done immediately before if the file was downloaded to adapter correctly from caller
+//
+//	straightforward approach is here to e.g. immediately call and verify GetImageBufferLen() before this
 func (dm *FileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFileName string) ([]byte, error) {
 	file, err := os.Open(filepath.Clean(cDefaultLocalDir + "/" + aFileName))
 	if err != nil {
@@ -182,7 +183,7 @@ func (dm *FileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFile
 	return bytes, err
 }
 
-//RequestDownloadReady receives a channel that has to be used to inform the requester in case the concerned file is downloaded
+// RequestDownloadReady receives a channel that has to be used to inform the requester in case the concerned file is downloaded
 func (dm *FileDownloadManager) RequestDownloadReady(ctx context.Context, aFileName string, aWaitChannel chan<- bool) {
 	//mutexDownloadImageDsc must already be locked here to avoid an update of the dnldImgReadyWaiting map
 	//  just after returning false on imageLocallyDownloaded() (not found) and immediate handling of the
@@ -217,7 +218,7 @@ func (dm *FileDownloadManager) RequestDownloadReady(ctx context.Context, aFileNa
 	}
 }
 
-//RemoveReadyRequest removes the specified channel from the requester(channel) map for the given file name
+// RemoveReadyRequest removes the specified channel from the requester(channel) map for the given file name
 func (dm *FileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName string, aWaitChannel chan bool) {
 	dm.mutexDownloadImageDsc.Lock()
 	defer dm.mutexDownloadImageDsc.Unlock()
@@ -238,8 +239,8 @@ func (dm *FileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName
 
 // FileDownloadManager private (unexported) methods -- start
 
-//imageExists returns current ImageState and if the requested image already exists within the adapter
-//precondition: at calling this method mutexDownloadImageDsc must already be at least RLocked by the caller
+// imageExists returns current ImageState and if the requested image already exists within the adapter
+// precondition: at calling this method mutexDownloadImageDsc must already be at least RLocked by the caller
 func (dm *FileDownloadManager) imageExists(ctx context.Context, aImageName string, aURL string) (FileState, bool) {
 	logger.Debugw(ctx, "checking on existence of the image", log.Fields{"image-name": aImageName})
 	for _, dnldImgDsc := range dm.downloadImageDscSlice {
@@ -256,8 +257,9 @@ func (dm *FileDownloadManager) imageExists(ctx context.Context, aImageName strin
 	return CFileStateUnknown, false
 }
 
-//imageLocallyDownloaded returns true if the requested image already exists within the adapter
-//  requires mutexDownloadImageDsc to be locked (at least RLocked)
+// imageLocallyDownloaded returns true if the requested image already exists within the adapter
+//
+//	requires mutexDownloadImageDsc to be locked (at least RLocked)
 func (dm *FileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImageName string) bool {
 	logger.Debugw(ctx, "checking if image is fully downloaded to adapter", log.Fields{"image-name": aImageName})
 	for _, dnldImgDsc := range dm.downloadImageDscSlice {
@@ -276,7 +278,7 @@ func (dm *FileDownloadManager) imageLocallyDownloaded(ctx context.Context, aImag
 	return false
 }
 
-//updateDownloadCancel sets context cancel function to be used in case the download is to be aborted
+// updateDownloadCancel sets context cancel function to be used in case the download is to be aborted
 func (dm *FileDownloadManager) updateDownloadCancel(ctx context.Context,
 	aImageName string, aCancelFn context.CancelFunc) {
 	dm.mutexDownloadImageDsc.Lock()
@@ -293,7 +295,7 @@ func (dm *FileDownloadManager) updateDownloadCancel(ctx context.Context,
 	}
 }
 
-//updateFileState sets the new active (downloaded) file state and informs possibly waiting requesters on this change
+// updateFileState sets the new active (downloaded) file state and informs possibly waiting requesters on this change
 func (dm *FileDownloadManager) updateFileState(ctx context.Context, aImageName string, aFileSize int64) {
 	dm.mutexDownloadImageDsc.Lock()
 	defer dm.mutexDownloadImageDsc.Unlock()
@@ -321,7 +323,7 @@ func (dm *FileDownloadManager) updateFileState(ctx context.Context, aImageName s
 	}
 }
 
-//downloadFile downloads the specified file from the given http location
+// downloadFile downloads the specified file from the given http location
 func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand string, aFilePath string, aFileName string) error {
 	// Get the data
 	logger.Infow(ctx, "downloading with URL", log.Fields{"url": aURLCommand, "localPath": aFilePath})
@@ -440,7 +442,7 @@ func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 	return nil
 }
 
-//removeImage deletes the given image according to the Image name from filesystem and downloadImageDscSlice
+// removeImage deletes the given image according to the Image name from filesystem and downloadImageDscSlice
 func (dm *FileDownloadManager) removeImage(ctx context.Context, aImageName string, aDelFs bool) {
 	logger.Debugw(ctx, "remove the image from Adapter", log.Fields{"image-name": aImageName, "del-fs": aDelFs})
 	dm.mutexDownloadImageDsc.RLock()
@@ -469,7 +471,7 @@ func (dm *FileDownloadManager) removeImage(ctx context.Context, aImageName strin
 	//image not found (by name)
 }
 
-//CancelDownload stops the download and clears all entires concerning this aimageName
+// CancelDownload stops the download and clears all entires concerning this aimageName
 func (dm *FileDownloadManager) CancelDownload(ctx context.Context, aImageName string) {
 	// for the moment that would only support to wait for the download end and remove the image then
 	//   further reactions while still downloading can be considered with some effort, but does it make sense (synchronous load here!)

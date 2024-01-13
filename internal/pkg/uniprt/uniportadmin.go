@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package uniprt provides the utilities for uni port configuration
+// Package uniprt provides the utilities for uni port configuration
 package uniprt
 
 import (
@@ -31,7 +31,7 @@ import (
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 )
 
-//LockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
+// LockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
 type LockStateFsm struct {
 	deviceID                 string
 	pDeviceHandler           cmn.IdeviceHandler
@@ -71,7 +71,7 @@ const (
 // CUniFsmIdleState - TODO: add comment
 const CUniFsmIdleState = UniStDisabled
 
-//NewLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
+// NewLockStateFsm is the 'constructor' for the state machine to lock/unlock the ONU UNI ports via OMCI
 func NewLockStateFsm(ctx context.Context, aAdminState bool, aRequestEvent cmn.OnuDeviceEvent,
 	aName string, apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, aCommChannel chan cmn.Message) *LockStateFsm {
 	instFsm := &LockStateFsm{
@@ -165,8 +165,8 @@ func NewLockStateFsm(ctx context.Context, aAdminState bool, aRequestEvent cmn.On
 	return instFsm
 }
 
-//SetSuccessEvent modifies the requested event notified on success
-//assumption is that this is only called in the disabled (idle) state of the FSM, hence no sem protection required
+// SetSuccessEvent modifies the requested event notified on success
+// assumption is that this is only called in the disabled (idle) state of the FSM, hence no sem protection required
 func (oFsm *LockStateFsm) SetSuccessEvent(aEvent cmn.OnuDeviceEvent) {
 	oFsm.requestEvent = aEvent
 }

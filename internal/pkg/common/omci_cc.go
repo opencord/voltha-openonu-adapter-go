@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2020-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ type txRxCounters struct {
 	rxNoAkFrames uint32
 }
 
-//OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
+// OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
 type OmciCC struct {
 	enabled            bool
 	pBaseDeviceHandler IdeviceHandler

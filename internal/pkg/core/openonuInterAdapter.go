@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2022-2024 Open Networking Foundation (ONF) and the ONF Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package core provides the utility for onu devices, flows and statistics
+// Package core provides the utility for onu devices, flows and statistics
 package core
 
 import (
@@ -30,49 +30,49 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/onu_inter_adapter_service"
 )
 
-//OpenONUACInterAdapter structure holds a reference to ONU adapter
+// OpenONUACInterAdapter structure holds a reference to ONU adapter
 type OpenONUACInterAdapter struct {
 	onuAdapter  *OpenONUAC
 	exitChannel chan struct{}
 }
 
-//NewOpenONUACAdapter returns a new instance of OpenONUACAdapter
+// NewOpenONUACAdapter returns a new instance of OpenONUACAdapter
 func NewOpenONUACAdapter(ctx context.Context, onuAdapter *OpenONUAC) *OpenONUACInterAdapter {
 	return &OpenONUACInterAdapter{onuAdapter: onuAdapter, exitChannel: make(chan struct{})}
 }
 
-//Start starts (logs) the adapter
+// Start starts (logs) the adapter
 func (oo *OpenONUACInterAdapter) Start(ctx context.Context) error {
 	logger.Info(ctx, "starting-openonu-inter-adapter")
 	return nil
 }
 
-//OnuIndication redirects the request the the core ONU adapter handler
+// OnuIndication redirects the request the the core ONU adapter handler
 func (oo *OpenONUACInterAdapter) OnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*empty.Empty, error) {
 	return oo.onuAdapter.OnuIndication(ctx, onuInd)
 }
 
-//OmciIndication redirects the request the the core ONU adapter handler
+// OmciIndication redirects the request the the core ONU adapter handler
 func (oo *OpenONUACInterAdapter) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*empty.Empty, error) {
 	return oo.onuAdapter.OmciIndication(ctx, msg)
 }
 
-//DownloadTechProfile redirects the request the the core ONU adapter handler
+// DownloadTechProfile redirects the request the the core ONU adapter handler
 func (oo *OpenONUACInterAdapter) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*empty.Empty, error) {
 	return oo.onuAdapter.DownloadTechProfile(ctx, tProfile)
 }
 
-//DeleteGemPort redirects the request the the core ONU adapter handler
+// DeleteGemPort redirects the request the the core ONU adapter handler
 func (oo *OpenONUACInterAdapter) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortMessage) (*empty.Empty, error) {
 	return oo.onuAdapter.DeleteGemPort(ctx, gPort)
 }
 
-//DeleteTCont redirects the request the the core ONU adapter handler
+// DeleteTCont redirects the request the the core ONU adapter handler
 func (oo *OpenONUACInterAdapter) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*empty.Empty, error) {
 	return oo.onuAdapter.DeleteTCont(ctx, tConf)
 }
 
-//Stop terminates the session
+// Stop terminates the session
 func (oo *OpenONUACInterAdapter) Stop(ctx context.Context) error {
 	close(oo.exitChannel)
 	logger.Info(ctx, "openonu-inter-adapter-stopped")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Open Networking Foundation (ONF) and the ONF Contributors
+ * Copyright 2018-2024 Open Networking Foundation (ONF) and the ONF Contributors
 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//Package common provides global definitions
+// Package common provides global definitions
 package common
 
 import (
@@ -55,7 +55,7 @@ type Message struct {
 	Data interface{}
 }
 
-//TestMessageType - message data for various events
+// TestMessageType - message data for various events
 type TestMessageType uint8
 
 const (
@@ -69,13 +69,13 @@ const (
 	AbortMessageProcessing
 )
 
-//TestMessage - Struct to hold the message data
-//TODO: place holder to have a second interface variant - to be replaced by real variant later on
+// TestMessage - Struct to hold the message data
+// TODO: place holder to have a second interface variant - to be replaced by real variant later on
 type TestMessage struct {
 	TestMessageVal TestMessageType
 }
 
-//OmciMessage - OMCI protocol messages for managing and monitoring ONUs
+// OmciMessage - OMCI protocol messages for managing and monitoring ONUs
 type OmciMessage struct {
 	//OnuSN   *openolt.SerialNumber
 	//OnuID   uint32
@@ -188,25 +188,25 @@ const (
 
 ///////////////////////////////////////////////////////////
 
-//definitions as per G.988 softwareImage::valid ME IDs
+// definitions as per G.988 softwareImage::valid ME IDs
 const (
 	FirstSwImageMeID  = 0
 	SecondSwImageMeID = 1
 )
 
-//definitions as per G.988 softwareImage::IsCommitted
+// definitions as per G.988 softwareImage::IsCommitted
 const (
 	SwIsUncommitted = 0
 	SwIsCommitted   = 1
 )
 
-//definitions as per G.988 softwareImage::IsActive
+// definitions as per G.988 softwareImage::IsActive
 const (
 	SwIsInactive = 0
 	SwIsActive   = 1
 )
 
-//definitions as per G.988 softwareImage::IsValid
+// definitions as per G.988 softwareImage::IsValid
 const (
 	SwIsInvalid = 0
 	SwIsValid   = 1
@@ -249,8 +249,8 @@ type AdapterFsm struct {
 	PFsm     *fsm.FSM
 }
 
-//CErrWaitAborted - AdapterFsm related error string
-//error string could be checked on waitforOmciResponse() e.g. to avoid misleading error log
+// CErrWaitAborted - AdapterFsm related error string
+// error string could be checked on waitforOmciResponse() e.g. to avoid misleading error log
 // but not used that way so far (permit error log even for wanted cancellation)
 const CErrWaitAborted = "waitResponse aborted"
 
@@ -269,7 +269,7 @@ const (
 	UniPPTPPots UniPortType = 4 // relates to IP host config data (for Voice Services)
 )
 
-//OnuUniPort structure holds information about the ONU attached Uni Ports
+// OnuUniPort structure holds information about the ONU attached Uni Ports
 type OnuUniPort struct {
 	Enabled    bool
 	Name       string
@@ -328,7 +328,7 @@ type UniVlanFlowParams struct {
 
 ///////////////////////////////////////////////////////////
 
-//definitions as per G.988
+// definitions as per G.988
 const (
 	OnuDataMeID          = 0
 	Onu2gMeID            = 0
@@ -346,7 +346,7 @@ const CBasePathOnuKVStore = "%s/openonu"
 
 ///////////////////////////////////////////////////////////
 
-//WaitGroupWithTimeOut definitions to have waitGroup functionality with timeout
+// WaitGroupWithTimeOut definitions to have waitGroup functionality with timeout
 type WaitGroupWithTimeOut struct {
 	sync.WaitGroup
 }
