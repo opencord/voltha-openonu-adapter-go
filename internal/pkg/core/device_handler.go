@@ -2238,9 +2238,12 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	logger.Debugw(ctx, "resetFsms entered", log.Fields{"device-id": dh.DeviceID})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
+	//VOL-5260: During race conditions when adoptDevice has not yet completed
+	// and deleteDevice is issued , returning error will further prevent clean up
+	// at rwcore . Returning success for clean up to happen and discovery to happen again.
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
+		return nil
 	}
 	if pDevEntry.PDevOmciCC != nil {
 		pDevEntry.PDevOmciCC.CancelRequestMonitoring(ctx)
