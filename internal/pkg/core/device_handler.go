@@ -2290,16 +2290,31 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 			}
 		}
 	}
-	if dh.GetCollectorIsRunning() {
+
+	dh.mutexCollectorFlag.Lock()
+	logger.Debugw(ctx, "check-collector-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.collectorIsRunning})
+	if dh.collectorIsRunning {
 		// Stop collector routine
 		dh.stopCollector <- true
+		dh.collectorIsRunning = false
 	}
-	if dh.GetAlarmManagerIsRunning(ctx) {
+	dh.mutexCollectorFlag.Unlock()
+
+	dh.mutextAlarmManagerFlag.Lock()
+	logger.Debugw(ctx, "check-alarm-manager-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.alarmManagerIsRunning})
+	if dh.alarmManagerIsRunning {
 		dh.stopAlarmManager <- true
+		dh.alarmManagerIsRunning = false
 	}
-	if dh.pSelfTestHdlr.GetSelfTestHandlerIsRunning() {
+	dh.mutextAlarmManagerFlag.Unlock()
+
+	dh.pSelfTestHdlr.SelfTestHandlerLock.Lock()
+	logger.Debugw(ctx, "check-self-test-control-block-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.pSelfTestHdlr.SelfTestHandlerActive})
+	if dh.pSelfTestHdlr.SelfTestHandlerActive {
 		dh.pSelfTestHdlr.StopSelfTestModule <- true
+		dh.pSelfTestHdlr.SelfTestHandlerActive = false
 	}
+	dh.pSelfTestHdlr.SelfTestHandlerLock.Unlock()
 
 	// Note: We want flow deletes to be processed on onu down, so do not stop flow monitoring routines
 
@@ -3774,7 +3789,6 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 
 		select {
 		case <-dh.stopCollector:
-			dh.setCollectorIsRunning(false)
 			logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
 			// Stop the L2 PM FSM
 			go func() {
@@ -4058,8 +4072,7 @@ func (dh *deviceHandler) StartAlarmManager(ctx context.Context) {
 	go dh.pAlarmMgr.StartOMCIAlarmMessageProcessing(ctx)
 	dh.setAlarmManagerIsRunning(true)
 	if stop := <-dh.stopAlarmManager; stop {
-		logger.Debugw(ctx, "stopping-collector-for-onu", log.Fields{"device-id": dh.device.Id})
-		dh.setAlarmManagerIsRunning(false)
+		logger.Debugw(ctx, "stopping-alarm-manager-for-onu", log.Fields{"device-id": dh.device.Id})
 		go func() {
 			if dh.pAlarmMgr.AlarmSyncFsm != nil && dh.pAlarmMgr.AlarmSyncFsm.PFsm != nil {
 				_ = dh.pAlarmMgr.AlarmSyncFsm.PFsm.Event(almgr.AsEvStop)
