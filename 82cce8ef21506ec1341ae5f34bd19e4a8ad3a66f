@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "146bb3c9_e14a4d55",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-03-21T06:05:04Z",
+      "side": 1,
+      "message": "The extensions.proto new changes are yet to be released and changes are under review. Hence the tests fail until then. I have tested the changes locally. ",
+      "revId": "82cce8ef21506ec1341ae5f34bd19e4a8ad3a66f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
