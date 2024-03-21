@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
-	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -495,6 +496,11 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			resp := handler.getOnuActiveAlarms(ctx)
 			logger.Infow(ctx, "Received response for on demand active alarms request ", log.Fields{"response": resp})
 			return resp, nil
+		case *extension.GetValueRequest_OnuAllocGemStats:
+			resp := handler.getONUGEMStatsInfo(ctx)
+			logger.Infow(ctx, "Received response for on demand active alarms request ", log.Fields{"response": resp})
+			return resp, nil
+
 		default:
 			return uniprt.PostUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
 		}
