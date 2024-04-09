@@ -405,5 +405,9 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, a
 		// should not happen so far
 		logger.Warnw(ctx, "MibDownload-bridge-init response error", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 		return fmt.Errorf("mibDownloadBridgeInit responseError %s", onuDeviceEntry.deviceID)
+	case <-onuDeviceEntry.baseDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		logger.Warnw(ctx, "Deleting device, do not wait for OMCI response", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		return fmt.Errorf("mibDownloadBridgeInit device deletion in progress! %s", onuDeviceEntry.deviceID)
+
 	}
 }

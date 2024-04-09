@@ -4687,6 +4687,10 @@ func (dh *deviceHandler) getOnuActiveAlarms(ctx context.Context) *extension.Sing
 	return resp
 }
 
+func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool {
+	return dh.deviceDeleteCommChan
+}
+
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
 	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
