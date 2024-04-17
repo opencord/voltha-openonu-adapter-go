@@ -75,6 +75,7 @@ type AdapterFlags struct {
 	MaxConcurrentFlowsPerUni    int
 	PerRPCRetryTimeout          time.Duration
 	MaxRetries                  uint
+	SkipOnuConfig               bool
 }
 
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
@@ -287,6 +288,10 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"per_rpc_retry_timeout",
 		0*time.Second,
 		"The default timeout per RPC retry")
+	fs.BoolVar(&(so.SkipOnuConfig),
+		"skip_onu_config_enabled",
+		false,
+		"Whether to enable/disable the Skipping of the ONU configuration via OMCI during reconciling")
 	fs.UintVar(&(so.MaxRetries),
 		"max_grpc_client_retry",
 		0,
