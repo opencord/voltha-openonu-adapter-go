@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
-	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -97,6 +98,7 @@ type OpenONUAC struct {
 	dlToOnuTimeout4M            time.Duration
 	rpcTimeout                  time.Duration
 	maxConcurrentFlowsPerUni    int
+	skipOnuConfig               bool
 }
 
 // NewOpenONUAC returns a new instance of OpenONU_AC
@@ -156,6 +158,8 @@ func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy even
 	openOnuAc.pDownloadManager = swupg.NewAdapterDownloadManager(ctx)
 	openOnuAc.pFileManager = swupg.NewFileDownloadManager(ctx)
 	openOnuAc.pFileManager.SetDownloadTimeout(ctx, cfg.DownloadToAdapterTimeout)
+	openOnuAc.skipOnuConfig = cfg.SkipOnuConfig
+	openOnuAc.skipOnuConfig = cfg.SkipOnuConfig
 
 	return &openOnuAc
 }
@@ -265,6 +269,7 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 	var handler *deviceHandler
 	if handler = oo.getDeviceHandler(ctx, device.Id, false); handler == nil {
 		handler := newDeviceHandler(ctx, oo.coreClient, oo.eventProxy, device, oo)
+		logger.Infow(ctx, "reconciling-device  skip-onu-config value ", log.Fields{"device-id": device.Id, "parent-id": device.ParentId, "skip-onu-config": oo.skipOnuConfig})
 		oo.addDeviceHandlerToMap(ctx, handler)
 		handler.device = device
 		if err := handler.updateDeviceStateInCore(log.WithSpanFromContext(context.Background(), ctx), &ca.DeviceStateFilter{
