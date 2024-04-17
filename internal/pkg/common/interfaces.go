@@ -127,6 +127,7 @@ type IdeviceHandler interface {
 
 	PerOnuFlowHandlerRoutine(uniID uint8)
 	GetDeviceDeleteCommChan(context.Context) chan bool
+	GetSkipOnuConfigEnabled() bool
 }
 
 // IonuDeviceEntry interface to onuDeviceEntry
