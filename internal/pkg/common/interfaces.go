@@ -126,6 +126,7 @@ type IdeviceHandler interface {
 	CreatePortInCore(context.Context, *voltha.Port) error
 
 	PerOnuFlowHandlerRoutine(uniID uint8)
+	GetSkipOnuConfigEnabled() bool
 }
 
 // IonuDeviceEntry interface to onuDeviceEntry
