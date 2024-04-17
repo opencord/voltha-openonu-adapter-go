@@ -2032,25 +2032,26 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		return err
 	}
 	_ = dh.ReasonUpdate(ctx, cmn.DrStartingOpenomci, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
+	if !dh.IsReconciling() && !dh.GetSkipOnuConfigEnabled() {
+		/* this might be a good time for Omci Verify message?  */
+		verifyExec := make(chan bool)
+		omciVerify := otst.NewOmciTestRequest(log.WithSpanFromContext(context.TODO(), ctx),
+			dh.device.Id, pDevEntry.PDevOmciCC, false,
+			true, true) //exclusive and allowFailure (anyway not yet checked)
+		omciVerify.PerformOmciTest(log.WithSpanFromContext(context.TODO(), ctx), verifyExec)
 
-	/* this might be a good time for Omci Verify message?  */
-	verifyExec := make(chan bool)
-	omciVerify := otst.NewOmciTestRequest(log.WithSpanFromContext(context.TODO(), ctx),
-		dh.device.Id, pDevEntry.PDevOmciCC, false,
-		true, true) //exclusive and allowFailure (anyway not yet checked)
-	omciVerify.PerformOmciTest(log.WithSpanFromContext(context.TODO(), ctx), verifyExec)
-
-	/* 	give the handler some time here to wait for the OMCi verification result
-	after Timeout start and try MibUpload FSM anyway
-	(to prevent stopping on just not supported OMCI verification from ONU) */
-	select {
-	case <-time.After(((cmn.CDefaultRetries+1)*otst.CTestRequestOmciTimeout + 1) * time.Second):
-		logger.Warnw(ctx, "omci start-verification timed out (continue normal)", log.Fields{"device-id": dh.DeviceID})
-	case testresult := <-verifyExec:
-		logger.Infow(ctx, "Omci start verification done", log.Fields{"device-id": dh.DeviceID, "result": testresult})
-	case <-dh.deviceDeleteCommChan:
-		logger.Warnw(ctx, "Deleting device, stopping the omci test activity", log.Fields{"device-id": dh.DeviceID})
-		return nil
+		/* 	give the handler some time here to wait for the OMCi verification result
+		after Timeout start and try MibUpload FSM anyway
+		(to prevent stopping on just not supported OMCI verification from ONU) */
+		select {
+		case <-time.After(((cmn.CDefaultRetries+1)*otst.CTestRequestOmciTimeout + 1) * time.Second):
+			logger.Warnw(ctx, "omci start-verification timed out (continue normal)", log.Fields{"device-id": dh.DeviceID})
+		case testresult := <-verifyExec:
+			logger.Infow(ctx, "Omci start verification done", log.Fields{"device-id": dh.DeviceID, "result": testresult})
+		case <-dh.deviceDeleteCommChan:
+			logger.Warnw(ctx, "Deleting device, stopping the omci test activity", log.Fields{"device-id": dh.DeviceID})
+			return nil
+		}
 	}
 
 	/* In py code it looks earlier (on activate ..)
@@ -4189,7 +4190,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 		}()
 	}
 	dh.mutexReconcilingFlag.Lock()
-	if skipOnuConfig {
+	if skipOnuConfig || dh.GetSkipOnuConfigEnabled() {
 		dh.reconciling = cSkipOnuConfigReconciling
 	} else {
 		dh.reconciling = cOnuConfigReconciling
@@ -4659,6 +4660,11 @@ func (dh *deviceHandler) GetMetricsEnabled() bool {
 // GetExtendedOmciSupportEnabled - TODO: add comment
 func (dh *deviceHandler) GetExtendedOmciSupportEnabled() bool {
 	return dh.pOpenOnuAc.ExtendedOmciSupportEnabled
+}
+
+// GetExtendedOmciSupportEnabled - TODO: add comment
+func (dh *deviceHandler) GetSkipOnuConfigEnabled() bool {
+	return dh.pOpenOnuAc.skipOnuConfig
 }
 
 // InitPmConfigs - TODO: add comment

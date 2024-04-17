@@ -391,7 +391,15 @@ func (oo *OnuDeviceEntry) enterVerifyingAndStoringTPsState(ctx context.Context, 
 
 func (oo *OnuDeviceEntry) enterExaminingMdsState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start GetMds processing in State": e.FSM.Current(), "device-id": oo.deviceID})
-	oo.requestMdsValue(ctx)
+	dh, _ := oo.pOpenOnuAc.GetDeviceHandler(oo.deviceID)
+	if dh.GetSkipOnuConfigEnabled() {
+		go func() {
+			_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
+		}()
+	} else {
+		oo.requestMdsValue(ctx)
+	}
+
 }
 
 func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.Event) {
