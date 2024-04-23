@@ -33,6 +33,23 @@
       "message": "recheck\n\nRe-run job, (shell: \"\"\" -- error due to missing colon) was fixed.\nLast failure due to caching problem, jenkins script edit was not available when the job ran.",
       "revId": "2727d97f9bb0e70209cb08ae160329157d90548c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "32d4cce4_a480e370",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2024-04-23T16:46:23Z",
+      "side": 1,
+      "message": "Sanity test failure needs to be checked @Praneeth.",
+      "revId": "2727d97f9bb0e70209cb08ae160329157d90548c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
