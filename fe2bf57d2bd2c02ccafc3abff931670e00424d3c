@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d7aede32_27fd3fed",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000948
+      },
+      "writtenOn": "2024-05-06T15:25:43Z",
+      "side": 1,
+      "message": "ERR\u003e Sanity E2E Test for OLT/ONU on POD for DT :: Validates E2E Ping Co... | FAIL |\n\nEnd-to-end ping test failure unrelated.  NOP patch adding pre-commit hook config file (manual invocation, currently unused).",
+      "revId": "fe2bf57d2bd2c02ccafc3abff931670e00424d3c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
