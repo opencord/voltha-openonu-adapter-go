@@ -25,8 +25,8 @@ import (
 
 // Open ONU default constants
 const (
-	EtcdStoreName = "etcd"
-	OnuVendorIds  = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX,ZYXE"
+	KVStoreName  = "etcd"
+	OnuVendorIds = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX,ZYXE"
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -95,7 +95,7 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 
 	fs.StringVar(&(so.KVStoreType),
 		"kv_store_type",
-		EtcdStoreName,
+		KVStoreName,
 		"KV store type")
 
 	fs.DurationVar(&(so.KVStoreTimeout),
