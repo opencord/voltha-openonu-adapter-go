@@ -35,7 +35,7 @@ ansible/*.retry
 *.log
 
 # Virtualenv
-venv-*
+venv*
 
 # Development versions of locally built libraries
 python/local_imports
