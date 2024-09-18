@@ -304,3 +304,15 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 func getContainerInfo() string {
 	return os.Getenv("HOSTNAME")
 }
+
+func main() {
+	var port uint8
+	port = 1
+	var mask int
+	mask = 0x0001
+	println("Checking....")
+
+	if (1<<port)&mask == (1 << port) {
+		println("Catched")
+	}
+}
