@@ -3800,7 +3800,8 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 				if time.Now().Equal(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) || time.Now().After(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) {
 					go dh.pOnuMetricsMgr.CollectAllGroupAndStandaloneMetrics(ctx)
 					// Update the next metric collection time.
-					dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime = time.Now().Add(time.Duration(dh.pmConfigs.DefaultFreq) * time.Second)
+					prevInternal := dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime
+					dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime = prevInternal.Add(time.Duration(dh.pmConfigs.DefaultFreq) * time.Second)
 				}
 			} else {
 				if dh.pmConfigs.Grouped { // metrics are managed as a group
@@ -3828,14 +3829,16 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 						// If group enabled, and the NextCollectionInterval is old (before or equal to current time), update the next collection time stamp
 						// Since the L2 PM counters are collected and managed in a separate FSM, we should avoid those counters in the check.
 						if g.Enabled && !g.IsL2PMCounter && (g.NextCollectionInterval.Before(time.Now()) || g.NextCollectionInterval.Equal(time.Now())) {
-							g.NextCollectionInterval = time.Now().Add(time.Duration(g.Frequency) * time.Second)
+							prevInternal := g.NextCollectionInterval
+							g.NextCollectionInterval = prevInternal.Add(time.Duration(g.Frequency) * time.Second)
 						}
 					}
 					// parse through the standalone metrics and update the next metric collection time
 					for _, m := range dh.pOnuMetricsMgr.StandaloneMetricMap {
 						// If standalone metrics enabled, and the NextCollectionInterval is old (before or equal to current time), update the next collection time stamp
 						if m.Enabled && (m.NextCollectionInterval.Before(time.Now()) || m.NextCollectionInterval.Equal(time.Now())) {
-							m.NextCollectionInterval = time.Now().Add(time.Duration(m.Frequency) * time.Second)
+							prevInternal := m.NextCollectionInterval
+							m.NextCollectionInterval = prevInternal.Add(time.Duration(m.Frequency) * time.Second)
 						}
 					}
 					dh.pOnuMetricsMgr.OnuMetricsManagerLock.Unlock()
