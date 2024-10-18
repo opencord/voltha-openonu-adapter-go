@@ -52,24 +52,24 @@ const (
 )
 
 type downloadImageParams struct {
+	downloadContextCancelFn context.CancelFunc
 	downloadImageName       string
 	downloadImageURL        string
-	downloadImageState      FileState
 	downloadImageLen        int64
+	downloadImageState      FileState
 	downloadImageCRC        uint32
 	downloadActive          bool
-	downloadContextCancelFn context.CancelFunc
 }
 
 type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map for easier (unique) element appending
 
 // FileDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type FileDownloadManager struct {
+	dnldImgReadyWaiting   map[string]requesterChannelMap
+	downloadImageDscSlice []downloadImageParams
+	dlToAdapterTimeout    time.Duration
 	mutexFileState        sync.RWMutex
 	mutexDownloadImageDsc sync.RWMutex
-	downloadImageDscSlice []downloadImageParams
-	dnldImgReadyWaiting   map[string]requesterChannelMap
-	dlToAdapterTimeout    time.Duration
 }
 
 // NewFileDownloadManager constructor returns a new instance of a FileDownloadManager
@@ -163,7 +163,7 @@ func (dm *FileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFile
 		return nil, err
 	}
 	defer func() {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
 			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
 		}
@@ -324,6 +324,7 @@ func (dm *FileDownloadManager) updateFileState(ctx context.Context, aImageName s
 }
 
 // downloadFile downloads the specified file from the given http location
+// nolint:gosec
 func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand string, aFilePath string, aFileName string) error {
 	// Get the data
 	logger.Infow(ctx, "downloading with URL", log.Fields{"url": aURLCommand, "localPath": aFilePath})
@@ -382,7 +383,8 @@ func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
-		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
 		dm.updateDownloadCancel(ctx, aFileName, cancel)
 		defer cancel()
 		_ = req.WithContext(ctx)

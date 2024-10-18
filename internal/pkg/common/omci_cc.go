@@ -84,20 +84,20 @@ type CallbackPairEntry struct {
 
 // CallbackPair to be used for ReceiveCallback init
 type CallbackPair struct {
-	CbKey   uint16
 	CbEntry CallbackPairEntry
+	CbKey   uint16
 }
 
 // OmciTransferStructure - TODO: add comment
 type OmciTransferStructure struct {
+	chSuccess      chan bool
+	OnuSwWindow    *ia.OmciMessages
+	cbPair         CallbackPair
 	txFrame        []byte
 	timeout        int
 	retries        int
 	highPrio       bool
 	withFramePrint bool
-	cbPair         CallbackPair
-	chSuccess      chan bool
-	OnuSwWindow    *ia.OmciMessages
 }
 
 type txRxCounters struct {
@@ -109,40 +109,42 @@ type txRxCounters struct {
 
 // OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
 type OmciCC struct {
-	enabled            bool
 	pBaseDeviceHandler IdeviceHandler
 	pOnuDeviceEntry    IonuDeviceEntry
 	pOnuAlarmManager   IonuAlarmManager
-	deviceID           string
 	coreClient         *vgrpc.Client
-	supportExtMsg      bool
-	rxOmciFrameError   tOmciReceiveError
+	lowPrioTxQueue     *list.List
+	highPrioTxQueue    *list.List
+	rxSchedulerMap     map[uint16]CallbackPairEntry
+	monitoredRequests  map[uint16]OmciTransferStructure
+	deviceID           string
 	confFailMEs        []me.ClassID
 	mutexConfFailMEs   sync.RWMutex
 
 	mutexCounters sync.RWMutex
+	mutexMonReq   sync.RWMutex
 	countersBase  txRxCounters
 	countersExt   txRxCounters
-	txRetries     uint32
-	txTimeouts    uint32
 
 	// OMCI params
-	mutexTid       sync.Mutex
+	mutexTid   sync.Mutex
+	mutexHpTid sync.Mutex
+
+	mutexSendQueuedRequests sync.Mutex
+	mutexLowPrioTxQueue     sync.Mutex
+	mutexHighPrioTxQueue    sync.Mutex
+	mutexRxSchedMap         sync.Mutex
+	txRetries               uint32
+	txTimeouts              uint32
+
 	tid            uint16
-	mutexHpTid     sync.Mutex
 	hpTid          uint16
 	UploadSequNo   uint16
 	UploadNoOfCmds uint16
 
-	mutexSendQueuedRequests sync.Mutex
-	mutexLowPrioTxQueue     sync.Mutex
-	lowPrioTxQueue          *list.List
-	mutexHighPrioTxQueue    sync.Mutex
-	highPrioTxQueue         *list.List
-	mutexRxSchedMap         sync.Mutex
-	rxSchedulerMap          map[uint16]CallbackPairEntry
-	mutexMonReq             sync.RWMutex
-	monitoredRequests       map[uint16]OmciTransferStructure
+	enabled          bool
+	supportExtMsg    bool
+	rxOmciFrameError tOmciReceiveError
 }
 
 var responsesWithMibDataSync = []omci.MessageType{
@@ -432,7 +434,7 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		}
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
-		go rxCallbackEntry.CbFunction(ctx, omciMsg, &packet, rxCallbackEntry.CbRespChannel)
+		go func() { _ = rxCallbackEntry.CbFunction(ctx, omciMsg, &packet, rxCallbackEntry.CbRespChannel) }()
 		isSuccessfulResponse, err := oo.isSuccessfulResponseWithMibDataSync(ctx, omciMsg, &packet)
 		if err != nil {
 			// qualified error logging already done in function above
@@ -593,14 +595,14 @@ func (oo *OmciCC) Send(ctx context.Context, txFrame []byte, timeout int, retry i
 	printFrame := receiveCallbackPair.CbEntry.FramePrint //printFrame true means debug print of frame is requested
 	//just use a simple list for starting - might need some more effort, especially for multi source write access
 	omciTxRequest := OmciTransferStructure{
+		nil,
+		nil,
+		receiveCallbackPair,
 		txFrame,
 		timeout,
 		retry,
 		highPrio,
 		printFrame,
-		receiveCallbackPair,
-		nil,
-		nil,
 	}
 	oo.mutexMonReq.Lock()
 	defer oo.mutexMonReq.Unlock()
@@ -2024,7 +2026,7 @@ func (oo *OmciCC) SendCreateVtfdVar(ctx context.Context, timeout int, highPrio b
 	return nil, omciErr.GetError()
 }
 
-// nolint: unused
+// nolint:unused
 func (oo *OmciCC) sendSetVtfdVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2279,7 +2281,7 @@ func (oo *OmciCC) SendCreateTDVar(ctx context.Context, timeout int, highPrio boo
 	return nil, omciErr.GetError()
 }
 
-// nolint: unused
+// nolint:unused
 func (oo *OmciCC) sendSetTDVar(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2746,7 +2748,7 @@ func (oo *OmciCC) SendCreateMulticastSubConfigInfoVar(ctx context.Context, timeo
 	return nil, omciErr.GetError()
 }
 
-// SendCreateVoipVoiceCTP nolint: unused
+// SendCreateVoipVoiceCTP nolint:unused
 func (oo *OmciCC) SendCreateVoipVoiceCTP(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2788,7 +2790,7 @@ func (oo *OmciCC) SendCreateVoipVoiceCTP(ctx context.Context, timeout int, highP
 	return nil, omciErr.GetError()
 }
 
-// SendSetVoipVoiceCTP nolint: unused
+// SendSetVoipVoiceCTP nolint:unused
 func (oo *OmciCC) SendSetVoipVoiceCTP(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2830,7 +2832,7 @@ func (oo *OmciCC) SendSetVoipVoiceCTP(ctx context.Context, timeout int, highPrio
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteVoipVoiceCTP nolint: unused
+// SendDeleteVoipVoiceCTP nolint:unused
 func (oo *OmciCC) SendDeleteVoipVoiceCTP(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2877,7 +2879,7 @@ func (oo *OmciCC) SendDeleteVoipVoiceCTP(ctx context.Context, timeout int, highP
 	return nil, omciErr.GetError()
 }
 
-// SendCreateVoipMediaProfile nolint: unused
+// SendCreateVoipMediaProfile nolint:unused
 func (oo *OmciCC) SendCreateVoipMediaProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2919,7 +2921,7 @@ func (oo *OmciCC) SendCreateVoipMediaProfile(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendSetVoipMediaProfile nolint: unused
+// SendSetVoipMediaProfile nolint:unused
 func (oo *OmciCC) SendSetVoipMediaProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -2961,7 +2963,7 @@ func (oo *OmciCC) SendSetVoipMediaProfile(ctx context.Context, timeout int, high
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteVoipMediaProfile nolint: unused
+// SendDeleteVoipMediaProfile nolint:unused
 func (oo *OmciCC) SendDeleteVoipMediaProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3005,7 +3007,7 @@ func (oo *OmciCC) SendDeleteVoipMediaProfile(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendCreateVoiceServiceProfile nolint: unused
+// SendCreateVoiceServiceProfile nolint:unused
 func (oo *OmciCC) SendCreateVoiceServiceProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3047,7 +3049,7 @@ func (oo *OmciCC) SendCreateVoiceServiceProfile(ctx context.Context, timeout int
 	return nil, omciErr.GetError()
 }
 
-// SendSetVoiceServiceProfile nolint: unused
+// SendSetVoiceServiceProfile nolint:unused
 func (oo *OmciCC) SendSetVoiceServiceProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3089,7 +3091,7 @@ func (oo *OmciCC) SendSetVoiceServiceProfile(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteVoiceServiceProfile nolint: unused
+// SendDeleteVoiceServiceProfile nolint:unused
 func (oo *OmciCC) SendDeleteVoiceServiceProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3133,7 +3135,7 @@ func (oo *OmciCC) SendDeleteVoiceServiceProfile(ctx context.Context, timeout int
 	return nil, omciErr.GetError()
 }
 
-// SendCreateSIPUserData nolint: unused
+// SendCreateSIPUserData nolint:unused
 func (oo *OmciCC) SendCreateSIPUserData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3175,7 +3177,7 @@ func (oo *OmciCC) SendCreateSIPUserData(ctx context.Context, timeout int, highPr
 	return nil, omciErr.GetError()
 }
 
-// SendSetSIPUserData nolint: unused
+// SendSetSIPUserData nolint:unused
 func (oo *OmciCC) SendSetSIPUserData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3217,7 +3219,7 @@ func (oo *OmciCC) SendSetSIPUserData(ctx context.Context, timeout int, highPrio 
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteSIPUserData nolint: unused
+// SendDeleteSIPUserData nolint:unused
 func (oo *OmciCC) SendDeleteSIPUserData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3261,7 +3263,7 @@ func (oo *OmciCC) SendDeleteSIPUserData(ctx context.Context, timeout int, highPr
 	return nil, omciErr.GetError()
 }
 
-// SendCreateVoipApplicationServiceProfile nolint: unused
+// SendCreateVoipApplicationServiceProfile nolint:unused
 func (oo *OmciCC) SendCreateVoipApplicationServiceProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3303,7 +3305,7 @@ func (oo *OmciCC) SendCreateVoipApplicationServiceProfile(ctx context.Context, t
 	return nil, omciErr.GetError()
 }
 
-// SendSetVoipApplicationServiceProfile nolint: unused
+// SendSetVoipApplicationServiceProfile nolint:unused
 func (oo *OmciCC) SendSetVoipApplicationServiceProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3345,7 +3347,7 @@ func (oo *OmciCC) SendSetVoipApplicationServiceProfile(ctx context.Context, time
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteVoipApplicationServiceProfile nolint: unused
+// SendDeleteVoipApplicationServiceProfile nolint:unused
 func (oo *OmciCC) SendDeleteVoipApplicationServiceProfile(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3389,7 +3391,7 @@ func (oo *OmciCC) SendDeleteVoipApplicationServiceProfile(ctx context.Context, t
 	return nil, omciErr.GetError()
 }
 
-// SendCreateSIPAgentConfigData nolint: unused
+// SendCreateSIPAgentConfigData nolint:unused
 func (oo *OmciCC) SendCreateSIPAgentConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3431,7 +3433,7 @@ func (oo *OmciCC) SendCreateSIPAgentConfigData(ctx context.Context, timeout int,
 	return nil, omciErr.GetError()
 }
 
-// SendSetSIPAgentConfigData nolint: unused
+// SendSetSIPAgentConfigData nolint:unused
 func (oo *OmciCC) SendSetSIPAgentConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3473,7 +3475,7 @@ func (oo *OmciCC) SendSetSIPAgentConfigData(ctx context.Context, timeout int, hi
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteSIPAgentConfigData nolint: unused
+// SendDeleteSIPAgentConfigData nolint:unused
 func (oo *OmciCC) SendDeleteSIPAgentConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3517,7 +3519,7 @@ func (oo *OmciCC) SendDeleteSIPAgentConfigData(ctx context.Context, timeout int,
 	return nil, omciErr.GetError()
 }
 
-// SendCreateTCPUDPConfigData nolint: unused
+// SendCreateTCPUDPConfigData nolint:unused
 func (oo *OmciCC) SendCreateTCPUDPConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3559,7 +3561,7 @@ func (oo *OmciCC) SendCreateTCPUDPConfigData(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendSetTCPUDPConfigData nolint: unused
+// SendSetTCPUDPConfigData nolint:unused
 func (oo *OmciCC) SendSetTCPUDPConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3601,7 +3603,7 @@ func (oo *OmciCC) SendSetTCPUDPConfigData(ctx context.Context, timeout int, high
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteTCPUDPConfigData nolint: unused
+// SendDeleteTCPUDPConfigData nolint:unused
 func (oo *OmciCC) SendDeleteTCPUDPConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3645,7 +3647,7 @@ func (oo *OmciCC) SendDeleteTCPUDPConfigData(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendCreateIPHostConfigData nolint: unused
+// SendCreateIPHostConfigData nolint:unused
 func (oo *OmciCC) SendCreateIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3687,7 +3689,7 @@ func (oo *OmciCC) SendCreateIPHostConfigData(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendSetIPHostConfigData nolint: unused
+// SendSetIPHostConfigData nolint:unused
 func (oo *OmciCC) SendSetIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3729,7 +3731,7 @@ func (oo *OmciCC) SendSetIPHostConfigData(ctx context.Context, timeout int, high
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteIPHostConfigData nolint: unused
+// SendDeleteIPHostConfigData nolint:unused
 func (oo *OmciCC) SendDeleteIPHostConfigData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3773,7 +3775,7 @@ func (oo *OmciCC) SendDeleteIPHostConfigData(ctx context.Context, timeout int, h
 	return nil, omciErr.GetError()
 }
 
-// SendCreateRTPProfileData nolint: unused
+// SendCreateRTPProfileData nolint:unused
 func (oo *OmciCC) SendCreateRTPProfileData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3815,7 +3817,7 @@ func (oo *OmciCC) SendCreateRTPProfileData(ctx context.Context, timeout int, hig
 	return nil, omciErr.GetError()
 }
 
-// SendSetRTPProfileData nolint: unused
+// SendSetRTPProfileData nolint:unused
 func (oo *OmciCC) SendSetRTPProfileData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3857,7 +3859,7 @@ func (oo *OmciCC) SendSetRTPProfileData(ctx context.Context, timeout int, highPr
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteRTPProfileData nolint: unused
+// SendDeleteRTPProfileData nolint:unused
 func (oo *OmciCC) SendDeleteRTPProfileData(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3901,7 +3903,7 @@ func (oo *OmciCC) SendDeleteRTPProfileData(ctx context.Context, timeout int, hig
 	return nil, omciErr.GetError()
 }
 
-// SendCreateNetworkDialPlanTable nolint: unused
+// SendCreateNetworkDialPlanTable nolint:unused
 func (oo *OmciCC) SendCreateNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3943,7 +3945,7 @@ func (oo *OmciCC) SendCreateNetworkDialPlanTable(ctx context.Context, timeout in
 	return nil, omciErr.GetError()
 }
 
-// SendSetNetworkDialPlanTable nolint: unused
+// SendSetNetworkDialPlanTable nolint:unused
 func (oo *OmciCC) SendSetNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, params ...me.ParamData) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -3985,7 +3987,7 @@ func (oo *OmciCC) SendSetNetworkDialPlanTable(ctx context.Context, timeout int, 
 	return nil, omciErr.GetError()
 }
 
-// SendDeleteNetworkDialPlanTable nolint: unused
+// SendDeleteNetworkDialPlanTable nolint:unused
 func (oo *OmciCC) SendDeleteNetworkDialPlanTable(ctx context.Context, timeout int, highPrio bool,
 	rxChan chan Message, aInstID uint16) (*me.ManagedEntity, error) {
 	tid := oo.GetNextTid(highPrio)
@@ -4515,10 +4517,10 @@ func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest O
 	}
 	numberOfNoArSections := len(omciTxRequest.OnuSwWindow.Messages) - 1 // last section of window is sent with AR expected
 	if lastSection[cOmciDeviceIdentifierPos] == byte(omci.BaselineIdent) {
-		oo.increaseBaseTxNoArFramesBy(ctx, uint32(numberOfNoArSections))
+		oo.increaseBaseTxNoArFramesBy(uint32(numberOfNoArSections))
 		oo.incrementBaseTxArFrames()
 	} else {
-		oo.increaseExtTxNoArFramesBy(ctx, uint32(numberOfNoArSections))
+		oo.increaseExtTxNoArFramesBy(uint32(numberOfNoArSections))
 		oo.incrementExtTxArFrames()
 	}
 	return nil
@@ -5214,13 +5216,13 @@ func (oo *OmciCC) incrementExtRxAkFrames() {
 	oo.countersExt.rxAkFrames++
 }
 
-func (oo *OmciCC) increaseBaseTxNoArFramesBy(ctx context.Context, value uint32) {
+func (oo *OmciCC) increaseBaseTxNoArFramesBy(value uint32) {
 	oo.mutexCounters.Lock()
 	defer oo.mutexCounters.Unlock()
 	oo.countersBase.txNoArFrames += value
 }
 
-func (oo *OmciCC) increaseExtTxNoArFramesBy(ctx context.Context, value uint32) {
+func (oo *OmciCC) increaseExtTxNoArFramesBy(value uint32) {
 	oo.mutexCounters.Lock()
 	defer oo.mutexCounters.Unlock()
 	oo.countersExt.txNoArFrames += value

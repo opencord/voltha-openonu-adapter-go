@@ -43,8 +43,8 @@ import (
 )
 
 type sLastTxMeParameter struct {
-	lastTxMessageType omci.MessageType
 	pLastTxMeInstance *me.ManagedEntity
+	lastTxMessageType omci.MessageType
 	repeatCount       uint8
 }
 
@@ -117,6 +117,7 @@ func (oo *OnuDeviceEntry) enterResettingMibState(ctx context.Context, e *fsm.Eve
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting VendorId and SerialNumber in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.OnuG_VendorId: "", me.OnuG_SerialNumber: 0}
@@ -141,6 +142,7 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting Version in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.OnuG_Version: ""}
@@ -165,6 +167,7 @@ func (oo *OnuDeviceEntry) enterGettingVersionState(ctx context.Context, e *fsm.E
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingEquipIDAndOmccVersState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting EquipmentId and OMCC version in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.Onu2G_EquipmentId: "", me.Onu2G_OpticalNetworkUnitManagementAndControlChannelOmccVersion: 0}
@@ -189,6 +192,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipIDAndOmccVersState(ctx context.Contex
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterTestingExtOmciSupportState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start testing extended OMCI msg in State": e.FSM.Current(), "device-id": oo.deviceID})
 	omciVerify := otst.NewOmciTestRequest(log.WithSpanFromContext(context.TODO(), ctx),
@@ -221,6 +225,7 @@ func (oo *OnuDeviceEntry) enterTestingExtOmciSupportState(ctx context.Context, e
 	}
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of first SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
@@ -245,6 +250,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting IsActive and Version of second SW-image in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_Version: ""}
@@ -269,6 +275,7 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start getting MacAddress in State": e.FSM.Current(), "device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.IpHostConfigData_MacAddress: ""}
@@ -293,8 +300,8 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *fsm.Event) {
-
 	oo.mutexOnuSwImageIndications.RLock()
 	if oo.onuSwImageIndications.ActiveEntityEntry.Valid {
 		oo.MutexPersOnuConfig.Lock()
@@ -1101,7 +1108,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttri
 			oo.MutexPersOnuConfig.Lock()
 			snBytes, _ := me.InterfaceToOctets(onuGSerialNumber)
 			if cmn.OnugSerialNumberLen == len(snBytes) {
-				snVendorPart := fmt.Sprintf("%s", snBytes[:4])
+				snVendorPart := string(snBytes[:4])
 				snNumberPart := hex.EncodeToString(snBytes[4:])
 				oo.SOnuPersistentData.PersSerialNumber = snVendorPart + snNumberPart
 			} else {
@@ -1304,6 +1311,7 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 	return nil
 }
 
+// nolint: unused,unparam
 func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 	logger.Debugw(ctx, "Request MDS value", log.Fields{"device-id": oo.deviceID})
 	requestedAttributes := me.AttributeValueMap{me.OnuData_MibDataSync: ""}

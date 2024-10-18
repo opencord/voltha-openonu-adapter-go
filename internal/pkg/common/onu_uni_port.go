@@ -39,20 +39,20 @@ func NewOnuUniPort(ctx context.Context, aUniID uint8, aPortNo uint32, aInstNo ui
 	aPortType UniPortType) *OnuUniPort {
 	logger.Infow(ctx, "init-onuUniPort", log.Fields{"uniID": aUniID,
 		"portNo": aPortNo, "InstNo": aInstNo, "type": aPortType})
-	var OnuUniPort OnuUniPort
-	OnuUniPort.Enabled = false
-	OnuUniPort.Name = "uni-" + strconv.FormatUint(uint64(aPortNo), 10)
-	OnuUniPort.PortNo = aPortNo
-	OnuUniPort.PortType = aPortType
+	var onuUniPort OnuUniPort
+	onuUniPort.Enabled = false
+	onuUniPort.Name = "uni-" + strconv.FormatUint(uint64(aPortNo), 10)
+	onuUniPort.PortNo = aPortNo
+	onuUniPort.PortType = aPortType
 	// so far it seems as here ofpPortNo/Name ist the same as the original port name ...??
-	OnuUniPort.OfpPortNo = OnuUniPort.Name
-	OnuUniPort.UniID = aUniID
-	OnuUniPort.MacBpNo = aUniID + 1 //ensure >0 instanceNo
-	OnuUniPort.EntityID = aInstNo
-	OnuUniPort.AdminState = vc.AdminState_ENABLED //enabled per create
-	OnuUniPort.OperState = vc.OperStatus_UNKNOWN
-	OnuUniPort.PPort = nil // to be set on create
-	return &OnuUniPort
+	onuUniPort.OfpPortNo = onuUniPort.Name
+	onuUniPort.UniID = aUniID
+	onuUniPort.MacBpNo = aUniID + 1 //ensure >0 instanceNo
+	onuUniPort.EntityID = aInstNo
+	onuUniPort.AdminState = vc.AdminState_ENABLED //enabled per create
+	onuUniPort.OperState = vc.OperStatus_UNKNOWN
+	onuUniPort.PPort = nil // to be set on create
+	return &onuUniPort
 }
 
 // CreateVolthaPort creates the Voltha port based on ONU UNI Port and informs the core about it

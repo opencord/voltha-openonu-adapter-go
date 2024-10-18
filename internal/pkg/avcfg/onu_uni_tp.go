@@ -67,29 +67,29 @@ type tcontParamStruct struct {
 	schedPolicy uint8
 }
 type gemPortParamStruct struct {
-	//ponOmciCC       bool
-	gemPortID       uint16
-	direction       uint8
-	gemPortEncState uint8
-	prioQueueIndex  uint8
-	pbitString      string
-	discardPolicy   string
+	pbitString    string
+	discardPolicy string
 	//could also be a queue specific parameter, not used that way here
 	//maxQueueSize     uint16
 	queueSchedPolicy string
-	queueWeight      uint8
-	removeGemID      uint16
-	isMulticast      bool
+	staticACL        string
+	dynamicACL       string
+	//ponOmciCC       bool
+	gemPortID   uint16
+	removeGemID uint16
 	//TODO check if this has any value/difference from gemPortId
 	multicastGemPortID uint16
-	staticACL          string
-	dynamicACL         string
+	direction          uint8
+	gemPortEncState    uint8
+	prioQueueIndex     uint8
+	queueWeight        uint8
+	isMulticast        bool
 }
 
 // refers to one tcont and its properties and all assigned GemPorts and their properties
 type tcontGemList struct {
-	tcontParams      tcontParamStruct
 	mapGemPortParams map[uint16]*gemPortParamStruct
+	tcontParams      tcontParamStruct
 }
 
 // refers a unique combination of uniID and tpID for a given ONU.
@@ -100,19 +100,19 @@ type uniTP struct {
 
 // OnuUniTechProf structure holds information about the TechProfiles attached to Uni Ports of the ONU
 type OnuUniTechProf struct {
-	deviceID                 string
 	baseDeviceHandler        cmn.IdeviceHandler
 	onuDevice                cmn.IonuDeviceEntry
-	tpProcMutex              sync.RWMutex
 	chTpConfigProcessingStep chan uint8
 	mapUniTpIndication       map[uniTP]*tTechProfileIndication //use pointer values to ease assignments to the map
 	mapPonAniConfig          map[uniTP]*tcontGemList           //per UNI: use pointer values to ease assignments to the map
 	PAniConfigFsm            map[uniTP]*UniPonAniConfigFsm
 	procResult               map[uniTP]error //error indication of processing
-	mutexTPState             sync.RWMutex
 	tpProfileExists          map[uniTP]bool
 	tpProfileResetting       map[uniTP]bool
 	mapRemoveGemEntry        map[uniTP]*gemPortParamStruct //per UNI: pointer to GemEntry to be removed
+	deviceID                 string
+	tpProcMutex              sync.RWMutex
+	mutexTPState             sync.RWMutex
 }
 
 func (onuTP *OnuUniTechProf) multicastConfiguredForOtherUniTps(ctx context.Context, uniTpKey uniTP) bool {
@@ -384,7 +384,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 
 	//default start with 1Tcont profile, later perhaps extend to MultiTcontMultiGem
 	localMapGemPortParams := make(map[uint16]*gemPortParamStruct)
-	onuTP.mapPonAniConfig[uniTPKey] = &tcontGemList{tcontParamStruct{}, localMapGemPortParams}
+	onuTP.mapPonAniConfig[uniTPKey] = &tcontGemList{localMapGemPortParams, tcontParamStruct{}}
 
 	//note: the code is currently restricted to one TCcont per Onu (index [0])
 	//get the relevant values from the profile and store to mapPonAniConfig
@@ -1028,7 +1028,7 @@ func (onuTP *OnuUniTechProf) GetNumberOfConfiguredUsGemPorts(ctx context.Context
 }
 
 // setProfileResetting sets/resets the indication, that a reset of the TechProfileConfig/Removal is ongoing
-func (onuTP *OnuUniTechProf) setProfileResetting(ctx context.Context, aUniID uint8, aTpID uint8, aState bool) {
+func (onuTP *OnuUniTechProf) setProfileResetting(aUniID uint8, aTpID uint8, aState bool) {
 	uniTpKey := uniTP{uniID: aUniID, tpID: aTpID}
 	onuTP.mutexTPState.Lock()
 	defer onuTP.mutexTPState.Unlock()

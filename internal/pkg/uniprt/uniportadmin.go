@@ -33,17 +33,17 @@ import (
 
 // LockStateFsm defines the structure for the state machine to lock/unlock the ONU UNI ports via OMCI
 type LockStateFsm struct {
-	deviceID                 string
 	pDeviceHandler           cmn.IdeviceHandler
 	pOnuDeviceEntry          cmn.IonuDeviceEntry
 	pOmciCC                  *cmn.OmciCC
-	mutexAdminState          sync.RWMutex
-	adminState               bool
-	requestEvent             cmn.OnuDeviceEvent
 	omciLockResponseReceived chan bool //seperate channel needed for checking UNI port OMCi message responses
 	PAdaptFsm                *cmn.AdapterFsm
-	mutexPLastTxMeInstance   sync.RWMutex
 	pLastTxMeInstance        *me.ManagedEntity
+	deviceID                 string
+	requestEvent             cmn.OnuDeviceEvent
+	mutexAdminState          sync.RWMutex
+	mutexPLastTxMeInstance   sync.RWMutex
+	adminState               bool
 }
 
 // events of lock/unlock UNI port FSM
@@ -439,11 +439,12 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 
 		if (omciAdminState == 1) || (1<<uniPort.UniID)&oFsm.pDeviceHandler.GetUniPortMask() == (1<<uniPort.UniID) {
 			var meInstance *me.ManagedEntity
+			var err error
 			if uniPort.PortType == cmn.UniPPTP {
 				logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
 				oFsm.mutexPLastTxMeInstance.Lock()
-				meInstance, err := oFsm.pOmciCC.SendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx),
+				meInstance, err = oFsm.pOmciCC.SendSetPptpEthUniLS(log.WithSpanFromContext(context.TODO(), ctx),
 					uniPort.EntityID, oFsm.pDeviceHandler.GetOmciTimeout(),
 					true, requestedAttributes, oFsm.PAdaptFsm.CommChan)
 				if err != nil {
@@ -463,7 +464,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				logger.Debugw(ctx, "Setting VEIP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
 				oFsm.mutexPLastTxMeInstance.Lock()
-				meInstance, err := oFsm.pOmciCC.SendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx),
+				meInstance, err = oFsm.pOmciCC.SendSetVeipLS(log.WithSpanFromContext(context.TODO(), ctx),
 					uniPort.EntityID, oFsm.pDeviceHandler.GetOmciTimeout(),
 					true, requestedAttributes, oFsm.PAdaptFsm.CommChan)
 				if err != nil {
@@ -501,7 +502,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 			oFsm.mutexPLastTxMeInstance.RUnlock()
 
 			//verify response
-			err := oFsm.waitforOmciResponse(ctx, meInstance)
+			err = oFsm.waitforOmciResponse(ctx)
 			if err != nil {
 				logger.Errorw(ctx, "UniTP Admin State set failed, aborting LockState set!",
 					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
@@ -520,7 +521,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 	_ = oFsm.PAdaptFsm.PFsm.Event(UniEvRxUnisResp)
 }
 
-func (oFsm *LockStateFsm) waitforOmciResponse(ctx context.Context, apMeInstance *me.ManagedEntity) error {
+func (oFsm *LockStateFsm) waitforOmciResponse(ctx context.Context) error {
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():

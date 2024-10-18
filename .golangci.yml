@@ -21,6 +21,9 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+    enable:
+      - shadow
+      - fieldalignment
   golint:
     min-confidence: 0
 
@@ -32,6 +35,7 @@ linters-settings:
     ignore-words:
       - cancelled
 
+
 linters:
   enable:
     #- gocritic
@@ -39,12 +43,16 @@ linters:
     #- gochecknoinits
     - gocyclo
     - gofmt
-    - golint
     - govet
     - ineffassign
     - misspell
     - gosec
-    #- unparam
+    - errcheck
+    - goimports
+    - gosimple
+    - staticcheck
+    - unused
+    - unparam
 
 run:
   modules-download-mode: vendor
@@ -54,10 +62,15 @@ issues:
     - text: "weak cryptographic primitive"
       linters:
         - gosec
+    - path: ".*_test.go"
+      linters:
+        - govet
+        - fieldalignment
   exclude:
     - "Error return value of `rxCallbackEntry.cbFunction` is not checked"
     - "Error return value of `oo.sendNextRequest` is not checked"
     - "Error return value of `oo.pDevOmciCC.send` is not checked"
     - "Error return value of `onuDeviceEntry.mibDbClass` is not checked"
     - "SA1019: voltha.ImageDownload is deprecated"
+    - 'G115: integer overflow conversion'
   exclude-use-default: false
