@@ -93,7 +93,7 @@ func TwosComplementToSignedInt16(val uint16) int16 {
 // TrimStringFromMeOctet trim string out of Me octet
 func TrimStringFromMeOctet(input interface{}) string {
 	ifBytes, _ := me.InterfaceToOctets(input)
-	return fmt.Sprintf("%s", bytes.Trim(ifBytes, "\x00"))
+	return string(bytes.Trim(ifBytes, "\x00"))
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -55,23 +55,23 @@ const (
 // We initiate an fsmCb per Self Test Request
 type fsmCb struct {
 	fsm          *cmn.AdapterFsm
-	reqMsg       extension.SingleGetValueRequest
 	respChan     chan extension.SingleGetValueResponse
 	stopOmciChan chan bool
+	reqMsg       extension.SingleGetValueRequest
 }
 
 // SelfTestControlBlock - TODO: add comment
 type SelfTestControlBlock struct {
-	deviceID       string
 	pDeviceHandler cmn.IdeviceHandler
 	pDevEntry      cmn.IonuDeviceEntry
 
-	selfTestFsmMap  map[generated.ClassID]*fsmCb // The fsmCb is indexed by ME Class ID of the Test Action procedure
-	selfTestFsmLock sync.RWMutex
+	selfTestFsmMap     map[generated.ClassID]*fsmCb // The fsmCb is indexed by ME Class ID of the Test Action procedure
+	StopSelfTestModule chan bool
+	deviceID           string
+	selfTestFsmLock    sync.RWMutex
 
 	selfTestHandlerLock   sync.RWMutex
 	selfTestHandlerActive bool
-	StopSelfTestModule    chan bool
 }
 
 // NewSelfTestMsgHandlerCb creates the SelfTestControlBlock
@@ -184,6 +184,7 @@ func (selfTestCb *SelfTestControlBlock) triggerFsmEvent(pSelfTestFsm *cmn.Adapte
 	}()
 }
 
+// nolint: unparam
 func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx context.Context, respChan chan extension.SingleGetValueResponse,
 	errorCode extension.GetValueResponse_ErrorReason, statusCode extension.GetValueResponse_Status) {
 	singleValResp := extension.SingleGetValueResponse{

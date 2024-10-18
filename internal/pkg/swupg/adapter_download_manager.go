@@ -45,8 +45,8 @@ import (
 
 // AdapterDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type AdapterDownloadManager struct {
-	mutexDownloadImageDsc sync.RWMutex
 	downloadImageDscSlice []*voltha.ImageDownload
+	mutexDownloadImageDsc sync.RWMutex
 }
 
 // NewAdapterDownloadManager constructor returns a new instance of a AdapterDownloadManager
@@ -173,6 +173,7 @@ func (dm *AdapterDownloadManager) downloadFile(ctx context.Context, aURLName str
 	return nil
 }
 
+// nolint:gosec
 func (dm *AdapterDownloadManager) requestDownload(ctx context.Context, urlBase *url.URL, aFilePath, aFileName string) {
 	req, err2 := http.NewRequest("GET", urlBase.String(), nil)
 	if err2 != nil {
@@ -269,7 +270,7 @@ func (dm *AdapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aF
 		return nil, err
 	}
 	defer func() {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
 			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
 		}

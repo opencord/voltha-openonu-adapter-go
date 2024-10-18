@@ -35,15 +35,17 @@ type AdapterFlags struct {
 	InstanceID                  string
 	KafkaClusterAddress         string // NOTE this is unused across the adapter
 	KVStoreType                 string
-	KVStoreTimeout              time.Duration
 	KVStoreAddress              string
 	EventTopic                  string
 	LogLevel                    string
-	OnuNumber                   int
-	Banner                      bool
-	DisplayVersionOnly          bool
-	AccIncrEvto                 bool
 	ProbeHost                   string
+	TraceAgentAddress           string
+	OnuVendorIds                string
+	AdapterEndpoint             string
+	GrpcAddress                 string
+	CoreEndpoint                string
+	KVStoreTimeout              time.Duration
+	OnuNumber                   int
 	ProbePort                   int
 	LiveProbeInterval           time.Duration
 	NotLiveProbeInterval        time.Duration
@@ -54,12 +56,6 @@ type AdapterFlags struct {
 	TotalReplicas               int
 	MaxTimeoutInterAdapterComm  time.Duration
 	MaxTimeoutReconciling       time.Duration
-	TraceEnabled                bool
-	TraceAgentAddress           string
-	LogCorrelationEnabled       bool
-	OnuVendorIds                string
-	MetricsEnabled              bool
-	ExtendedOmciSupportEnabled  bool
 	MibAuditInterval            time.Duration
 	OmciTimeout                 time.Duration
 	AlarmAuditInterval          time.Duration
@@ -68,13 +64,17 @@ type AdapterFlags struct {
 	UniPortMask                 int
 	MinBackoffRetryDelay        time.Duration
 	MaxBackoffRetryDelay        time.Duration
-	AdapterEndpoint             string
-	GrpcAddress                 string
-	CoreEndpoint                string
 	RPCTimeout                  time.Duration
 	MaxConcurrentFlowsPerUni    int
 	PerRPCRetryTimeout          time.Duration
 	MaxRetries                  uint
+	Banner                      bool
+	DisplayVersionOnly          bool
+	AccIncrEvto                 bool
+	TraceEnabled                bool
+	LogCorrelationEnabled       bool
+	MetricsEnabled              bool
+	ExtendedOmciSupportEnabled  bool
 }
 
 // ParseCommandArguments parses the arguments when running read-write adaptercore service

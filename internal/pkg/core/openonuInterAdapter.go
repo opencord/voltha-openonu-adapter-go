@@ -108,7 +108,7 @@ loop:
 
 		remoteClient = tempClient
 		logger.Debugw(ctx, "received-keep-alive", log.Fields{"remote-client": remoteClient})
-		oo.onuAdapter.updateReachabilityFromRemote(context.Background(), remoteClient)
+		oo.onuAdapter.updateReachabilityFromRemote(remoteClient)
 
 		select {
 		case <-stream.Context().Done():

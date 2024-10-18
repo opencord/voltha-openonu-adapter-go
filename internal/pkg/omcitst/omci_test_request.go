@@ -33,15 +33,15 @@ import (
 
 // OmciTestRequest structure holds the information for the OMCI test
 type OmciTestRequest struct {
-	deviceID     string
 	pDevOmciCC   *cmn.OmciCC
+	verifyDone   chan<- bool
+	deviceID     string
+	txSeqNo      uint16
 	extended     bool
 	started      bool
 	result       bool
 	exclusiveCc  bool
 	allowFailure bool
-	txSeqNo      uint16
-	verifyDone   chan<- bool
 }
 
 // CTestRequestOmciTimeout - Special OMCI timeout for low prio test request
@@ -52,16 +52,16 @@ func NewOmciTestRequest(ctx context.Context,
 	deviceID string, omciCc *cmn.OmciCC, extended bool,
 	exclusive bool, allowFailure bool) *OmciTestRequest {
 	logger.Debug(ctx, "OmciTestRequest-init")
-	var OmciTestRequest OmciTestRequest
-	OmciTestRequest.deviceID = deviceID
-	OmciTestRequest.pDevOmciCC = omciCc
-	OmciTestRequest.extended = extended
-	OmciTestRequest.started = false
-	OmciTestRequest.result = false
-	OmciTestRequest.exclusiveCc = exclusive
-	OmciTestRequest.allowFailure = allowFailure
+	var OmciTestReq OmciTestRequest
+	OmciTestReq.deviceID = deviceID
+	OmciTestReq.pDevOmciCC = omciCc
+	OmciTestReq.extended = extended
+	OmciTestReq.started = false
+	OmciTestReq.result = false
+	OmciTestReq.exclusiveCc = exclusive
+	OmciTestReq.allowFailure = allowFailure
 
-	return &OmciTestRequest
+	return &OmciTestReq
 }
 
 // PerformOmciTest - TODO: add comment

@@ -268,26 +268,27 @@ type pmMEData struct {
 }
 
 type groupMetric struct {
-	groupName              string
-	Enabled                bool
-	Frequency              uint32 // valid only if FrequencyOverride is enabled.
-	metricMap              map[string]voltha.PmConfig_PmType
 	NextCollectionInterval time.Time // valid only if FrequencyOverride is enabled.
-	IsL2PMCounter          bool      // true for only L2 PM counters
-	collectAttempts        uint32    // number of attempts to collect L2 PM data
+	metricMap              map[string]voltha.PmConfig_PmType
 	pmMEData               *pmMEData
+	groupName              string
+	Frequency              uint32 // valid only if FrequencyOverride is enabled.
+	collectAttempts        uint32 // number of attempts to collect L2 PM data
+	Enabled                bool
+	IsL2PMCounter          bool // true for only L2 PM counters
 }
 
 type standaloneMetric struct {
-	metricName             string
-	Enabled                bool
-	Frequency              uint32    // valid only if FrequencyOverride is enabled.
 	NextCollectionInterval time.Time // valid only if FrequencyOverride is enabled.
+	metricName             string
+	Frequency              uint32 // valid only if FrequencyOverride is enabled.
+	Enabled                bool
 }
 
 // OnuMetricsManager - TODO: add comment
 type OnuMetricsManager struct {
-	deviceID        string
+	NextGlobalMetricCollectionTime time.Time // valid only if pmConfig.FreqOverride is set to false.
+
 	pDeviceHandler  cmn.IdeviceHandler
 	pOnuDeviceEntry cmn.IonuDeviceEntry
 	PAdaptFsm       *cmn.AdapterFsm
@@ -300,41 +301,44 @@ type OnuMetricsManager struct {
 	l2PmCreateOrDeleteResponseChan chan bool       // true is success, false is fail
 	extendedPMMeResponseChan       chan me.Results // true is sucesss, false is fail
 
-	activeL2Pms  []string // list of active l2 pm MEs created on the ONU.
-	l2PmToDelete []string // list of L2 PMs to delete
-	l2PmToAdd    []string // list of L2 PM to add
-
 	GroupMetricMap      map[string]*groupMetric
 	StandaloneMetricMap map[string]*standaloneMetric
 
 	StopProcessingOmciResponses chan bool
-	omciProcessingActive        bool
 
-	StopTicks            chan bool
-	tickGenerationActive bool
-
-	deviceDeletionInProgress  bool
+	StopTicks                 chan bool
 	GarbageCollectionComplete chan bool
-
-	NextGlobalMetricCollectionTime time.Time // valid only if pmConfig.FreqOverride is set to false.
-
-	OnuMetricsManagerLock sync.RWMutex
 
 	pmKvStore *db.Backend
 
-	supportedEthernetFrameExtendedPMClass         me.ClassID
 	ethernetFrameExtendedPmUpStreamMEByEntityID   map[uint16]*me.ManagedEntity
 	ethernetFrameExtendedPmDownStreamMEByEntityID map[uint16]*me.ManagedEntity
 	extPmKvStore                                  *db.Backend
-	onuEthernetFrameExtendedPmLock                sync.RWMutex
-	isDeviceReadyToCollectExtendedPmStats         bool
-	isEthernetFrameExtendedPmOperationOngoing     bool
-	isExtendedOmci                                bool
-	maxL2PMGetPayLoadSize                         int
 	onuOpticalMetricstimer                        *time.Timer
 	onuUniStatusMetricstimer                      *time.Timer
 	opticalMetricsDelCommChan                     chan bool
 	uniMetricsDelCommChan                         chan bool
+	deviceID                                      string
+
+	activeL2Pms  []string // list of active l2 pm MEs created on the ONU.
+	l2PmToDelete []string // list of L2 PMs to delete
+	l2PmToAdd    []string // list of L2 PM to add
+
+	maxL2PMGetPayLoadSize int
+
+	OnuMetricsManagerLock sync.RWMutex
+
+	onuEthernetFrameExtendedPmLock sync.RWMutex
+
+	supportedEthernetFrameExtendedPMClass me.ClassID
+	omciProcessingActive                  bool
+
+	tickGenerationActive bool
+
+	deviceDeletionInProgress                  bool
+	isDeviceReadyToCollectExtendedPmStats     bool
+	isEthernetFrameExtendedPmOperationOngoing bool
+	isExtendedOmci                            bool
 }
 
 // NewOnuMetricsManager returns a new instance of the NewOnuMetricsManager
@@ -1335,7 +1339,7 @@ func (mm *OnuMetricsManager) flushMetricCollectionChannels(ctx context.Context) 
 }
 
 // ** L2 PM FSM Handlers start **
-
+// nolint: unused,unparam
 func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) {
 	if mm.GetdeviceDeletionInProgress() {
 		logger.Infow(ctx, "device already deleted, return", log.Fields{"curr-state": mm.PAdaptFsm.PFsm.Current, "deviceID": mm.deviceID})
@@ -1388,6 +1392,7 @@ func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) 
 	}()
 }
 
+// nolint: unused,unparam
 func (mm *OnuMetricsManager) l2PMFsmSyncTime(ctx context.Context, e *fsm.Event) {
 	if mm.GetdeviceDeletionInProgress() {
 		logger.Infow(ctx, "device already deleted, return", log.Fields{"curr-state": mm.PAdaptFsm.PFsm.Current, "deviceID": mm.deviceID})
@@ -1441,6 +1446,8 @@ func (mm *OnuMetricsManager) l2PMFsmNull(ctx context.Context, e *fsm.Event) {
 		mm.GarbageCollectionComplete <- true
 	}
 }
+
+// nolint: unused,unparam
 func (mm *OnuMetricsManager) l2PMFsmIdle(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "Enter state idle", log.Fields{"device-id": mm.deviceID})
 	if mm.GetdeviceDeletionInProgress() {
@@ -1470,6 +1477,7 @@ func (mm *OnuMetricsManager) l2PMFsmIdle(ctx context.Context, e *fsm.Event) {
 	}
 }
 
+// nolint: unused,unparam
 func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "state collect data", log.Fields{"device-id": mm.deviceID})
 	if mm.GetdeviceDeletionInProgress() {
@@ -1538,7 +1546,7 @@ func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 	}()
 }
 
-// nolint: gocyclo
+// nolint: gocyclo,unused,unparam
 func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) error {
 	if mm.GetdeviceDeletionInProgress() {
 		logger.Infow(ctx, "device already deleted, return", log.Fields{"curr-state": mm.PAdaptFsm.PFsm.Current, "deviceID": mm.deviceID})
@@ -1577,8 +1585,7 @@ func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 									_ = p_pmFsm.PFsm.Event(L2PmEventFailure)
 								}(pPMFsm)
 							}
-							return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetPerformanceMonitoringHistoryMe-failed-%s-%s",
-								mm.deviceID, err))
+							return fmt.Errorf("CreateOrDeleteEthernetPerformanceMonitoringHistoryMe-failed-%s-%s", mm.deviceID, err)
 						}
 						if resp = mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetFramePerformanceMonitoringHistoryData"); resp {
 							atLeastOneSuccess = true
@@ -1610,8 +1617,7 @@ func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 							logger.Errorw(ctx, "CreateOrDeleteEthernetUNIHistoryME failed, failure PM FSM!",
 								log.Fields{"device-id": mm.deviceID})
 							_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-							return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetUniHistoryMe-failed-%s-%s",
-								mm.deviceID, err))
+							return fmt.Errorf("CreateOrDeleteEthernetUniHistoryMe-failed-%s-%s", mm.deviceID, err)
 						}
 						if resp = mm.waitForResponseOrTimeout(ctx, true, entityID, "EthernetPerformanceMonitoringHistoryData"); resp {
 							atLeastOneSuccess = true
@@ -1637,8 +1643,7 @@ func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					logger.Errorw(ctx, "CreateOrDeleteFecHistoryME failed, failure PM FSM!",
 						log.Fields{"device-id": mm.deviceID})
 					_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-					return fmt.Errorf(fmt.Sprintf("CreateOrDeleteFecHistoryMe-failed-%s-%s",
-						mm.deviceID, err))
+					return fmt.Errorf("CreateOrDeleteFecHistoryMe-failed-%s-%s", mm.deviceID, err)
 				}
 				_ = mm.updatePmData(ctx, n, anigInstID, cPmAdd) // TODO: ignore error for now
 			inner3:
@@ -1682,8 +1687,7 @@ func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					logger.Errorw(ctx, "CreateOrDeleteGemPortHistoryME failed, failure PM FSM!",
 						log.Fields{"device-id": mm.deviceID})
 					_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-					return fmt.Errorf(fmt.Sprintf("CreateOrDeleteGemPortHistoryMe-failed-%s-%s",
-						mm.deviceID, err))
+					return fmt.Errorf("CreateOrDeleteGemPortHistoryMe-failed-%s-%s", mm.deviceID, err)
 				}
 				_ = mm.updatePmData(ctx, n, v, cPmAdd) // TODO: ignore error for now
 			inner4:
@@ -1746,7 +1750,7 @@ func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 	return nil
 }
 
-// nolint: gocyclo
+// nolint: gocyclo,unused,unparam
 func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) error {
 	if mm.GetdeviceDeletionInProgress() {
 		logger.Infow(ctx, "device already deleted, return", log.Fields{"curr-state": mm.PAdaptFsm.PFsm.Current, "deviceID": mm.deviceID})
@@ -1799,8 +1803,7 @@ func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 									_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
 								}(pPMFsm)
 							}
-							return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetPerformanceMonitoringHistoryMe-failed-%s-%s",
-								mm.deviceID, err))
+							return fmt.Errorf("CreateOrDeleteEthernetPerformanceMonitoringHistoryMe-failed-%s-%s", mm.deviceID, err)
 						}
 						_ = mm.updatePmData(ctx, n, entityID, cPmRemove) // TODO: ignore error for now
 						if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetFramePerformanceMonitoringHistoryData"); !resp {
@@ -1836,8 +1839,7 @@ func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 							}(pmFsm)
 							return err
 						}
-						return fmt.Errorf(fmt.Sprintf("CreateOrDeleteEthernetUniHistoryMe-failed-%s-%s",
-							mm.deviceID, err))
+						return fmt.Errorf("CreateOrDeleteEthernetUniHistoryMe-failed-%s-%s", mm.deviceID, err)
 					}
 					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "EthernetPerformanceMonitoringHistoryData"); !resp {
 						if mm.GetdeviceDeletionInProgress() {
@@ -1865,10 +1867,9 @@ func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 						logger.Errorw(ctx, "CreateOrDeleteFecHistoryME failed, failure PM FSM!",
 							log.Fields{"device-id": mm.deviceID})
 						_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-						return fmt.Errorf(fmt.Sprintf("CreateOrDeleteFecHistoryMe-failed-%s-%s",
-							mm.deviceID, err))
+						return fmt.Errorf("CreateOrDeleteFecHistoryMe-failed-%s-%s", mm.deviceID, err)
 					}
-					if resp := mm.waitForResponseOrTimeout(ctx, false, entityID, "FecPerformanceMonitoringHistoryData"); !resp {
+					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "FecPerformanceMonitoringHistoryData"); !resp {
 						if mm.GetdeviceDeletionInProgress() {
 							logger.Debugw(ctx, "device deleted, no more pm processing", log.Fields{"deviceID": mm.deviceID})
 							return nil
@@ -1894,8 +1895,7 @@ func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 						logger.Errorw(ctx, "CreateOrDeleteGemPortHistoryME failed, failure PM FSM!",
 							log.Fields{"device-id": mm.deviceID})
 						_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-						return fmt.Errorf(fmt.Sprintf("CreateOrDeleteGemPortHistoryMe-failed-%s-%s",
-							mm.deviceID, err))
+						return fmt.Errorf("CreateOrDeleteGemPortHistoryMe-failed-%s-%s", mm.deviceID, err)
 					}
 					if resp = mm.waitForResponseOrTimeout(ctx, false, entityID, "GemPortNetworkCtpPerformanceMonitoringHistoryData"); !resp {
 						if mm.GetdeviceDeletionInProgress() {
@@ -1952,7 +1952,6 @@ func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 }
 
 // ** L2 PM FSM Handlers end **
-
 // syncTime synchronizes time with the ONU to establish a 15 min boundary for PM collection and reporting.
 func (mm *OnuMetricsManager) syncTime(ctx context.Context) error {
 	if mm.GetdeviceDeletionInProgress() {
@@ -1987,7 +1986,6 @@ func (mm *OnuMetricsManager) collectEthernetFramePerformanceMonitoringHistoryDat
 	var mEnt *me.ManagedEntity
 	var omciErr me.OmciErrors
 	var classID me.ClassID
-	var meAttributes me.AttributeValueMap
 	logger.Debugw(ctx, "collecting data for EthernetFramePerformanceMonitoringHistoryData", log.Fields{"device-id": mm.deviceID, "entityID": entityID, "upstream": upstream})
 	meParam := me.ParamData{EntityID: entityID}
 	if upstream {
@@ -2006,7 +2004,7 @@ func (mm *OnuMetricsManager) collectEthernetFramePerformanceMonitoringHistoryDat
 
 	intervalEndTime := -1
 	ethPMHistData := make(map[string]float32)
-	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, ethPMHistData, &intervalEndTime); err != nil {
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, ethPMHistData, &intervalEndTime); err != nil {
 		return nil
 	}
 
@@ -2032,7 +2030,6 @@ func (mm *OnuMetricsManager) collectEthernetUniHistoryData(ctx context.Context, 
 	var mEnt *me.ManagedEntity
 	var omciErr me.OmciErrors
 	var classID me.ClassID
-	var meAttributes me.AttributeValueMap
 	logger.Debugw(ctx, "collecting data for EthernetFramePerformanceMonitoringHistoryData", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 	meParam := me.ParamData{EntityID: entityID}
 	if mEnt, omciErr = me.NewEthernetPerformanceMonitoringHistoryData(meParam); omciErr == nil || mEnt == nil || omciErr.GetError() != nil {
@@ -2043,7 +2040,7 @@ func (mm *OnuMetricsManager) collectEthernetUniHistoryData(ctx context.Context, 
 
 	intervalEndTime := -1
 	ethUniHistData := make(map[string]float32)
-	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, ethUniHistData, &intervalEndTime); err != nil {
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, ethUniHistData, &intervalEndTime); err != nil {
 		return nil
 	}
 
@@ -2062,7 +2059,6 @@ func (mm *OnuMetricsManager) collectFecHistoryData(ctx context.Context, entityID
 	var mEnt *me.ManagedEntity
 	var omciErr me.OmciErrors
 	var classID me.ClassID
-	var meAttributes me.AttributeValueMap
 	logger.Debugw(ctx, "collecting data for FecPerformanceMonitoringHistoryData", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 	meParam := me.ParamData{EntityID: entityID}
 	if mEnt, omciErr = me.NewFecPerformanceMonitoringHistoryData(meParam); omciErr == nil || mEnt == nil || omciErr.GetError() != nil {
@@ -2073,7 +2069,7 @@ func (mm *OnuMetricsManager) collectFecHistoryData(ctx context.Context, entityID
 
 	intervalEndTime := -1
 	fecHistData := make(map[string]float32)
-	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, fecHistData, &intervalEndTime); err != nil {
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, fecHistData, &intervalEndTime); err != nil {
 		return nil
 	}
 
@@ -2092,7 +2088,6 @@ func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID
 	var mEnt *me.ManagedEntity
 	var omciErr me.OmciErrors
 	var classID me.ClassID
-	var meAttributes me.AttributeValueMap
 	logger.Debugw(ctx, "collecting data for GemPortNetworkCtpPerformanceMonitoringHistoryData", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 	meParam := me.ParamData{EntityID: entityID}
 	if mEnt, omciErr = me.NewGemPortNetworkCtpPerformanceMonitoringHistoryData(meParam); omciErr == nil || mEnt == nil || omciErr.GetError() != nil {
@@ -2103,7 +2098,7 @@ func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID
 
 	intervalEndTime := -1
 	gemHistData := make(map[string]float32)
-	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, gemHistData, &intervalEndTime); err != nil {
+	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, gemHistData, &intervalEndTime); err != nil {
 		return nil
 	}
 
@@ -2138,7 +2133,7 @@ func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 			}(pmFsm)
 			return err
 		}
-		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.deviceID, err))
+		return fmt.Errorf("GetME-failed-%s-%s", mm.deviceID, err)
 	}
 	if meInstance != nil {
 		select {
@@ -2241,7 +2236,7 @@ func (mm *OnuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	if err != nil {
 		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.deviceID, err))
+		return fmt.Errorf("GetME-failed-%s-%s", mm.deviceID, err)
 	}
 	if meInstance != nil {
 		select {
@@ -2344,7 +2339,7 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	if err != nil {
 		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.deviceID, err))
+		return fmt.Errorf("GetME-failed-%s-%s", mm.deviceID, err)
 	}
 	if meInstance != nil {
 		select {
@@ -2411,7 +2406,7 @@ func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 	if err != nil {
 		logger.Errorw(ctx, "GetMe failed", log.Fields{"device-id": mm.deviceID})
 		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
-		return fmt.Errorf(fmt.Sprintf("GetME-failed-%s-%s", mm.deviceID, err))
+		return fmt.Errorf("GetME-failed-%s-%s", mm.deviceID, err)
 	}
 	if meInstance != nil {
 		select {
@@ -2573,8 +2568,9 @@ func (mm *OnuMetricsManager) handleMetricsPublish(ctx context.Context, metricNam
 }
 
 func (mm *OnuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, mEnt *me.ManagedEntity, classID me.ClassID, entityID uint16,
-	meAttributes me.AttributeValueMap, data map[string]float32, intervalEndTime *int) error {
+	data map[string]float32, intervalEndTime *int) error {
 	var grpFunc groupMetricPopulateFunc
+	var meAttributes me.AttributeValueMap
 	switch classID {
 	case me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID, me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID:
 		grpFunc = mm.populateEthernetBridgeHistoryMetrics
@@ -2684,6 +2680,7 @@ func (mm *OnuMetricsManager) waitForResponseOrTimeout(ctx context.Context, creat
 	return false
 }
 
+// nolint: unparam
 func (mm *OnuMetricsManager) initializeGroupMetric(grpMtrcs map[string]voltha.PmConfig_PmType, grpName string, grpEnabled bool, grpFreq uint32) {
 	var pmConfigSlice []*voltha.PmConfig
 	for k, v := range grpMtrcs {
@@ -2910,7 +2907,7 @@ func (mm *OnuMetricsManager) restorePmData(ctx context.Context) error {
 	logger.Debugw(ctx, "restorePmData - start", log.Fields{"device-id": mm.deviceID})
 	if mm.pmKvStore == nil {
 		logger.Errorw(ctx, "pmKvStore not set - abort", log.Fields{"device-id": mm.deviceID})
-		return fmt.Errorf(fmt.Sprintf("pmKvStore-not-set-abort-%s", mm.deviceID))
+		return fmt.Errorf("pmKvStore-not-set-abort-%s", mm.deviceID)
 	}
 	var errorsList []error
 	for groupName, group := range mm.GroupMetricMap {
@@ -2924,7 +2921,7 @@ func (mm *OnuMetricsManager) restorePmData(ctx context.Context) error {
 
 				if err = json.Unmarshal(tmpBytes, &group.pmMEData); err != nil {
 					logger.Errorw(ctx, "unable to unmarshal PM data", log.Fields{"error": err, "device-id": mm.deviceID})
-					errorsList = append(errorsList, fmt.Errorf(fmt.Sprintf("unable-to-unmarshal-PM-data-%s-for-group-%s", mm.deviceID, groupName)))
+					errorsList = append(errorsList, fmt.Errorf("unable-to-unmarshal-PM-data-%s-for-group-%s", mm.deviceID, groupName))
 					continue
 				}
 				logger.Debugw(ctx, "restorePmData - success", log.Fields{"pmData": group.pmMEData, "groupName": groupName, "device-id": mm.deviceID})
@@ -2934,7 +2931,7 @@ func (mm *OnuMetricsManager) restorePmData(ctx context.Context) error {
 			}
 		} else {
 			logger.Errorw(ctx, "restorePmData - fail", log.Fields{"device-id": mm.deviceID, "groupName": groupName, "err": err})
-			errorsList = append(errorsList, fmt.Errorf(fmt.Sprintf("unable-to-read-from-KVstore-%s-for-group-%s", mm.deviceID, groupName)))
+			errorsList = append(errorsList, fmt.Errorf("unable-to-read-from-KVstore-%s-for-group-%s", mm.deviceID, groupName))
 			continue
 		}
 	}
@@ -2990,7 +2987,7 @@ func (mm *OnuMetricsManager) updatePmData(ctx context.Context, groupName string,
 
 	if mm.pmKvStore == nil {
 		logger.Errorw(ctx, "pmKvStore not set - abort", log.Fields{"device-id": mm.deviceID})
-		return fmt.Errorf(fmt.Sprintf("pmKvStore-not-set-abort-%s", mm.deviceID))
+		return fmt.Errorf("pmKvStore-not-set-abort-%s", mm.deviceID)
 	}
 
 	pmMEData, err := mm.getPmData(ctx, groupName)
@@ -3017,7 +3014,7 @@ func (mm *OnuMetricsManager) updatePmData(ctx context.Context, groupName string,
 		pmMEData.InstancesActive = mm.removeIfFoundUint16(pmMEData.InstancesActive, meInstanceID)
 	default:
 		logger.Errorw(ctx, "unknown pm action", log.Fields{"device-id": mm.deviceID, "pmAction": pmAction, "groupName": groupName})
-		return fmt.Errorf(fmt.Sprintf("unknown-pm-action-deviceid-%s-groupName-%s-pmaction-%s", mm.deviceID, groupName, pmAction))
+		return fmt.Errorf("unknown-pm-action-deviceid-%s-groupName-%s-pmaction-%s", mm.deviceID, groupName, pmAction)
 	}
 	// write through cache
 	mm.GroupMetricMap[groupName].pmMEData = pmMEData
@@ -3047,7 +3044,7 @@ func (mm *OnuMetricsManager) clearPmGroupData(ctx context.Context) error {
 	logger.Debugw(ctx, "clearPmGroupData - start", log.Fields{"device-id": mm.deviceID})
 	if mm.pmKvStore == nil {
 		logger.Errorw(ctx, "pmKvStore not set - abort", log.Fields{"device-id": mm.deviceID})
-		return fmt.Errorf(fmt.Sprintf("pmKvStore-not-set-abort-%s", mm.deviceID))
+		return fmt.Errorf("pmKvStore-not-set-abort-%s", mm.deviceID)
 	}
 
 	for n := range mm.GroupMetricMap {
@@ -3069,7 +3066,7 @@ func (mm *OnuMetricsManager) ClearAllPmData(ctx context.Context) error {
 	logger.Debugw(ctx, "ClearAllPmData - start", log.Fields{"device-id": mm.deviceID})
 	if mm.pmKvStore == nil {
 		logger.Errorw(ctx, "pmKvStore not set - abort", log.Fields{"device-id": mm.deviceID})
-		return fmt.Errorf(fmt.Sprintf("pmKvStore-not-set-abort-%s", mm.deviceID))
+		return fmt.Errorf("pmKvStore-not-set-abort-%s", mm.deviceID)
 	}
 	var value error
 	for n := range mm.GroupMetricMap {
@@ -3219,7 +3216,7 @@ func (mm *OnuMetricsManager) tryCreateExtPmMe(ctx context.Context, meType me.Cla
 			}
 			logger.Debugw(ctx, "try-creating-extended-pm-me", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 			// parent entity id will be same for both direction
-			controlBlock := mm.getControlBlockForExtendedPMDirection(ctx, direction, uniPort.EntityID, false)
+			controlBlock := mm.getControlBlockForExtendedPMDirection(direction, uniPort.EntityID, false)
 
 		inner1:
 			// retry ExtendedPmCreateAttempts times to create the instance of PM
@@ -3290,7 +3287,7 @@ func (mm *OnuMetricsManager) CreateEthernetFrameExtendedPMME(ctx context.Context
 	}
 	if exist {
 		// we have the me type, go ahead with the me type supported.
-		if _, err := mm.tryCreateExtPmMe(ctx, mm.supportedEthernetFrameExtendedPMClass); err != nil {
+		if _, err = mm.tryCreateExtPmMe(ctx, mm.supportedEthernetFrameExtendedPMClass); err != nil {
 			logger.Errorw(ctx, "unable-to-create-me-type", log.Fields{"device-id": mm.deviceID,
 				"meClassID": mm.supportedEthernetFrameExtendedPMClass})
 			return
@@ -3300,13 +3297,15 @@ func (mm *OnuMetricsManager) CreateEthernetFrameExtendedPMME(ctx context.Context
 	}
 	// First try with 64 bit me
 	// we have the me type, go ahead with the me type supported.
-	supported64Bit, err := mm.tryCreateExtPmMe(ctx, me.EthernetFrameExtendedPm64BitClassID)
+	var supported64Bit bool
+	var supported32Bit bool
+	supported64Bit, err = mm.tryCreateExtPmMe(ctx, me.EthernetFrameExtendedPm64BitClassID)
 	if err != nil && !supported64Bit {
 		logger.Errorw(ctx, "unable-to-create-me-type-as-it-is-not-supported",
 			log.Fields{"device-id": mm.deviceID, "meClassID": me.EthernetFrameExtendedPm64BitClassID,
 				"supported": supported64Bit})
 		// Then Try with 32 bit type
-		if supported32Bit, err := mm.tryCreateExtPmMe(ctx, me.EthernetFrameExtendedPmClassID); err != nil {
+		if supported32Bit, err = mm.tryCreateExtPmMe(ctx, me.EthernetFrameExtendedPmClassID); err != nil {
 			logger.Errorw(ctx, "unable-to-create-me-type", log.Fields{"device-id": mm.deviceID,
 				"meClassID": me.EthernetFrameExtendedPmClassID, "supported": supported32Bit})
 		} else if supported32Bit {
@@ -3327,7 +3326,7 @@ func (mm *OnuMetricsManager) setControlBlockResetFlagForEthernetExtendedPMME(ctx
 	if upstream {
 		uniPortEntityID = entityID - 0x100
 	}
-	controlBlock := mm.getControlBlockForExtendedPMDirection(ctx, upstream, uniPortEntityID, reset)
+	controlBlock := mm.getControlBlockForExtendedPMDirection(upstream, uniPortEntityID, reset)
 	_, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendSetEthernetFrameExtendedPMME(ctx,
 		mm.pDeviceHandler.GetOmciTimeout(), true,
 		mm.PAdaptFsm.CommChan, entityID, mm.supportedEthernetFrameExtendedPMClass, controlBlock)
@@ -3490,10 +3489,10 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 		counterFormat = extension.GetOmciEthernetFrameExtendedPmResponse_THIRTY_TWO_BIT
 	}
 	if !onuInfo.Reset_ {
-		for entityID, meEnt := range upstreamEntityMap {
+		for entityID := range upstreamEntityMap {
 			logger.Debugw(ctx, "collect-upstream-pm-counters-for-entity-id", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 			var receivedMask uint16
-			if metricInfo, errResp, err := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, true, &receivedMask); metricInfo != nil { // upstream
+			if metricInfo, errResp, err := mm.collectEthernetFrameExtendedPMData(ctx, entityID, true, &receivedMask); metricInfo != nil { // upstream
 				if receivedMask == 0 {
 					pmUpstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmUpstream, false)
 					logger.Error(ctx, "all-the-attributes-of-ethernet-frame-extended-pm-counters-for-upstream-are-unsupported")
@@ -3508,10 +3507,10 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 			}
 		}
 
-		for entityID, meEnt := range downstreamEntityMap {
+		for entityID := range downstreamEntityMap {
 			logger.Debugw(ctx, "collect-downstream-pm-counters-for-entity-id", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 			var receivedMask uint16
-			if metricInfo, errResp, err := mm.collectEthernetFrameExtendedPMData(ctx, meEnt, entityID, false, &receivedMask); metricInfo != nil { // downstream
+			if metricInfo, errResp, err := mm.collectEthernetFrameExtendedPMData(ctx, entityID, false, &receivedMask); metricInfo != nil { // downstream
 				if receivedMask == 0 {
 					pmDownstream = mm.aggregateEthernetFrameExtendedPM(metricInfo, pmDownstream, false)
 					logger.Error(ctx, "all-the-attributes-of-ethernet-frame-extended-pm-counters-for-downstream-are-unsupported")
@@ -3540,7 +3539,7 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 	return &singleValResp
 }
 
-func (mm *OnuMetricsManager) collectEthernetFrameExtendedPMData(ctx context.Context, meEnt *me.ManagedEntity, entityID uint16, upstream bool, receivedMask *uint16) (map[string]uint64, extension.GetValueResponse_ErrorReason, error) {
+func (mm *OnuMetricsManager) collectEthernetFrameExtendedPMData(ctx context.Context, entityID uint16, upstream bool, receivedMask *uint16) (map[string]uint64, extension.GetValueResponse_ErrorReason, error) {
 	var classID me.ClassID
 	logger.Debugw(ctx, "collecting-data-for-ethernet-frame-extended-pm", log.Fields{"device-id": mm.deviceID, "entityID": entityID, "upstream": upstream})
 
@@ -3588,11 +3587,11 @@ func (mm *OnuMetricsManager) populateEthernetFrameExtendedPMMetrics(ctx context.
 		return extension.GetValueResponse_TIMEOUT, fmt.Errorf("timeout-waiting-for-omci-get-response-for-received-extended-pm-data")
 	}
 	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
-		mask := mm.getEthFrameExtPMDataFromResponse(ctx, ethFrameExtPMData, meAttributes, requestedAttributesMask)
+		mask := mm.getEthFrameExtPMDataFromResponse(ethFrameExtPMData, meAttributes, requestedAttributesMask)
 		*sumReceivedMask += mask
 		logger.Debugw(ctx, "data-received-for-ethernet-frame-ext-pm", log.Fields{"data": ethFrameExtPMData, "entityID": entityID})
 	} else {
-		mask := mm.getEthFrameExtPM64BitDataFromResponse(ctx, ethFrameExtPMData, meAttributes, requestedAttributesMask)
+		mask := mm.getEthFrameExtPM64BitDataFromResponse(ethFrameExtPMData, meAttributes, requestedAttributesMask)
 		*sumReceivedMask += mask
 		logger.Debugw(ctx, "data-received-for-ethernet-frame-ext-pm", log.Fields{"data": ethFrameExtPMData, "entityID": entityID})
 	}
@@ -3617,7 +3616,7 @@ func (mm *OnuMetricsManager) fillAllErrorCountersEthernetFrameExtendedPM(ethFram
 }
 
 // nolint: gocyclo
-func (mm *OnuMetricsManager) getEthFrameExtPMDataFromResponse(ctx context.Context, ethFrameExtPMData map[string]uint64, meAttributes me.AttributeValueMap, requestedAttributesMask uint16) uint16 {
+func (mm *OnuMetricsManager) getEthFrameExtPMDataFromResponse(ethFrameExtPMData map[string]uint64, meAttributes me.AttributeValueMap, requestedAttributesMask uint16) uint16 {
 	receivedMask := uint16(0)
 	switch requestedAttributesMask {
 	case 0x3F00:
@@ -3752,7 +3751,7 @@ func (mm *OnuMetricsManager) getEthFrameExtPMDataFromResponse(ctx context.Contex
 }
 
 // nolint: gocyclo
-func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.Context, ethFrameExtPMData map[string]uint64, meAttributes me.AttributeValueMap, requestedAttributesMask uint16) uint16 {
+func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ethFrameExtPMData map[string]uint64, meAttributes me.AttributeValueMap, requestedAttributesMask uint16) uint16 {
 	receivedMask := uint16(0)
 	switch requestedAttributesMask {
 	case 0x3800:
@@ -3993,7 +3992,7 @@ func (mm *OnuMetricsManager) aggregateEthernetFrameExtendedPM(pmDataIn map[strin
 	return pmDataOut
 }
 
-func (mm *OnuMetricsManager) getControlBlockForExtendedPMDirection(ctx context.Context, upstream bool, entityID uint16, reset bool) []uint16 {
+func (mm *OnuMetricsManager) getControlBlockForExtendedPMDirection(upstream bool, entityID uint16, reset bool) []uint16 {
 	controlBlock := make([]uint16, 8)
 	// Control Block First two bytes are for threshold data 1/2 id - does not matter here
 	controlBlock[0] = 0

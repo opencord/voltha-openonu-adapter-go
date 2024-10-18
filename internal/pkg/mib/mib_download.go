@@ -108,6 +108,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDownloadedState(ctx context.Context, 
 	}
 }
 
+// nolint: unused,unparam
 func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM resetting", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	pMibDlFsm := onuDeviceEntry.PMibDownloadFsm
@@ -324,7 +325,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		onuDeviceEntry.pLastTxMeInstance = meInstance
 		onuDeviceEntry.mutexPLastTxMeInstance.Unlock()
 		//verify response
-		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
+		err = onuDeviceEntry.waitforOmciResponse(ctx)
 		if err != nil {
 			logger.Errorw(ctx, "InitialBridgeSetup failed at MBSP, aborting MIB Download!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
@@ -346,7 +347,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		onuDeviceEntry.pLastTxMeInstance = meInstance
 		onuDeviceEntry.mutexPLastTxMeInstance.Unlock()
 		//verify response
-		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
+		err = onuDeviceEntry.waitforOmciResponse(ctx)
 		if err != nil {
 			logger.Errorw(ctx, "InitialBridgeSetup failed at MBPCD, aborting MIB Download!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
@@ -368,7 +369,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		onuDeviceEntry.pLastTxMeInstance = meInstance
 		onuDeviceEntry.mutexPLastTxMeInstance.Unlock()
 		//verify response
-		err = onuDeviceEntry.waitforOmciResponse(ctx, meInstance)
+		err = onuDeviceEntry.waitforOmciResponse(ctx)
 		if err != nil {
 			logger.Errorw(ctx, "InitialBridgeSetup failed at EVTOCD, aborting MIB Download!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
@@ -382,7 +383,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 	_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvRxBridgeResp)
 }
 
-func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, apMeInstance *me.ManagedEntity) error {
+func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context) error {
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)
 	// case <-ctx.Done():
