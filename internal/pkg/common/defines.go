@@ -51,8 +51,8 @@ func (m MessageType) String() string {
 
 // Message - message type and data(OMCI)
 type Message struct {
-	Type MessageType
 	Data interface{}
+	Type MessageType
 }
 
 // TestMessageType - message data for various events
@@ -214,9 +214,9 @@ const (
 
 // SEntrySwImageIndication - TODO: add comment
 type SEntrySwImageIndication struct {
-	Valid       bool
-	EntityID    uint16
 	Version     string
+	EntityID    uint16
+	Valid       bool
 	IsCommitted uint8
 }
 
@@ -243,10 +243,10 @@ type OmciDeviceFsms map[string]activityDescr
 
 // AdapterFsm - Adapter FSM details including channel, event and  device
 type AdapterFsm struct {
-	fsmName  string
-	deviceID string
 	CommChan chan Message
 	PFsm     *fsm.FSM
+	fsmName  string
+	deviceID string
 }
 
 // CErrWaitAborted - AdapterFsm related error string
@@ -271,17 +271,17 @@ const (
 
 // OnuUniPort structure holds information about the ONU attached Uni Ports
 type OnuUniPort struct {
-	Enabled    bool
+	PPort      *voltha.Port
 	Name       string
-	PortNo     uint32
-	PortType   UniPortType
 	OfpPortNo  string
-	UniID      uint8
-	MacBpNo    uint8
-	EntityID   uint16
+	PortNo     uint32
 	AdminState vc.AdminState_Types
 	OperState  vc.OperStatus_Types
-	PPort      *voltha.Port
+	EntityID   uint16
+	Enabled    bool
+	PortType   UniPortType
+	UniID      uint8
+	MacBpNo    uint8
 }
 
 // OnuUniPortMap - TODO: add comment
@@ -309,21 +309,21 @@ const (
 
 // UniVlanRuleParams - TODO: add comment
 type UniVlanRuleParams struct {
-	TpID         uint8  `json:"tp_id"`
 	MatchVid     uint32 `json:"match_vid"` //use uint32 types for allowing immediate bitshifting
 	MatchPcp     uint32 `json:"match_pcp"`
 	TagsToRemove uint32 `json:"tags_to_remove"`
 	SetVid       uint32 `json:"set_vid"`
 	SetPcp       uint32 `json:"set_pcp"`
 	InnerCvlan   uint16 `json:"inner_cvlan"`
+	TpID         uint8  `json:"tp_id"`
 }
 
 // UniVlanFlowParams - TODO: add comment
 type UniVlanFlowParams struct {
-	CookieSlice    []uint64            `json:"cookie_slice"`
-	VlanRuleParams UniVlanRuleParams   `json:"vlan_rule_params"`
 	Meter          *ofp.OfpMeterConfig `json:"flow_meter"`
 	RespChan       *chan error         `json:"-"`
+	CookieSlice    []uint64            `json:"cookie_slice"`
+	VlanRuleParams UniVlanRuleParams   `json:"vlan_rule_params"`
 }
 
 ///////////////////////////////////////////////////////////

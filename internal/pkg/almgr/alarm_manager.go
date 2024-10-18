@@ -90,36 +90,36 @@ type onuDevice struct {
 }
 type onuDeviceEvent struct {
 	EventName        string
+	EventDescription string
 	EventCategory    eventif.EventCategory
 	EventSubCategory eventif.EventSubCategory
-	EventDescription string
 }
 
 // OnuAlarmManager holds alarm manager related data
 type OnuAlarmManager struct {
-	deviceID                   string
 	pDeviceHandler             cmn.IdeviceHandler
 	pOnuDeviceEntry            cmn.IonuDeviceEntry
 	eventProxy                 eventif.EventProxy
 	StopProcessingOmciMessages chan bool
 	eventChannel               chan cmn.Message
-	onuAlarmManagerLock        sync.RWMutex
-	processMessage             bool
 	activeAlarms               alarms
 	alarmBitMapDB              alarmBitMapDB
 	onuEventsList              map[onuDevice]onuDeviceEvent
-	lastAlarmSequence          uint8
 	AlarmSyncFsm               *cmn.AdapterFsm
 	oltDbCopy                  alarmBitMapDB
 	onuDBCopy                  alarmBitMapDB
+	StopAlarmAuditTimer        chan struct{}
+	AsyncAlarmsCommChan        chan struct{}
+	deviceID                   string
 	bufferedNotifications      []*omci.AlarmNotificationMsg
+	onuAlarmManagerLock        sync.RWMutex
+	onuAlarmRequestLock        sync.RWMutex
 	alarmUploadSeqNo           uint16
 	alarmUploadNoOfCmdsOrMEs   uint16
-	StopAlarmAuditTimer        chan struct{}
+	processMessage             bool
+	lastAlarmSequence          uint8
 	isExtendedOmci             bool
-	AsyncAlarmsCommChan        chan struct{}
 	isAsyncAlarmRequest        bool
-	onuAlarmRequestLock        sync.RWMutex
 }
 
 // NewAlarmManager - TODO: add comment
@@ -428,7 +428,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmsResponseMessage(ctx context.Con
 			am.oltDbCopy[alarms] = bitmap
 		}
 		am.onuAlarmManagerLock.Unlock()
-		if am.isAlarmDBDiffPresent(ctx) {
+		if am.isAlarmDBDiffPresent() {
 			// transition to resync state
 			go func() {
 				if err := am.AlarmSyncFsm.PFsm.Event(AsEvResync); err != nil {
@@ -510,7 +510,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 		} //TODO: needs to handle timeouts
 	} else {
 		am.onuAlarmManagerLock.RUnlock()
-		if am.isAlarmDBDiffPresent(ctx) {
+		if am.isAlarmDBDiffPresent() {
 			// transition to resync state
 			go func() {
 				if err := am.AlarmSyncFsm.PFsm.Event(AsEvResync); err != nil {
@@ -730,7 +730,7 @@ func (am *OnuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 	context["onu-serial-number"] = serialNo
 
 	raisedTimestamp := time.Now().Unix()
-	eventDetails, err := am.getDeviceEventData(ctx, classID, alarm)
+	eventDetails, err := am.getDeviceEventData(classID, alarm)
 	if err != nil {
 		logger.Warn(ctx, "event-details-for-alarm-not-found", log.Fields{"alarm-no": alarm, "class-id": classID})
 		return
@@ -752,7 +752,7 @@ func (am *OnuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 		raisedTimestamp)
 }
 
-func (am *OnuAlarmManager) isAlarmDBDiffPresent(ctx context.Context) bool {
+func (am *OnuAlarmManager) isAlarmDBDiffPresent() bool {
 	return !reflect.DeepEqual(am.onuDBCopy, am.oltDbCopy)
 }
 
@@ -785,7 +785,7 @@ func (am *OnuAlarmManager) flushAlarmSyncChannels(ctx context.Context) {
 }
 
 // getDeviceEventData returns the event data for a device
-func (am *OnuAlarmManager) getDeviceEventData(ctx context.Context, classID me.ClassID, alarmNo uint8) (onuDeviceEvent, error) {
+func (am *OnuAlarmManager) getDeviceEventData(classID me.ClassID, alarmNo uint8) (onuDeviceEvent, error) {
 	if onuEventDetails, ok := am.onuEventsList[onuDevice{classID: classID, alarmno: alarmNo}]; ok {
 		return onuEventDetails, nil
 	}

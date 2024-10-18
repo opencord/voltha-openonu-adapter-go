@@ -53,22 +53,22 @@ type unknownMeAndAttribDbMap map[UnknownMeOrAttribName]map[me.ClassID]map[uint16
 // OnuDeviceDB structure holds information about ME's
 type OnuDeviceDB struct {
 	ctx                  context.Context
-	deviceID             string
 	MeDb                 meDbMap
-	meDbLock             sync.RWMutex
 	UnknownMeAndAttribDb unknownMeAndAttribDbMap
+	deviceID             string
+	meDbLock             sync.RWMutex
 }
 
 // NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
 func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	logger.Debugw(ctx, "Init OnuDeviceDB for:", log.Fields{"device-id": aDeviceID})
-	var OnuDeviceDB OnuDeviceDB
-	OnuDeviceDB.ctx = ctx
-	OnuDeviceDB.deviceID = aDeviceID
-	OnuDeviceDB.MeDb = make(meDbMap)
-	OnuDeviceDB.UnknownMeAndAttribDb = make(unknownMeAndAttribDbMap)
+	var OnuDevDB OnuDeviceDB
+	OnuDevDB.ctx = ctx
+	OnuDevDB.deviceID = aDeviceID
+	OnuDevDB.MeDb = make(meDbMap)
+	OnuDevDB.UnknownMeAndAttribDb = make(unknownMeAndAttribDbMap)
 
-	return &OnuDeviceDB
+	return &OnuDevDB
 }
 
 // PutMe puts an ME instance into internal ONU DB
@@ -123,7 +123,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32
 	case reflect.Uint32:
 		return meAttribute.(uint32), nil
 	default:
-		return uint32(0), fmt.Errorf(fmt.Sprintf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID))
+		return uint32(0), fmt.Errorf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID)
 	}
 }
 
@@ -137,7 +137,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint16Attrib(meAttribute interface{}) (uint16
 	case reflect.Uint16:
 		return meAttribute.(uint16), nil
 	default:
-		return uint16(0), fmt.Errorf(fmt.Sprintf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID))
+		return uint16(0), fmt.Errorf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID)
 	}
 }
 
