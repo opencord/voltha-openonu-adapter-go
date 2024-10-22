@@ -51,6 +51,7 @@ import (
 
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
+	devdb "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/devdb"
 	pmmgr "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/pmmgr"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/swupg"
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
@@ -99,6 +100,8 @@ type OpenONUAC struct {
 	rpcTimeout                  time.Duration
 	maxConcurrentFlowsPerUni    int
 	skipOnuConfig               bool
+	mutexMibDatabaseMap         sync.RWMutex
+	MibDatabaseMap              devdb.OnuMCmnMEDBMap
 }
 
 // NewOpenONUAC returns a new instance of OpenONU_AC
@@ -159,6 +162,8 @@ func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy even
 	openOnuAc.pFileManager = swupg.NewFileDownloadManager(ctx)
 	openOnuAc.pFileManager.SetDownloadTimeout(ctx, cfg.DownloadToAdapterTimeout)
 	openOnuAc.skipOnuConfig = cfg.SkipOnuConfig
+	openOnuAc.mutexMibDatabaseMap = sync.RWMutex{}
+	openOnuAc.MibDatabaseMap = make(map[string]*devdb.OnuCmnMEDB)
 
 	return &openOnuAc
 }
@@ -1358,4 +1363,88 @@ func (oo *OpenONUAC) RUnlockMutexDeviceHandlersMap() {
 func (oo *OpenONUAC) GetDeviceHandler(deviceID string) (value cmn.IdeviceHandler, exist bool) {
 	value, exist = oo.deviceHandlers[deviceID]
 	return value, exist
+}
+
+// GetONUMIBDBMap - Returns the Map corresponding to ONT type and the MIB common Instance.
+func (oo *OpenONUAC) GetONUMIBDBMap() devdb.OnuMCmnMEDBMap {
+	return oo.MibDatabaseMap
+}
+
+// RLockMutexMIBDatabaseMap acquires a read lock on the mutex associated with the MIBDatabaseMap.
+func (oo *OpenONUAC) RLockMutexMIBDatabaseMap() {
+	oo.mutexMibDatabaseMap.RLock()
+}
+
+// RUnlockMutexMIBDatabaseMap releases the read lock on the mutex associated with the MIBDatabaseMap.
+func (oo *OpenONUAC) RUnlockMutexMIBDatabaseMap() {
+	oo.mutexMibDatabaseMap.RUnlock()
+}
+
+// LockMutexMIBDatabaseMap locks the mutex associated with the MIBDatabaseMap.
+// Should be called before any operations that modify or read from the MIBDatabaseMap.
+func (oo *OpenONUAC) LockMutexMIBDatabaseMap() {
+	oo.mutexMibDatabaseMap.Lock()
+}
+
+// UnlockMutexMIBDatabaseMap unlocks the mutex associated with the MIBDatabaseMap.
+// Should be called after completing operations that require exclusive access
+// to the MIBDatabaseMap, ensuring the mutex is released for other goroutines.
+func (oo *OpenONUAC) UnlockMutexMIBDatabaseMap() {
+	oo.mutexMibDatabaseMap.Unlock()
+}
+
+// CreateEntryAtMibDatabaseMap  adds an entry to the MibDatabaseMap if it doesn't exist
+func (oo *OpenONUAC) CreateEntryAtMibDatabaseMap(ctx context.Context, key string) (*devdb.OnuCmnMEDB, error) {
+	oo.mutexMibDatabaseMap.Lock()
+	defer oo.mutexMibDatabaseMap.Unlock()
+
+	// Check if the key already exists
+	if mibEntry, exists := oo.MibDatabaseMap[key]; exists {
+		logger.Warnw(ctx, "Entry already exists in MIB Database Map", log.Fields{"remote-client": key})
+		return mibEntry, fmt.Errorf("entry already exists for key: %s", key)
+	}
+
+	value := devdb.NewOnuCmnMEDB(ctx)
+
+	logger.Infow(ctx, "Created a new Common MIB Database Entry", log.Fields{"remote-client": key})
+	oo.MibDatabaseMap[key] = value
+
+	return value, nil
+}
+
+// FetchEntryFromMibDatabaseMap fetches a references to common ME DB for a MIB Template from the MibDatabaseMap
+// If a valid entry exists returns pointer to cmnDB else returns nil.
+func (oo *OpenONUAC) FetchEntryFromMibDatabaseMap(ctx context.Context, key string) (*devdb.OnuCmnMEDB, bool) {
+	oo.mutexMibDatabaseMap.RLock()
+	defer oo.mutexMibDatabaseMap.RUnlock()
+	value, exists := oo.MibDatabaseMap[key]
+	if !exists {
+		return nil, false
+	}
+	return value, true
+
+}
+
+// ResetEntryFromMibDatabaseMap resets the ME values from the Maps.
+func (oo *OpenONUAC) ResetEntryFromMibDatabaseMap(ctx context.Context, key string) {
+	oo.mutexMibDatabaseMap.RLock()
+	onuCmnMEDB, exists := oo.MibDatabaseMap[key]
+	oo.mutexMibDatabaseMap.RUnlock()
+	if exists {
+		// Lock the MeDbLock to ensure thread-safe operation
+		onuCmnMEDB.MeDbLock.Lock()
+		defer onuCmnMEDB.MeDbLock.Unlock()
+
+		// Reset the MeDb and UnknownMeAndAttribDb maps
+		onuCmnMEDB.MeDb = make(devdb.MeDbMap)
+		onuCmnMEDB.UnknownMeAndAttribDb = make(devdb.UnknownMeAndAttribDbMap)
+
+	}
+}
+
+// DeleteEntryFromMibDatabaseMap deletes an entry from the MibDatabaseMap
+func (oo *OpenONUAC) DeleteEntryFromMibDatabaseMap(key string) {
+	oo.mutexMibDatabaseMap.Lock()
+	defer oo.mutexMibDatabaseMap.Unlock()
+	delete(oo.MibDatabaseMap, key)
 }

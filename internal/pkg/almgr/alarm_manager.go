@@ -596,7 +596,7 @@ func (am *OnuAlarmManager) processAlarmData(ctx context.Context, msg *omci.Alarm
 			log.Fields{"device-id": am.deviceID})
 		return status.Error(codes.Unavailable, "alarm-manager-is-in-stopped-state")
 	}
-	if _, present := am.pOnuDeviceEntry.GetOnuDB().MeDb[classID][meInstance]; !present {
+	if meAttributes := am.pOnuDeviceEntry.GetOnuDB().GetMe(classID, meInstance); meAttributes == nil {
 		logger.Errorw(ctx, "me-class-instance-not-present",
 			log.Fields{"class-id": classID, "instance-id": meInstance, "device-id": am.deviceID})
 		return status.Error(codes.NotFound, "me-class-instance-not-present")

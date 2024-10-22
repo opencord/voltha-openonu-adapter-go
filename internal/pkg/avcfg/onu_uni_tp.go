@@ -818,7 +818,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint8, aTpID uint8,
 	apCurrentUniPort *cmn.OnuUniPort, devEvent cmn.OnuDeviceEvent, aProcessingStep uint8) error {
 	logger.Info(ctx, "createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
-	chAniConfigFsm := make(chan cmn.Message, 2048)
+	chAniConfigFsm := make(chan cmn.Message, 2)
 	uniTPKey := uniTP{uniID: aUniID, tpID: aTpID}
 	if onuTP.onuDevice == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": onuTP.deviceID})
