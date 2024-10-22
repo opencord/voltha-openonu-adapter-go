@@ -1068,3 +1068,16 @@ func (oo *OnuDeviceEntry) SendOnuDeviceEvent(ctx context.Context, aDeviceEventNa
 	logger.Debugw(ctx, "send device event", log.Fields{"deviceEvent": deviceEvent, "device-id": oo.deviceID})
 	_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
 }
+
+// IsMIBTemplateGenerated checks if a MIB Template is already present for this type of ONT.
+func (oo *OnuDeviceEntry) IsMIBTemplateGenerated(ctx context.Context) bool {
+
+	oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
+	defer oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
+
+	if _, exist := oo.pOpenOnuAc.GetMibTemplatesGenerated(oo.mibTemplatePath); !exist {
+		logger.Infow(ctx, "MIB template not Generated , further proceed to do MIB sync upload ", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+		return false
+	}
+	return true
+}
