@@ -2846,7 +2846,7 @@ func (mm *OnuMetricsManager) AddGemPortForPerfMonitoring(ctx context.Context, ge
 			logger.Warnw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
 		}
 	}()
-	mm.pOnuDeviceEntry.GetOnuDB().PutMe(ctx, me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, gemPortNTPInstID, meAttributes)
+	mm.pOnuDeviceEntry.GetOnuDB().PutOnuSpeficMe(ctx, me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, gemPortNTPInstID, meAttributes)
 }
 
 // RemoveGemPortForPerfMonitoring - TODO: add comment

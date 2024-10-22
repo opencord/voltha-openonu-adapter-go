@@ -470,11 +470,11 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 						me.GemPortNetworkCtp_PriorityQueuePointerForDownStream:   loGemPortAttribs.downQueueID,
 					},
 				}
-				oFsm.pOnuDB.PutMe(ctx, me.GemPortNetworkCtpClassID, loGemPortAttribs.gemPortID, meParams.Attributes)
+				oFsm.pOnuDB.PutOnuSpeficMe(ctx, me.GemPortNetworkCtpClassID, loGemPortAttribs.gemPortID, meParams.Attributes)
 				var meAttributes me.AttributeValueMap //dummy , anyways we are not going to use the values.
-				oFsm.pOnuDB.PutMe(ctx, me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, loGemPortAttribs.gemPortID, meAttributes)
+				oFsm.pOnuDB.PutOnuSpeficMe(ctx, me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID, loGemPortAttribs.gemPortID, meAttributes)
 
-				oFsm.pOnuDB.PutMe(ctx, me.GemInterworkingTerminationPointClassID, loGemPortAttribs.gemPortID, meAttributes)
+				oFsm.pOnuDB.PutOnuSpeficMe(ctx, me.GemInterworkingTerminationPointClassID, loGemPortAttribs.gemPortID, meAttributes)
 
 			}
 		}
@@ -1529,7 +1529,7 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemNCTPs(ctx context.Context) {
 			_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
 			return
 		}
-		oFsm.pOnuDB.PutMe(ctx, me.GemPortNetworkCtpClassID, gemPortAttribs.gemPortID, meParams.Attributes)
+		oFsm.pOnuDB.PutOnuSpeficMe(ctx, me.GemPortNetworkCtpClassID, gemPortAttribs.gemPortID, meParams.Attributes)
 		// Mark the gem port to be added for Performance History monitoring
 		OnuMetricsManager := oFsm.pDeviceHandler.GetOnuMetricsManager()
 		if OnuMetricsManager != nil {
@@ -1661,7 +1661,7 @@ func (oFsm *UniPonAniConfigFsm) performCreatingGemIWs(ctx context.Context) {
 			return
 		}
 		logger.Infow(ctx, "Adding GemIWTP to the ONU DB ", log.Fields{"device-id": oFsm.deviceID, "GEMID": gemPortAttribs.gemPortID})
-		oFsm.pOnuDB.PutMe(ctx, me.GemInterworkingTerminationPointClassID, gemPortAttribs.gemPortID, meParams.Attributes)
+		oFsm.pOnuDB.PutOnuSpeficMe(ctx, me.GemInterworkingTerminationPointClassID, gemPortAttribs.gemPortID, meParams.Attributes)
 
 	} //for all GemPort's of this T-Cont
 
