@@ -306,25 +306,44 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *f
 		logger.Errorw(ctx, "get-mib-template: no active SW version found, working with empty SW version, which might be untrustworthy",
 			log.Fields{"device-id": oo.deviceID})
 	}
-	if oo.getMibFromTemplate(ctx) {
-		logger.Debug(ctx, "MibSync FSM - valid MEs stored from template")
-		oo.pOnuDB.LogMeDb(ctx)
-		fsmMsg = cmn.LoadMibTemplateOk
-	} else {
-		logger.Debug(ctx, "MibSync FSM - no valid MEs stored from template - perform MIB-upload!")
-		fsmMsg = cmn.LoadMibTemplateFailed
 
+	//create the MIB Template path
+	oo.mibTemplatePath = oo.buildMibTemplatePath()
+
+	if cmnMEDBVal, exist := oo.pOpenOnuAc.FetchEntryFromMibDatabaseMap(ctx, oo.mibTemplatePath); exist {
+		logger.Infow(ctx, "A Common MIB DB Instance exist for this type of ONT", log.Fields{"device-id": oo.deviceID, "mibTemplatePath": oo.mibTemplatePath})
 		oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
-		if mibTemplateIsGenerated, exist := oo.pOpenOnuAc.GetMibTemplatesGenerated(oo.mibTemplatePath); exist {
-			if mibTemplateIsGenerated {
-				logger.Debugw(ctx,
-					"MibSync FSM - template was successfully generated before, but doesn't exist or isn't usable anymore - reset flag in map",
-					log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
-				oo.pOpenOnuAc.SetMibTemplatesGenerated(oo.mibTemplatePath, false)
-			}
+		oo.pOnuDB.CommonMeDb = cmnMEDBVal
+
+		if cmnMEDBVal.MIBUploadStatus == devdb.Completed {
+			oo.pOnuDB.CommonMeDb.MeDbLock.Lock()
+			oo.updateOnuSpecificEntries(ctx)
+			oo.pOnuDB.CommonMeDb.MeDbLock.Unlock()
+			fsmMsg = cmn.LoadMibTemplateOk
+		} else {
+			logger.Errorw(ctx, "A previous MIB Upload for this type of ONT  has failed, request for a MIB UPload", log.Fields{"device-id": oo.deviceID})
+			oo.pOpenOnuAc.ResetEntryFromMibDatabaseMap(ctx, oo.mibTemplatePath)
+			fsmMsg = cmn.LoadMibTemplateFailed
 		}
 		oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
+
+	} else {
+		Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
+		if err == nil && Value != nil {
+			logger.Infow(ctx, "No Common MIB DB instance  exist , creating from Template", log.Fields{"device-id": oo.deviceID, "mibTemplatePath": oo.mibTemplatePath})
+			oo.processMibTemplate(ctx, Value)
+		} else {
+			logger.Infow(ctx, "Neither  Common MIB  DB  Instance nor MIB template exist for this type of ONT", log.Fields{"device-id": oo.deviceID, "mibTemplatePath": oo.mibTemplatePath})
+			oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
+			cmnMEDBValue, _ := oo.pOpenOnuAc.CreateEntryAtMibDatabaseMap(ctx, oo.mibTemplatePath)
+			oo.pOnuDB.CommonMeDb = cmnMEDBValue
+			oo.pOnuDB.CommonMeDb.MeDbLock.Lock()
+			fsmMsg = cmn.LoadMibTemplateFailed
+
+		}
+
 	}
+
 	mibSyncMsg := cmn.Message{
 		Type: cmn.TestMsg,
 		Data: cmn.TestMessage{
@@ -763,6 +782,15 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		if err != nil {
 			logger.Errorw(ctx, "MibSync - MibTemplate - Failed to create and persist the mib template", log.Fields{"error": err, "device-id": oo.deviceID})
 		}
+
+		oo.updateOnuSpecificEntries(ctx)
+		logger.Errorw(ctx, "MibSync - Updtaed the ONU Specific MEs ", log.Fields{"device-id": oo.deviceID})
+
+		cmnMEDB, _ := oo.pOpenOnuAc.FetchEntryFromMibDatabaseMap(ctx, oo.mibTemplatePath)
+		cmnMEDB.MIBUploadStatus = devdb.Completed
+		oo.pOnuDB.CommonMeDb.MeDbLock.Unlock()
+		oo.pOpenOnuAc.SetMibTemplatesGenerated(oo.mibTemplatePath, true)
+		oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
 
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
 	}
@@ -1231,29 +1259,35 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 	logger.Debugw(ctx, "MibSync - MibTemplate - path name", log.Fields{"path": oo.mibTemplatePath,
 		"device-id": oo.deviceID})
 
-	oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
-	if mibTemplateIsGenerated, exist := oo.pOpenOnuAc.GetMibTemplatesGenerated(oo.mibTemplatePath); exist {
-		if mibTemplateIsGenerated {
-			logger.Debugw(ctx, "MibSync - MibTemplate - another thread has already started to generate it - skip",
-				log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
-			oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
-			return nil
-		}
-		logger.Debugw(ctx, "MibSync - MibTemplate - previous generation attempt seems to be failed - try again",
-			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
-	} else {
-		logger.Debugw(ctx, "MibSync - MibTemplate - first ONU-instance of this kind - start generation",
-			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
-	}
-	oo.pOpenOnuAc.SetMibTemplatesGenerated(oo.mibTemplatePath, true)
-	oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
+	//Fetch the MEs dependent on serial number and MAC address and add them to onuSpecific ME DB
+	//Modify the serial number and MAC address with generic content in the common DB.
+	knownAttributeMEDb := oo.pOnuDB.CommonMeDb.MeDb
+	for firstLevelKey, firstLevelValue := range knownAttributeMEDb {
+		classID := strconv.Itoa(int(firstLevelKey))
 
+		for secondLevelKey, secondLevelValue := range firstLevelValue {
+			switch classID {
+			case "6", "256":
+				if _, exists := secondLevelValue["SerialNumber"]; exists {
+					oo.pOnuDB.PutOnuSpeficMe(ctx, firstLevelKey, secondLevelKey, secondLevelValue)
+					secondLevelValue["SerialNumber"] = "%SERIAL_NUMBER%"
+				}
+			case "134":
+				if _, exists := secondLevelValue["MacAddress"]; exists {
+					oo.pOnuDB.PutOnuSpeficMe(ctx, firstLevelKey, secondLevelKey, secondLevelValue)
+					secondLevelValue["MacAddress"] = "%MAC_ADDRESS%"
+				}
+			}
+		}
+	}
+
+	//Create the MIB Template
 	currentTime := time.Now()
 	templateMap := make(map[string]interface{})
 	templateMap["TemplateName"] = oo.mibTemplatePath
 	templateMap["TemplateCreated"] = currentTime.Format("2006-01-02 15:04:05.000000")
 
-	firstLevelMap := oo.pOnuDB.MeDb
+	firstLevelMap := oo.pOnuDB.CommonMeDb.MeDb
 	for firstLevelKey, firstLevelValue := range firstLevelMap {
 		logger.Debugw(ctx, "MibSync - MibTemplate - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
 		classID := strconv.Itoa(int(firstLevelKey))
@@ -1280,24 +1314,20 @@ func (oo *OnuDeviceEntry) createAndPersistMibTemplate(ctx context.Context) error
 		}
 		templateMap[classID] = secondLevelMap
 	}
-	unknownMeAndAttribMap := oo.pOnuDB.UnknownMeAndAttribDb
+	unknownMeAndAttribMap := oo.pOnuDB.CommonMeDb.UnknownMeAndAttribDb
 	for unknownMeAndAttribMapKey := range unknownMeAndAttribMap {
 		templateMap[string(unknownMeAndAttribMapKey)] = unknownMeAndAttribMap[unknownMeAndAttribMapKey]
 	}
 	mibTemplate, err := json.Marshal(&templateMap)
 	if err != nil {
 		logger.Errorw(ctx, "MibSync - MibTemplate - Failed to marshal mibTemplate", log.Fields{"error": err, "device-id": oo.deviceID})
-		oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
 		oo.pOpenOnuAc.SetMibTemplatesGenerated(oo.mibTemplatePath, false)
-		oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
 		return err
 	}
 	err = oo.mibTemplateKVStore.Put(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath, string(mibTemplate))
 	if err != nil {
 		logger.Errorw(ctx, "MibSync - MibTemplate - Failed to store template in etcd", log.Fields{"error": err, "device-id": oo.deviceID})
-		oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
 		oo.pOpenOnuAc.SetMibTemplatesGenerated(oo.mibTemplatePath, false)
-		oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
 		return err
 	}
 	logger.Debugw(ctx, "MibSync - MibTemplate - Stored the template to etcd", log.Fields{"device-id": oo.deviceID})
@@ -1427,60 +1457,29 @@ func (oo *OnuDeviceEntry) getMibFromTemplate(ctx context.Context) bool {
 		"device-id": oo.deviceID})
 
 	restoredFromMibTemplate := false
-	Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
-	if err == nil {
-		if Value != nil {
-			logger.Debugf(ctx, "MibSync FSM - Mib template read: Key: %s, Value: %s  %s", Value.Key, Value.Value)
-
-			// swap out tokens with specific data
-			mibTmpString, _ := kvstore.ToString(Value.Value)
-			oo.MutexPersOnuConfig.RLock()
-			mibTmpString2 := strings.Replace(mibTmpString, "%SERIAL_NUMBER%", oo.SOnuPersistentData.PersSerialNumber, -1)
-			mibTmpString = strings.Replace(mibTmpString2, "%MAC_ADDRESS%", oo.SOnuPersistentData.PersMacAddress, -1)
-			mibTmpString2 = strings.ReplaceAll(mibTmpString, "\x00", "")
-			oo.MutexPersOnuConfig.RUnlock()
-			mibTmpBytes := []byte(mibTmpString2)
-			logger.Debugf(ctx, "MibSync FSM - Mib template tokens swapped out: %s", mibTmpBytes)
-
-			var firstLevelMap map[string]interface{}
-			if err = json.Unmarshal(mibTmpBytes, &firstLevelMap); err != nil {
-				logger.Errorw(ctx, "MibSync FSM - Failed to unmarshal template", log.Fields{"error": err, "device-id": oo.deviceID})
+	oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
+	defer oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
+	if meDbValue, ok := oo.pOpenOnuAc.FetchEntryFromMibDatabaseMap(ctx, oo.mibTemplatePath); ok {
+		logger.Infow(ctx, "Found MIB common DB Instance , copy  and use", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+		oo.pOnuDB.CommonMeDb = meDbValue
+		oo.updateOnuSpecificEntries(ctx)
+		restoredFromMibTemplate = true
+	} else {
+		//Create a common ME MIB Instance as it doesn't prior exists.
+		Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
+		//Unmarshal the MIB template and create the entry in the ONU Common Device DB
+		if err == nil {
+			if Value != nil {
+				oo.processMibTemplate(ctx, Value)
+				restoredFromMibTemplate = true
 			} else {
-				for firstLevelKey, firstLevelValue := range firstLevelMap {
-					//logger.Debugw(ctx, "MibSync FSM - firstLevelKey", log.Fields{"firstLevelKey": firstLevelKey})
-					if uint16ValidNumber, err := strconv.ParseUint(firstLevelKey, 10, 16); err == nil {
-						meClassID := me.ClassID(uint16ValidNumber)
-						//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a number in uint16-range", log.Fields{"uint16ValidNumber": uint16ValidNumber})
-						if isSupportedClassID(meClassID) {
-							//logger.Debugw(ctx, "MibSync FSM - firstLevelKey is a supported classID", log.Fields{"meClassID": meClassID})
-							secondLevelMap := firstLevelValue.(map[string]interface{})
-							for secondLevelKey, secondLevelValue := range secondLevelMap {
-								//logger.Debugw(ctx, "MibSync FSM - secondLevelKey", log.Fields{"secondLevelKey": secondLevelKey})
-								if uint16ValidNumber, err := strconv.ParseUint(secondLevelKey, 10, 16); err == nil {
-									meEntityID := uint16(uint16ValidNumber)
-									//logger.Debugw(ctx, "MibSync FSM - secondLevelKey is a number and a valid EntityId", log.Fields{"meEntityID": meEntityID})
-									thirdLevelMap := secondLevelValue.(map[string]interface{})
-									for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
-										if thirdLevelKey == "Attributes" {
-											//logger.Debugw(ctx, "MibSync FSM - thirdLevelKey refers to attributes", log.Fields{"thirdLevelKey": thirdLevelKey})
-											attributesMap := thirdLevelValue.(map[string]interface{})
-											//logger.Debugw(ctx, "MibSync FSM - attributesMap", log.Fields{"attributesMap": attributesMap})
-											oo.pOnuDB.PutMe(ctx, meClassID, meEntityID, attributesMap)
-											restoredFromMibTemplate = true
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+				logger.Infow(ctx, "No MIB template found", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
 			}
 		} else {
-			logger.Infow(ctx, "No MIB template found", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+			logger.Errorw(ctx, "Get from kvstore operation failed for path",
+				log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
 		}
-	} else {
-		logger.Errorf(ctx, "Get from kvstore operation failed for path",
-			log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+
 	}
 	return restoredFromMibTemplate
 }
@@ -1551,6 +1550,88 @@ func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 			}
 			pMibUlFsm.CommChan <- fsmAbortMsg
 			_ = pMibUlFsm.PFsm.Event(UlEvStop)
+		}
+	}
+}
+
+// Updates Serial Number and MAC Address in the database
+func (oo *OnuDeviceEntry) updateOnuSpecificEntries(ctx context.Context) {
+	knownAttributeMEDb := oo.pOnuDB.CommonMeDb.MeDb
+
+	for firstLevelKey, firstLevelValue := range knownAttributeMEDb {
+		classID := strconv.Itoa(int(firstLevelKey))
+
+		for secondLevelKey, secondLevelValue := range firstLevelValue {
+			switch classID {
+			case "6", "256":
+				oo.updateAttribute(ctx, "SerialNumber", secondLevelValue, firstLevelKey, secondLevelKey, oo.SOnuPersistentData.PersSerialNumber)
+			case "134":
+				oo.updateAttribute(ctx, "MacAddress", secondLevelValue, firstLevelKey, secondLevelKey, oo.SOnuPersistentData.PersMacAddress)
+			}
+		}
+	}
+}
+
+// Updates a specific attribute in the MIB database
+func (oo *OnuDeviceEntry) updateAttribute(ctx context.Context, attributeName string, attributesMap me.AttributeValueMap, classID me.ClassID, entityID uint16, newValue interface{}) {
+	if _, exists := attributesMap[attributeName]; exists {
+		logger.Infow(ctx, "Updating "+attributeName, log.Fields{"classID": strconv.Itoa(int(classID)), "oldValue": attributesMap[attributeName], "newValue": newValue})
+		attributeCopy := make(me.AttributeValueMap)
+		for k, v := range attributesMap {
+			attributeCopy[k] = v
+		}
+		attributeCopy[attributeName] = newValue
+		oo.pOnuDB.PutOnuSpeficMe(ctx, classID, entityID, attributeCopy)
+	} else {
+		logger.Warnw(ctx, attributeName+" key not found", log.Fields{"classID": strconv.Itoa(int(classID))})
+	}
+}
+
+// Processes the MIB template by replacing tokens and unmarshaling it
+func (oo *OnuDeviceEntry) processMibTemplate(ctx context.Context, value *kvstore.KVPair) {
+	mibTmpString, _ := kvstore.ToString(value.Value)
+	mibTmpString2 := strings.ReplaceAll(mibTmpString, "\x00", "")
+	mibTmpBytes := []byte(mibTmpString2)
+
+	logger.Debugf(ctx, "MibSync FSM - Mib template tokens swapped out: %s", mibTmpBytes)
+
+	var firstLevelMap map[string]interface{}
+	if err := json.Unmarshal(mibTmpBytes, &firstLevelMap); err != nil {
+		logger.Errorw(ctx, "MibSync FSM - Failed to unmarshal template", log.Fields{"error": err, "device-id": oo.deviceID})
+		return
+	}
+
+	cmnMEDbValue, _ := oo.pOpenOnuAc.CreateEntryAtMibDatabaseMap(ctx, oo.mibTemplatePath)
+	oo.populateMibDatabase(ctx, cmnMEDbValue, firstLevelMap)
+	cmnMEDbValue.MIBUploadStatus = devdb.Completed
+	oo.pOnuDB.CommonMeDb = cmnMEDbValue
+}
+
+// Populates the MIB database with parsed data
+func (oo *OnuDeviceEntry) populateMibDatabase(ctx context.Context, cmnMEDbValue *devdb.OnuCmnMEDB, firstLevelMap map[string]interface{}) {
+	cmnMEDbValue.MeDbLock.Lock()
+	defer cmnMEDbValue.MeDbLock.Unlock()
+
+	logger.Infow(ctx, "Populating MIbDatabase with the template information ", log.Fields{"device-id": oo.deviceID})
+	for firstLevelKey, firstLevelValue := range firstLevelMap {
+		if uint16ValidNumber, err := strconv.ParseUint(firstLevelKey, 10, 16); err == nil {
+			meClassID := me.ClassID(uint16ValidNumber)
+			if isSupportedClassID(meClassID) {
+				secondLevelMap := firstLevelValue.(map[string]interface{})
+				for secondLevelKey, secondLevelValue := range secondLevelMap {
+					if uint16ValidNumber, err := strconv.ParseUint(secondLevelKey, 10, 16); err == nil {
+						meEntityID := uint16(uint16ValidNumber)
+						thirdLevelMap := secondLevelValue.(map[string]interface{})
+						for thirdLevelKey, thirdLevelValue := range thirdLevelMap {
+							if thirdLevelKey == "Attributes" {
+								attributesMap := thirdLevelValue.(map[string]interface{})
+								cmnMEDbValue.MeDb[meClassID] = make(map[uint16]me.AttributeValueMap)
+								cmnMEDbValue.MeDb[meClassID][meEntityID] = attributesMap
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

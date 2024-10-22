@@ -2918,7 +2918,7 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState v
 
 // createUniLockFsm initializes and runs the UniLock FSM to transfer the OMCI related commands for port lock/unlock
 func (dh *deviceHandler) createUniLockFsm(ctx context.Context, aAdminState bool, devEvent cmn.OnuDeviceEvent) {
-	chLSFsm := make(chan cmn.Message, 2048)
+	chLSFsm := make(chan cmn.Message, 2)
 	var sFsmName string
 	if aAdminState {
 		logger.Debugw(ctx, "createLockStateFSM", log.Fields{"device-id": dh.DeviceID})
@@ -2991,7 +2991,7 @@ func (dh *deviceHandler) runUniLockFsm(ctx context.Context, aAdminState bool) {
 // createOnuUpgradeFsm initializes and runs the Onu Software upgrade FSM
 // precondition: lockUpgradeFsm is already locked from caller of this function
 func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *mib.OnuDeviceEntry, aDevEvent cmn.OnuDeviceEvent) error {
-	chUpgradeFsm := make(chan cmn.Message, 2048)
+	chUpgradeFsm := make(chan cmn.Message, 2)
 	var sFsmName = "OnuSwUpgradeFSM"
 	logger.Debugw(ctx, "create OnuSwUpgradeFSM", log.Fields{"device-id": dh.DeviceID})
 	if apDevEntry.PDevOmciCC == nil {
@@ -3442,7 +3442,7 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 // precondition: dh.lockVlanConfig is locked by the caller!
 func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn.OnuUniPort, aTpID uint8, aCookieSlice []uint64,
 	aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
-	chVlanFilterFsm := make(chan cmn.Message, 2048)
+	chVlanFilterFsm := make(chan cmn.Message, 2)
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
 	if pDevEntry == nil {
