@@ -238,7 +238,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.chReconcilingFlowsFinished = make(chan bool)
 	onuDeviceEntry.reconcilingFlows = false
 	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
-	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan cmn.Message, 2048)
+	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan cmn.Message, 2)
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
 	//OMCI related databases are on a per-agent basis. State machines and tasks
 	//are per ONU Vendor
@@ -289,7 +289,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	//onuDeviceEntry.mibNextDbResync = 0
 
 	// Omci related Mib upload sync state machine
-	mibUploadChan := make(chan cmn.Message, 2048)
+	mibUploadChan := make(chan cmn.Message, 2)
 	onuDeviceEntry.PMibUploadFsm = cmn.NewAdapterFsm("MibUpload", onuDeviceEntry.deviceID, mibUploadChan)
 	onuDeviceEntry.PMibUploadFsm.PFsm = fsm.NewFSM(
 		UlStDisabled,
@@ -376,7 +376,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 		},
 	)
 	// Omci related Mib download state machine
-	mibDownloadChan := make(chan cmn.Message, 2048)
+	mibDownloadChan := make(chan cmn.Message, 2)
 	onuDeviceEntry.PMibDownloadFsm = cmn.NewAdapterFsm("MibDownload", onuDeviceEntry.deviceID, mibDownloadChan)
 	onuDeviceEntry.PMibDownloadFsm.PFsm = fsm.NewFSM(
 		DlStDisabled,
@@ -1067,4 +1067,17 @@ func (oo *OnuDeviceEntry) SendOnuDeviceEvent(ctx context.Context, aDeviceEventNa
 	}
 	logger.Debugw(ctx, "send device event", log.Fields{"deviceEvent": deviceEvent, "device-id": oo.deviceID})
 	_ = oo.eventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_COMMUNICATION, voltha.EventSubCategory_ONU, time.Now().Unix())
+}
+
+// IsMIBTemplateGenerated checks if a MIB Template is already present for this type of ONT.
+func (oo *OnuDeviceEntry) IsMIBTemplateGenerated(ctx context.Context) bool {
+
+	oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
+	defer oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
+
+	if _, exist := oo.pOpenOnuAc.GetMibTemplatesGenerated(oo.mibTemplatePath); !exist {
+		logger.Infow(ctx, "MIB template not Generated , further proceed to do MIB sync upload ", log.Fields{"path": oo.mibTemplatePath, "device-id": oo.deviceID})
+		return false
+	}
+	return true
 }

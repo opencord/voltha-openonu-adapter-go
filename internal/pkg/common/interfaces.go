@@ -42,6 +42,14 @@ type IopenONUAC interface {
 	RLockMutexDeviceHandlersMap()
 	RUnlockMutexDeviceHandlersMap()
 	GetDeviceHandler(string) (IdeviceHandler, bool)
+	GetONUMIBDBMap() devdb.OnuMCmnMEDBMap
+	RLockMutexMIBDatabaseMap()
+	RUnlockMutexMIBDatabaseMap()
+	LockMutexMIBDatabaseMap()
+	UnlockMutexMIBDatabaseMap()
+	FetchEntryFromMibDatabaseMap(context.Context, string) (*devdb.OnuCmnMEDB, bool)
+	CreateEntryAtMibDatabaseMap(context.Context, string) (*devdb.OnuCmnMEDB, error)
+	ResetEntryFromMibDatabaseMap(context.Context, string)
 }
 
 // IdeviceHandler interface to deviceHandler

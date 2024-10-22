@@ -29,7 +29,14 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 )
 
-type meDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
+// MeDbMap type holds MEs that are known to the ONT.
+type MeDbMap map[me.ClassID]map[uint16]me.AttributeValueMap
+
+// UnknownMeAndAttribDbMap type holds MEs that are Unknown to the ONT.
+type UnknownMeAndAttribDbMap map[UnknownMeOrAttribName]map[me.ClassID]map[uint16]unknownAttribs
+
+// OnuMCmnMEDBMap type holds MEs that are classified as  Unknown to the ONT.
+type OnuMCmnMEDBMap map[string]*OnuCmnMEDB
 
 // UnknownMeOrAttribName type to be used for unknown ME and attribute names
 type UnknownMeOrAttribName string
@@ -48,15 +55,44 @@ type unknownAttribs struct {
 	AttribMask  string `json:"AttributeMask"`
 	AttribBytes string `json:"AttributeBytes"`
 }
-type unknownMeAndAttribDbMap map[UnknownMeOrAttribName]map[me.ClassID]map[uint16]unknownAttribs
 
 // OnuDeviceDB structure holds information about ME's
 type OnuDeviceDB struct {
-	ctx                  context.Context
-	deviceID             string
-	MeDb                 meDbMap
-	meDbLock             sync.RWMutex
-	UnknownMeAndAttribDb unknownMeAndAttribDbMap
+	ctx                 context.Context
+	deviceID            string
+	CommonMeDb          *OnuCmnMEDB // Reference to OnuCmnMEDB
+	OnuSpecificMeDbLock sync.RWMutex
+	OnuSpecificMeDb     MeDbMap
+}
+
+// MIBUploadStatus represents the status of MIBUpload for a particular ONT.
+type MIBUploadStatus int
+
+// Values for Status of the ONT MIB Upload.
+const (
+	NotStarted MIBUploadStatus = iota // MIB upload has not started
+	InProgress                        // MIB upload is in progress
+	Failed                            // MIB upload has failed
+	Completed                         // MIB upload is completed
+)
+
+// OnuCmnMEDB structure holds information about ME's common to ONT possessing same MIB Template.
+type OnuCmnMEDB struct {
+	MeDbLock             sync.RWMutex
+	MeDb                 MeDbMap
+	UnknownMeAndAttribDb UnknownMeAndAttribDbMap
+	MIBUploadStatus      MIBUploadStatus
+}
+
+// NewOnuCmnMEDB returns a new instance of OnuCmnMEDB
+func NewOnuCmnMEDB(ctx context.Context) *OnuCmnMEDB {
+
+	return &OnuCmnMEDB{
+		MeDbLock:             sync.RWMutex{},
+		MeDb:                 make(MeDbMap),
+		UnknownMeAndAttribDb: make(UnknownMeAndAttribDbMap),
+		MIBUploadStatus:      NotStarted,
+	}
 }
 
 // NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
@@ -65,49 +101,61 @@ func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	var OnuDeviceDB OnuDeviceDB
 	OnuDeviceDB.ctx = ctx
 	OnuDeviceDB.deviceID = aDeviceID
-	OnuDeviceDB.MeDb = make(meDbMap)
-	OnuDeviceDB.UnknownMeAndAttribDb = make(unknownMeAndAttribDbMap)
+	OnuDeviceDB.CommonMeDb = nil
+	OnuDeviceDB.OnuSpecificMeDb = make(MeDbMap)
 
 	return &OnuDeviceDB
 }
 
 // PutMe puts an ME instance into internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
-	OnuDeviceDB.meDbLock.Lock()
-	defer OnuDeviceDB.meDbLock.Unlock()
+
 	//filter out the OnuData
 	if me.OnuDataClassID == meClassID {
 		return
 	}
-	_, ok := OnuDeviceDB.MeDb[meClassID]
+
+	// Dereference the MeDb pointer
+	if OnuDeviceDB.CommonMeDb == nil || OnuDeviceDB.CommonMeDb.MeDb == nil {
+		logger.Errorw(ctx, "MeDb is nil", log.Fields{"device-id": OnuDeviceDB.deviceID})
+		return
+	}
+	meDb := OnuDeviceDB.CommonMeDb.MeDb
+	_, ok := meDb[meClassID]
 	if !ok {
 		logger.Debugw(ctx, "meClassID not found - add to db :", log.Fields{"device-id": OnuDeviceDB.deviceID})
-		OnuDeviceDB.MeDb[meClassID] = make(map[uint16]me.AttributeValueMap)
-		OnuDeviceDB.MeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
-		OnuDeviceDB.MeDb[meClassID][meEntityID] = meAttributes
+		meDb[meClassID] = make(map[uint16]me.AttributeValueMap)
+		meDb[meClassID][meEntityID] = make(me.AttributeValueMap)
+		meDb[meClassID][meEntityID] = meAttributes
 	} else {
-		meAttribs, ok := OnuDeviceDB.MeDb[meClassID][meEntityID]
+		meAttribs, ok := meDb[meClassID][meEntityID]
 		if !ok {
-			OnuDeviceDB.MeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
-			OnuDeviceDB.MeDb[meClassID][meEntityID] = meAttributes
+			meDb[meClassID][meEntityID] = make(me.AttributeValueMap)
+			meDb[meClassID][meEntityID] = meAttributes
 		} else {
 			for k, v := range meAttributes {
 				meAttribs[k] = v
 			}
-			OnuDeviceDB.MeDb[meClassID][meEntityID] = meAttribs
+			meDb[meClassID][meEntityID] = meAttribs
 		}
 	}
 }
 
 // GetMe returns an ME instance from internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
-	OnuDeviceDB.meDbLock.RLock()
-	defer OnuDeviceDB.meDbLock.RUnlock()
-	if meAttributes, present := OnuDeviceDB.MeDb[meClassID][meEntityID]; present {
-		/* verbose logging, avoid in >= debug level
-		logger.Debugw(ctx,"ME found:", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttributes": meAttributes,
-			"device-id": OnuDeviceDB.deviceID})
-		*/
+	OnuDeviceDB.CommonMeDb.MeDbLock.RLock()
+	defer OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
+
+	// Check in the common MeDb
+	if meAttributes, present := OnuDeviceDB.CommonMeDb.MeDb[meClassID][meEntityID]; present {
+		return meAttributes
+	}
+
+	OnuDeviceDB.OnuSpecificMeDbLock.RLock()
+	defer OnuDeviceDB.OnuSpecificMeDbLock.RUnlock()
+
+	// Check in the ONU-specific MeDb
+	if meAttributes, present := OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID]; present {
 		return meAttributes
 	}
 	return nil
@@ -145,35 +193,77 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint16Attrib(meAttribute interface{}) (uint16
 func (OnuDeviceDB *OnuDeviceDB) GetSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
-	OnuDeviceDB.meDbLock.RLock()
-	defer OnuDeviceDB.meDbLock.RUnlock()
-	meInstMap := OnuDeviceDB.MeDb[meClassID]
+	OnuDeviceDB.CommonMeDb.MeDbLock.RLock()
+	defer OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
+	meDb := OnuDeviceDB.CommonMeDb.MeDb
 
-	for k := range meInstMap {
-		meInstKeys = append(meInstKeys, k)
+	// Check if the class ID exists in the MeDb map
+	if meInstMap, found := meDb[meClassID]; found {
+		for k := range meInstMap {
+			meInstKeys = append(meInstKeys, k)
+		}
+		logger.Debugw(ctx, "meInstKeys - input order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
 	}
-	logger.Debugw(ctx, "meInstKeys - input order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
 	sort.Slice(meInstKeys, func(i, j int) bool { return meInstKeys[i] < meInstKeys[j] })
 	logger.Debugw(ctx, "meInstKeys - output order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
+
+	// Return the sorted instance keys
 	return meInstKeys
 }
 
 // GetNumberOfInst returns the number of instances of an ME
 func (OnuDeviceDB *OnuDeviceDB) GetNumberOfInst(meClassID me.ClassID) int {
-	OnuDeviceDB.meDbLock.RLock()
-	defer OnuDeviceDB.meDbLock.RUnlock()
-	return len(OnuDeviceDB.MeDb[meClassID])
+	var count int
+
+	OnuDeviceDB.CommonMeDb.MeDbLock.RLock()
+	defer OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
+
+	if meClassMap, found := OnuDeviceDB.CommonMeDb.MeDb[meClassID]; found {
+		count = len(meClassMap)
+	}
+
+	OnuDeviceDB.OnuSpecificMeDbLock.RLock()
+	defer OnuDeviceDB.OnuSpecificMeDbLock.RUnlock()
+
+	if onuSpecificMap, found := OnuDeviceDB.OnuSpecificMeDb[meClassID]; found {
+		count += len(onuSpecificMap)
+	}
+
+	return count
 }
 
 // LogMeDb logs content of internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) LogMeDb(ctx context.Context) {
-	logger.Debugw(ctx, "ME instances stored for :", log.Fields{"device-id": OnuDeviceDB.deviceID})
-	for meClassID, meInstMap := range OnuDeviceDB.MeDb {
+	logger.Debugw(ctx, "Logging ME instances for device:", log.Fields{"device-id": OnuDeviceDB.deviceID})
+
+	if OnuDeviceDB.CommonMeDb != nil && OnuDeviceDB.CommonMeDb.MeDb != nil {
+		meDb := OnuDeviceDB.CommonMeDb.MeDb
+
+		for meClassID, meInstMap := range meDb {
+			for meEntityID, meAttribs := range meInstMap {
+				logger.Debugw(ctx, "Common ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs,
+					"device-id": OnuDeviceDB.deviceID})
+			}
+		}
+	} else {
+		logger.Warnw(ctx, "Common MeDb is nil", log.Fields{"device-id": OnuDeviceDB.deviceID})
+	}
+
+	// Log ONU-specific ME instances
+	OnuDeviceDB.OnuSpecificMeDbLock.RLock()
+	defer OnuDeviceDB.OnuSpecificMeDbLock.RUnlock()
+
+	for meClassID, meInstMap := range OnuDeviceDB.OnuSpecificMeDb {
 		for meEntityID, meAttribs := range meInstMap {
-			logger.Debugw(ctx, "ME instance: ", log.Fields{"meClassID": meClassID, "meEntityID": meEntityID, "meAttribs": meAttribs,
-				"device-id": OnuDeviceDB.deviceID})
+			logger.Debugw(ctx, "ONU Specific ME instance:", log.Fields{
+				"meClassID":  meClassID,
+				"meEntityID": meEntityID,
+				"meAttribs":  meAttribs,
+				"device-id":  OnuDeviceDB.deviceID,
+			})
 		}
 	}
+
 }
 
 // PutUnknownMeOrAttrib puts an instance with unknown ME or attributes into internal ONU DB
@@ -183,20 +273,22 @@ func (OnuDeviceDB *OnuDeviceDB) PutUnknownMeOrAttrib(ctx context.Context, aMeNam
 	meAttribMaskStr := fmt.Sprintf("0x%04x", aMeAttributeMask)
 	attribs := unknownAttribs{meAttribMaskStr, hex.EncodeToString(aMePayload)}
 
-	_, ok := OnuDeviceDB.UnknownMeAndAttribDb[aMeName]
+	unknownMeDb := OnuDeviceDB.CommonMeDb.UnknownMeAndAttribDb
+
+	_, ok := unknownMeDb[aMeName]
 	if !ok {
-		OnuDeviceDB.UnknownMeAndAttribDb[aMeName] = make(map[me.ClassID]map[uint16]unknownAttribs)
-		OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID] = make(map[uint16]unknownAttribs)
-		OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID] = attribs
+		unknownMeDb[aMeName] = make(map[me.ClassID]map[uint16]unknownAttribs)
+		unknownMeDb[aMeName][aMeClassID] = make(map[uint16]unknownAttribs)
+		unknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
 	} else {
-		_, ok := OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID]
+		_, ok := unknownMeDb[aMeName][aMeClassID]
 		if !ok {
-			OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID] = make(map[uint16]unknownAttribs)
-			OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID] = attribs
+			unknownMeDb[aMeName][aMeClassID] = make(map[uint16]unknownAttribs)
+			unknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
 		} else {
-			_, ok := OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID]
+			_, ok := unknownMeDb[aMeName][aMeClassID][aMeEntityID]
 			if !ok {
-				OnuDeviceDB.UnknownMeAndAttribDb[aMeName][aMeClassID][aMeEntityID] = attribs
+				unknownMeDb[aMeName][aMeClassID][aMeEntityID] = attribs
 			}
 		}
 	}
@@ -204,7 +296,40 @@ func (OnuDeviceDB *OnuDeviceDB) PutUnknownMeOrAttrib(ctx context.Context, aMeNam
 
 // DeleteMe deletes an ME instance from internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) DeleteMe(meClassID me.ClassID, meEntityID uint16) {
-	OnuDeviceDB.meDbLock.Lock()
-	defer OnuDeviceDB.meDbLock.Unlock()
-	delete(OnuDeviceDB.MeDb[meClassID], meEntityID)
+	OnuDeviceDB.CommonMeDb.MeDbLock.Lock()
+	defer OnuDeviceDB.CommonMeDb.MeDbLock.Unlock()
+	meDb := OnuDeviceDB.CommonMeDb.MeDb
+	delete(meDb[meClassID], meEntityID)
+
+	OnuDeviceDB.OnuSpecificMeDbLock.Lock()
+	defer OnuDeviceDB.OnuSpecificMeDbLock.Unlock()
+	delete(OnuDeviceDB.OnuSpecificMeDb[meClassID], meEntityID)
+}
+
+// PutOnuSpeficMe puts an ME instance into specifically to the ONU DB maintained per ONU.
+func (OnuDeviceDB *OnuDeviceDB) PutOnuSpeficMe(ctx context.Context, meClassID me.ClassID, meEntityID uint16, meAttributes me.AttributeValueMap) {
+	OnuDeviceDB.OnuSpecificMeDbLock.Lock()
+	defer OnuDeviceDB.OnuSpecificMeDbLock.Unlock()
+	//filter out the OnuData
+	if me.OnuDataClassID == meClassID {
+		return
+	}
+	_, ok := OnuDeviceDB.OnuSpecificMeDb[meClassID]
+	if !ok {
+		logger.Debugw(ctx, "meClassID not found - add to db :", log.Fields{"device-id": OnuDeviceDB.deviceID})
+		OnuDeviceDB.OnuSpecificMeDb[meClassID] = make(map[uint16]me.AttributeValueMap)
+		OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
+		OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = meAttributes
+	} else {
+		meAttribs, ok := OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID]
+		if !ok {
+			OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
+			OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = meAttributes
+		} else {
+			for k, v := range meAttributes {
+				meAttribs[k] = v
+			}
+			OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = meAttribs
+		}
+	}
 }
