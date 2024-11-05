@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7998d019_0eb8de9b",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-11-05T14:34:39Z",
+      "side": 1,
+      "message": "Lock should be before setting oo.pOnuDB.CommonMeDb \u003d cmnMEDBValue and after that there should be oo.pOnuDB.CommonMeDb.MeDbLock.Unlock()",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "26dde3d7_20418361",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-11-05T14:34:39Z",
+      "side": 1,
+      "message": "Missing MeDbLock.Lock statement for MeDbLock.Unlock",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e2c1755e_668cff3e",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 792,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-11-05T14:34:39Z",
+      "side": 1,
+      "message": "Missing LockMutexMibTemplateGenerated statement for UnlockMutexMibTemplateGenerated",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
