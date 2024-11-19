@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2c303f02_e4732f6b",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1363,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-11-19T05:59:05Z",
+      "side": 1,
+      "message": "TODO: add comment(s) can be deleted",
+      "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
