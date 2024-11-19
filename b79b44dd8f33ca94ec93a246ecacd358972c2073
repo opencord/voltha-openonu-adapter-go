@@ -16,6 +16,23 @@
       "message": "TODO: add comment(s) can be deleted",
       "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ec142888_8e56e3bf",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 319,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-11-19T06:04:27Z",
+      "side": 1,
+      "message": "meClassID can also be logged, so that it can be understood which meClassID is not found",
+      "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
