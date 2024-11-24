@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "c841c506_69721cca",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-11-24T12:15:38Z",
+      "side": 1,
+      "message": "This is a case to handle the scenario , when the MIB template or the MIB instance of this type of ONT doesn\u0027t exist yet. Creating an MIB instance  entry , acquiring a lock on the MeDb and will be initiating for a MIB upload. Once the MIB Upload concludes and the MEDB is populated with the entries , releasing the lock for subsequent ONTs of the similar type to use it as being done at line 790.",
+      "parentUuid": "7998d019_0eb8de9b",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "26dde3d7_20418361",
         "filename": "internal/pkg/mib/mib_sync.go",
         "patchSetId": 2
@@ -37,6 +55,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "5c5893ca_8a0991d2",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-11-24T12:15:38Z",
+      "side": 1,
+      "message": "The lock is being acquired prior to the start of the MIB upload and will be released here after it concludes. Lock is being acquired at the line 339.",
+      "parentUuid": "26dde3d7_20418361",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e2c1755e_668cff3e",
         "filename": "internal/pkg/mib/mib_sync.go",
         "patchSetId": 2
@@ -48,6 +84,24 @@
       "writtenOn": "2024-11-05T14:34:39Z",
       "side": 1,
       "message": "Missing LockMutexMibTemplateGenerated statement for UnlockMutexMibTemplateGenerated",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ad733d75_b4d4e7f4",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 792,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-11-24T12:15:38Z",
+      "side": 1,
+      "message": "The lock for accessing the MIBTemplateGenerated will be acquired prior to the start of MIB Upload at EnterGettingMIBFromTemplate Function and will be released once the MIB discovery process is completed .",
+      "parentUuid": "e2c1755e_668cff3e",
       "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }

@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "609a95f4_a6565df8",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1363,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-11-24T12:15:38Z",
+      "side": 1,
+      "message": "Sure. Will be adding relevant comments and going to remove the TODO item.",
+      "parentUuid": "2c303f02_e4732f6b",
+      "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "ec142888_8e56e3bf",
         "filename": "internal/pkg/devdb/onu_device_db.go",
         "patchSetId": 3
@@ -31,6 +49,24 @@
       "writtenOn": "2024-11-19T06:04:27Z",
       "side": 1,
       "message": "meClassID can also be logged, so that it can be understood which meClassID is not found",
+      "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c4951dae_cb7a8bc4",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 319,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-11-24T12:15:38Z",
+      "side": 1,
+      "message": "Sure, will be logging the meClassID.",
+      "parentUuid": "ec142888_8e56e3bf",
       "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
