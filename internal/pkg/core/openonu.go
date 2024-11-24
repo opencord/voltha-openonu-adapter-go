@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
-	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -901,30 +902,13 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 		//Adopt_device() arrived and DeviceHandler instance was created
 		waitForDhInstPresent = true
 	}
-	if handler := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent); handler != nil {
-		logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": onuInd.DeviceId,
-			"OnuId":      onuIndication.GetOnuId(),
-			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
-			"SNR": onuIndication.GetSerialNumber()})
-
-		if onuOperstate == "up" {
-			if err := handler.createInterface(ctx, onuIndication); err != nil {
-				return nil, err
-			}
-			return &empty.Empty{}, nil
-		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
-			if err := handler.UpdateInterface(ctx); err != nil {
-				return nil, err
-			}
-			return &empty.Empty{}, nil
-		} else {
-			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
-			return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, onuInd.DeviceId)
-		}
+	handler := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent)
+	if handler == nil {
+		logger.Warnw(ctx, "no handler found for received onu-ind-request", log.Fields{
+			"msgToDeviceId": onuInd.DeviceId})
+		return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", onuInd.DeviceId))
 	}
-	logger.Warnw(ctx, "no handler found for received onu-ind-request", log.Fields{
-		"msgToDeviceId": onuInd.DeviceId})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", onuInd.DeviceId))
+	return handler.processOnuIndication(ctx, onuInd)
 }
 
 // OmciIndication is part of the ONU Inter-adapter service API.

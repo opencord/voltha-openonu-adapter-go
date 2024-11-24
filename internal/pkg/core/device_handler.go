@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
 
 	"github.com/gogo/protobuf/proto"
@@ -80,19 +81,16 @@ const (
 
 const (
 	// events of Device FSM
-	devEvDeviceInit       = "devEvDeviceInit"
-	devEvGrpcConnected    = "devEvGrpcConnected"
-	devEvGrpcDisconnected = "devEvGrpcDisconnected"
-	devEvDeviceUpInd      = "devEvDeviceUpInd"
-	devEvDeviceDownInd    = "devEvDeviceDownInd"
+	devEvDeviceInit    = "devEvDeviceInit"
+	devEvDeviceUpInd   = "devEvDeviceUpInd"
+	devEvDeviceDownInd = "devEvDeviceDownInd"
 )
 const (
 	// states of Device FSM
-	devStNull      = "devStNull"
-	devStDown      = "devStDown"
-	devStInit      = "devStInit"
-	devStConnected = "devStConnected"
-	devStUp        = "devStUp"
+	devStNull = "devStNull"
+	devStDown = "devStDown"
+	devStInit = "devStInit"
+	devStUp   = "devStUp"
 )
 
 // Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
@@ -297,20 +295,15 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 		devStNull,
 		fsm.Events{
 			{Name: devEvDeviceInit, Src: []string{devStNull, devStDown}, Dst: devStInit},
-			{Name: devEvGrpcConnected, Src: []string{devStInit}, Dst: devStConnected},
-			{Name: devEvGrpcDisconnected, Src: []string{devStConnected, devStDown}, Dst: devStInit},
-			{Name: devEvDeviceUpInd, Src: []string{devStConnected, devStDown}, Dst: devStUp},
+			{Name: devEvDeviceUpInd, Src: []string{devStInit, devStDown}, Dst: devStUp},
 			{Name: devEvDeviceDownInd, Src: []string{devStUp}, Dst: devStDown},
 		},
 		fsm.Callbacks{
-			"before_event":                      func(e *fsm.Event) { dh.logStateChange(ctx, e) },
-			("before_" + devEvDeviceInit):       func(e *fsm.Event) { dh.doStateInit(ctx, e) },
-			("after_" + devEvDeviceInit):        func(e *fsm.Event) { dh.postInit(ctx, e) },
-			("before_" + devEvGrpcConnected):    func(e *fsm.Event) { dh.doStateConnected(ctx, e) },
-			("before_" + devEvGrpcDisconnected): func(e *fsm.Event) { dh.doStateInit(ctx, e) },
-			("after_" + devEvGrpcDisconnected):  func(e *fsm.Event) { dh.postInit(ctx, e) },
-			("before_" + devEvDeviceUpInd):      func(e *fsm.Event) { dh.doStateUp(ctx, e) },
-			("before_" + devEvDeviceDownInd):    func(e *fsm.Event) { dh.doStateDown(ctx, e) },
+			"before_event":                   func(e *fsm.Event) { dh.logStateChange(ctx, e) },
+			("before_" + devEvDeviceInit):    func(e *fsm.Event) { dh.doStateInit(ctx, e) },
+			("after_" + devEvDeviceInit):     func(e *fsm.Event) { dh.postInit(ctx, e) },
+			("before_" + devEvDeviceUpInd):   func(e *fsm.Event) { dh.doStateUp(ctx, e) },
+			("before_" + devEvDeviceDownInd): func(e *fsm.Event) { dh.doStateDown(ctx, e) },
 		},
 	)
 
@@ -889,7 +882,25 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 	onuIndication.OperState = pDevEntry.SOnuPersistentData.PersOperState
 	onuIndication.AdminState = pDevEntry.SOnuPersistentData.PersAdminState
 	pDevEntry.MutexPersOnuConfig.RUnlock()
-	_ = dh.createInterface(ctx, &onuIndication)
+
+	if onuIndication.OperState == "up" {
+		if !dh.pDeviceStateFsm.Can(devEvDeviceUpInd) {
+			logger.Errorw(ctx, "invalid state transition for event device up indication", log.Fields{"currentState": dh.pDeviceStateFsm.Current()})
+			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+			return
+		}
+		err := dh.pDeviceStateFsm.Event(devEvDeviceUpInd, &onuIndication)
+		if err != nil {
+			logger.Errorw(ctx, "failed to handle device up indication", log.Fields{"device-id": dh.DeviceID, "error": err})
+			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+			return
+		}
+	} else {
+		logger.Warnw(ctx, "ONU indication does not have 'up' state, cannot proceed with reconciliation", log.Fields{"device-id": dh.DeviceID, "operState": onuIndication.OperState})
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+		return
+	}
+
 }
 
 func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
@@ -1799,25 +1810,15 @@ func (dh *deviceHandler) postInit(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "postInit-done", log.Fields{"device-id": dh.DeviceID})
 }
 
-// doStateConnected get the device info and update to voltha core
-// for comparison of the original method (not that easy to uncomment): compare here:
-//
-//	voltha-openolt-adapter/adaptercore/device_handler.go
-//	-> this one obviously initiates all communication interfaces of the device ...?
-func (dh *deviceHandler) doStateConnected(ctx context.Context, e *fsm.Event) {
-
-	logger.Debugw(ctx, "doStateConnected-started", log.Fields{"device-id": dh.DeviceID})
-	err := errors.New("device FSM: function not implemented yet")
-	e.Cancel(err)
-	logger.Debugw(ctx, "doStateConnected-done", log.Fields{"device-id": dh.DeviceID})
-}
-
 // doStateUp handle the onu up indication and update to voltha core
 func (dh *deviceHandler) doStateUp(ctx context.Context, e *fsm.Event) {
 
 	logger.Debugw(ctx, "doStateUp-started", log.Fields{"device-id": dh.DeviceID})
-	err := errors.New("device FSM: function not implemented yet")
-	e.Cancel(err)
+	onuIndication := e.Args[0].(*oop.OnuIndication)
+	if err := dh.createInterface(ctx, onuIndication); err != nil {
+		logger.Errorw(ctx, "failed to create interface", log.Fields{"device-id": dh.DeviceID, "error": err})
+		e.Cancel(err)
+	}
 	logger.Debugw(ctx, "doStateUp-done", log.Fields{"device-id": dh.DeviceID})
 
 	/*
@@ -1847,6 +1848,10 @@ func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
 
 	cloned := proto.Clone(device).(*voltha.Device)
 	logger.Debugw(ctx, "do-state-down", log.Fields{"ClonedDeviceID": cloned.Id})
+	if err := dh.UpdateInterface(ctx); err != nil {
+		logger.Errorw(ctx, "failed to update interface", log.Fields{"device-id": dh.DeviceID, "error": err})
+		e.Cancel(err)
+	}
 	/*
 		// Update the all ports state on that device to disable
 		if er := dh.coreProxy.PortsStateUpdate(ctx, cloned.Id, voltha.OperStatus_UNKNOWN); er != nil {
@@ -1889,8 +1894,6 @@ func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
 		logger.Debugw("do-state-down-end", log.Fields{"device-id": device.Id})
 		return nil
 	*/
-	err = errors.New("device FSM: function not implemented yet")
-	e.Cancel(err)
 	logger.Debugw(ctx, "doStateDown-done", log.Fields{"device-id": dh.DeviceID})
 }
 
@@ -1969,11 +1972,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 
 	dh.pOnuIndication = onuind // let's revise if storing the pointer is sufficient...
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
-	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
-	}
+	pDevEntry := dh.pOnuOmciDevice
 
 	if !dh.IsReconciling() {
 		if err := dh.StorePersistentData(ctx); err != nil {
@@ -1990,6 +1989,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		}); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 			logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
+			return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
 		}
 	} else {
 		logger.Info(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVATING",
@@ -4692,6 +4692,57 @@ func (dh *deviceHandler) getOnuActiveAlarms(ctx context.Context) *extension.Sing
 
 func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool {
 	return dh.deviceDeleteCommChan
+}
+func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*empty.Empty, error) {
+
+	onuIndication := onuInd.OnuIndication
+	onuOperstate := onuIndication.GetOperState()
+
+	dh.RLockMutexDeletionInProgressFlag()
+	if dh.GetDeletionInProgress() {
+		logger.Warnw(ctx, "device deletion in progress, ignoring the ONU Indication", log.Fields{"device-id": dh.DeviceID})
+		dh.RUnlockMutexDeletionInProgressFlag()
+		return nil, fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
+	}
+	dh.RUnlockMutexDeletionInProgressFlag()
+
+	logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": dh.DeviceID,
+		"OnuId":      onuIndication.GetOnuId(),
+		"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
+		"Serial Number": onuIndication.GetSerialNumber()})
+
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	if pDevEntry == nil {
+		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
+		return nil, fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
+	}
+
+	var event string
+
+	switch onuOperstate {
+	case "up":
+		if dh.pDeviceStateFsm.Current() == devStUp {
+			logger.Errorw(ctx, "invalid state transition", log.Fields{"expectedState": devStDown, "currentState": dh.pDeviceStateFsm.Current()})
+			return nil, fmt.Errorf("invalid state transition: expected %s, got %s", devStDown, dh.pDeviceStateFsm.Current())
+		}
+		event = devEvDeviceUpInd
+	case "down", "unreachable":
+		if dh.pDeviceStateFsm.Current() == devStDown {
+			logger.Errorw(ctx, "invalid state transition", log.Fields{"expectedState": devStUp, "currentState": dh.pDeviceStateFsm.Current()})
+			return nil, fmt.Errorf("invalid state transition: expected %s, got %s", devStUp, dh.pDeviceStateFsm.Current())
+		}
+		event = devEvDeviceDownInd
+	default:
+		logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
+		return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, dh.DeviceID)
+	}
+
+	err := dh.pDeviceStateFsm.Event(event, onuIndication)
+	if err != nil {
+		return nil, err
+	}
+
+	return &empty.Empty{}, nil
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
