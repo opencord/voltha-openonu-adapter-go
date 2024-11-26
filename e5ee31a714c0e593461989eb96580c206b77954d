@@ -67,6 +67,23 @@
       "message": "The Sanity tests are failing due to a Jenkin\u0027s environment issue . I have raised a support ticket for it . \nhttps://jira.linuxfoundation.org/plugins/servlet/desk/portal/2/IT-27506",
       "revId": "e5ee31a714c0e593461989eb96580c206b77954d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f6ffd8f9_8a831252",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-11-26T15:42:38Z",
+      "side": 1,
+      "message": "recheck",
+      "revId": "e5ee31a714c0e593461989eb96580c206b77954d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
