@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
-	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -1236,9 +1237,29 @@ func (oo *OpenONUAC) SetExtValue(context.Context, *ca.SetExtValueMessage) (*empt
 	return nil, errors.New("unImplemented")
 }
 
-// SetSingleValue is unimplemented
-func (oo *OpenONUAC) SetSingleValue(context.Context, *extension.SingleSetValueRequest) (*extension.SingleSetValueResponse, error) {
-	return nil, errors.New("unImplemented")
+func (oo *OpenONUAC) SetSingleValue(ctx context.Context, request *extension.SingleSetValueRequest) (*extension.SingleSetValueResponse, error) {
+	logger.Infow(ctx, "single_set_value_request", log.Fields{"request": request})
+
+	errResp := func(status extension.SetValueResponse_Status,
+		reason extension.SetValueResponse_ErrorReason) *extension.SingleSetValueResponse {
+		return &extension.SingleSetValueResponse{
+			Response: &extension.SetValueResponse{
+				Status:    status,
+				ErrReason: reason,
+			},
+		}
+	}
+	if handler := oo.getDeviceHandler(ctx, request.TargetId, false); handler != nil {
+		switch reqType := request.GetRequest().GetRequest().(type) {
+		case *extension.SetValueRequest_AppOffloadOnuConfig:
+			return handler.setOnuOffloadStats(ctx, reqType.AppOffloadOnuConfig), nil
+		default:
+			return errResp(extension.SetValueResponse_ERROR, extension.SetValueResponse_UNSUPPORTED), nil
+		}
+	}
+
+	logger.Infow(ctx, "Single_set_value_request failed ", log.Fields{"request": request})
+	return errResp(extension.SetValueResponse_ERROR, extension.SetValueResponse_INVALID_DEVICE_ID), nil
 }
 
 // StartOmciTest not implemented
