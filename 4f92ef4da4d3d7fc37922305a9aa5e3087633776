@@ -33,6 +33,23 @@
       "message": "\u003e Patch Set 2: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_sanity-test/1776/ : ABORTED\n\nrecheck",
       "revId": "4f92ef4da4d3d7fc37922305a9aa5e3087633776",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1e1ba2bd_cb4ab852",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000957
+      },
+      "writtenOn": "2024-12-04T09:14:07Z",
+      "side": 1,
+      "message": "\u003e Patch Set 2:\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_sanity-test/1777/ : ABORTED\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1522/ : FAILURE\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1521/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_licensed/1707/ : SUCCESS\n\nrecheck",
+      "revId": "4f92ef4da4d3d7fc37922305a9aa5e3087633776",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
