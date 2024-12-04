@@ -3873,6 +3873,17 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 	}
 }
 
+func (dh *deviceHandler) setOnuOffloadStats(ctx context.Context, config *extension.AppOffloadOnuConfig) *extension.SingleSetValueResponse {
+
+	singleValResp := extension.SingleSetValueResponse{
+		Response: &extension.SetValueResponse{
+			Status: extension.SetValueResponse_OK,
+		},
+	}
+
+	return &singleValResp
+}
+
 func (dh *deviceHandler) GetUniPortStatus(ctx context.Context, uniInfo *extension.GetOnuUniInfoRequest) *extension.SingleGetValueResponse {
 
 	portStatus := uniprt.NewUniPortStatus(dh, dh.pOnuOmciDevice.PDevOmciCC)
