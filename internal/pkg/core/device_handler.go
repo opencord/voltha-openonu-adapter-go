@@ -2048,9 +2048,12 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		logger.Warnw(ctx, "omci start-verification timed out (continue normal)", log.Fields{"device-id": dh.DeviceID})
 	case testresult := <-verifyExec:
 		logger.Infow(ctx, "Omci start verification done", log.Fields{"device-id": dh.DeviceID, "result": testresult})
-	case <-dh.deviceDeleteCommChan:
-		logger.Warnw(ctx, "Deleting device, stopping the omci test activity", log.Fields{"device-id": dh.DeviceID})
-		return nil
+	case _, ok := <-dh.GetDeviceDeleteCommChan(ctx):
+		if !ok {
+			logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": dh.DeviceID})
+
+			return nil
+		}
 	}
 
 	/* In py code it looks earlier (on activate ..)
