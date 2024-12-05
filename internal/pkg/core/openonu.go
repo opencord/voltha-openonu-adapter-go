@@ -21,14 +21,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/opencord/voltha-lib-go/v7/pkg/db"
-	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
-	codes "google.golang.org/grpc/codes"
 	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/opencord/voltha-lib-go/v7/pkg/db"
+	vgrpc "github.com/opencord/voltha-lib-go/v7/pkg/grpc"
+	codes "google.golang.org/grpc/codes"
 
 	conf "github.com/opencord/voltha-lib-go/v7/pkg/config"
 	"github.com/opencord/voltha-protos/v5/go/adapter_service"
@@ -330,7 +331,16 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 
 	if handler := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		var errorsList []error
-
+		// Acquire read lock to check if deletion is already in progress
+		handler.mutexDeletionInProgressFlag.RLock()
+		if handler.deletionInProgress {
+			// If deletion is already in progress, release the read lock and return
+			handler.mutexDeletionInProgressFlag.RUnlock()
+			logger.Infow(ctx, "device deletion already in progress", log.Fields{"device-id": device.Id})
+			return &empty.Empty{}, nil
+		}
+		// Release read lock before setting the deletion flag
+		handler.mutexDeletionInProgressFlag.RUnlock()
 		handler.mutexDeletionInProgressFlag.Lock()
 		handler.deletionInProgress = true
 		handler.mutexDeletionInProgressFlag.Unlock()
@@ -340,7 +350,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 			handler.pOnuMetricsMgr.SetdeviceDeletionInProgress(true)
 		}
 
-		handler.deviceDeleteCommChan <- true
+		close(handler.deviceDeleteCommChan)
 		if err := handler.resetFsms(ctx, true); err != nil {
 			errorsList = append(errorsList, err)
 		}
