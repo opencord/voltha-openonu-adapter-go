@@ -48,6 +48,12 @@ type sLastTxMeParameter struct {
 	repeatCount       uint8
 }
 
+const (
+	retryDelay          = 30 * time.Second
+	maxRetries          = 3
+	initialRetryAttempt = 1
+)
+
 var supportedClassIds = []me.ClassID{
 	me.CardholderClassID,                              // 5
 	me.CircuitPackClassID,                             // 6
@@ -1496,7 +1502,63 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 		for tpID, tpPath := range uniData.PersTpPathMap {
 			if tpPath != "" {
 				// Request the TP instance from the openolt adapter
+				logger.Infow(ctx, "Starting retrieval for TechProfileInstance", log.Fields{
+					"uniID": uniID, "tpID": tpID, "tpPath": tpPath, "device-id": oo.deviceID,
+				})
+				// Attempt the initial call before entering the retry loop
+				// Request the TP instance from the openolt adapter
 				iaTechTpInst, err := oo.baseDeviceHandler.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
+				if err != nil {
+					var ticker *time.Ticker
+
+					// Log the initial failure and proceed to the retry mechanism
+					logger.Warnw(ctx, "Initial TechProfileInstance API call failed, entering retry mechanism", log.Fields{
+						"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err,
+					})
+					// Retry logic
+					/*
+					   We are retrying here because the OLT adapter may not have been up and reachable
+					   at the time of the initial attempt. This prevents the ONU adapter from fetching
+					   the TechProfile.
+
+					   This issue might occur when both the ONU and OLT adapters are restarted simultaneously,
+					   causing a temporary mismatch in their availability. The retry logic ensures that
+					   the ONU adapter periodically attempts to fetch the TechProfile, allowing time for the
+					   OLT adapter to come up and become operational,and once the OLT adaptor is up with this retry attempts we can fetch the tech profile.This helps prevent the reconciliation
+					   process from failing prematurely due to transient unavailability of the OLT adapter.
+					*/
+
+					for tpRetryAttempt := initialRetryAttempt; tpRetryAttempt <= maxRetries; tpRetryAttempt++ {
+						ticker = time.NewTicker(retryDelay)
+						select {
+						case _, ok := <-oo.baseDeviceHandler.GetDeviceDeleteCommChan(ctx):
+							if !ok {
+								logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": oo.deviceID})
+								ticker.Stop()
+								return false
+							}
+						case <-ticker.C:
+							iaTechTpInst, err = oo.baseDeviceHandler.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
+							if err != nil {
+								logger.Warnw(ctx, "TechProfileInstance API will be retried", log.Fields{
+									"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID,
+									"device-id": oo.deviceID, "err": err, "retry": tpRetryAttempt,
+									"totalRetries": maxRetries,
+								})
+								continue
+							}
+
+							logger.Info(ctx, "Successfully retrieved TechProfileInstance after retry", log.Fields{
+								"retry": tpRetryAttempt, "device-id": oo.deviceID,
+							})
+
+						}
+						if err == nil {
+							break // Exit the retry loop upon success
+						}
+
+					}
+				}
 				if err == nil && iaTechTpInst != nil {
 					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
 						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})

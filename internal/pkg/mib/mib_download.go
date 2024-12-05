@@ -405,9 +405,14 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, a
 		// should not happen so far
 		logger.Warnw(ctx, "MibDownload-bridge-init response error", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 		return fmt.Errorf("mibDownloadBridgeInit responseError %s", onuDeviceEntry.deviceID)
-	case <-onuDeviceEntry.baseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-		logger.Warnw(ctx, "Deleting device, do not wait for OMCI response", log.Fields{"device-id": onuDeviceEntry.deviceID})
-		return fmt.Errorf("mibDownloadBridgeInit device deletion in progress! %s", onuDeviceEntry.deviceID)
+	case _, ok := <-onuDeviceEntry.baseDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		if !ok {
+			// The channel is closed, so log this and return an appropriate error.
+			logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": onuDeviceEntry.deviceID})
+			return fmt.Errorf("mibDownloadBridgeInit aborted: device deletion channel closed for device %s", onuDeviceEntry.deviceID)
+
+		}
+		return nil
 
 	}
 }
