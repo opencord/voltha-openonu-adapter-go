@@ -16,6 +16,24 @@
       "message": "Please increase the version in version file.",
       "revId": "8fb30245ee9cc3850fe2638db30d5f80c2fc4e48",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1fa30123_b5c94127",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2024-12-06T06:05:39Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2b38f6d6_e5692193",
+      "revId": "8fb30245ee9cc3850fe2638db30d5f80c2fc4e48",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
