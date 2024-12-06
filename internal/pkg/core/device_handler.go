@@ -3469,6 +3469,11 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn
 		return fmt.Errorf("no valid OnuDevice for device-id %x - aborting", dh.DeviceID)
 	}
 
+	if dh.pDeviceStateFsm.Current() == devStDown {
+		logger.Warnw(ctx, "UniVlanConfigFsm : aborting, device state down", log.Fields{"device-id": dh.DeviceID})
+		return fmt.Errorf("device state down for device-id %x - aborting", dh.DeviceID)
+	}
+
 	pVlanFilterFsm := avcfg.NewUniVlanConfigFsm(ctx, dh, pDevEntry, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
 		pDevEntry.GetOnuDB(), aTpID, aDevEvent, "UniVlanConfigFsm", chVlanFilterFsm,
 		dh.pOpenOnuAc.AcceptIncrementalEvto, aCookieSlice, aMatchVlan, aMatchPcp, aSetVlan, aSetPcp, innerCvlan, lastFlowToReconcile, aMeter, respChan)
