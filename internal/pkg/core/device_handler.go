@@ -4105,7 +4105,10 @@ func (dh *deviceHandler) GetFlowMonitoringIsRunning(uniID uint8) bool {
 	defer dh.mutexFlowMonitoringRoutineFlag.RUnlock()
 	logger.Debugw(context.Background(), "get-flow-monitoring-routine",
 		log.Fields{"device-id": dh.device.Id, "isFlowMonitoringRoutineActive": dh.isFlowMonitoringRoutineActive})
-	return dh.isFlowMonitoringRoutineActive[uniID]
+	if len(dh.isFlowMonitoringRoutineActive) != 0 {
+		return dh.isFlowMonitoringRoutineActive[uniID]
+	}
+	return false
 }
 
 func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig bool) {
