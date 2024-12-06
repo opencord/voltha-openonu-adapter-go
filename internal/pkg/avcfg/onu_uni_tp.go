@@ -619,11 +619,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 				//if the FSM is not valid, also TP related remove data should not be valid:
 				// remove GemPort from config DB
 				//ensure write protection for access to mapPonAniConfig
-				onuTP.mutexTPState.Lock()
-				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
-				// remove the removeEntry
-				delete(onuTP.mapRemoveGemEntry, uniTPKey)
-				onuTP.mutexTPState.Unlock()
+				onuTP.deleteGemPortParams(ctx, uniTPKey)
 				return
 			}
 			if _, ok := onuTP.PAniConfigFsm[uniTPKey]; !ok {
@@ -636,22 +632,14 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 				//if the FSM is not valid, also TP related remove data should not be valid:
 				// remove GemPort from config DB
 				//ensure write protection for access to mapPonAniConfig
-				onuTP.mutexTPState.Lock()
-				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
-				// remove the removeEntry
-				delete(onuTP.mapRemoveGemEntry, uniTPKey)
-				onuTP.mutexTPState.Unlock()
+				onuTP.deleteGemPortParams(ctx, uniTPKey)
 				return
 			}
 			if onuTP.getProfileResetting(uniTPKey) {
 				logger.Debugw(ctx, "aborting GemRemoval on FSM, reset requested in parallel", log.Fields{
 					"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID})
 				//ensure write protection for access to mapPonAniConfig
-				onuTP.mutexTPState.Lock()
-				delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
-				// remove the removeEntry
-				delete(onuTP.mapRemoveGemEntry, uniTPKey)
-				onuTP.mutexTPState.Unlock()
+				onuTP.deleteGemPortParams(ctx, uniTPKey)
 				return
 			}
 			// initiate OMCI GemPort related removal
@@ -691,11 +679,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 		//ensure write protection for access to mapPonAniConfig
 		logger.Debugw(ctx, "UniPonAniConfigFsm removing gem from config data and clearing ani FSM", log.Fields{
 			"device-id": onuTP.deviceID, "gem-id": onuTP.mapRemoveGemEntry[uniTPKey].removeGemID, "uniTPKey": uniTPKey})
-		onuTP.mutexTPState.Lock()
-		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
-		// remove the removeEntry
-		delete(onuTP.mapRemoveGemEntry, uniTPKey)
-		onuTP.mutexTPState.Unlock()
+		onuTP.deleteGemPortParams(ctx, uniTPKey)
 	} else { //if CResourceTcont == aResource {
 		logger.Debugw(ctx, "reset TCont with AllocId", log.Fields{
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "allocId": aEntryID})
@@ -852,6 +836,21 @@ func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint
 	}
 	onuTP.PAniConfigFsm[uniTPKey] = pAniCfgFsm
 	return onuTP.runAniConfigFsm(ctx, aniEvStart, aProcessingStep, aUniID, aTpID)
+}
+
+// deleteGemPortParams removes GemPort from config DB
+func (onuTP *OnuUniTechProf) deleteGemPortParams(ctx context.Context, uniTPKey uniTP) {
+	//ensure write protection for access to mapPonAniConfig
+	onuTP.mutexTPState.Lock()
+	if _, ok := onuTP.mapPonAniConfig[uniTPKey]; ok {
+		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
+	} else {
+		logger.Warnw(ctx, "GemPort removal - GemPort not found in mapPonAniConfig",
+			log.Fields{"device-id": onuTP.deviceID, "uni-id": uniTPKey.uniID, "tp-id": uniTPKey.tpID})
+	}
+	// remove from the removGemeEntry
+	delete(onuTP.mapRemoveGemEntry, uniTPKey)
+	onuTP.mutexTPState.Unlock()
 }
 
 // runAniConfigFsm starts the AniConfig FSM to transfer the OMCI related commands for  ANI side configuration
