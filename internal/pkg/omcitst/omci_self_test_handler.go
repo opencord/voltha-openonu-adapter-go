@@ -110,7 +110,7 @@ func (selfTestCb *SelfTestControlBlock) initiateNewSelfTestFsm(ctx context.Conte
 			{Name: selfTestEventTestRequest, Src: []string{selfTestStNull}, Dst: selfTestStHandleSelfTestReq},
 			{Name: selfTestEventTestResponseSuccess, Src: []string{selfTestStHandleSelfTestReq}, Dst: selfTestStHandleSelfTestResp},
 			{Name: selfTestEventTestResultSuccess, Src: []string{selfTestStHandleSelfTestResp}, Dst: selfTestStNull},
-			{Name: selfTestEventAbort, Src: []string{selfTestStHandleSelfTestReq, selfTestStHandleSelfTestReq, selfTestStHandleTestResult,
+			{Name: selfTestEventAbort, Src: []string{selfTestStHandleSelfTestReq, selfTestStHandleSelfTestResp, selfTestStHandleTestResult,
 				selfTestStNull}, Dst: selfTestStNull},
 		},
 		fsm.Callbacks{
@@ -148,7 +148,7 @@ func (selfTestCb *SelfTestControlBlock) selfTestFsmHandleSelfTestRequest(ctx con
 		false, pFsmCb.fsm.CommChan); err != nil {
 		logger.Errorw(ctx, "error sending self test request", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.triggerFsmEvent(pFsmCb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
 		return
 	}
 
@@ -185,7 +185,11 @@ func (selfTestCb *SelfTestControlBlock) triggerFsmEvent(pSelfTestFsm *cmn.Adapte
 }
 
 func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx context.Context, respChan chan extension.SingleGetValueResponse,
-	errorCode extension.GetValueResponse_ErrorReason, statusCode extension.GetValueResponse_Status) {
+	errorCode extension.GetValueResponse_ErrorReason, statusCode extension.GetValueResponse_Status, reqMsg extension.SingleGetValueRequest) {
+	meClassID, err := selfTestCb.getMeClassID(ctx, reqMsg)
+	if err != nil {
+		return
+	}
 	singleValResp := extension.SingleGetValueResponse{
 		Response: &extension.GetValueResponse{
 			Status:    statusCode,
@@ -193,6 +197,8 @@ func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx contex
 		},
 	}
 	logger.Infow(ctx, "OMCI test response failure - pushing failure response", log.Fields{"device-id": selfTestCb.deviceID})
+	// Clear the fsmCb from the map
+	delete(selfTestCb.selfTestFsmMap, meClassID)
 	respChan <- singleValResp
 	logger.Infow(ctx, "OMCI test response failure - pushing failure response complete", log.Fields{"device-id": selfTestCb.deviceID})
 }
@@ -207,7 +213,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciMessage(ctx context.Context, m
 	default:
 		logger.Warnw(ctx, "Unknown Message Type", log.Fields{"msgType": msg.OmciMsg.MessageType})
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR, cb.reqMsg)
 	}
 }
 
@@ -217,7 +223,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResponse(ctx context.Conte
 		logger.Errorw(ctx, "omci Msg layer nil self test response", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.pDevEntry.GetDevOmciCC().ReleaseTid(ctx, msg.OmciMsg.TransactionID)
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, cb.reqMsg)
 		return
 	}
 	msgObj, msgOk := msgLayer.(*omci.TestResponse)
@@ -225,7 +231,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResponse(ctx context.Conte
 		logger.Errorw(ctx, "omci Msg layer could not be detected for self test response", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.pDevEntry.GetDevOmciCC().ReleaseTid(ctx, msg.OmciMsg.TransactionID)
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, cb.reqMsg)
 		return
 	}
 	logger.Debugw(ctx, "OMCI test response Data", log.Fields{"device-id": selfTestCb.deviceID, "data-fields": msgObj})
@@ -238,7 +244,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResponse(ctx context.Conte
 	logger.Infow(ctx, "OMCI test response failure", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 	selfTestCb.pDevEntry.GetDevOmciCC().ReleaseTid(ctx, msg.OmciMsg.TransactionID)
 	selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-	selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR)
+	selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR, cb.reqMsg)
 }
 
 func (selfTestCb *SelfTestControlBlock) handleOmciTestResult(ctx context.Context, msg cmn.OmciMessage, cb *fsmCb, classID generated.ClassID) {
@@ -246,7 +252,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResult(ctx context.Context
 	if msgLayer == nil {
 		logger.Errorw(ctx, "omci Msg layer nil self test result", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, cb.reqMsg)
 		return
 	}
 	var msgObj *omci.OpticalLineSupervisionTestResult
@@ -257,13 +263,13 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResult(ctx context.Context
 	default:
 		// We should not really land here
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, cb.reqMsg)
 		return
 	}
 	if !msgOk {
 		logger.Errorw(ctx, "omci Msg layer could not be detected for self test result", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, cb.reqMsg)
 		return
 	}
 	logger.Debugw(ctx, "raw omci values of ani-g test result",
@@ -321,12 +327,12 @@ func (selfTestCb *SelfTestControlBlock) handleOmciResponse(ctx context.Context, 
 	case <-pFsmCb.stopOmciChan:
 		logger.Infow(ctx, "omci processing stopped", log.Fields{"device-id": selfTestCb.deviceID, "class-id": classID})
 		selfTestCb.triggerFsmEvent(pFsmCb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_REASON_UNDEFINED, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_REASON_UNDEFINED, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
 	case message, ok := <-pFsmCb.fsm.CommChan:
 		if !ok {
 			logger.Errorw(ctx, "Message couldn't be read from channel", log.Fields{"device-id": selfTestCb.deviceID})
 			selfTestCb.triggerFsmEvent(pFsmCb.fsm, selfTestEventAbort)
-			selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR)
+			selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
 		}
 		logger.Debugw(ctx, "Received message on self test result channel", log.Fields{"device-id": selfTestCb.deviceID})
 
@@ -336,12 +342,12 @@ func (selfTestCb *SelfTestControlBlock) handleOmciResponse(ctx context.Context, 
 			selfTestCb.handleOmciMessage(ctx, msg, pFsmCb, classID)
 		default:
 			logger.Errorw(ctx, "Unknown message type received", log.Fields{"device-id": selfTestCb.deviceID, "message.Type": message.Type})
-			selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR)
+			selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
 		}
 	case <-time.After(time.Duration(SelfTestResponseWaitTimeout) * time.Second):
 		logger.Errorw(ctx, "timeout waiting for test result", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.triggerFsmEvent(pFsmCb.fsm, selfTestEventAbort)
-		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_TIMEOUT, extension.GetValueResponse_ERROR)
+		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_TIMEOUT, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
 	}
 }
 
@@ -368,7 +374,7 @@ func (selfTestCb *SelfTestControlBlock) waitForStopSelfTestModuleSignal(ctx cont
 			logger.Debugw(ctx, "stopped omci processing", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": classID})
 		default:
 			selfTestCb.triggerFsmEvent(fsmCb.fsm, selfTestEventAbort)
-			selfTestCb.submitFailureGetValueResponse(ctx, fsmCb.respChan, extension.GetValueResponse_REASON_UNDEFINED, extension.GetValueResponse_ERROR)
+			selfTestCb.submitFailureGetValueResponse(ctx, fsmCb.respChan, extension.GetValueResponse_REASON_UNDEFINED, extension.GetValueResponse_ERROR, fsmCb.reqMsg)
 		}
 	}
 	selfTestCb.selfTestFsmMap = make(map[generated.ClassID]*fsmCb) // reset map
