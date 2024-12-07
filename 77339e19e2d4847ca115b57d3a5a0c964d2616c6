@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fcd4c189_028c8e44",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 9
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2024-12-07T10:50:07Z",
+      "side": 1,
+      "message": "PLease raise a Helm chart change as well for the variable",
+      "revId": "77339e19e2d4847ca115b57d3a5a0c964d2616c6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
