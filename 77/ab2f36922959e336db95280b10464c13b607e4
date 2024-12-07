@@ -1,0 +1,8 @@
+Code-Review+2: Abhilash Laxmeshwar <abhilash.laxmeshwar@radisys.com>
+Code-Review+1: Mahir Gunyel <mahir.gunyel@netsia.com>
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Submitted-by: Abhilash Laxmeshwar <abhilash.laxmeshwar@radisys.com>
+Submitted-at: Sat, 07 Dec 2024 11:37:39 +0000
+Reviewed-on: https://gerrit.opencord.org/c/voltha-openonu-adapter-go/+/35227
+Project: voltha-openonu-adapter-go
+Branch: refs/heads/master
