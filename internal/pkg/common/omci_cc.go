@@ -750,11 +750,11 @@ func (oo *OmciCC) GetNextTid(highPriority bool) uint16 {
 // onu sw sections uses only low priority tids
 // The mutexTid lock should be taken prior to using this function
 func (oo *OmciCC) GetOnuSwSecNextTid() uint16 {
-	next := oo.tid
-	oo.tid++
 	if oo.tid >= 0x8000 {
 		oo.tid = 1
 	}
+	next := oo.tid
+	oo.tid++
 	return next
 }
 
