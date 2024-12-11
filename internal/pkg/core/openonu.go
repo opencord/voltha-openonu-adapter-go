@@ -264,17 +264,10 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 		return nil, errors.New("nil-device")
 	}
 	logger.Infow(ctx, "reconcile-device", log.Fields{"device-id": device.Id, "parent-id": device.ParentId})
-
-	// Check whether the grpc client in the adapter of the parent device can reach us yet
-	if !oo.isReachableFromRemote(ctx, device.ProxyAddress.AdapterEndpoint, device.ProxyAddress.DeviceId) {
-		return nil, status.Errorf(codes.Unavailable, "adapter-not-reachable-from-parent-%s", device.ProxyAddress.AdapterEndpoint)
-	}
-
 	var handler *deviceHandler
 	if handler = oo.getDeviceHandler(ctx, device.Id, false); handler == nil {
 		handler := newDeviceHandler(ctx, oo.coreClient, oo.eventProxy, device, oo)
 		logger.Infow(ctx, "reconciling-device  skip-onu-config value ", log.Fields{"device-id": device.Id, "parent-id": device.ParentId, "skip-onu-config": oo.skipOnuConfig})
-		oo.addDeviceHandlerToMap(ctx, handler)
 		handler.device = device
 		if err := handler.updateDeviceStateInCore(log.WithSpanFromContext(context.Background(), ctx), &ca.DeviceStateFilter{
 			DeviceId:   device.Id,
@@ -288,7 +281,8 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 			// TODO: Cleanup on failure needed
 			return nil, err
 		}
-
+		// Add device handler to map only if adapter and core connections are up
+		oo.addDeviceHandlerToMap(ctx, handler)
 		handler.StartReconciling(log.WithSpanFromContext(context.Background(), ctx), false)
 		go handler.adoptOrReconcileDevice(log.WithSpanFromContext(context.Background(), ctx), handler.device)
 		// reconcilement will be continued after onu-device entry is added
@@ -1030,19 +1024,19 @@ func (oo *OpenONUAC) updateReachabilityFromRemote(ctx context.Context, remote *c
 	oo.reachableFromRemote[endpointHash] = &reachabilityFromRemote{lastKeepAlive: time.Now(), keepAliveInterval: remote.KeepAliveInterval}
 }
 
-func (oo *OpenONUAC) isReachableFromRemote(ctx context.Context, endpoint string, contextInfo string) bool {
-	logger.Debugw(ctx, "checking-remote-reachability", log.Fields{"endpoint": endpoint, "context": contextInfo})
-	oo.lockReachableFromRemote.RLock()
-	defer oo.lockReachableFromRemote.RUnlock()
-	endpointHash := getHash(endpoint, contextInfo)
-	if _, ok := oo.reachableFromRemote[endpointHash]; ok {
-		logger.Debugw(ctx, "endpoint-exists", log.Fields{"last-keep-alive": time.Since(oo.reachableFromRemote[endpointHash].lastKeepAlive)})
-		// Assume the connection is down if we did not receive 2 keep alives in succession
-		maxKeepAliveWait := time.Duration(oo.reachableFromRemote[endpointHash].keepAliveInterval * 2)
-		return time.Since(oo.reachableFromRemote[endpointHash].lastKeepAlive) <= maxKeepAliveWait
-	}
-	return false
-}
+// func (oo *OpenONUAC) isReachableFromRemote(ctx context.Context, endpoint string, contextInfo string) bool {
+// 	logger.Debugw(ctx, "checking-remote-reachability", log.Fields{"endpoint": endpoint, "context": contextInfo})
+// 	oo.lockReachableFromRemote.RLock()
+// 	defer oo.lockReachableFromRemote.RUnlock()
+// 	endpointHash := getHash(endpoint, contextInfo)
+// 	if _, ok := oo.reachableFromRemote[endpointHash]; ok {
+// 		logger.Debugw(ctx, "endpoint-exists", log.Fields{"last-keep-alive": time.Since(oo.reachableFromRemote[endpointHash].lastKeepAlive)})
+// 		// Assume the connection is down if we did not receive 2 keep alives in succession
+// 		maxKeepAliveWait := time.Duration(oo.reachableFromRemote[endpointHash].keepAliveInterval * 2)
+// 		return time.Since(oo.reachableFromRemote[endpointHash].lastKeepAlive) <= maxKeepAliveWait
+// 	}
+// 	return false
+// }
 
 // stopAllGrpcClients stops all grpc clients in use
 func (oo *OpenONUAC) stopAllGrpcClients(ctx context.Context) {
