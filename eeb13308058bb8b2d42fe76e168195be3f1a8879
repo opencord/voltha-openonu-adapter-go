@@ -16,6 +16,29 @@
       "message": "recheck",
       "revId": "eeb13308058bb8b2d42fe76e168195be3f1a8879",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "785741d9_e9733032",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1402,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2024-12-11T22:35:23Z",
+      "side": 1,
+      "message": "Could you apply this to omci_vlan_config.go as well, as stated by Michael.",
+      "range": {
+        "startLine": 1402,
+        "startChar": 24,
+        "endLine": 1402,
+        "endChar": 39
+      },
+      "revId": "eeb13308058bb8b2d42fe76e168195be3f1a8879",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
