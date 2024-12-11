@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e2cba9a7_4f4a62f4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000666
+      },
+      "writtenOn": "2024-12-11T09:00:00Z",
+      "side": 1,
+      "message": "Yes, this surely makes sense (e.g. when creation of the instance already had some problem on ONT). Anyway if ONT is indicating the instance does not exist it can be regarded as \u0027deleted\u0027/not existing anymore.\nIt could be considered if this acceptance can/should be inserted also at other delete-activities, e.g. in the VLAN FSM (if not already available there).",
+      "revId": "abb86db497db3967ef733b57da15c270edcc747f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
