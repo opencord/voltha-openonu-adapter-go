@@ -33,6 +33,29 @@
       "message": "\u003e Patch Set 2: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_sanity-test/1828/ : ABORTED\n\nrecheck",
       "revId": "3ca3cb95ecd01205c1b37dcb6ea0791c66e1c6cc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6f5d5c22_64f875ee",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2024-12-11T22:19:07Z",
+      "side": 1,
+      "message": "This calue is still 12 in the latest G.988. Why did you increase it?\n\"VLAN filter list:This attribute is a list of provisioned tag control information (TCI) values\nfor the bridge port. A TCI, comprising user priority, canonical format indicator\n(CFI) and virtual local area network identifier (VID), is represented by 2 bytes.\nThis attribute supports up to 12 VLAN entries. The first N are valid, where N\nis given by the number of entries attribute.\"",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "3ca3cb95ecd01205c1b37dcb6ea0791c66e1c6cc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
