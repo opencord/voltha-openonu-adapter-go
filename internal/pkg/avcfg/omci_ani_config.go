@@ -1399,7 +1399,10 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigDeleteResponseMessage(ctx con
 		return
 	}
 	logger.Debugw(ctx, "UniPonAniConfigFsm DeleteResponse Data", log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj})
-	if msgObj.Result != me.Success {
+	if msgObj.Result == me.UnknownInstance {
+		logger.Warnw(ctx, "UniPonAniConfigFsm - Unknow Instance",
+			log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj, "Error": msgObj.Result})
+	} else if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci DeleteResponse Error",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		//TODO:  - later: possibly force FSM into abort or ignore some errors for some messages?

@@ -2127,7 +2127,10 @@ func (oFsm *UniVlanConfigFsm) handleOmciDeleteResponseMessage(ctx context.Contex
 			oFsm.deviceID)
 	}
 	logger.Debugw(ctx, "UniVlanConfigFsm DeleteResponse Data", log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj})
-	if msgObj.Result != me.Success {
+	if msgObj.Result == me.UnknownInstance {
+		logger.Warnw(ctx, "UniPonAniConfigFsm - Unknow Instance",
+			log.Fields{"device-id": oFsm.deviceID, "data-fields": msgObj, "Error": msgObj.Result})
+	} else if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniVlanConfigFsm - Omci DeleteResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
 		// possibly force FSM into abort or ignore some errors for some messages?
