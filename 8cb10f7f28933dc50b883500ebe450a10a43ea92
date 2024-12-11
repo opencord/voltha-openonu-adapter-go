@@ -73,6 +73,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "0c78c778_adb25531",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-12-11T13:20:47Z",
+      "side": 1,
+      "message": "similar to #792, better  keep the lock scope shorter, like putting after else statement.",
+      "parentUuid": "5c5893ca_8a0991d2",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e2c1755e_668cff3e",
         "filename": "internal/pkg/mib/mib_sync.go",
         "patchSetId": 2
@@ -102,6 +120,24 @@
       "side": 1,
       "message": "The lock for accessing the MIBTemplateGenerated will be acquired prior to the start of MIB Upload at EnterGettingMIBFromTemplate Function and will be released once the MIB discovery process is completed .",
       "parentUuid": "e2c1755e_668cff3e",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "07137171_057ef67e",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 792,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-12-11T13:20:47Z",
+      "side": 1,
+      "message": "We recommend putting oo.pOpenOnuAc.LockMutexMibTemplateGenerated() before err :\u003d oo.createAndPersistMibTemplate(ctx) statement and keep the lock within a shorter scope. We got better results that way.Putting before MIB upload broadens the scope, lacks readability and caused some issues in our case.",
+      "parentUuid": "ad733d75_b4d4e7f4",
       "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
