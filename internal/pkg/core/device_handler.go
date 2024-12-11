@@ -3584,6 +3584,35 @@ func (dh *deviceHandler) VerifyUniVlanConfigRequest(ctx context.Context, apUniPo
 	}
 }
 
+// handleAniConfigFSMFailure handles the failure of the ANI config FSM by resetting the VLAN filter FSM
+func (dh *deviceHandler) HandleAniConfigFSMFailure(ctx context.Context, uniID uint8) {
+	dh.lockVlanConfig.Lock()
+	defer dh.lockVlanConfig.Unlock()
+
+	if pVlanFilterFsm, exist := dh.UniVlanConfigFsmMap[uniID]; exist {
+		pVlanFilterStatemachine := pVlanFilterFsm.PAdaptFsm.PFsm
+		if pVlanFilterStatemachine != nil {
+			if err := pVlanFilterStatemachine.Event(avcfg.VlanEvReset); err != nil {
+				logger.Warnw(ctx, "Failed to reset UniVlanConfigFsm", log.Fields{
+					"err": err, "device-id": dh.DeviceID, "UniPort": uniID, "FsmState": pVlanFilterStatemachine.Current(),
+				})
+			} else {
+				logger.Infow(ctx, "Successfully reset UniVlanConfigFsm", log.Fields{
+					"state": pVlanFilterStatemachine.Current(), "device-id": dh.DeviceID, "UniPort": uniID,
+				})
+			}
+		} else {
+			logger.Debugw(ctx, "UniVlanConfigFsm StateMachine does not exist, no reset performed", log.Fields{
+				"device-id": dh.DeviceID, "UniPort": uniID,
+			})
+		}
+	} else {
+		logger.Debugw(ctx, "No UniVlanConfigFsm found for the UNI ID", log.Fields{
+			"device-id": dh.DeviceID, "UniPort": uniID,
+		})
+	}
+}
+
 // RemoveVlanFilterFsm deletes the stored pointer to the VlanConfigFsm
 // intention is to provide this method to be called from VlanConfigFsm itself, when resources (and methods!) are cleaned up
 func (dh *deviceHandler) RemoveVlanFilterFsm(ctx context.Context, apUniPort *cmn.OnuUniPort) {

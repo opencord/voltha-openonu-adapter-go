@@ -1183,6 +1183,9 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(ctx context.Context, e *fsm.
 				_ = aPAFsm.PFsm.Event(aniEvRestart)
 			}
 		}(pConfigAniStateAFsm)
+		logger.Warnf(ctx, "calling  HandleAniConfigFSMFailure resetting", log.Fields{
+			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
+		oFsm.pDeviceHandler.HandleAniConfigFSMFailure(ctx, oFsm.pOnuUniPort.UniID)
 	}
 }
 

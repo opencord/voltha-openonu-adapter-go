@@ -107,6 +107,7 @@ type IdeviceHandler interface {
 
 	VerifyUniVlanConfigRequest(context.Context, *OnuUniPort, uint8)
 	VerifyVlanConfigRequest(context.Context, uint8, uint8)
+	HandleAniConfigFSMFailure(ctx context.Context, uniID uint8)
 	AddAllUniPorts(context.Context)
 	RemoveVlanFilterFsm(context.Context, *OnuUniPort)
 
