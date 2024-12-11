@@ -220,7 +220,7 @@ func (oo *OpenONUAC) getDeviceHandler(ctx context.Context, deviceID string, aWai
 		// based on concurrent processing the deviceHandler creation may not yet be finished at his point
 		// so it might be needed to wait here for that event with some timeout
 		select {
-		case <-time.After(1 * time.Second): //timer may be discussed ...
+		case <-time.After(20 * time.Second): //timer may be discussed ...
 			logger.Warnw(ctx, "No valid deviceHandler created after max WaitTime", log.Fields{"device-id": deviceID})
 			return nil
 		case <-deviceCreateChan:
