@@ -1642,6 +1642,12 @@ func (oFsm *OnuUpgradeFsm) handleRxSwGetResponse(ctx context.Context, msg cmn.Om
 		oFsm.abortOnOmciError(ctx, false)
 		return
 	}
+	if msgObj.EntityClass != me.SoftwareImageClassID {
+		logger.Errorw(ctx, "Class id mismatch for software image upgrade",
+			log.Fields{"device-id": oFsm.deviceID, "recived ClassId": msgObj.EntityClass, "expected ClassId": me.SoftwareImageClassID})
+		oFsm.abortOnOmciError(ctx, false)
+		return
+	}
 	logger.Debugw(ctx, "OnuUpgradeFsm SwImage GetResponse data", log.Fields{
 		"device-id": oFsm.deviceID, "data-fields": msgObj})
 	if msgObj.EntityClass == oFsm.pLastTxMeInstance.GetClassID() &&
