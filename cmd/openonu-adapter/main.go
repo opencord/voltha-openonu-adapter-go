@@ -419,7 +419,7 @@ func (a *adapter) checkKvStoreReadiness(ctx context.Context) {
 			}
 		case <-timeoutTimer.C:
 			// Check the status of the kv-store
-			logger.Info(ctx, "kv-store liveliness-recheck")
+			logger.Debug(ctx, "kv-store liveliness-recheck")
 			if a.kvClient.IsConnectionUp(ctx) {
 				kvStoreChannel <- true
 			} else {

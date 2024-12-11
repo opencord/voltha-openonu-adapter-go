@@ -189,7 +189,6 @@ type OnuDeviceEntry struct {
 	onuKVStorePath             string
 	mutexOnuKVStoreProcResult  sync.RWMutex
 	onuKVStoreProcResult       error //error indication of processing
-	chOnuKvProcessingStep      chan uint8
 	mutexOnuSwImageIndications sync.RWMutex
 	onuSwImageIndications      cmn.SswImageIndications
 	MutexOnuImageStatus        sync.RWMutex
@@ -237,7 +236,6 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.ReconciledTpInstances = make(map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage)
 	onuDeviceEntry.chReconcilingFlowsFinished = make(chan bool)
 	onuDeviceEntry.reconcilingFlows = false
-	onuDeviceEntry.chOnuKvProcessingStep = make(chan uint8)
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan cmn.Message, 2048)
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
 	//OMCI related databases are on a per-agent basis. State machines and tasks
@@ -573,28 +571,23 @@ func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 }
 
 // DeleteDataFromOnuKvStore - TODO: add comment
-func (oo *OnuDeviceEntry) DeleteDataFromOnuKvStore(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (oo *OnuDeviceEntry) DeleteDataFromOnuKvStore(ctx context.Context) error {
 
 	if oo.onuKVStore == nil {
 		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
-		oo.setKvProcessingErrorIndication(errors.New("onu-data delete aborted: onuKVStore not set"))
-		return
+		return errors.New("onu-data delete aborted: onuKVStore not set")
 	}
-	var processingStep uint8 = 1 // used to synchronize the different processing steps with chOnuKvProcessingStep
-	go oo.deletePersistentData(ctx, processingStep)
-	if !oo.waitForTimeoutOrCompletion(ctx, oo.chOnuKvProcessingStep, processingStep) {
-		//timeout or error detected
-		logger.Debugw(ctx, "ONU-data not deleted - abort", log.Fields{"device-id": oo.deviceID})
-		oo.setKvProcessingErrorIndication(errors.New("onu-data delete aborted: during kv-access"))
-		return
+	err := oo.deletePersistentData(ctx)
+	if err != nil {
+		logger.Errorf(ctx, "onu-data delete aborted: during kv-access", log.Fields{"device-id": oo.deviceID, "err": err})
+		return err
 	}
+	return nil
 }
 
-func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingStep uint8) {
+func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context) error {
 
 	logger.Debugw(ctx, "delete and clear internal persistency data", log.Fields{"device-id": oo.deviceID})
-
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
 
@@ -608,32 +601,27 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context, aProcessingS
 	oo.mutexOnuKVStore.Unlock()
 	if err != nil {
 		logger.Errorw(ctx, "unable to delete in KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
-		oo.chOnuKvProcessingStep <- 0 //error indication
-		return
+		return err
 	}
-	oo.chOnuKvProcessingStep <- aProcessingStep //done
+	return nil
 }
 
 // UpdateOnuKvStore - TODO: add comment
-func (oo *OnuDeviceEntry) UpdateOnuKvStore(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (oo *OnuDeviceEntry) UpdateOnuKvStore(ctx context.Context) error {
 
 	if oo.onuKVStore == nil {
 		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
-		oo.setKvProcessingErrorIndication(errors.New("onu-data update aborted: onuKVStore not set"))
-		return
+		return errors.New("onu-data update aborted: onuKVStore not set")
 	}
-	var processingStep uint8 = 1 // used to synchronize the different processing steps with chOnuKvProcessingStep
-	go oo.storeDataInOnuKvStore(ctx, processingStep)
-	if !oo.waitForTimeoutOrCompletion(ctx, oo.chOnuKvProcessingStep, processingStep) {
-		//timeout or error detected
-		logger.Debugw(ctx, "ONU-data not written - abort", log.Fields{"device-id": oo.deviceID})
-		oo.setKvProcessingErrorIndication(errors.New("onu-data update aborted: during writing process"))
-		return
+	err := oo.storeDataInOnuKvStore(ctx)
+	if err != nil {
+		logger.Errorf(ctx, "onu-data update aborted: during writing process", log.Fields{"device-id": oo.deviceID, "err": err})
+		return err
 	}
+	return nil
 }
 
-func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessingStep uint8) {
+func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context) error {
 
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
@@ -641,17 +629,15 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	oo.pOpenOnuAc.RLockMutexDeviceHandlersMap()
 	if _, exist := oo.pOpenOnuAc.GetDeviceHandler(oo.deviceID); !exist {
 		logger.Debugw(ctx, "delete_device in progress - skip write request", log.Fields{"device-id": oo.deviceID})
-		oo.chOnuKvProcessingStep <- aProcessingStep
 		oo.pOpenOnuAc.RUnlockMutexDeviceHandlersMap()
-		return
+		return nil
 	}
 	oo.baseDeviceHandler.RLockMutexDeletionInProgressFlag()
 	if oo.baseDeviceHandler.GetDeletionInProgress() {
 		logger.Debugw(ctx, "delete_device in progress - skip write request", log.Fields{"device-id": oo.deviceID})
-		oo.chOnuKvProcessingStep <- aProcessingStep
 		oo.pOpenOnuAc.RUnlockMutexDeviceHandlersMap()
 		oo.baseDeviceHandler.RUnlockMutexDeletionInProgressFlag()
-		return
+		return nil
 	}
 	oo.pOpenOnuAc.RUnlockMutexDeviceHandlersMap()
 	oo.baseDeviceHandler.RUnlockMutexDeletionInProgressFlag()
@@ -666,8 +652,7 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 		oo.SOnuPersistentData.PersOperState = onuIndication.OperState
 	} else {
 		logger.Errorw(ctx, "onuIndication not set, unable to load ONU-data", log.Fields{"device-id": oo.deviceID})
-		oo.chOnuKvProcessingStep <- 0 //error indication
-		return
+		return errors.New("OnuIndication not set, unable to load ONU-data")
 	}
 
 	logger.Debugw(ctx, "Update ONU-data in KVStore", log.Fields{"device-id": oo.deviceID, "SOnuPersistentData": oo.SOnuPersistentData})
@@ -676,19 +661,17 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context, aProcessing
 	if err != nil {
 		logger.Errorw(ctx, "unable to marshal ONU-data", log.Fields{"SOnuPersistentData": oo.SOnuPersistentData,
 			"device-id": oo.deviceID, "err": err})
-		oo.chOnuKvProcessingStep <- 0 //error indication
-		return
+		return err
 	}
 
 	oo.mutexOnuKVStore.Lock()
 	err = oo.onuKVStore.Put(ctx, oo.onuKVStorePath, Value)
 	oo.mutexOnuKVStore.Unlock()
 	if err != nil {
-		logger.Errorw(ctx, "unable to write ONU-data into KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
-		oo.chOnuKvProcessingStep <- 0 //error indication
-		return
+		logger.Errorf(ctx, "unable to write ONU-data into KVstore", log.Fields{"device-id": oo.deviceID, "err": err})
+		return err
 	}
-	oo.chOnuKvProcessingStep <- aProcessingStep //done
+	return nil
 }
 
 // UpdateOnuUniTpPath - TODO: add comment
@@ -783,25 +766,6 @@ func (oo *OnuDeviceEntry) UpdateOnuUniFlowConfig(aUniID uint8, aUniVlanFlowParam
 	tmpConfig := uniPersConfig{PersUniID: aUniID, PersTpPathMap: make(map[uint8]string), PersFlowParams: make([]cmn.UniVlanFlowParams, len(*aUniVlanFlowParams))}
 	copy(tmpConfig.PersFlowParams, *aUniVlanFlowParams)
 	oo.SOnuPersistentData.PersUniConfig = append(oo.SOnuPersistentData.PersUniConfig, tmpConfig)
-}
-
-func (oo *OnuDeviceEntry) waitForTimeoutOrCompletion(
-	ctx context.Context, aChOnuProcessingStep <-chan uint8, aProcessingStep uint8) bool {
-	select {
-	case <-ctx.Done():
-		logger.Warnw(ctx, "processing not completed in-time!",
-			log.Fields{"device-id": oo.deviceID, "error": ctx.Err()})
-		return false
-	case rxStep := <-aChOnuProcessingStep:
-		if rxStep == aProcessingStep {
-			return true
-		}
-		//all other values are not accepted - including 0 for error indication
-		logger.Warnw(ctx, "Invalid processing step received: abort!",
-			log.Fields{"device-id": oo.deviceID,
-				"wantedStep": aProcessingStep, "haveStep": rxStep})
-		return false
-	}
 }
 
 // ResetKvProcessingErrorIndication - TODO: add comment
