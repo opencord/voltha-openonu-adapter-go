@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a858aaed_aadb1750",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2024-12-11T22:27:53Z",
+      "side": 1,
+      "message": "what if you receive another ReconcileDevice while waiting for grpc connection?",
+      "range": {
+        "startLine": 280,
+        "startChar": 5,
+        "endLine": 280,
+        "endChar": 26
+      },
+      "revId": "aca7475ce30c9330cc93a500e52ef4e921f2f93b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
