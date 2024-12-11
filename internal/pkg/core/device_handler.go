@@ -461,13 +461,11 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 			}
 			deadline = time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
-			pDevEntry.ResetKvProcessingErrorIndication()
-			wg.Add(1) // for the 1 go routine to finish
-			go pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg)
-			dh.waitForCompletion(ctx, cancel2, &wg, "TechProfDwld") //wait for background process to finish
-			if kvErr := pDevEntry.GetKvProcessingErrorIndication(); kvErr != nil {
-				logger.Errorw(ctx, "error-updating-KV", log.Fields{"device-id": dh.DeviceID, "err": kvErr, "tp-path": techProfMsg.TpInstancePath})
-				return kvErr
+			defer cancel2()
+			err1 := pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx2, ctx))
+			if err1 != nil {
+				logger.Errorf(ctx, "UpdateOnuKvStore-failed", log.Fields{"device-id": dh.DeviceID, "error": err1})
+				return err
 			}
 			return nil
 		default:
@@ -551,16 +549,14 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 	}
 	pDevEntry.FreeTcont(ctx, uint16(delTcontMsg.AllocId))
 
-	var wg sync.WaitGroup
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
-	wg.Add(1)
+	defer cancel()
 	logger.Debugw(ctx, "remove-tcont-in-kv", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID, "tcont": delTcontMsg.AllocId})
-	go pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
-	dh.waitForCompletion(ctx, cancel, &wg, "DeleteTcont") //wait for background process to finish
-	if err := pDevEntry.GetKvProcessingErrorIndication(); err != nil {
-		logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
-		return err
+	err1 := pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx, ctx))
+	if err1 != nil {
+		logger.Errorw(ctx, "UpdateOnuKvStore-failed", log.Fields{"device-id": dh.DeviceID, "err": err1})
+		return err1
 	}
 
 	return dh.deleteTechProfileResource(ctx, uniID, tpID, delTcontMsg.TpInstancePath,
@@ -602,15 +598,13 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 		logger.Debugw(ctx, "techProfile-config-cleared", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID})
 		if bTpModify := pDevEntry.UpdateOnuUniTpPath(ctx, uniID, tpID, ""); bTpModify {
 			pDevEntry.ResetKvProcessingErrorIndication()
-			var wg2 sync.WaitGroup
 			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
-			wg2.Add(1)
+			defer cancel2()
 			// Removal of the gem id mapping represents the removal of the tech profile
 			logger.Debugw(ctx, "remove-techProfile-indication-in-kv", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tpID": tpID})
-			go pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx2, ctx), &wg2)
-			dh.waitForCompletion(ctx, cancel2, &wg2, "TechProfileDeleteOn"+resourceName) //wait for background process to finish
-			if err := pDevEntry.GetKvProcessingErrorIndication(); err != nil {
-				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+			err := pDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx2, ctx))
+			if err != nil {
+				logger.Errorw(ctx, "UpdateOnuKvStore-failed", log.Fields{"device-id": dh.DeviceID, "err": err})
 				return err
 			}
 		}
@@ -1189,8 +1183,7 @@ func (dh *deviceHandler) waitOnUniVlanConfigReconcilingReady(ctx context.Context
 						waitGroup.Done()
 					}
 				} else {
-					logger.Errorw(ctx, "received unexpected UNI flowConfig done indication - is ignored",
-						log.Fields{"device-id": dh.DeviceID, "uni-id": uniIndication})
+					logger.Errorw(ctx, "received unexpected UNI flowConfig done indication - is ignored", log.Fields{"device-id": dh.DeviceID, "uni-id": uniIndication})
 				}
 			} //switch uniIndication
 
@@ -1251,16 +1244,13 @@ func (dh *deviceHandler) deleteDevicePersistencyData(ctx context.Context) error 
 	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(ctx, deadline)
-
-	pDevEntry.ResetKvProcessingErrorIndication()
-
-	var wg sync.WaitGroup
-	wg.Add(1) // for the 1 go routine to finish
-	go pDevEntry.DeleteDataFromOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
-	dh.waitForCompletion(ctx, cancel, &wg, "DeleteDevice") //wait for background process to finish
-
-	// TODO: further actions - stop metrics and FSMs, remove device ...
-	return pDevEntry.GetKvProcessingErrorIndication()
+	defer cancel()
+	err := pDevEntry.DeleteDataFromOnuKvStore(log.WithSpanFromContext(dctx, ctx))
+	if err != nil {
+		logger.Errorw(ctx, "delete data from onu kv store failed", log.Fields{"device-id": dh.DeviceID, "err": err})
+		return err
+	}
+	return nil
 }
 
 // func (dh *deviceHandler) rebootDevice(ctx context.Context, device *voltha.Device) error {
@@ -3604,15 +3594,14 @@ func (dh *deviceHandler) startWritingOnuDataToKvStore(ctx context.Context, aPDev
 	//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel() // Ensure cancel is called to release resources
 
-	aPDevEntry.ResetKvProcessingErrorIndication()
-	var wg sync.WaitGroup
-	wg.Add(1) // for the 1 go routine to finish
-
-	go aPDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx, ctx), &wg)
-	dh.waitForCompletion(ctx, cancel, &wg, "UpdateKvStore") //wait for background process to finish
-
-	return aPDevEntry.GetKvProcessingErrorIndication()
+	err := aPDevEntry.UpdateOnuKvStore(log.WithSpanFromContext(dctx, ctx))
+	if err != nil {
+		logger.Errorw(ctx, "UpdateOnuKvStore-failed", log.Fields{"device-id": dh.DeviceID})
+		return err
+	}
+	return nil
 }
 
 // StorePersUniFlowConfig updates local storage of OnuUniFlowConfig and writes it into kv-store afterwards to have it
