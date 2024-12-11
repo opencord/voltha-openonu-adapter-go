@@ -244,13 +244,17 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 
 		// optional attributes
 		case me.SoftwareImage_ProductCode:
-			if msgObj.Result == me.Success {
-				image.ProductCode = cmn.TrimStringFromMeOctet(meAttributes[me.SoftwareImage_ProductCode])
-			} else {
-				sResult := msgObj.Result.String()
-				logger.Infow(ctx, "processAttributesReceived - ProductCode",
-					log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
-				image.ProductCode = cResponse + sResult
+			// Check if me.SoftwareImage_ImageHash exists in meAttributes
+			if prodAttr, found := meAttributes[me.SoftwareImage_ProductCode]; found {
+				// Process the prod attribute if msgObj.Result is successful
+				if msgObj.Result == me.Success {
+					image.ProductCode = cmn.TrimStringFromMeOctet(prodAttr)
+				} else {
+					sResult := msgObj.Result.String()
+					logger.Infow(ctx, "processAttributesReceived - ProductCode",
+						log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
+					image.ProductCode = cResponse + sResult
+				}
 			}
 		case me.SoftwareImage_ImageHash:
 			if msgObj.Result == me.Success {
