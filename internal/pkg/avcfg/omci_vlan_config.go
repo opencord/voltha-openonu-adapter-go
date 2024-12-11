@@ -43,7 +43,7 @@ const (
 	// internal predefined values
 	cDefaultDownstreamMode = 0
 	cDefaultTpid           = 0x8100
-	cVtfdTableSize         = 12             //as per G.988
+	cVtfdTableSize         = 64             //as per G.988
 	cMaxAllowedFlows       = cVtfdTableSize //which might be under discussion, for the moment connected to limit of VLAN's within VTFD
 )
 
