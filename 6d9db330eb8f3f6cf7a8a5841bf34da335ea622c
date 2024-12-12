@@ -67,6 +67,23 @@
       "message": "\u003e Patch Set 4: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_sanity-test/1843/ : ABORTED\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1582/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1583/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_licensed/1768/ : SUCCESS\n\nrecheck",
       "revId": "6d9db330eb8f3f6cf7a8a5841bf34da335ea622c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3f8ebba4_0bac9d4b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000957
+      },
+      "writtenOn": "2024-12-12T07:40:17Z",
+      "side": 1,
+      "message": "\u003e Patch Set 4: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_sanity-test/1843/ : ABORTED\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1582/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1583/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_licensed/1768/ : SUCCESS\n\nrecheck",
+      "revId": "6d9db330eb8f3f6cf7a8a5841bf34da335ea622c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
