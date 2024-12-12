@@ -91,6 +91,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "434a3ff9_a41787bb",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-12-12T12:23:29Z",
+      "side": 1,
+      "message": "The approach taken is to allow only one ONT to complete the MIB upload , template created , a MIB instance made available and then make the other ONTs having a similar template to use the instance  readily available . This has  made the  scope of the locks  to be used over a broader context during MIB upload. The intention is to avoid load on openonu adapter with multiple ONTS activating and performing MIB upload as they are redundant operations. Keeping the scope shorter creates race conditions and concurrent map access.",
+      "parentUuid": "0c78c778_adb25531",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e2c1755e_668cff3e",
         "filename": "internal/pkg/mib/mib_sync.go",
         "patchSetId": 2
@@ -138,6 +156,24 @@
       "side": 1,
       "message": "We recommend putting oo.pOpenOnuAc.LockMutexMibTemplateGenerated() before err :\u003d oo.createAndPersistMibTemplate(ctx) statement and keep the lock within a shorter scope. We got better results that way.Putting before MIB upload broadens the scope, lacks readability and caused some issues in our case.",
       "parentUuid": "ad733d75_b4d4e7f4",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6d5b710c_33c8aeed",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 792,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-12-12T12:23:29Z",
+      "side": 1,
+      "message": "The approach taken is to allow only one ONT to complete the MIB upload , template created , a MIB instance made available and then make the other ONTs having a similar template to use the instance  readily available . This has  made the  scope of the locks  to be used over a broader context during MIB upload. The intention is to avoid load on openonu adapter with multiple ONTS activating and performing MIB upload as they are redundant operations. Keeping the scope shorter creates race conditions and concurrent map access.",
+      "parentUuid": "07137171_057ef67e",
       "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
