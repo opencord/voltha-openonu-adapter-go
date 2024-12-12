@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "84b70ba6_8dfc4ba3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2024-12-12T21:01:08Z",
+      "side": 1,
+      "message": "Given that the +1 and +2 were given before...",
+      "revId": "8eff4636c20d40f6ed334461824de0aea086b631",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
