@@ -56,6 +56,30 @@
       },
       "revId": "3ca3cb95ecd01205c1b37dcb6ea0791c66e1c6cc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fadfa1cc_151f4fb5",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000957
+      },
+      "writtenOn": "2024-12-12T05:22:34Z",
+      "side": 1,
+      "message": "The cVtfdTableSize was increased to 64 to support configurations for 16-port DPUs. While the standard specifies a maximum of 12 VLAN entries, this value was found to exceed and limit flow configurations for 16-port DPUs, as each port\u0027s VLAN entries could not fit within the standard size. For 4-port DPUs, the value of 12 works fine, but for scalability to 16-port DPUs, the table size was increased to accommodate the larger number of VLAN entries per port.",
+      "parentUuid": "6f5d5c22_64f875ee",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "3ca3cb95ecd01205c1b37dcb6ea0791c66e1c6cc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
