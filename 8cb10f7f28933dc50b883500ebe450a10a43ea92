@@ -36,6 +36,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f9c143b7_c0f531d1",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-12-12T15:01:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c841c506_69721cca",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "26dde3d7_20418361",
@@ -107,6 +125,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "aa691ada_81ba3503",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-12-12T15:01:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "434a3ff9_a41787bb",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e2c1755e_668cff3e",
@@ -174,6 +210,24 @@
       "side": 1,
       "message": "The approach taken is to allow only one ONT to complete the MIB upload , template created , a MIB instance made available and then make the other ONTs having a similar template to use the instance  readily available . This has  made the  scope of the locks  to be used over a broader context during MIB upload. The intention is to avoid load on openonu adapter with multiple ONTS activating and performing MIB upload as they are redundant operations. Keeping the scope shorter creates race conditions and concurrent map access.",
       "parentUuid": "07137171_057ef67e",
+      "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "89108f52_516cde3a",
+        "filename": "internal/pkg/mib/mib_sync.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 792,
+      "author": {
+        "id": 1000489
+      },
+      "writtenOn": "2024-12-12T15:01:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6d5b710c_33c8aeed",
       "revId": "8cb10f7f28933dc50b883500ebe450a10a43ea92",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
