@@ -845,7 +845,12 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 			pUpgradeFsm := oFsm.PAdaptFsm
 			if pUpgradeFsm != nil {
 				_ = pUpgradeFsm.PFsm.Event(UpgradeEvWaitWindowAck) //state transition to upgradeStVerifyWindow
-				oFsm.pOmciCC.SendOnuSwSectionsWindowWithRxSupervision(ctx, omciTxReq, oFsm.pDeviceHandler.GetOmciTimeout(), oFsm.PAdaptFsm.CommChan)
+				err := oFsm.pOmciCC.SendOnuSwSectionsWindowWithRxSupervision(ctx, omciTxReq, oFsm.pDeviceHandler.GetOmciTimeout(), oFsm.PAdaptFsm.CommChan)
+				if err != nil {
+					logger.Errorw(ctx, "DlSection abort: can't send window acknowledgement request to ONU ", log.Fields{
+						"device-id": oFsm.deviceID, "section absolute": oFsm.nextDownloadSectionsAbsolute, "error": err})
+					oFsm.abortOnOmciError(ctx, false)
+				}
 				return
 			}
 			logger.Warnw(ctx, "pUpgradeFsm is nil", log.Fields{"device-id": oFsm.deviceID})
@@ -1969,7 +1974,7 @@ func (oFsm *OnuUpgradeFsm) stateUpdateOnReset(ctx context.Context) {
 				oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
 			}
 			//reset the image state from Downloading in this case
-			oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN //something like 'IMAGE_DOWNLOAD_ABORTED' would be better (proto)
+			oFsm.volthaImageState = voltha.ImageState_IMAGE_DOWNLOADING_ABORTED
 		//in all other upgrade phases the last set download state remains valid
 		case cUpgradeActivating:
 			//reset the image state from Activating in this case
@@ -1986,7 +1991,7 @@ func (oFsm *OnuUpgradeFsm) stateUpdateOnReset(ctx context.Context) {
 		oFsm.volthaDownloadState = voltha.ImageState_DOWNLOAD_FAILED
 		oFsm.volthaDownloadReason = voltha.ImageState_CANCELLED_ON_ONU_STATE
 		//reset the image state from Downloading in this case
-		oFsm.volthaImageState = voltha.ImageState_IMAGE_UNKNOWN //something like 'IMAGE_DOWNLOAD_ABORTED' would be better (proto)
+		oFsm.volthaImageState = voltha.ImageState_IMAGE_DOWNLOADING_ABORTED
 	}
 }
 

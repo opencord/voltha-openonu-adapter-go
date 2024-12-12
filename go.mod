@@ -12,13 +12,13 @@ require (
 	github.com/boguslaw-wojcik/crc32a v1.0.0
 	github.com/cevaris/ordered_map v0.0.0-20190319150403-3adeae072e73
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.3
 	github.com/google/gopacket v1.1.17
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/looplab/fsm v0.2.0
 	github.com/opencord/omci-lib-go/v2 v2.2.3
 	github.com/opencord/voltha-lib-go/v7 v7.5.3
-	github.com/opencord/voltha-protos/v5 v5.4.11
-	github.com/stretchr/testify v1.7.0
-	google.golang.org/grpc v1.44.0
+	github.com/opencord/voltha-protos/v5 v5.6.1
+	github.com/stretchr/testify v1.8.1
+	google.golang.org/grpc v1.56.2
 )
