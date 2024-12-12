@@ -36,6 +36,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a38511db_d2b386c9",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1363,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-12-12T05:43:16Z",
+      "side": 1,
+      "message": "Resolved in the latest patch set",
+      "parentUuid": "609a95f4_a6565df8",
+      "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ec142888_8e56e3bf",
@@ -67,6 +85,24 @@
       "side": 1,
       "message": "Sure, will be logging the meClassID.",
       "parentUuid": "ec142888_8e56e3bf",
+      "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4ed8bfcd_5e9ccddc",
+        "filename": "internal/pkg/devdb/onu_device_db.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 319,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2024-12-12T05:43:16Z",
+      "side": 1,
+      "message": "Resolved in the latest patch set",
+      "parentUuid": "c4951dae_cb7a8bc4",
       "revId": "b79b44dd8f33ca94ec93a246ecacd358972c2073",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
