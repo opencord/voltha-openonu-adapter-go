@@ -80,6 +80,30 @@
       },
       "revId": "3ca3cb95ecd01205c1b37dcb6ea0791c66e1c6cc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c96a6055_3d6da602",
+        "filename": "internal/pkg/avcfg/omci_vlan_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2024-12-12T21:03:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fadfa1cc_151f4fb5",
+      "range": {
+        "startLine": 46,
+        "startChar": 26,
+        "endLine": 46,
+        "endChar": 28
+      },
+      "revId": "3ca3cb95ecd01205c1b37dcb6ea0791c66e1c6cc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
