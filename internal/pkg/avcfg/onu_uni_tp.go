@@ -773,6 +773,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 func (onuTP *OnuUniTechProf) IsTechProfileConfigCleared(ctx context.Context, uniID uint8, tpID uint8) bool {
 	uniTPKey := uniTP{uniID: uniID, tpID: tpID}
 	logger.Debugw(ctx, "IsTechProfileConfigCleared", log.Fields{"device-id": onuTP.deviceID})
+	onuTP.mutexTPState.RLock()
 	if onuTP.mapPonAniConfig[uniTPKey] != nil {
 		mapGemPortParams := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams
 		unicastGemCount := 0
@@ -782,6 +783,7 @@ func (onuTP *OnuUniTechProf) IsTechProfileConfigCleared(ctx context.Context, uni
 			}
 		}
 		if unicastGemCount == 0 || onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID == 0 {
+			onuTP.mutexTPState.RUnlock()
 			logger.Debugw(ctx, "clearing-ani-side-config", log.Fields{
 				"device-id": onuTP.deviceID, "uniTpKey": uniTPKey})
 			onuTP.clearAniSideConfig(ctx, uniID, tpID)
@@ -792,6 +794,7 @@ func (onuTP *OnuUniTechProf) IsTechProfileConfigCleared(ctx context.Context, uni
 			return true
 		}
 	}
+	onuTP.mutexTPState.RUnlock()
 	return false
 }
 
