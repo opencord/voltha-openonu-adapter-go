@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4d1e2d4b_2baf9eaf",
+        "filename": "VERSION",
+        "patchSetId": 10
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2024-12-13T05:15:42Z",
+      "side": 1,
+      "message": "why not dev2",
+      "revId": "bca77d4a9a230e30cced0eda88b7d020254b8094",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
