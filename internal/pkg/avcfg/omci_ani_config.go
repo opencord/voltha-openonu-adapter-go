@@ -349,10 +349,13 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": oFsm.deviceID})
 			return
 		}
+		// Access critical state with lock
+		oFsm.pUniTechProf.mutexTPState.RLock()
 		tcontInstID, tcontAlreadyExist, err := oFsm.pOnuDeviceEntry.AllocateFreeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
 		if err != nil {
 			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID, "err": err})
 			//reset the state machine to enable usage on subsequent requests
+			oFsm.pUniTechProf.mutexTPState.RUnlock()
 			_ = aPAFsm.PFsm.Event(aniEvReset)
 			return
 		}
@@ -363,8 +366,6 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			"tcontAlreadyExist": tcontAlreadyExist,
 			"device-id":         oFsm.deviceID})
 
-		// Access critical state with lock
-		oFsm.pUniTechProf.mutexTPState.RLock()
 		oFsm.alloc0ID = oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID
 		mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
 		oFsm.pUniTechProf.mutexTPState.RUnlock()
@@ -1049,8 +1050,16 @@ func (oFsm *UniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
-	mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
+	var mapGemPortParams map[uint16]*gemPortParamStruct
 	unicastGemCount := 0
+	oFsm.pUniTechProf.mutexTPState.RLock()
+	if _, ok := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey]; ok {
+		mapGemPortParams = oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
+	} else {
+		logger.Warnw(ctx, "GemPortParams not found in mapPonAniConfig", log.Fields{"device-id": oFsm.deviceID,
+			"uni-id": oFsm.pOnuUniPort.UniID})
+	}
+	oFsm.pUniTechProf.mutexTPState.RUnlock()
 	for _, gemEntry := range mapGemPortParams {
 		if !gemEntry.isMulticast {
 			unicastGemCount++
@@ -1201,29 +1210,36 @@ loop:
 		// case <-ctx.Done():
 		// 	logger.Info("MibSync Msg", log.Fields{"Message handling canceled via context for device-id": oFsm.deviceID})
 		// 	break loop
-		message, ok := <-oFsm.PAdaptFsm.CommChan
-		if !ok {
-			logger.Warn(ctx, "UniPonAniConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.deviceID})
-			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
-			_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
-			break loop
-		}
-		logger.Debugw(ctx, "UniPonAniConfigFsm Rx Msg", log.Fields{"device-id": oFsm.deviceID})
-
-		switch message.Type {
-		case cmn.TestMsg:
-			msg, _ := message.Data.(cmn.TestMessage)
-			if msg.TestMessageVal == cmn.AbortMessageProcessing {
-				logger.Infow(ctx, "UniPonAniConfigFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.deviceID})
+		select {
+		case message, ok := <-oFsm.PAdaptFsm.CommChan:
+			if !ok {
+				logger.Warn(ctx, "UniPonAniConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.deviceID})
+				// but then we have to ensure a restart of the FSM as well - as exceptional procedure
+				_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
 				break loop
 			}
-			logger.Warnw(ctx, "UniPonAniConfigFsm unknown TestMessage", log.Fields{"device-id": oFsm.deviceID, "MessageVal": msg.TestMessageVal})
-		case cmn.OMCI:
-			msg, _ := message.Data.(cmn.OmciMessage)
-			oFsm.handleOmciAniConfigMessage(ctx, msg)
-		default:
-			logger.Warn(ctx, "UniPonAniConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.deviceID,
-				"message.Type": message.Type})
+			logger.Debugw(ctx, "UniPonAniConfigFsm Rx Msg", log.Fields{"device-id": oFsm.deviceID})
+
+			switch message.Type {
+			case cmn.TestMsg:
+				msg, _ := message.Data.(cmn.TestMessage)
+				if msg.TestMessageVal == cmn.AbortMessageProcessing {
+					logger.Infow(ctx, "UniPonAniConfigFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.deviceID})
+					break loop
+				}
+				logger.Warnw(ctx, "UniPonAniConfigFsm unknown TestMessage", log.Fields{"device-id": oFsm.deviceID, "MessageVal": msg.TestMessageVal})
+			case cmn.OMCI:
+				msg, _ := message.Data.(cmn.OmciMessage)
+				oFsm.handleOmciAniConfigMessage(ctx, msg)
+			default:
+				logger.Warn(ctx, "UniPonAniConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.deviceID,
+					"message.Type": message.Type})
+			}
+		case _, ok := <-oFsm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+			if !ok {
+				logger.Warnw(ctx, "Device deletion channel closed", log.Fields{"device-id": oFsm.deviceID})
+			}
+			break loop
 		}
 
 	}
@@ -1302,6 +1318,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetFailResponseMessage(ctx co
 		case "TCont":
 			//If this is for TCONT creation(requestEventOffset=0) and this is the first allocation of TCONT(so noone else is using the same TCONT)
 			//We should revert DB
+			oFsm.pUniTechProf.mutexTPState.RLock()
 			if oFsm.requestEventOffset == 0 && !oFsm.tcontSetBefore && oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey] != nil {
 				logger.Debugw(ctx, "UniPonAniConfigFsm TCONT creation failed on device. Freeing alloc id", log.Fields{"device-id": oFsm.deviceID,
 					"alloc-id": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID, "uni-tp": oFsm.uniTpKey})
@@ -1312,6 +1329,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetFailResponseMessage(ctx co
 						log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "device-id": oFsm.deviceID})
 				}
 			}
+			oFsm.pUniTechProf.mutexTPState.RUnlock()
 		default:
 			logger.Warnw(ctx, "Unsupported ME name received with error!",
 				log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "result": msgObj.Result, "device-id": oFsm.deviceID})
