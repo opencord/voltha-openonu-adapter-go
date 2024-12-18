@@ -4411,12 +4411,12 @@ func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 
 // SendOnuSwSectionsWindowWithRxSupervision sends onu swd sections
 func (oo *OmciCC) SendOnuSwSectionsWindowWithRxSupervision(ctx context.Context,
-	aOmciTxRequest OmciTransferStructure, aTimeout int, rxChan chan Message) {
+	aOmciTxRequest OmciTransferStructure, aTimeout int, rxChan chan Message) error {
 	if aOmciTxRequest.OnuSwWindow == nil {
 		logger.Errorw(ctx, "SendOnuSwSectionsWindowWithRxSupervision: omciTxRequest.OnuSwWindow is nil",
 			log.Fields{"device-id": oo.deviceID})
-		return
-
+		return fmt.Errorf("sendOnuSwSectionsWindowWithRxSupervision: omciTxRequest.OnuSwWindow is nil device-id: %v",
+			oo.deviceID)
 	}
 
 	tid := oo.GetOnuSwSecLastTid()
@@ -4446,7 +4446,7 @@ func (oo *OmciCC) SendOnuSwSectionsWindowWithRxSupervision(ctx context.Context,
 	retryCounter := 0
 	if aTimeout == 0 {
 		logger.Errorw(ctx, "no timeout present for last section of window", log.Fields{"device-id": oo.deviceID})
-		return
+		return fmt.Errorf("no timeout present for last section of window device-id: %v", oo.deviceID)
 	}
 loop:
 	for retryCounter <= retries {
@@ -4478,18 +4478,33 @@ loop:
 						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				}
 				oo.incrementTxTimesouts()
-				break loop
-			} else {
-				logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
-					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
-				oo.incrementTxRetries()
+				oo.mutexMonReq.Lock()
+				delete(oo.monitoredRequests, tid)
+				oo.mutexMonReq.Unlock()
+				return fmt.Errorf("reqMon: timeout waiting for response - no of max retries reached device-id: %v", oo.deviceID)
 			}
+			logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
+				log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
+			oo.incrementTxRetries()
+		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
+			if !ok {
+				logger.Warnw(ctx, "device deletion channel is closed", log.Fields{"device-id": oo.deviceID})
+				oo.mutexMonReq.Lock()
+				delete(oo.monitoredRequests, tid)
+				oo.mutexMonReq.Unlock()
+				return fmt.Errorf("device deletion channel is closed device-id: %v", oo.deviceID)
+			}
+			oo.mutexMonReq.Lock()
+			delete(oo.monitoredRequests, tid)
+			oo.mutexMonReq.Unlock()
+			return fmt.Errorf("received response from device deletion comm channel while waiting for a OMCI response device-id: %v", oo.deviceID)
 		}
 		retryCounter++
 	}
 	oo.mutexMonReq.Lock()
 	delete(oo.monitoredRequests, tid)
 	oo.mutexMonReq.Unlock()
+	return nil
 }
 
 func (oo *OmciCC) sendOnuSwSectionsOfWindow(ctx context.Context, omciTxRequest OmciTransferStructure) error {
