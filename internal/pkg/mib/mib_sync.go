@@ -315,6 +315,22 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *f
 		oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
 		oo.pOnuDB.CommonMeDb = cmnMEDBVal
 
+		//VOL-5406:If the Instance is present but the MIB templates are cleaned up . Check and create one.
+		Value, err := oo.mibTemplateKVStore.Get(log.WithSpanFromContext(context.TODO(), ctx), oo.mibTemplatePath)
+		if err == nil {
+			if Value == nil {
+
+				error := oo.createAndPersistMibTemplate(ctx)
+				if error != nil {
+					logger.Errorw(ctx, "MibSync - MibTemplate - Failed to create and persist the mib template", log.Fields{"error": err, "device-id": oo.deviceID})
+				} else {
+					logger.Infow(ctx, "MIB Template created and stored ", log.Fields{"device-id": oo.deviceID, "mibTemplatePath": oo.mibTemplatePath})
+				}
+			}
+		} else {
+			logger.Errorw(ctx, "MibSync - MibTemplate - Failed to create and persist the mib template", log.Fields{"error": err, "device-id": oo.deviceID})
+		}
+
 		if cmnMEDBVal.MIBUploadStatus == devdb.Completed {
 			oo.pOnuDB.CommonMeDb.MeDbLock.Lock()
 			oo.updateOnuSpecificEntries(ctx)
