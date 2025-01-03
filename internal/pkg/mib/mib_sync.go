@@ -348,6 +348,7 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *f
 		if err == nil && Value != nil {
 			logger.Infow(ctx, "No Common MIB DB instance  exist , creating from Template", log.Fields{"device-id": oo.deviceID, "mibTemplatePath": oo.mibTemplatePath})
 			oo.processMibTemplate(ctx, Value)
+			fsmMsg = cmn.LoadMibTemplateOk
 		} else {
 			logger.Infow(ctx, "Neither  Common MIB  DB  Instance nor MIB template exist for this type of ONT", log.Fields{"device-id": oo.deviceID, "mibTemplatePath": oo.mibTemplatePath})
 			oo.pOpenOnuAc.LockMutexMibTemplateGenerated()
