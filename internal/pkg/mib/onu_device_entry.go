@@ -135,6 +135,8 @@ const cEmptySerialNumberString = "0000000000000000"
 const cEmptyEquipIDString = "EMPTY_EQUIP_ID"
 const cNotPresentEquipIDString = "NOT_PRESENT_EQUIP_ID"
 
+const vlanConfigSendChanExpiry = 5
+
 type uniPersConfig struct {
 	PersUniID      uint8                   `json:"uni_id"`
 	PersTpPathMap  map[uint8]string        `json:"PersTpPathMap"` // tp-id to tp-path map
@@ -984,12 +986,13 @@ func (oo *OnuDeviceEntry) setReconcilingFlows(value bool) {
 // SendChReconcilingFlowsFinished - TODO: add comment
 func (oo *OnuDeviceEntry) SendChReconcilingFlowsFinished(ctx context.Context, value bool) {
 	if oo != nil { //if the object still exists (might have been already deleted in background)
-		//use asynchronous channel sending to avoid stucking on non-waiting receiver
+		// wait for some time before exiting, as the receiver might not have started and will lead to Mib reset if this signal is missed
+		expiry := vlanConfigSendChanExpiry * time.Second
 		select {
 		case oo.chReconcilingFlowsFinished <- value:
 			logger.Info(ctx, "reconciling - flows finished sent", log.Fields{"device-id": oo.deviceID})
-		default:
-			logger.Infow(ctx, "reconciling - flows finished not sent!", log.Fields{"device-id": oo.deviceID})
+		case <-time.After(expiry):
+			logger.Infow(ctx, "reconciling - timer expired, flows finished not sent!", log.Fields{"device-id": oo.deviceID})
 		}
 	}
 }
