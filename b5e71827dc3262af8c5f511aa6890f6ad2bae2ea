@@ -110,6 +110,30 @@
       },
       "revId": "b5e71827dc3262af8c5f511aa6890f6ad2bae2ea",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "81c3b113_0daa81fd",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 994,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-02-11T07:30:34Z",
+      "side": 1,
+      "message": "Got it.",
+      "parentUuid": "d9abdb5f_e07ee46d",
+      "range": {
+        "startLine": 994,
+        "startChar": 0,
+        "endLine": 994,
+        "endChar": 4
+      },
+      "revId": "b5e71827dc3262af8c5f511aa6890f6ad2bae2ea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
