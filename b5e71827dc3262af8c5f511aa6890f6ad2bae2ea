@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "31e5f06c_a89aaf13",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 990,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-02-11T06:19:38Z",
+      "side": 1,
+      "message": "I guess no need to use time.Duration here. time.Second is already a time.Duration. expiry :\u003d vlanConfigSendChanExpiry * time.Second should be enough",
+      "range": {
+        "startLine": 990,
+        "startChar": 39,
+        "endLine": 990,
+        "endChar": 65
+      },
+      "revId": "b5e71827dc3262af8c5f511aa6890f6ad2bae2ea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b7e07338_5ccbf93f",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 994,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-02-11T06:19:38Z",
+      "side": 1,
+      "message": "A default case still can be added for full channel case.",
+      "range": {
+        "startLine": 994,
+        "startChar": 0,
+        "endLine": 994,
+        "endChar": 4
+      },
+      "revId": "b5e71827dc3262af8c5f511aa6890f6ad2bae2ea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
