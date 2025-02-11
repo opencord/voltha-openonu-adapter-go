@@ -43,6 +43,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "5e1436bf_a1cd4d15",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 990,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2025-02-11T06:45:47Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "31e5f06c_a89aaf13",
+      "range": {
+        "startLine": 990,
+        "startChar": 39,
+        "endLine": 990,
+        "endChar": 65
+      },
+      "revId": "b5e71827dc3262af8c5f511aa6890f6ad2bae2ea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "b7e07338_5ccbf93f",
         "filename": "internal/pkg/mib/onu_device_entry.go",
         "patchSetId": 2
@@ -54,6 +78,30 @@
       "writtenOn": "2025-02-11T06:19:38Z",
       "side": 1,
       "message": "A default case still can be added for full channel case.",
+      "range": {
+        "startLine": 994,
+        "startChar": 0,
+        "endLine": 994,
+        "endChar": 4
+      },
+      "revId": "b5e71827dc3262af8c5f511aa6890f6ad2bae2ea",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d9abdb5f_e07ee46d",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 994,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2025-02-11T06:45:47Z",
+      "side": 1,
+      "message": "default case would let the sending routine exit immediately. This is exactly the issue being fixed here. The sender should not exit immediately and should wait for the receiver routine to start listening on the channel.\nIf the channel is full, we would wait for certain period of time and then exit, thus not blocked forever.",
+      "parentUuid": "b7e07338_5ccbf93f",
       "range": {
         "startLine": 994,
         "startChar": 0,
