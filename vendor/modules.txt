@@ -153,7 +153,7 @@ github.com/looplab/fsm
 github.com/opencord/omci-lib-go/v2
 github.com/opencord/omci-lib-go/v2/generated
 github.com/opencord/omci-lib-go/v2/meframe
-# github.com/opencord/voltha-lib-go/v7 v7.6.5
+# github.com/opencord/voltha-lib-go/v7 v7.6.6
 ## explicit
 github.com/opencord/voltha-lib-go/v7/pkg/config
 github.com/opencord/voltha-lib-go/v7/pkg/db
