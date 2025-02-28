@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e31397a1_7572f4f4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001011
+      },
+      "writtenOn": "2025-02-28T15:30:00Z",
+      "side": 1,
+      "message": "\u003e Patch Set 1: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1529/ : FAILURE\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1528/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_licensed/1714/ : SUCCESS\n\u003e \n\u003e https://jenkins.opencord.org/job/verify_voltha-openonu-adapter-go_sanity-test/1784/ : SUCCESS\n\nrecheck",
+      "revId": "efe27e126a80a131eba54933aa303e228abb2cad",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
