@@ -15,7 +15,7 @@
 # -------------
 # Build stage
 
-FROM --platform=linux/amd64 golang:1.16.3-alpine3.13 AS dev
+FROM golang:1.23.1-alpine3.20 AS dev
 
 # Install required packages
 RUN apk add --no-cache build-base=0.5-r3
@@ -54,7 +54,7 @@ WORKDIR /app
 # -------------
 # Image creation stage
 
-FROM --platform=linux/amd64 gcr.io/distroless/static:nonroot AS prod
+FROM gcr.io/distroless/static:nonroot AS prod
 
 # Set the working directory
 WORKDIR /app
