@@ -43,8 +43,8 @@ import (
 )
 
 type sLastTxMeParameter struct {
-	lastTxMessageType omci.MessageType
 	pLastTxMeInstance *me.ManagedEntity
+	lastTxMessageType omci.MessageType
 	repeatCount       uint8
 }
 
@@ -130,6 +130,7 @@ func (oo *OnuDeviceEntry) enterGettingVendorAndSerialState(ctx context.Context, 
 		logger.Errorw(ctx, "ONU-G get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)
@@ -154,6 +155,7 @@ func (oo *OnuDeviceEntry) enterGettingVersionState(ctx context.Context, e *fsm.E
 		logger.Errorw(ctx, "ONU-G get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)
@@ -178,6 +180,7 @@ func (oo *OnuDeviceEntry) enterGettingEquipIDAndOmccVersState(ctx context.Contex
 		logger.Errorw(ctx, "ONU2-G get failed, aborting MibSync FSM!", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)
@@ -215,6 +218,7 @@ func (oo *OnuDeviceEntry) enterTestingExtOmciSupportState(ctx context.Context, e
 	}
 	pMibUlFsm := oo.PMibUploadFsm
 	if pMibUlFsm != nil {
+		//nolint:unparam
 		go func(a_pAFsm *cmn.AdapterFsm) {
 			_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetFirstSwVersion)
 		}(pMibUlFsm)
@@ -234,6 +238,7 @@ func (oo *OnuDeviceEntry) enterGettingFirstSwVersionState(ctx context.Context, e
 		logger.Errorw(ctx, "SoftwareImage get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)
@@ -258,6 +263,7 @@ func (oo *OnuDeviceEntry) enterGettingSecondSwVersionState(ctx context.Context, 
 		logger.Errorw(ctx, "SoftwareImage get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)
@@ -282,6 +288,7 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 		logger.Errorw(ctx, "IpHostConfigData get failed, aborting MibSync FSM", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)
@@ -293,6 +300,7 @@ func (oo *OnuDeviceEntry) enterGettingMacAddressState(ctx context.Context, e *fs
 	oo.mutexLastTxParamStruct.Unlock()
 }
 
+//nolint:unparam
 func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *fsm.Event) {
 
 	oo.mutexOnuSwImageIndications.RLock()
@@ -1156,7 +1164,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttri
 			oo.MutexPersOnuConfig.Lock()
 			snBytes, _ := me.InterfaceToOctets(onuGSerialNumber)
 			if cmn.OnugSerialNumberLen == len(snBytes) {
-				snVendorPart := fmt.Sprintf("%s", snBytes[:4])
+				snVendorPart := string(snBytes[:4])
 				snNumberPart := hex.EncodeToString(snBytes[4:])
 				oo.SOnuPersistentData.PersSerialNumber = snVendorPart + snNumberPart
 			} else {
@@ -1373,6 +1381,7 @@ func (oo *OnuDeviceEntry) requestMdsValue(ctx context.Context) {
 		logger.Errorw(ctx, "ONUData get failed, aborting MibSync FSM!", log.Fields{"device-id": oo.deviceID})
 		pMibUlFsm := oo.PMibUploadFsm
 		if pMibUlFsm != nil {
+			//nolint:unparam
 			go func(a_pAFsm *cmn.AdapterFsm) {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
 			}(pMibUlFsm)

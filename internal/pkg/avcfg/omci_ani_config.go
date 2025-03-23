@@ -112,51 +112,51 @@ const (
 const CAniFsmIdleState = aniStConfigDone
 
 type ponAniGemPortAttribs struct {
+	qosPolicy      string
+	pbitString     string
+	staticACL      string
+	dynamicACL     string
 	gemPortID      uint16
 	upQueueID      uint16
 	downQueueID    uint16
-	direction      uint8
-	qosPolicy      string
-	weight         uint8
-	pbitString     string
-	isMulticast    bool
 	multicastGemID uint16
-	staticACL      string
-	dynamicACL     string
+	direction      uint8
+	weight         uint8
+	isMulticast    bool
 }
 
 // UniPonAniConfigFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type UniPonAniConfigFsm struct {
-	deviceID                 string
 	pDeviceHandler           cmn.IdeviceHandler
 	pOnuDeviceEntry          cmn.IonuDeviceEntry
 	pOmciCC                  *cmn.OmciCC
 	pOnuUniPort              *cmn.OnuUniPort
 	pUniTechProf             *OnuUniTechProf
 	pOnuDB                   *devdb.OnuDeviceDB
-	techProfileID            uint8
-	techProfileType          string
-	uniTpKey                 uniTP
-	requestEvent             cmn.OnuDeviceEvent
-	mutexIsAwaitingResponse  sync.RWMutex
-	isCanceled               bool
-	isAwaitingResponse       bool
 	omciMIdsResponseReceived chan bool //separate channel needed for checking multiInstance OMCI message responses
 	PAdaptFsm                *cmn.AdapterFsm
 	chSuccess                chan<- uint8
-	procStep                 uint8
+	pLastTxMeInstance        *me.ManagedEntity
+	waitFlowDeleteChannel    chan bool
+	deviceID                 string
+	techProfileType          string
+	gemPortAttribsSlice      []ponAniGemPortAttribs
+	requestEvent             cmn.OnuDeviceEvent
+	mutexIsAwaitingResponse  sync.RWMutex
 	mutexChanSet             sync.RWMutex
-	chanSet                  bool
+	mutexPLastTxMeInstance   sync.RWMutex
 	mapperSP0ID              uint16
 	macBPCD0ID               uint16
 	tcont0ID                 uint16
 	alloc0ID                 uint16
-	gemPortAttribsSlice      []ponAniGemPortAttribs
-	mutexPLastTxMeInstance   sync.RWMutex
-	pLastTxMeInstance        *me.ManagedEntity
+	uniTpKey                 uniTP
+	techProfileID            uint8
+	isCanceled               bool
+	isAwaitingResponse       bool
+	procStep                 uint8
+	chanSet                  bool
 	requestEventOffset       uint8 //used to indicate ConfigDone or Removed using successor (enum)
 	isWaitingForFlowDelete   bool
-	waitFlowDeleteChannel    chan bool
 	tcontSetBefore           bool
 }
 
@@ -488,6 +488,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 	}
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm start", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
@@ -522,6 +523,7 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e 
 	}
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterCreatingDot1PMapper(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniPonAniConfigFsm Tx Create::Dot1PMapper", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
@@ -552,6 +554,7 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingDot1PMapper(ctx context.Context, e 
 
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "Creating Tx MAC Bridge Port Config Data", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.macBPCD0ID), 16),
@@ -592,6 +595,7 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "Tx Setting Tcont ", log.Fields{
 		"EntitytId": strconv.FormatInt(int64(oFsm.tcont0ID), 16),
@@ -638,12 +642,14 @@ func (oFsm *UniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemNCTPs(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	go oFsm.performCreatingGemNCTPs(ctx)
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemIWs(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start creating GemIwTP loop", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
@@ -807,6 +813,7 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 	//the FSM is left active in this state as long as no specific reset or remove is requested from outside
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.Event) {
 	// no need to protect access to oFsm.waitFlowDeleteChannel, only used in synchronized state entries
 	//  or CancelProcessing() that uses separate isWaitingForFlowDelete to write to the channel
@@ -876,6 +883,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 	oFsm.pOnuDB.DeleteMe(me.GemInterworkingTerminationPointClassID, loGemPortID)
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.Event) {
 	oFsm.mutexIsAwaitingResponse.Lock()
 	oFsm.isWaitingForFlowDelete = true
@@ -946,6 +954,7 @@ func (oFsm *UniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.
 	}
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm.Event) {
 	oFsm.pUniTechProf.mutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
@@ -981,6 +990,8 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 		OnuMetricsManager.RemoveGemPortForPerfMonitoring(ctx, loGemPortID)
 	}
 }
+
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemovingTD(ctx context.Context, e *fsm.Event) {
 	oFsm.pUniTechProf.mutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
@@ -1012,6 +1023,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingTD(ctx context.Context, e *fsm.Even
 	oFsm.mutexPLastTxMeInstance.Unlock()
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start resetting the TCont", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
@@ -1047,6 +1059,7 @@ func (oFsm *UniPonAniConfigFsm) enterResettingTcont(ctx context.Context, e *fsm.
 
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start deleting the .1pMapper", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
@@ -1105,6 +1118,7 @@ func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemovingAniBPCD(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start deleting the ANI MBCD", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
@@ -1198,6 +1212,7 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(ctx context.Context, e *fsm.
 	}
 }
 
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterDisabledState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniPonAniConfigFsm enters disabled state", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})

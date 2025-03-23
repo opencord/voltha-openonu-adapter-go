@@ -64,44 +64,44 @@ type reachabilityFromRemote struct {
 
 // OpenONUAC structure holds the ONU core information
 type OpenONUAC struct {
-	deviceHandlers              map[string]*deviceHandler
-	deviceHandlersCreateChan    map[string]chan bool //channels for deviceHandler create events
-	mutexDeviceHandlersMap      sync.RWMutex
-	coreClient                  *vgrpc.Client
-	parentAdapterClients        map[string]*vgrpc.Client
-	lockParentAdapterClients    sync.RWMutex
-	reachableFromRemote         map[string]*reachabilityFromRemote
-	lockReachableFromRemote     sync.RWMutex
 	eventProxy                  eventif.EventProxy
 	kvClient                    kvstore.Client
+	deviceHandlers              map[string]*deviceHandler
+	deviceHandlersCreateChan    map[string]chan bool //channels for deviceHandler create events
+	coreClient                  *vgrpc.Client
+	parentAdapterClients        map[string]*vgrpc.Client
+	reachableFromRemote         map[string]*reachabilityFromRemote
 	cm                          *conf.ConfigManager
 	config                      *config.AdapterFlags
-	numOnus                     int
-	KVStoreAddress              string
-	KVStoreType                 string
-	KVStoreTimeout              time.Duration
 	mibTemplatesGenerated       map[string]bool
-	mutexMibTemplateGenerated   sync.RWMutex
 	exitChannel                 chan int
-	HeartbeatCheckInterval      time.Duration
-	HeartbeatFailReportInterval time.Duration
-	AcceptIncrementalEvto       bool
 	pSupportedFsms              *cmn.OmciDeviceFsms
-	maxTimeoutInterAdapterComm  time.Duration
-	maxTimeoutReconciling       time.Duration
 	pDownloadManager            *swupg.AdapterDownloadManager
 	pFileManager                *swupg.FileDownloadManager //let coexist 'old and new' DownloadManager as long as 'old' does not get obsolete
-	MetricsEnabled              bool
-	ExtendedOmciSupportEnabled  bool
+	MibDatabaseMap              devdb.OnuMCmnMEDBMap
+	KVStoreAddress              string
+	KVStoreType                 string
+	numOnus                     int
+	KVStoreTimeout              time.Duration
+	HeartbeatCheckInterval      time.Duration
+	HeartbeatFailReportInterval time.Duration
+	maxTimeoutInterAdapterComm  time.Duration
+	maxTimeoutReconciling       time.Duration
 	mibAuditInterval            time.Duration
 	omciTimeout                 int // in seconds
 	alarmAuditInterval          time.Duration
 	dlToOnuTimeout4M            time.Duration
 	rpcTimeout                  time.Duration
 	maxConcurrentFlowsPerUni    int
-	skipOnuConfig               bool
+	mutexDeviceHandlersMap      sync.RWMutex
+	lockParentAdapterClients    sync.RWMutex
+	lockReachableFromRemote     sync.RWMutex
+	mutexMibTemplateGenerated   sync.RWMutex
 	mutexMibDatabaseMap         sync.RWMutex
-	MibDatabaseMap              devdb.OnuMCmnMEDBMap
+	AcceptIncrementalEvto       bool
+	MetricsEnabled              bool
+	ExtendedOmciSupportEnabled  bool
+	skipOnuConfig               bool
 }
 
 // NewOpenONUAC returns a new instance of OpenONU_AC
@@ -142,7 +142,7 @@ func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy even
 	openOnuAc.maxConcurrentFlowsPerUni = cfg.MaxConcurrentFlowsPerUni
 
 	openOnuAc.pSupportedFsms = &cmn.OmciDeviceFsms{
-		"mib-synchronizer": {
+		"mib-synchronizer": cmn.ActivityDescr{
 			//mibSyncFsm,        // Implements the MIB synchronization state machine
 			DatabaseClass: mibDbVolatileDictImpl, // Implements volatile ME MIB database
 			//true,                  // Advertise events on OpenOMCI event bus
@@ -301,7 +301,7 @@ func (oo *OpenONUAC) DisableDevice(ctx context.Context, device *voltha.Device) (
 		return &empty.Empty{}, nil
 	}
 	logger.Warnw(ctx, "no handler found for device-disable", log.Fields{"device-id": device.Id})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	return nil, fmt.Errorf("handler-not-found-%s", device.Id)
 }
 
 // ReEnableDevice enables the onu device after disable
@@ -312,7 +312,7 @@ func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) 
 		return &empty.Empty{}, nil
 	}
 	logger.Warnw(ctx, "no handler found for device-reenable", log.Fields{"device-id": device.Id})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", device.Id))
+	return nil, fmt.Errorf("handler-not-found-%s", device.Id)
 }
 
 // RebootDevice reboots the given device
@@ -401,7 +401,7 @@ func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca
 		return &empty.Empty{}, nil
 	}
 	logger.Warnw(ctx, "no handler found for incremental flow update", log.Fields{"device-id": incrFlows.Device.Id})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", incrFlows.Device.Id))
+	return nil, fmt.Errorf("handler-not-found-%s", incrFlows.Device.Id)
 }
 
 // UpdatePmConfig returns PmConfigs nil or error
@@ -414,7 +414,7 @@ func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsIn
 		return &empty.Empty{}, nil
 	}
 	logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": configs.DeviceId})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", configs.DeviceId))
+	return nil, fmt.Errorf("handler-not-found-%s", configs.DeviceId)
 }
 
 // DownloadImage requests downloading some image according to indications as given in request
@@ -459,10 +459,10 @@ func (oo *OpenONUAC) ActivateImageUpdate(ctx context.Context, imageInfo *ca.Imag
 				return imageInfo.Image, nil
 			}
 			logger.Warnw(ctx, "no handler found for image activation", log.Fields{"device-id": imageInfo.Device.Id})
-			return nil, fmt.Errorf(fmt.Sprintf("handler-not-found - device-id: %s", imageInfo.Device.Id))
+			return nil, fmt.Errorf("handler-not-found - device-id: %s", imageInfo.Device.Id)
 		}
 		logger.Debugw(ctx, "image not yet downloaded on activate request", log.Fields{"image-description": imageInfo.Image})
-		return nil, fmt.Errorf(fmt.Sprintf("image-not-yet-downloaded - device-id: %s", imageInfo.Device.Id))
+		return nil, fmt.Errorf("image-not-yet-downloaded - device-id: %s", imageInfo.Device.Id)
 	}
 	return nil, errors.New("invalid image definition")
 }
@@ -773,10 +773,10 @@ func (oo *OpenONUAC) GetOnuImages(ctx context.Context, id *common.ID) (*voltha.O
 		if err == nil {
 			return images, nil
 		}
-		return nil, fmt.Errorf(fmt.Sprintf("%s-%s", err, id.Id))
+		return nil, fmt.Errorf("%s-%s", err, id.Id)
 	}
 	logger.Warnw(ctx, "no handler found for Get_onu_images", log.Fields{"device-id": id.Id})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", id.Id))
+	return nil, fmt.Errorf("handler-not-found-%s", id.Id)
 }
 
 // ActivateOnuImage initiates the activation of the image for the requested ONU(s)
@@ -927,7 +927,7 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 	}
 	logger.Warnw(ctx, "no handler found for received onu-ind-request", log.Fields{
 		"msgToDeviceId": onuInd.DeviceId})
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", onuInd.DeviceId))
+	return nil, fmt.Errorf("handler-not-found-%s", onuInd.DeviceId)
 }
 
 // OmciIndication is part of the ONU Inter-adapter service API.
@@ -940,7 +940,7 @@ func (oo *OpenONUAC) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*
 		}
 		return &empty.Empty{}, nil
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", msg.ChildDeviceId))
+	return nil, fmt.Errorf("handler-not-found-%s", msg.ChildDeviceId)
 }
 
 // DownloadTechProfile is part of the ONU Inter-adapter service API.
@@ -953,7 +953,7 @@ func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechP
 			logger.Warnw(ctx, "Device deletion  in progress - avoid processing Tech Profile", log.Fields{"device-id": tProfile.DeviceId})
 
 			handler.RUnlockMutexDeletionInProgressFlag()
-			return nil, fmt.Errorf(fmt.Sprintf("Can't proceed, device  deletion is in progress-%s", tProfile.DeviceId))
+			return nil, fmt.Errorf("Can't proceed, device  deletion is in progress-%s", tProfile.DeviceId)
 		}
 		handler.RUnlockMutexDeletionInProgressFlag()
 		if err := handler.handleTechProfileDownloadRequest(log.WithSpanFromContext(context.Background(), ctx), tProfile); err != nil {
@@ -961,7 +961,7 @@ func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechP
 		}
 		return &empty.Empty{}, nil
 	}
-	return nil, fmt.Errorf(fmt.Sprintf("handler-not-found-%s", tProfile.DeviceId))
+	return nil, fmt.Errorf("handler-not-found-%s", tProfile.DeviceId)
 }
 
 // DeleteGemPort is part of the ONU Inter-adapter service API.
@@ -1010,6 +1010,7 @@ func getHash(endpoint, contextInfo string) string {
 	return string(h)
 }
 
+// nolint:unparam
 func (oo *OpenONUAC) updateReachabilityFromRemote(ctx context.Context, remote *common.Connection) {
 	logger.Debugw(context.Background(), "updating-remote-connection-status", log.Fields{"remote": remote})
 	oo.lockReachableFromRemote.Lock()

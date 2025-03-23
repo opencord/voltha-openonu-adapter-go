@@ -32,11 +32,11 @@ const uniStatusTimeout = 3
 
 // UniPortStatus implements methods to get uni port status info
 type UniPortStatus struct {
-	deviceID          string
 	pDeviceHandler    cmn.IdeviceHandler
 	pOmiCC            *cmn.OmciCC
 	omciRespChn       chan cmn.Message
 	pLastTxMeInstance *me.ManagedEntity
+	deviceID          string
 }
 
 // NewUniPortStatus creates a new instance of UniPortStatus
@@ -78,6 +78,7 @@ func (portStatus *UniPortStatus) GetUniPortStatus(ctx context.Context, uniIdx ui
 	return PostUniStatusErrResponse(extension.GetValueResponse_INVALID_PORT_TYPE)
 }
 
+//nolint:unparam // ctx and apMeInstance are required by interface
 func (portStatus *UniPortStatus) waitforGetUniPortStatus(ctx context.Context, apMeInstance *me.ManagedEntity) *extension.SingleGetValueResponse {
 
 	select {
