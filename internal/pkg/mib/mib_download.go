@@ -108,6 +108,7 @@ func (onuDeviceEntry *OnuDeviceEntry) enterDownloadedState(ctx context.Context, 
 	}
 }
 
+//nolint:unparam
 func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM resetting", log.Fields{"device-id": onuDeviceEntry.deviceID})
 	pMibDlFsm := onuDeviceEntry.PMibDownloadFsm
@@ -382,6 +383,7 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 	_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvRxBridgeResp)
 }
 
+//nolint:unparam
 func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, apMeInstance *me.ManagedEntity) error {
 	select {
 	// maybe be also some outside cancel (but no context modeled for the moment ...)

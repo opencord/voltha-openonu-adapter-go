@@ -84,20 +84,20 @@ type CallbackPairEntry struct {
 
 // CallbackPair to be used for ReceiveCallback init
 type CallbackPair struct {
-	CbKey   uint16
 	CbEntry CallbackPairEntry
+	CbKey   uint16
 }
 
 // OmciTransferStructure - TODO: add comment
 type OmciTransferStructure struct {
+	chSuccess      chan bool
+	OnuSwWindow    *ia.OmciMessages
+	cbPair         CallbackPair
 	txFrame        []byte
 	timeout        int
 	retries        int
 	highPrio       bool
 	withFramePrint bool
-	cbPair         CallbackPair
-	chSuccess      chan bool
-	OnuSwWindow    *ia.OmciMessages
 }
 
 type txRxCounters struct {
@@ -109,40 +109,42 @@ type txRxCounters struct {
 
 // OmciCC structure holds information needed for OMCI communication (to/from OLT Adapter)
 type OmciCC struct {
-	enabled            bool
 	pBaseDeviceHandler IdeviceHandler
 	pOnuDeviceEntry    IonuDeviceEntry
 	pOnuAlarmManager   IonuAlarmManager
-	deviceID           string
 	coreClient         *vgrpc.Client
-	supportExtMsg      bool
-	rxOmciFrameError   tOmciReceiveError
+	lowPrioTxQueue     *list.List
+	highPrioTxQueue    *list.List
+	rxSchedulerMap     map[uint16]CallbackPairEntry
+	monitoredRequests  map[uint16]OmciTransferStructure
+	deviceID           string
 	confFailMEs        []me.ClassID
 	mutexConfFailMEs   sync.RWMutex
 
 	mutexCounters sync.RWMutex
+	mutexMonReq   sync.RWMutex
 	countersBase  txRxCounters
 	countersExt   txRxCounters
-	txRetries     uint32
-	txTimeouts    uint32
 
 	// OMCI params
-	mutexTid       sync.Mutex
+	mutexTid   sync.Mutex
+	mutexHpTid sync.Mutex
+
+	mutexSendQueuedRequests sync.Mutex
+	mutexLowPrioTxQueue     sync.Mutex
+	mutexHighPrioTxQueue    sync.Mutex
+	mutexRxSchedMap         sync.Mutex
+	txRetries               uint32
+	txTimeouts              uint32
+
 	tid            uint16
-	mutexHpTid     sync.Mutex
 	hpTid          uint16
 	UploadSequNo   uint16
 	UploadNoOfCmds uint16
 
-	mutexSendQueuedRequests sync.Mutex
-	mutexLowPrioTxQueue     sync.Mutex
-	lowPrioTxQueue          *list.List
-	mutexHighPrioTxQueue    sync.Mutex
-	highPrioTxQueue         *list.List
-	mutexRxSchedMap         sync.Mutex
-	rxSchedulerMap          map[uint16]CallbackPairEntry
-	mutexMonReq             sync.RWMutex
-	monitoredRequests       map[uint16]OmciTransferStructure
+	enabled          bool
+	supportExtMsg    bool
+	rxOmciFrameError tOmciReceiveError
 }
 
 var responsesWithMibDataSync = []omci.MessageType{
@@ -432,7 +434,9 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		}
 		//disadvantage of decoupling: error verification made difficult, but anyway the question is
 		// how to react on erroneous frame reception, maybe can simply be ignored
-		go rxCallbackEntry.CbFunction(ctx, omciMsg, &packet, rxCallbackEntry.CbRespChannel)
+		go func() {
+			_ = rxCallbackEntry.CbFunction(ctx, omciMsg, &packet, rxCallbackEntry.CbRespChannel)
+		}()
 		isSuccessfulResponse, err := oo.isSuccessfulResponseWithMibDataSync(ctx, omciMsg, &packet)
 		if err != nil {
 			// qualified error logging already done in function above
@@ -593,14 +597,14 @@ func (oo *OmciCC) Send(ctx context.Context, txFrame []byte, timeout int, retry i
 	printFrame := receiveCallbackPair.CbEntry.FramePrint //printFrame true means debug print of frame is requested
 	//just use a simple list for starting - might need some more effort, especially for multi source write access
 	omciTxRequest := OmciTransferStructure{
-		txFrame,
-		timeout,
-		retry,
-		highPrio,
-		printFrame,
-		receiveCallbackPair,
-		nil,
-		nil,
+		chSuccess:      make(chan bool),
+		OnuSwWindow:    nil,
+		cbPair:         receiveCallbackPair,
+		txFrame:        txFrame,
+		timeout:        timeout,
+		retries:        retry,
+		highPrio:       highPrio,
+		withFramePrint: printFrame,
 	}
 	oo.mutexMonReq.Lock()
 	defer oo.mutexMonReq.Unlock()
@@ -5229,12 +5233,14 @@ func (oo *OmciCC) incrementExtRxAkFrames() {
 	oo.countersExt.rxAkFrames++
 }
 
+//nolint:unparam
 func (oo *OmciCC) increaseBaseTxNoArFramesBy(ctx context.Context, value uint32) {
 	oo.mutexCounters.Lock()
 	defer oo.mutexCounters.Unlock()
 	oo.countersBase.txNoArFrames += value
 }
 
+//nolint:unparam
 func (oo *OmciCC) increaseExtTxNoArFramesBy(ctx context.Context, value uint32) {
 	oo.mutexCounters.Lock()
 	defer oo.mutexCounters.Unlock()

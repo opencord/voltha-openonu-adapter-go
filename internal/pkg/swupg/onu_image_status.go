@@ -33,16 +33,16 @@ import (
 
 // OnuImageStatus implements methods to get status info of onu images
 type OnuImageStatus struct {
-	deviceID               string
 	pDeviceHandler         cmn.IdeviceHandler
 	pDevEntry              cmn.IonuDeviceEntry
 	pOmciCC                *cmn.OmciCC
 	requestedAttributes    me.AttributeValueMap
-	mutexWaitingForResp    sync.RWMutex
-	waitingForResp         bool
 	respChannel            chan cmn.Message
-	mutexPLastTxMeInstance sync.RWMutex
 	pLastTxMeInstance      *me.ManagedEntity
+	deviceID               string
+	mutexWaitingForResp    sync.RWMutex
+	mutexPLastTxMeInstance sync.RWMutex
+	waitingForResp         bool
 	isExtendedOmci         bool
 }
 

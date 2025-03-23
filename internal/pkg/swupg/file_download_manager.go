@@ -52,24 +52,24 @@ const (
 )
 
 type downloadImageParams struct {
+	downloadContextCancelFn context.CancelFunc
 	downloadImageName       string
 	downloadImageURL        string
-	downloadImageState      FileState
 	downloadImageLen        int64
+	downloadImageState      FileState
 	downloadImageCRC        uint32
 	downloadActive          bool
-	downloadContextCancelFn context.CancelFunc
 }
 
 type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map for easier (unique) element appending
 
 // FileDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type FileDownloadManager struct {
+	dnldImgReadyWaiting   map[string]requesterChannelMap
+	downloadImageDscSlice []downloadImageParams
+	dlToAdapterTimeout    time.Duration
 	mutexFileState        sync.RWMutex
 	mutexDownloadImageDsc sync.RWMutex
-	downloadImageDscSlice []downloadImageParams
-	dnldImgReadyWaiting   map[string]requesterChannelMap
-	dlToAdapterTimeout    time.Duration
 }
 
 // NewFileDownloadManager constructor returns a new instance of a FileDownloadManager
@@ -163,7 +163,7 @@ func (dm *FileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFile
 		return nil, err
 	}
 	defer func() {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
 			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
 		}
@@ -376,13 +376,14 @@ func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 
 	//trying to download - do it in background as it may take some time ...
 	go func() {
+		var cancel context.CancelFunc
 		req, err2 := http.NewRequest("GET", urlBase.String(), nil)
 		if err2 != nil {
 			logger.Errorw(ctx, "could not generate http request", log.Fields{"url": urlBase.String(), "error": err2})
 			dm.removeImage(ctx, aFileName, false) //wo FileSystem access
 			return
 		}
-		ctx, cancel := context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
+		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(dm.dlToAdapterTimeout)) //timeout as given from SetDownloadTimeout()
 		dm.updateDownloadCancel(ctx, aFileName, cancel)
 		defer cancel()
 		_ = req.WithContext(ctx)
@@ -406,7 +407,7 @@ func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		}()
 
 		// Create the file
-		aLocalPathName := aFilePath + "/" + aFileName
+		aLocalPathName := filepath.Clean(filepath.Join(aFilePath, aFileName))
 		file, err := os.Create(aLocalPathName)
 		if err != nil {
 			logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})

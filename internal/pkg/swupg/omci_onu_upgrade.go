@@ -140,58 +140,58 @@ const COnuUpgradeFsmIdleState = UpgradeStWaitForCommit
 // OnuUpgradeFsm defines the structure for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 type OnuUpgradeFsm struct {
 	pDeviceHandler   cmn.IdeviceHandler
+	pDevEntry        cmn.IonuDeviceEntry
 	pDownloadManager *AdapterDownloadManager
 	pFileManager     *FileDownloadManager //used from R2.8 with new API version
-	deviceID         string
-	pDevEntry        cmn.IonuDeviceEntry
 	pOmciCC          *cmn.OmciCC
 	pOnuDB           *devdb.OnuDeviceDB
-	requestEvent     cmn.OnuDeviceEvent
 	//omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	PAdaptFsm                        *cmn.AdapterFsm
 	pImageDsc                        *voltha.ImageDownload
-	imageBuffer                      []byte
-	origImageLength                  uint32        //as also limited by OMCI
-	imageCRC                         uint32        //as per OMCI - ITU I.363.5 crc
-	imageLength                      uint32        //including last bytes padding
-	omciDownloadWindowSizeLimit      uint8         //windowSize-1 in sections
-	omciDownloadWindowSizeLast       uint8         //number of sections in last window
-	noOfSections                     uint32        //uint32 range for sections should be sufficient for very long images
-	nextDownloadSectionsAbsolute     uint32        //number of next section to download in overall image
-	nextDownloadSectionsWindow       uint8         //number of next section to download within current window
-	noOfWindows                      uint32        //uint32 range for windows should be sufficient for very long images
-	nextDownloadWindow               uint32        //number of next window to download
-	InactiveImageMeID                uint16        //ME-ID of the inactive image
-	downloadToOnuTimeout4MB          time.Duration //timeout for downloading the image to the ONU for a 4MB image slice
-	omciSectionInterleaveDelay       time.Duration //DownloadSectionInterleave delay in milliseconds
-	delayEndSwDl                     bool          //flag to provide a delay between last section and EndSwDl
-	repeatAbort                      bool          //flag to indicate if OMCI EndSwDownload (abort) is to be repeated
 	pLastTxMeInstance                *me.ManagedEntity
-	waitCountEndSwDl                 uint8         //number, how often is waited for EndSwDl at maximum
-	waitDelayEndSwDl                 time.Duration //duration, how long is waited before next request on EndSwDl
 	chReceiveExpectedResponse        chan bool
-	useAPIVersion43                  bool         //flag for indication on which API version is used (and accordingly which specific methods)
-	mutexUpgradeParams               sync.RWMutex //mutex to protect members for parallel function requests and omci response processing
-	imageVersion                     string       //name of the image as used within OMCI (and on extrenal API interface)
-	imageIdentifier                  string       //name of the image as used in the adapter
-	mutexIsAwaitingAdapterDlResponse sync.RWMutex
 	chAdapterDlReady                 chan bool
 	chAbortDelayEndSwDl              chan struct{}
-	isWaitingForAdapterDlResponse    bool
 	chOnuDlReady                     chan bool
-	activateImage                    bool
-	commitImage                      bool
+	chReceiveAbortEndSwDlResponse    chan tEndSwDlResponseResult
+	deviceID                         string
+	imageVersion                     string //name of the image as used within OMCI (and on extrenal API interface)
+	imageIdentifier                  string //name of the image as used in the adapter
+	imageBuffer                      []byte
+	requestEvent                     cmn.OnuDeviceEvent
+	downloadToOnuTimeout4MB          time.Duration //timeout for downloading the image to the ONU for a 4MB image slice
+	omciSectionInterleaveDelay       time.Duration //DownloadSectionInterleave delay in milliseconds
+	waitDelayEndSwDl                 time.Duration //duration, how long is waited before next request on EndSwDl
+	omciDownloadSectionSize          int64
+	mutexUpgradeParams               sync.RWMutex //mutex to protect members for parallel function requests and omci response processing
+	mutexIsAwaitingAdapterDlResponse sync.RWMutex
 	mutexAbortRequest                sync.RWMutex
+	origImageLength                  uint32 //as also limited by OMCI
+	imageCRC                         uint32 //as per OMCI - ITU I.363.5 crc
+	imageLength                      uint32 //including last bytes padding
+	noOfSections                     uint32 //uint32 range for sections should be sufficient for very long images
+	nextDownloadSectionsAbsolute     uint32 //number of next section to download in overall image
+	noOfWindows                      uint32 //uint32 range for windows should be sufficient for very long images
+	nextDownloadWindow               uint32 //number of next window to download
 	abortRequested                   voltha.ImageState_ImageFailureReason
-	conditionalCancelRequested       bool
-	upgradePhase                     tUpgradePhase
 	volthaDownloadState              voltha.ImageState_ImageDownloadState
 	volthaDownloadReason             voltha.ImageState_ImageFailureReason
 	volthaImageState                 voltha.ImageState_ImageActivationState
+	InactiveImageMeID                uint16 //ME-ID of the inactive image
+	omciDownloadWindowSizeLimit      uint8  //windowSize-1 in sections
+	omciDownloadWindowSizeLast       uint8  //number of sections in last window
+	nextDownloadSectionsWindow       uint8  //number of next section to download within current window
+	delayEndSwDl                     bool   //flag to provide a delay between last section and EndSwDl
+	repeatAbort                      bool   //flag to indicate if OMCI EndSwDownload (abort) is to be repeated
+	waitCountEndSwDl                 uint8  //number, how often is waited for EndSwDl at maximum
+	useAPIVersion43                  bool   //flag for indication on which API version is used (and accordingly which specific methods)
+	isWaitingForAdapterDlResponse    bool
+	activateImage                    bool
+	commitImage                      bool
+	conditionalCancelRequested       bool
+	upgradePhase                     tUpgradePhase
 	isEndSwDlOpen                    bool
-	chReceiveAbortEndSwDlResponse    chan tEndSwDlResponseResult
 	isExtendedOmci                   bool
-	omciDownloadSectionSize          int64
 }
 
 // NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -341,7 +341,7 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImage
 	}
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer or state", log.Fields{
 		"device-id": oFsm.deviceID})
-	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
+	return fmt.Errorf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID)
 }
 
 // SetDownloadParamsAfterDownload configures the needed parameters for a specific download to the ONU according to
@@ -374,7 +374,7 @@ func (oFsm *OnuUpgradeFsm) SetDownloadParamsAfterDownload(ctx context.Context, a
 	oFsm.mutexUpgradeParams.Unlock()
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer or state", log.Fields{
 		"device-id": oFsm.deviceID})
-	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
+	return fmt.Errorf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID)
 }
 
 // SetActivationParamsRunning sets the activate and commit flags for a running download to the ONU according to adapters rpc call
@@ -391,8 +391,8 @@ func (oFsm *OnuUpgradeFsm) SetActivationParamsRunning(ctx context.Context,
 		logger.Errorw(ctx, "OnuUpgradeFsm abort: mismatching upgrade image", log.Fields{
 			"device-id": oFsm.deviceID, "request-image": aImageIdentifier, "fsm-image": oFsm.imageIdentifier})
 		oFsm.mutexUpgradeParams.Unlock()
-		return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm params ignored: requested image-name not used in current upgrade for device-id: %s",
-			oFsm.deviceID))
+		return fmt.Errorf("OnuUpgradeFsm params ignored: requested image-name not used in current upgrade for device-id: %s",
+			oFsm.deviceID)
 	}
 	oFsm.activateImage = true
 	oFsm.commitImage = aCommit
@@ -413,7 +413,7 @@ func (oFsm *OnuUpgradeFsm) SetActivationParamsRunning(ctx context.Context,
 	}
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer", log.Fields{
 		"device-id": oFsm.deviceID})
-	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer for device-id: %s", oFsm.deviceID))
+	return fmt.Errorf("OnuUpgradeFsm abort: invalid FSM base pointer for device-id: %s", oFsm.deviceID)
 }
 
 // SetActivationParamsStart starts upgrade processing with immediate activation
@@ -443,7 +443,7 @@ func (oFsm *OnuUpgradeFsm) SetActivationParamsStart(ctx context.Context, aImageV
 	oFsm.mutexUpgradeParams.Unlock()
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer or state", log.Fields{
 		"device-id": oFsm.deviceID})
-	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
+	return fmt.Errorf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID)
 }
 
 // SetCommitmentParamsRunning sets the commit flag for a running download to the ONU according to adapters rpc call
@@ -461,8 +461,8 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsRunning(ctx context.Context,
 			"device-id": oFsm.deviceID, "request-identifier": aImageIdentifier, "fsm-identifier": oFsm.imageIdentifier,
 			"request-version": aImageVersion, "fsm-version": oFsm.imageVersion})
 		oFsm.mutexUpgradeParams.Unlock()
-		return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm params ignored: requested image-name not used in current upgrade for device-id: %s",
-			oFsm.deviceID))
+		return fmt.Errorf("OnuUpgradeFsm params ignored: requested image-name not used in current upgrade for device-id: %s",
+			oFsm.deviceID)
 	}
 	oFsm.commitImage = true
 	oFsm.mutexUpgradeParams.Unlock()
@@ -480,7 +480,7 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsRunning(ctx context.Context,
 	//should never occur
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer", log.Fields{
 		"device-id": oFsm.deviceID})
-	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer for device-id: %s", oFsm.deviceID))
+	return fmt.Errorf("OnuUpgradeFsm abort: invalid FSM base pointer for device-id: %s", oFsm.deviceID)
 }
 
 // SetCommitmentParamsStart starts upgrade processing with immediate commitment
@@ -508,7 +508,7 @@ func (oFsm *OnuUpgradeFsm) SetCommitmentParamsStart(ctx context.Context, aImageV
 	oFsm.mutexUpgradeParams.Unlock()
 	logger.Errorw(ctx, "OnuUpgradeFsm abort: invalid FSM base pointer or state", log.Fields{
 		"device-id": oFsm.deviceID})
-	return fmt.Errorf(fmt.Sprintf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID))
+	return fmt.Errorf("OnuUpgradeFsm abort: invalid FSM base pointer or state for device-id: %s", oFsm.deviceID)
 }
 
 // GetCommitFlag delivers the commit flag that was configured here
@@ -733,6 +733,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	oFsm.isEndSwDlOpen = true
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm start downloading sections", log.Fields{
 		"device-id": oFsm.deviceID, "absolute window": oFsm.nextDownloadWindow})
@@ -866,12 +867,13 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 		}
 	}
 } //runSwDlSectionWindow
-
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterVerifyWindow(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm verify DL window ack", log.Fields{
 		"for window": oFsm.nextDownloadWindow, "device-id": oFsm.deviceID})
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm finalize DL", log.Fields{
 		"device-id": oFsm.deviceID, "crc": strconv.FormatInt(int64(oFsm.imageCRC), 16), "delay": oFsm.delayEndSwDl})
@@ -931,6 +933,7 @@ func (oFsm *OnuUpgradeFsm) delayAndSendEndSwDl(ctx context.Context) {
 	_ = pBaseFsm.PFsm.Event(UpgradeEvWaitEndDownload)
 } //delayAndSendEndSwDl
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm WaitEndDl", log.Fields{
 		"device-id": oFsm.deviceID, "wait delay": oFsm.waitDelayEndSwDl * time.Second, "wait count": oFsm.waitCountEndSwDl})
@@ -1008,6 +1011,7 @@ func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
 	}
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterCheckImageName(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm checking downloaded image name", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
@@ -1024,6 +1028,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckImageName(ctx context.Context, e *fsm.Event
 	oFsm.pLastTxMeInstance = meInstance
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 	logger.Infow(ctx, "OnuUpgradeFsm activate SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
@@ -1042,6 +1047,7 @@ func (oFsm *OnuUpgradeFsm) enterActivateSw(ctx context.Context, e *fsm.Event) {
 	oFsm.mutexUpgradeParams.Unlock()
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm start commit SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
@@ -1086,6 +1092,7 @@ func (oFsm *OnuUpgradeFsm) enterCommitSw(ctx context.Context, e *fsm.Event) {
 	}(pBaseFsm)
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm checking committed SW", log.Fields{
 		"device-id": oFsm.deviceID, "me-id": oFsm.InactiveImageMeID})
@@ -1102,6 +1109,7 @@ func (oFsm *OnuUpgradeFsm) enterCheckCommitted(ctx context.Context, e *fsm.Event
 	oFsm.pLastTxMeInstance = meInstance
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm resetting", log.Fields{"device-id": oFsm.deviceID})
 
@@ -1143,6 +1151,7 @@ func (oFsm *OnuUpgradeFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 	}
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterAbortingDL(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm aborting download to ONU", log.Fields{"device-id": oFsm.deviceID})
 
@@ -1218,6 +1227,7 @@ func (oFsm *OnuUpgradeFsm) abortingDlEvaluateResponse(ctx context.Context,
 	return false
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterRestarting(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm restarting", log.Fields{"device-id": oFsm.deviceID})
 	pConfigUpgradeStateAFsm := oFsm.PAdaptFsm
@@ -1241,6 +1251,7 @@ func (oFsm *OnuUpgradeFsm) enterRestarting(ctx context.Context, e *fsm.Event) {
 	}
 }
 
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "OnuUpgradeFsm enters disabled state", log.Fields{"device-id": oFsm.deviceID})
 	// no need to flush possible channels here, Upgrade FSM will be completely removed, garbage collector should find its way
@@ -1959,6 +1970,8 @@ func (oFsm *OnuUpgradeFsm) waitOnAbortEndSwDlResponse(ctx context.Context) {
 }
 
 // stateUpdateOnReset writes the download and/or image state on entering the reset state according to FSM internal indications
+//
+//nolint:unparam
 func (oFsm *OnuUpgradeFsm) stateUpdateOnReset(ctx context.Context) {
 	oFsm.mutexUpgradeParams.Lock()
 	defer oFsm.mutexUpgradeParams.Unlock()

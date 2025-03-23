@@ -136,50 +136,52 @@ const CVlanFsmIdleState = VlanStConfigDone // state where no OMCI activity is do
 const CVlanFsmConfiguredState = VlanStConfigDone // state that indicates that at least some valid user related VLAN configuration should exist
 
 type uniRemoveVlanFlowParams struct {
-	isSuspendedOnAdd bool
 	removeChannel    chan bool
+	respChan         *chan error
 	cookie           uint64 //just the last cookie valid for removal
 	vlanRuleParams   cmn.UniVlanRuleParams
-	respChan         *chan error
+	isSuspendedOnAdd bool
 }
 
 // UniVlanConfigFsm defines the structure for the state machine for configuration of the VLAN related setting via OMCI
 //
 //	builds upon 'VLAN rules' that are derived from multiple flows
+//
+//nolint:govet
 type UniVlanConfigFsm struct {
-	pDeviceHandler              cmn.IdeviceHandler
-	pOnuDeviceEntry             cmn.IonuDeviceEntry
-	deviceID                    string
-	pOmciCC                     *cmn.OmciCC
-	pOnuUniPort                 *cmn.OnuUniPort
-	pUniTechProf                *OnuUniTechProf
-	pOnuDB                      *devdb.OnuDeviceDB
-	requestEvent                cmn.OnuDeviceEvent
-	omciMIdsResponseReceived    chan bool //seperate channel needed for checking multiInstance OMCI message responses
-	PAdaptFsm                   *cmn.AdapterFsm
+	actualUniFlowParam       cmn.UniVlanFlowParams
+	pDeviceHandler           cmn.IdeviceHandler
+	pOnuDeviceEntry          cmn.IonuDeviceEntry
+	pOmciCC                  *cmn.OmciCC
+	pOnuUniPort              *cmn.OnuUniPort
+	pUniTechProf             *OnuUniTechProf
+	pOnuDB                   *devdb.OnuDeviceDB
+	omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
+	PAdaptFsm                *cmn.AdapterFsm
+	chCookieDeleted          chan bool //channel to indicate that a specific cookie (related to the active rule) was deleted
+	pLastTxMeInstance        *me.ManagedEntity
+	flowDeleteChannel        chan<- bool
+	deviceID                 string
+	uniVlanFlowParamsSlice   []cmn.UniVlanFlowParams
+	uniRemoveFlowsSlice      []uniRemoveVlanFlowParams
+	requestEvent             cmn.OnuDeviceEvent
+	//cookie value that indicates that a rule to add is delayed by waiting for deletion of some other existing rule with the same cookie
+	delayNewRuleCookie          uint64
+	mutexIsAwaitingResponse     sync.RWMutex
+	mutexFlowParams             sync.RWMutex
+	mutexPLastTxMeInstance      sync.RWMutex
+	vlanFilterList              [cVtfdTableSize]uint16
+	evtocdID                    uint16
 	acceptIncrementalEvtoOption bool
 	isCanceled                  bool
 	isAwaitingResponse          bool
-	mutexIsAwaitingResponse     sync.RWMutex
-	mutexFlowParams             sync.RWMutex
-	chCookieDeleted             chan bool //channel to indicate that a specific cookie (related to the active rule) was deleted
-	actualUniFlowParam          cmn.UniVlanFlowParams
-	uniVlanFlowParamsSlice      []cmn.UniVlanFlowParams
-	uniRemoveFlowsSlice         []uniRemoveVlanFlowParams
 	NumUniFlows                 uint8 // expected number of flows should be less than 12
 	ConfiguredUniFlow           uint8
 	numRemoveFlows              uint8
 	numVlanFilterEntries        uint8
-	vlanFilterList              [cVtfdTableSize]uint16
-	evtocdID                    uint16
-	mutexPLastTxMeInstance      sync.RWMutex
-	pLastTxMeInstance           *me.ManagedEntity
 	requestEventOffset          uint8
 	TpIDWaitingFor              uint8
 	signalOnFlowDelete          bool
-	flowDeleteChannel           chan<- bool
-	//cookie value that indicates that a rule to add is delayed by waiting for deletion of some other existing rule with the same cookie
-	delayNewRuleCookie uint64
 	// Used to indicate if the FSM is for a reconciling flow and if it's the last flow to be reconciled
 	// thus notification needs to be sent on chan.
 	lastFlowToReconcile bool
@@ -463,7 +465,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				}
 				pRemoveParams := &oFsm.uniRemoveFlowsSlice[flow] //wants to modify the uniRemoveFlowsSlice element directly!
 				oFsm.mutexFlowParams.RUnlock()
-				if err := oFsm.suspendAddRule(ctx, pRemoveParams); err != nil {
+				if err = oFsm.suspendAddRule(ctx, pRemoveParams); err != nil {
 					logger.Errorw(ctx, "UniVlanConfigFsm suspension on add aborted - abort complete add-request", log.Fields{
 						"device-id": oFsm.deviceID, "cookie": removeUniFlowParams.cookie})
 					err = fmt.Errorf("abort UniVlanConfigFsm suspension on add %s", oFsm.deviceID)
@@ -1254,6 +1256,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 	}
 }
 
+//nolint:unparam
 func (oFsm *UniVlanConfigFsm) enterConfigEvtocd(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniVlanConfigFsm - start config EVTOCD loop", log.Fields{
 		"device-id": oFsm.deviceID})
@@ -1829,6 +1832,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanCleanupDone(ctx context.Context, e *fsm.E
 	oFsm.pushReponseOnFlowResponseChannel(ctx, flowRespChan, nil)
 }
 
+//nolint:unparam
 func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniVlanConfigFsm resetting", log.Fields{"device-id": oFsm.deviceID})
 
@@ -1930,6 +1934,7 @@ func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) 
 		log.Fields{"device-id": oFsm.deviceID})
 }
 
+//nolint:unparam
 func (oFsm *UniVlanConfigFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniVlanConfigFsm enters disabled state", log.Fields{"device-id": oFsm.deviceID})
 
@@ -2641,7 +2646,7 @@ func (oFsm *UniVlanConfigFsm) removeEvtocdEntries(ctx context.Context, aRulePara
 				// this defines VID translation scenario: dobletagged-doubletagged (if not transparent)
 				logger.Debugw(ctx, "UniVlanConfigFsm Tx Set::EVTOCD clear double tagged rule", log.Fields{
 					"device-id": oFsm.deviceID, "match-vlan": aRuleParams.MatchVid, "innerCvlan": aRuleParams.InnerCvlan})
-				sliceEvtocdRule := make([]uint8, 16)
+				sliceEvtocdRule = make([]uint8, 16)
 				// fill vlan tagging operation table bit fields using network=bigEndian order and using slice offset 0 as highest 'word'
 				binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterOuterOffset:],
 					cPrioIgnoreTag<<cFilterPrioOffset| // Not an outer-tag rule

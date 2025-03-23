@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
@@ -59,16 +58,16 @@ const (
 )
 
 type adapter struct {
-	//defaultAppName   string
-	instanceID      string
-	config          *config.AdapterFlags
 	kafkaClient     kafka.Client
 	kvClient        kvstore.Client
 	eventProxy      eventif.EventProxy
+	config          *config.AdapterFlags
 	grpcServer      *vgrpc.GrpcServer
 	onuAdapter      *ac.OpenONUAC
 	onuInterAdapter *ac.OpenONUACInterAdapter
 	coreClient      *vgrpc.Client
+	//defaultAppName   string
+	instanceID string
 }
 
 func newAdapter(cf *config.AdapterFlags) *adapter {
@@ -112,19 +111,19 @@ func (a *adapter) start(ctx context.Context) error {
 	}
 
 	// Start kafka communication with the broker
-	if err := kafka.StartAndWaitUntilKafkaConnectionIsUp(ctx, a.kafkaClient, a.config.HeartbeatCheckInterval, clusterMessagingService); err != nil {
+	if err = kafka.StartAndWaitUntilKafkaConnectionIsUp(ctx, a.kafkaClient, a.config.HeartbeatCheckInterval, clusterMessagingService); err != nil {
 		logger.Fatal(ctx, "unable-to-connect-to-kafka")
 	}
 
 	// Wait until connection to KV store is established
-	if err := WaitUntilKvStoreConnectionIsUp(ctx, a.kvClient, a.config.KVStoreTimeout, kvService); err != nil {
+	if err = WaitUntilKvStoreConnectionIsUp(ctx, a.kvClient, a.config.KVStoreTimeout, kvService); err != nil {
 		logger.Fatal(ctx, "unable-to-connect-to-kv-store")
 	}
 
 	// Create the event proxy to post events to KAFKA
 	a.eventProxy = events.NewEventProxy(events.MsgClient(a.kafkaClient), events.MsgTopic(kafka.Topic{Name: a.config.EventTopic}))
 	go func() {
-		if err := a.eventProxy.Start(); err != nil {
+		if err = a.eventProxy.Start(); err != nil {
 			logger.Fatalw(ctx, "event-proxy-cannot-start", log.Fields{"error": err})
 		}
 	}()
@@ -462,7 +461,7 @@ func WaitUntilKvStoreConnectionIsUp(ctx context.Context, kvClient kvstore.Client
 
 func getVerifiedCodeVersion(ctx context.Context) string {
 	if version.VersionInfo.Version == "unknown-version" {
-		content, err := ioutil.ReadFile("VERSION")
+		content, err := os.ReadFile("VERSION")
 		if err == nil {
 			return string(content)
 		}
@@ -540,12 +539,12 @@ func main() {
 	}
 
 	// Setup default logger - applies for packages that do not have specific logger set
-	if _, err := log.SetDefaultLogger(log.JSON, logLevel, log.Fields{"instanceId": cf.InstanceID}); err != nil {
+	if _, err = log.SetDefaultLogger(log.JSON, logLevel, log.Fields{"instanceId": cf.InstanceID}); err != nil {
 		logger.With(log.Fields{"error": err}).Fatal(ctx, "Cannot setup logging")
 	}
 
 	// Update all loggers (provisioned via init) with a common field
-	if err := log.UpdateAllLoggers(log.Fields{"instanceId": cf.InstanceID}); err != nil {
+	if err = log.UpdateAllLoggers(log.Fields{"instanceId": cf.InstanceID}); err != nil {
 		logger.With(log.Fields{"error": err}).Fatal(ctx, "Cannot setup logging")
 	}
 

@@ -90,36 +90,36 @@ type onuDevice struct {
 }
 type onuDeviceEvent struct {
 	EventName        string
+	EventDescription string
 	EventCategory    eventif.EventCategory
 	EventSubCategory eventif.EventSubCategory
-	EventDescription string
 }
 
 // OnuAlarmManager holds alarm manager related data
 type OnuAlarmManager struct {
-	deviceID                   string
 	pDeviceHandler             cmn.IdeviceHandler
 	pOnuDeviceEntry            cmn.IonuDeviceEntry
 	eventProxy                 eventif.EventProxy
 	StopProcessingOmciMessages chan bool
 	eventChannel               chan cmn.Message
-	onuAlarmManagerLock        sync.RWMutex
-	processMessage             bool
 	activeAlarms               alarms
 	alarmBitMapDB              alarmBitMapDB
 	onuEventsList              map[onuDevice]onuDeviceEvent
-	lastAlarmSequence          uint8
 	AlarmSyncFsm               *cmn.AdapterFsm
 	oltDbCopy                  alarmBitMapDB
 	onuDBCopy                  alarmBitMapDB
+	StopAlarmAuditTimer        chan struct{}
+	AsyncAlarmsCommChan        chan struct{}
+	deviceID                   string
 	bufferedNotifications      []*omci.AlarmNotificationMsg
+	onuAlarmManagerLock        sync.RWMutex
+	onuAlarmRequestLock        sync.RWMutex
 	alarmUploadSeqNo           uint16
 	alarmUploadNoOfCmdsOrMEs   uint16
-	StopAlarmAuditTimer        chan struct{}
+	processMessage             bool
+	lastAlarmSequence          uint8
 	isExtendedOmci             bool
-	AsyncAlarmsCommChan        chan struct{}
 	isAsyncAlarmRequest        bool
-	onuAlarmRequestLock        sync.RWMutex
 }
 
 // NewAlarmManager - TODO: add comment
@@ -752,6 +752,7 @@ func (am *OnuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, in
 		raisedTimestamp)
 }
 
+//nolint:unparam
 func (am *OnuAlarmManager) isAlarmDBDiffPresent(ctx context.Context) bool {
 	return !reflect.DeepEqual(am.onuDBCopy, am.oltDbCopy)
 }
@@ -785,6 +786,8 @@ func (am *OnuAlarmManager) flushAlarmSyncChannels(ctx context.Context) {
 }
 
 // getDeviceEventData returns the event data for a device
+//
+//nolint:unparam
 func (am *OnuAlarmManager) getDeviceEventData(ctx context.Context, classID me.ClassID, alarmNo uint8) (onuDeviceEvent, error) {
 	if onuEventDetails, ok := am.onuEventsList[onuDevice{classID: classID, alarmno: alarmNo}]; ok {
 		return onuEventDetails, nil
