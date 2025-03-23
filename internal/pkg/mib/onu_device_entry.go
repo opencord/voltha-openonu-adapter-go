@@ -138,87 +138,90 @@ const cNotPresentEquipIDString = "NOT_PRESENT_EQUIP_ID"
 const vlanConfigSendChanExpiry = 5
 
 type uniPersConfig struct {
-	PersUniID      uint8                   `json:"uni_id"`
 	PersTpPathMap  map[uint8]string        `json:"PersTpPathMap"` // tp-id to tp-path map
 	PersFlowParams []cmn.UniVlanFlowParams `json:"flow_params"`   //as defined in omci_ani_config.go
+	PersUniID      uint8                   `json:"uni_id"`
 }
 
 type onuPersistentData struct {
-	PersOnuID              uint32            `json:"onu_id"`
-	PersIntfID             uint32            `json:"intf_id"`
+	PersTcontMap           map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
 	PersSerialNumber       string            `json:"serial_number"`
 	PersMacAddress         string            `json:"mac_address"`
 	PersVendorID           string            `json:"vendor_id"`
 	PersVersion            string            `json:"version"`
 	PersEquipmentID        string            `json:"equipment_id"`
-	PersIsExtOmciSupported bool              `json:"is_ext_omci_supported"`
 	PersActiveSwVersion    string            `json:"active_sw_version"`
 	PersAdminState         string            `json:"admin_state"`
 	PersOperState          string            `json:"oper_state"`
+	PersUniConfig          []uniPersConfig   `json:"uni_config"`
+	PersMibAuditInterval   time.Duration     `json:"mib_audit_interval"`
+	PersAlarmAuditInterval time.Duration     `json:"alarm_audit_interval"`
+	PersOnuID              uint32            `json:"onu_id"`
+	PersIntfID             uint32            `json:"intf_id"`
+	PersMibLastDbSync      uint32            `json:"mib_last_db_sync"`
+	PersIsExtOmciSupported bool              `json:"is_ext_omci_supported"`
 	PersUniUnlockDone      bool              `json:"uni_unlock_done"`
 	PersUniDisableDone     bool              `json:"uni_disable_done"`
-	PersMibAuditInterval   time.Duration     `json:"mib_audit_interval"`
-	PersMibLastDbSync      uint32            `json:"mib_last_db_sync"`
 	PersMibDataSyncAdpt    uint8             `json:"mib_data_sync_adpt"`
-	PersUniConfig          []uniPersConfig   `json:"uni_config"`
-	PersAlarmAuditInterval time.Duration     `json:"alarm_audit_interval"`
-	PersTcontMap           map[uint16]uint16 `json:"tcont_map"` //alloc-id to me-instance-id map
 }
 
 //type UniTpidInstances map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage
 
 // OnuDeviceEntry - ONU device info and FSM events.
+//
+//nolint:govet
 type OnuDeviceEntry struct {
-	deviceID                   string
+	SOnuPersistentData         onuPersistentData
 	baseDeviceHandler          cmn.IdeviceHandler
 	eventProxy                 eventif.EventProxy
 	pOpenOnuAc                 cmn.IopenONUAC
 	pOnuTP                     cmn.IonuUniTechProf
+	onuKVStoreProcResult       error //error indication of processing
 	coreClient                 *vgrpc.Client
 	PDevOmciCC                 *cmn.OmciCC
 	pOnuDB                     *devdb.OnuDeviceDB
 	mibTemplateKVStore         *db.Backend
-	MutexPersOnuConfig         sync.RWMutex
-	SOnuPersistentData         onuPersistentData
 	ReconciledTpInstances      map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage
-	MutexReconciledTpInstances sync.RWMutex
-	reconcilingFlows           bool
-	mutexReconcilingFlowsFlag  sync.RWMutex
 	chReconcilingFlowsFinished chan bool //channel to indicate that reconciling of flows has been finished
-	mibTemplatePath            string
-	mutexOnuKVStore            sync.RWMutex
 	onuKVStore                 *db.Backend
-	onuKVStorePath             string
-	mutexOnuKVStoreProcResult  sync.RWMutex
-	onuKVStoreProcResult       error //error indication of processing
-	mutexOnuSwImageIndications sync.RWMutex
-	onuSwImageIndications      cmn.SswImageIndications
-	MutexOnuImageStatus        sync.RWMutex
 	POnuImageStatus            *swupg.OnuImageStatus
 	//lockDeviceEntries           sync.RWMutex
 	mibDbClass    func(context.Context) error
 	supportedFsms cmn.OmciDeviceFsms
-	devState      cmn.OnuDeviceEvent
+
+	// for mibUpload
+	PMibUploadFsm *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
+	// for mibDownload
+	PMibDownloadFsm                  *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
+	pLastTxMeInstance                *me.ManagedEntity
+	omciMessageReceived              chan bool        //seperate channel needed by DownloadFsm
+	omciRebootMessageReceivedChannel chan cmn.Message // channel needed by reboot request
+	lastTxParamStruct                sLastTxMeParameter
+	deviceID                         string
+	mibTemplatePath                  string
+	onuKVStorePath                   string
+	onuSwImageIndications            cmn.SswImageIndications
+	devState                         cmn.OnuDeviceEvent
 	// Audit and MDS
 	mibAuditInterval   time.Duration
 	alarmAuditInterval time.Duration
 	// TODO: periodical mib resync will be implemented with story VOL-3792
 	//mibNextDbResync uint32
 
-	// for mibUpload
-	PMibUploadFsm                   *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
+	MutexPersOnuConfig              sync.RWMutex
+	MutexReconciledTpInstances      sync.RWMutex
+	mutexReconcilingFlowsFlag       sync.RWMutex
+	mutexOnuKVStore                 sync.RWMutex
+	mutexOnuKVStoreProcResult       sync.RWMutex
+	mutexOnuSwImageIndications      sync.RWMutex
+	MutexOnuImageStatus             sync.RWMutex
 	mutexLastTxParamStruct          sync.RWMutex
-	lastTxParamStruct               sLastTxMeParameter
-	mibSyncMsgProcessorRunning      bool
 	mutexMibSyncMsgProcessorRunning sync.RWMutex
-	// for mibDownload
-	PMibDownloadFsm *cmn.AdapterFsm //could be handled dynamically and more general as pcmn.AdapterFsm - perhaps later
 	//remark: general usage of pAdapterFsm would require generalization of CommChan  usage and internal event setting
 	//  within the FSM event procedures
-	mutexPLastTxMeInstance           sync.RWMutex
-	pLastTxMeInstance                *me.ManagedEntity
-	omciMessageReceived              chan bool        //seperate channel needed by DownloadFsm
-	omciRebootMessageReceivedChannel chan cmn.Message // channel needed by reboot request
+	mutexPLastTxMeInstance     sync.RWMutex
+	reconcilingFlows           bool
+	mibSyncMsgProcessorRunning bool
 }
 
 // NewOnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -252,7 +255,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 		//var mibSyncFsm = NewMibSynchronizer()
 		// use some internal defaults, if not defined from outside
 		onuDeviceEntry.supportedFsms = cmn.OmciDeviceFsms{
-			"mib-synchronizer": {
+			"mib-synchronizer": cmn.ActivityDescr{
 				//mibSyncFsm,        // Implements the MIB synchronization state machine
 				DatabaseClass: onuDeviceEntry.mibDbVolatileDict, // Implements volatile ME MIB database
 				//true,                             // Advertise events on OpenOMCI event bus
@@ -270,7 +273,9 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	}
 	onuDeviceEntry.mibDbClass = onuDeviceEntry.supportedFsms["mib-synchronizer"].DatabaseClass
 	logger.Debug(ctx, "access2mibDbClass")
-	go onuDeviceEntry.mibDbClass(ctx)
+	go func() {
+		_ = onuDeviceEntry.mibDbClass(ctx)
+	}()
 	if !dh.IsReconciling() {
 		onuDeviceEntry.mibAuditInterval = onuDeviceEntry.supportedFsms["mib-synchronizer"].AuditInterval
 		onuDeviceEntry.SOnuPersistentData.PersMibAuditInterval = onuDeviceEntry.mibAuditInterval
@@ -539,13 +544,32 @@ func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.
 func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 	if oo.onuKVStore == nil {
 		logger.Debugw(ctx, "onuKVStore not set - abort", log.Fields{"device-id": oo.deviceID})
-		return fmt.Errorf(fmt.Sprintf("onuKVStore-not-set-abort-%s", oo.deviceID))
+		return fmt.Errorf("onuKVStore-not-set-abort-%s", oo.deviceID)
 	}
 	oo.MutexPersOnuConfig.Lock()
 	defer oo.MutexPersOnuConfig.Unlock()
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0,
-			make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{
+			PersTcontMap:           make(map[uint16]uint16),
+			PersSerialNumber:       "",
+			PersMacAddress:         "",
+			PersVendorID:           "",
+			PersVersion:            "",
+			PersEquipmentID:        "",
+			PersActiveSwVersion:    "",
+			PersAdminState:         "",
+			PersOperState:          "",
+			PersUniConfig:          make([]uniPersConfig, 0),
+			PersMibAuditInterval:   oo.mibAuditInterval,
+			PersAlarmAuditInterval: oo.alarmAuditInterval,
+			PersOnuID:              0,
+			PersIntfID:             0,
+			PersMibLastDbSync:      0,
+			PersIsExtOmciSupported: false,
+			PersUniUnlockDone:      false,
+			PersUniDisableDone:     false,
+			PersMibDataSyncAdpt:    0,
+		}
 	oo.mutexOnuKVStore.RLock()
 	Value, err := oo.onuKVStore.Get(ctx, oo.onuKVStorePath)
 	oo.mutexOnuKVStore.RUnlock()
@@ -557,7 +581,7 @@ func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 
 			if err = json.Unmarshal(tmpBytes, &oo.SOnuPersistentData); err != nil {
 				logger.Errorw(ctx, "unable to unmarshal ONU-data", log.Fields{"error": err, "device-id": oo.deviceID})
-				return fmt.Errorf(fmt.Sprintf("unable-to-unmarshal-ONU-data-%s", oo.deviceID))
+				return fmt.Errorf("unable-to-unmarshal-ONU-data-%s", oo.deviceID)
 			}
 			logger.Debugw(ctx, "ONU-data", log.Fields{"SOnuPersistentData": oo.SOnuPersistentData,
 				"device-id": oo.deviceID})
@@ -567,7 +591,7 @@ func (oo *OnuDeviceEntry) RestoreDataFromOnuKvStore(ctx context.Context) error {
 		}
 	} else {
 		logger.Errorw(ctx, "unable to read from KVstore", log.Fields{"device-id": oo.deviceID})
-		return fmt.Errorf(fmt.Sprintf("unable-to-read-from-KVstore-%s", oo.deviceID))
+		return fmt.Errorf("unable-to-read-from-KVstore-%s", oo.deviceID)
 	}
 	return nil
 }
@@ -595,8 +619,27 @@ func (oo *OnuDeviceEntry) deletePersistentData(ctx context.Context) error {
 
 	oo.SOnuPersistentData.PersUniConfig = nil //releasing all UniConfig entries to garbage collector default entry
 	oo.SOnuPersistentData =
-		onuPersistentData{0, 0, "", "", "", "", "", false, "", "", "", false, false, oo.mibAuditInterval, 0, 0,
-			make([]uniPersConfig, 0), oo.alarmAuditInterval, make(map[uint16]uint16)}
+		onuPersistentData{
+			PersTcontMap:           make(map[uint16]uint16),
+			PersSerialNumber:       "",
+			PersMacAddress:         "",
+			PersVendorID:           "",
+			PersVersion:            "",
+			PersEquipmentID:        "",
+			PersActiveSwVersion:    "",
+			PersAdminState:         "",
+			PersOperState:          "",
+			PersUniConfig:          make([]uniPersConfig, 0),
+			PersMibAuditInterval:   oo.mibAuditInterval,
+			PersAlarmAuditInterval: oo.alarmAuditInterval,
+			PersOnuID:              0,
+			PersIntfID:             0,
+			PersMibLastDbSync:      0,
+			PersIsExtOmciSupported: false,
+			PersUniUnlockDone:      false,
+			PersUniDisableDone:     false,
+			PersMibDataSyncAdpt:    0,
+		}
 	logger.Debugw(ctx, "delete ONU-data from KVStore", log.Fields{"device-id": oo.deviceID})
 	oo.mutexOnuKVStore.Lock()
 	err := oo.onuKVStore.Delete(ctx, oo.onuKVStorePath)
@@ -886,7 +929,7 @@ func (oo *OnuDeviceEntry) AllocateFreeTcont(ctx context.Context, allocID uint16)
 			}
 		}
 	}
-	return 0, false, fmt.Errorf(fmt.Sprintf("no-free-tcont-left-for-device-%s", oo.deviceID))
+	return 0, false, fmt.Errorf("no-free-tcont-left-for-device-%s", oo.deviceID)
 }
 
 // FreeTcont - TODO: add comment
