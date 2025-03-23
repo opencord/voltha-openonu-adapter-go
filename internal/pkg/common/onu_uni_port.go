@@ -39,6 +39,7 @@ func NewOnuUniPort(ctx context.Context, aUniID uint8, aPortNo uint32, aInstNo ui
 	aPortType UniPortType) *OnuUniPort {
 	logger.Infow(ctx, "init-onuUniPort", log.Fields{"uniID": aUniID,
 		"portNo": aPortNo, "InstNo": aInstNo, "type": aPortType})
+	//nolint:govet
 	var OnuUniPort OnuUniPort
 	OnuUniPort.Enabled = false
 	OnuUniPort.Name = "uni-" + strconv.FormatUint(uint64(aPortNo), 10)

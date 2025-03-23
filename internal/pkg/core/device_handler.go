@@ -142,27 +142,20 @@ const (
 // FlowCb is the flow control block containing flow add/delete information along with a response channel
 type FlowCb struct {
 	ctx          context.Context // Flow handler context
-	addFlow      bool            // if true flow to be added, else removed
 	flowItem     *of.OfpFlowStats
 	uniPort      *cmn.OnuUniPort
 	flowMetaData *of.FlowMetadata
 	respChan     *chan error // channel to report the Flow handling error
+	addFlow      bool        // if true flow to be added, else removed
 }
 
 // deviceHandler will interact with the ONU ? device.
 type deviceHandler struct {
-	DeviceID         string
-	DeviceType       string
-	adminState       string
-	device           *voltha.Device
-	logicalDeviceID  string
-	ProxyAddressID   string
-	ProxyAddressType string
-	parentID         string
-	ponPortNumber    uint32
+	EventProxy eventif.EventProxy
+
+	device *voltha.Device
 
 	coreClient *vgrpc.Client
-	EventProxy eventif.EventProxy
 
 	pmConfigs *voltha.PmConfigs
 	config    *config.AdapterFlags
@@ -170,19 +163,61 @@ type deviceHandler struct {
 	pOpenOnuAc      *OpenONUAC
 	pDeviceStateFsm *fsm.FSM
 	//pPonPort        *voltha.Port
-	deviceEntrySet    chan bool //channel for DeviceEntry set event
-	pOnuOmciDevice    *mib.OnuDeviceEntry
-	pOnuTP            *avcfg.OnuUniTechProf
-	pOnuMetricsMgr    *pmmgr.OnuMetricsManager
-	pAlarmMgr         *almgr.OnuAlarmManager
-	pSelfTestHdlr     *otst.SelfTestControlBlock
-	exitChannel       chan int
-	lockDevice        sync.RWMutex
-	pOnuIndication    *oop.OnuIndication
-	deviceReason      uint8
-	mutexDeviceReason sync.RWMutex
-	pLockStateFsm     *uniprt.LockStateFsm
-	pUnlockStateFsm   *uniprt.LockStateFsm
+	deviceEntrySet  chan bool //channel for DeviceEntry set event
+	pOnuOmciDevice  *mib.OnuDeviceEntry
+	pOnuTP          *avcfg.OnuUniTechProf
+	pOnuMetricsMgr  *pmmgr.OnuMetricsManager
+	pAlarmMgr       *almgr.OnuAlarmManager
+	pSelfTestHdlr   *otst.SelfTestControlBlock
+	exitChannel     chan int
+	pOnuIndication  *oop.OnuIndication
+	pLockStateFsm   *uniprt.LockStateFsm
+	pUnlockStateFsm *uniprt.LockStateFsm
+
+	stopCollector                  chan bool
+	stopAlarmManager               chan bool
+	stopHeartbeatCheck             chan bool
+	uniEntityMap                   cmn.OnuUniPortMap
+	UniVlanConfigFsmMap            map[uint8]*avcfg.UniVlanConfigFsm
+	pOnuUpradeFsm                  *swupg.OnuUpgradeFsm
+	chUniVlanConfigReconcilingDone chan uint16 //channel to indicate that VlanConfig reconciling for a specific UNI has been finished
+	chReconcilingFinished          chan bool   //channel to indicate that reconciling has been finished
+	pLastUpgradeImageState         *voltha.ImageState
+	upgradeFsmChan                 chan struct{}
+
+	deviceDeleteCommChan chan bool
+	DeviceID             string
+	DeviceType           string
+	adminState           string
+	logicalDeviceID      string
+	ProxyAddressID       string
+	ProxyAddressType     string
+	parentID             string
+
+	flowCbChan                     []chan FlowCb
+	stopFlowMonitoringRoutine      []chan bool // length of slice equal to number of uni ports
+	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
+	reconcileExpiryComplete        time.Duration
+	reconcileExpiryVlanConfig      time.Duration
+	lockDevice                     sync.RWMutex
+	mutexDeviceReason              sync.RWMutex
+	mutexCollectorFlag             sync.RWMutex
+	mutextAlarmManagerFlag         sync.RWMutex
+	lockVlanConfig                 sync.RWMutex
+	lockVlanAdd                    sync.RWMutex
+	lockUpgradeFsm                 sync.RWMutex
+	mutexReconcilingFlag           sync.RWMutex
+	mutexReconcilingFirstPassFlag  sync.RWMutex
+	mutexReconcilingReasonUpdate   sync.RWMutex
+	mutexReadyForOmciConfig        sync.RWMutex
+	mutexDeletionInProgressFlag    sync.RWMutex
+	mutexFlowMonitoringRoutineFlag sync.RWMutex
+	mutexForDisableDeviceRequested sync.RWMutex
+	mutexOltAvailable              sync.RWMutex
+	mutexKvStoreContext            sync.Mutex
+	ponPortNumber                  uint32
+
+	deviceReason uint8
 
 	//flowMgr       *OpenOltFlowMgr
 	//eventMgr      *OpenOltEventMgr
@@ -191,47 +226,16 @@ type deviceHandler struct {
 	//discOnus sync.Map
 	//onus     sync.Map
 	//portStats          *OpenOltStatisticsMgr
-	collectorIsRunning             bool
-	mutexCollectorFlag             sync.RWMutex
-	stopCollector                  chan bool
-	alarmManagerIsRunning          bool
-	mutextAlarmManagerFlag         sync.RWMutex
-	stopAlarmManager               chan bool
-	stopHeartbeatCheck             chan bool
-	uniEntityMap                   cmn.OnuUniPortMap
-	mutexKvStoreContext            sync.Mutex
-	lockVlanConfig                 sync.RWMutex
-	lockVlanAdd                    sync.RWMutex
-	UniVlanConfigFsmMap            map[uint8]*avcfg.UniVlanConfigFsm
-	lockUpgradeFsm                 sync.RWMutex
-	pOnuUpradeFsm                  *swupg.OnuUpgradeFsm
-	upgradeCanceled                bool
-	reconciling                    uint8
-	mutexReconcilingFlag           sync.RWMutex
-	reconcilingFirstPass           bool
-	mutexReconcilingFirstPassFlag  sync.RWMutex
-	reconcilingReasonUpdate        bool
-	mutexReconcilingReasonUpdate   sync.RWMutex
-	chUniVlanConfigReconcilingDone chan uint16 //channel to indicate that VlanConfig reconciling for a specific UNI has been finished
-	chReconcilingFinished          chan bool   //channel to indicate that reconciling has been finished
-	reconcileExpiryComplete        time.Duration
-	reconcileExpiryVlanConfig      time.Duration
-	mutexReadyForOmciConfig        sync.RWMutex
-	readyForOmciConfig             bool
-	deletionInProgress             bool
-	mutexDeletionInProgressFlag    sync.RWMutex
-	pLastUpgradeImageState         *voltha.ImageState
-	upgradeFsmChan                 chan struct{}
-
-	flowCbChan                     []chan FlowCb
-	mutexFlowMonitoringRoutineFlag sync.RWMutex
-	mutexForDisableDeviceRequested sync.RWMutex
-	mutexOltAvailable              sync.RWMutex
-	stopFlowMonitoringRoutine      []chan bool // length of slice equal to number of uni ports
-	isFlowMonitoringRoutineActive  []bool      // length of slice equal to number of uni ports
-	disableDeviceRequested         bool        // this flag identify ONU received disable request or not
-	oltAvailable                   bool
-	deviceDeleteCommChan           chan bool
+	collectorIsRunning      bool
+	alarmManagerIsRunning   bool
+	upgradeCanceled         bool
+	reconciling             uint8
+	reconcilingFirstPass    bool
+	reconcilingReasonUpdate bool
+	readyForOmciConfig      bool
+	deletionInProgress      bool
+	disableDeviceRequested  bool // this flag identify ONU received disable request or not
+	oltAvailable            bool
 }
 
 // newDeviceHandler creates a new device handler
@@ -408,8 +412,8 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 	defer dh.pOnuTP.UnlockTpProcMutex()
 
 	if techProfMsg.UniId >= platform.MaxUnisPerOnu {
-		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
-			techProfMsg.UniId, dh.DeviceID))
+		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
+			techProfMsg.UniId, dh.DeviceID)
 	}
 	uniID := uint8(techProfMsg.UniId)
 	tpID, err := cmn.GetTpIDFromTpPath(techProfMsg.TpInstancePath)
@@ -495,8 +499,8 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 	if delGemPortMsg.UniId >= platform.MaxUnisPerOnu {
 		logger.Errorw(ctx, "delete-gem-port UniId exceeds range", log.Fields{
 			"device-id": dh.DeviceID, "uni-id": delGemPortMsg.UniId})
-		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
-			delGemPortMsg.UniId, dh.DeviceID))
+		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
+			delGemPortMsg.UniId, dh.DeviceID)
 	}
 	uniID := uint8(delGemPortMsg.UniId)
 	tpID, err := cmn.GetTpIDFromTpPath(delGemPortMsg.TpInstancePath)
@@ -536,8 +540,8 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 	if delTcontMsg.UniId >= platform.MaxUnisPerOnu {
 		logger.Errorw(ctx, "delete-tcont UniId exceeds range", log.Fields{
 			"device-id": dh.DeviceID, "uni-id": delTcontMsg.UniId})
-		return fmt.Errorf(fmt.Sprintf("received UniId value exceeds range: %d, device-id: %s",
-			delTcontMsg.UniId, dh.DeviceID))
+		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
+			delTcontMsg.UniId, dh.DeviceID)
 	}
 	uniID := uint8(delTcontMsg.UniId)
 	tpPath := delTcontMsg.TpInstancePath
@@ -1666,7 +1670,7 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 
 	if !dh.IsReconciling() {
 		logger.Infow(ctx, "DeviceUpdate", log.Fields{"deviceReason": dh.device.Reason, "device-id": dh.DeviceID})
-		if err := dh.updateDeviceInCore(ctx, dh.device); err != nil {
+		if err = dh.updateDeviceInCore(ctx, dh.device); err != nil {
 			logger.Errorw(ctx, "device-update-failed", log.Fields{"device-id": dh.device.Id, "error": err})
 		}
 		//TODO Need to Update Device Reason To CORE as part of device update userstory
@@ -1927,6 +1931,8 @@ func (dh *deviceHandler) setDeviceHandlerEntries(apDeviceEntry *mib.OnuDeviceEnt
 }
 
 // addOnuDeviceEntry creates a new ONU device or returns the existing
+//
+//nolint:unparam
 func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 	logger.Debugw(ctx, "adding-deviceEntry", log.Fields{"device-id": dh.DeviceID})
 
@@ -2331,6 +2337,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	return nil
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "MibInSync event received, adding uni ports and locking the ONU interfaces", log.Fields{"device-id": dh.DeviceID})
 
@@ -2362,6 +2369,7 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEve
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processUniLockStateDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Infow(ctx, "UniLockStateDone event: Starting MIB download", log.Fields{"device-id": dh.DeviceID})
 	/*  Mib download procedure -
@@ -2399,6 +2407,7 @@ func (dh *deviceHandler) processUniLockStateDoneEvent(ctx context.Context, devEv
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Info(ctx, "MibDownloadDone event received, unlocking the ONU interfaces", log.Fields{"device-id": dh.DeviceID})
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
@@ -2499,6 +2508,7 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	dh.EnableUniPortStateUpdate(ctx) //cmp python yield self.enable_ports()
 
@@ -2528,6 +2538,7 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "DeviceStateUpdate upon disable", log.Fields{
 		"OperStatus": voltha.OperStatus_UNKNOWN, "device-id": dh.DeviceID})
@@ -2563,6 +2574,7 @@ func (dh *deviceHandler) processUniDisableStateDoneEvent(ctx context.Context, de
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "DeviceStateUpdate upon re-enable", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 		"OperStatus": voltha.OperStatus_ACTIVE, "device-id": dh.DeviceID})
@@ -2597,6 +2609,7 @@ func (dh *deviceHandler) processUniEnableStateDoneEvent(ctx context.Context, dev
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) processUniEnableStateFailedEvent(ctx context.Context, devEvent cmn.OnuDeviceEvent) {
 	logger.Debugw(ctx, "DeviceStateUpdate upon re-enable failure. ", log.Fields{
 		"OperStatus": voltha.OperStatus_FAILED, "device-id": dh.DeviceID})
@@ -2999,13 +3012,15 @@ func (dh *deviceHandler) runUniLockFsm(ctx context.Context, aAdminState bool) {
 
 // createOnuUpgradeFsm initializes and runs the Onu Software upgrade FSM
 // precondition: lockUpgradeFsm is already locked from caller of this function
+//
+//nolint:unparam
 func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *mib.OnuDeviceEntry, aDevEvent cmn.OnuDeviceEvent) error {
 	chUpgradeFsm := make(chan cmn.Message, 2)
 	var sFsmName = "OnuSwUpgradeFSM"
 	logger.Debugw(ctx, "create OnuSwUpgradeFSM", log.Fields{"device-id": dh.DeviceID})
 	if apDevEntry.PDevOmciCC == nil {
 		logger.Errorw(ctx, "no valid OnuDevice or omciCC - abort", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf(fmt.Sprintf("no valid omciCC - abort for device-id: %s", dh.device.Id))
+		return fmt.Errorf("no valid omciCC - abort for device-id: %s", dh.device.Id)
 	}
 	dh.pOnuUpradeFsm = swupg.NewOnuUpgradeFsm(ctx, dh, apDevEntry, apDevEntry.GetOnuDB(), aDevEvent,
 		sFsmName, chUpgradeFsm)
@@ -3016,7 +3031,7 @@ func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *mi
 				if err := pUpgradeStatemachine.Event(swupg.UpgradeEvStart); err != nil {
 					logger.Errorw(ctx, "OnuSwUpgradeFSM: can't start", log.Fields{"device-id": dh.DeviceID, "err": err})
 					// maybe try a FSM reset and then again ... - TODO!!!
-					return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be started for device-id: %s", dh.device.Id))
+					return fmt.Errorf("OnuSwUpgradeFSM could not be started for device-id: %s", dh.device.Id)
 				}
 				/***** Upgrade FSM started */
 				//reset the last stored upgrade states (which anyway should be don't care as long as the newly created FSM exists)
@@ -3029,16 +3044,16 @@ func (dh *deviceHandler) createOnuUpgradeFsm(ctx context.Context, apDevEntry *mi
 				logger.Errorw(ctx, "wrong state of OnuSwUpgradeFSM to start - want: disabled", log.Fields{
 					"have": pUpgradeStatemachine.Current(), "device-id": dh.DeviceID})
 				// maybe try a FSM reset and then again ... - TODO!!!
-				return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be started for device-id: %s, wrong internal state", dh.device.Id))
+				return fmt.Errorf("OnuSwUpgradeFSM could not be started for device-id: %s, wrong internal state", dh.device.Id)
 			}
 		} else {
 			logger.Errorw(ctx, "OnuSwUpgradeFSM internal FSM invalid - cannot be executed!!", log.Fields{"device-id": dh.DeviceID})
 			// maybe try a FSM reset and then again ... - TODO!!!
-			return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM internal FSM could not be created for device-id: %s", dh.device.Id))
+			return fmt.Errorf("OnuSwUpgradeFSM internal FSM could not be created for device-id: %s", dh.device.Id)
 		}
 	} else {
 		logger.Errorw(ctx, "OnuSwUpgradeFSM could not be created  - abort", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf(fmt.Sprintf("OnuSwUpgradeFSM could not be created - abort for device-id: %s", dh.device.Id))
+		return fmt.Errorf("OnuSwUpgradeFSM could not be created - abort for device-id: %s", dh.device.Id)
 	}
 	return nil
 }
@@ -3170,6 +3185,8 @@ func (dh *deviceHandler) SetBackend(ctx context.Context, aBasePathKvStore string
 
 	return kvbackend
 }
+
+//nolint:unparam
 func (dh *deviceHandler) getFlowOfbFields(ctx context.Context, apFlowItem *of.OfpFlowStats, loMatchVlan *uint16,
 	loMatchPcp *uint8, loIPProto *uint32) {
 
@@ -3891,6 +3908,7 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 	}
 }
 
+//nolint:unparam
 func (dh *deviceHandler) setOnuOffloadStats(ctx context.Context, config *extension.AppOffloadOnuConfig) *extension.SingleSetValueResponse {
 
 	singleValResp := extension.SingleSetValueResponse{
@@ -3947,6 +3965,7 @@ func (dh *deviceHandler) getOnuOMCIStats(ctx context.Context) (*extension.Single
 	return pDevOmciCC.GetOmciCounters(), nil
 }
 
+//nolint:unparam
 func (dh *deviceHandler) isFsmInOmciIdleState(ctx context.Context, PFsm *fsm.FSM, wantedState string) bool {
 	if PFsm == nil {
 		return true //FSM not active - so there is no activity on omci
@@ -4030,6 +4049,7 @@ func (dh *deviceHandler) isAniConfigFsmInOmciIdleState(ctx context.Context, omci
 	return true
 }
 
+//nolint:unparam
 func (dh *deviceHandler) isUniVlanConfigFsmInOmciIdleState(ctx context.Context, omciFsm cmn.UsedOmciConfigFsms, idleState string) bool {
 	dh.lockVlanConfig.RLock()
 	defer dh.lockVlanConfig.RUnlock()
@@ -4041,6 +4061,7 @@ func (dh *deviceHandler) isUniVlanConfigFsmInOmciIdleState(ctx context.Context, 
 	return true //FSM not active - so there is no activity on omci
 }
 
+//nolint:unparam
 func (dh *deviceHandler) checkUserServiceExists(ctx context.Context) bool {
 	dh.lockVlanConfig.RLock()
 	defer dh.lockVlanConfig.RUnlock()
@@ -4538,7 +4559,7 @@ func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDev
 			logger.Errorw(ctx, "configuration exceeds ONU capabilities - running out of TCONT instances: send ONU device event!",
 				log.Fields{"device-id": dh.device.Id})
 			pDevEntry.SendOnuDeviceEvent(ctx, cmn.OnuConfigFailureMissingTcont, cmn.OnuConfigFailureMissingTcontDesc)
-			return fmt.Errorf(fmt.Sprintf("configuration exceeds ONU capabilities - running out of TCONT instances: device-id: %s", dh.DeviceID))
+			return fmt.Errorf("configuration exceeds ONU capabilities - running out of TCONT instances: device-id: %s", dh.DeviceID)
 		}
 	} else {
 		pDevEntry.MutexPersOnuConfig.Unlock()
@@ -4549,7 +4570,7 @@ func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDev
 
 		queueInstKeys := pDevEntry.GetOnuDB().GetSortedInstKeys(ctx, me.PriorityQueueClassID)
 		for _, mgmtEntityID := range queueInstKeys {
-			if mgmtEntityID >= 0x8000 && mgmtEntityID <= 0xFFFF {
+			if mgmtEntityID >= 0x8000 {
 				numberOfUsPrioQueueDbInsts++
 			}
 		}
@@ -4565,7 +4586,7 @@ func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDev
 			logger.Errorw(ctx, "configuration exceeds ONU capabilities - running out of upstream PrioQueue instances: send ONU device event!",
 				log.Fields{"device-id": dh.device.Id})
 			pDevEntry.SendOnuDeviceEvent(ctx, cmn.OnuConfigFailureMissingUsPriorityQueue, cmn.OnuConfigFailureMissingUsPriorityQueueDesc)
-			return fmt.Errorf(fmt.Sprintf("configuration exceeds ONU capabilities - running out of upstream PrioQueue instances: device-id: %s", dh.DeviceID))
+			return fmt.Errorf("configuration exceeds ONU capabilities - running out of upstream PrioQueue instances: device-id: %s", dh.DeviceID)
 		}
 		// Downstream PrioQueue instances are evaluated in accordance with ONU MIB upload data in function UniPonAniConfigFsm::prepareAndEnterConfigState().
 		// In case of missing downstream PrioQueues the attribute "Priority queue pointer for downstream" of ME "GEM port network CTP" will be set to "0",

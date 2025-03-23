@@ -45,8 +45,8 @@ import (
 
 // AdapterDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type AdapterDownloadManager struct {
-	mutexDownloadImageDsc sync.RWMutex
 	downloadImageDscSlice []*voltha.ImageDownload
+	mutexDownloadImageDsc sync.RWMutex
 }
 
 // NewAdapterDownloadManager constructor returns a new instance of a AdapterDownloadManager
@@ -200,7 +200,7 @@ func (dm *AdapterDownloadManager) requestDownload(ctx context.Context, urlBase *
 	}
 
 	// Create the file
-	aLocalPathName := aFilePath + "/" + aFileName
+	aLocalPathName := filepath.Clean(filepath.Join(aFilePath, aFileName))
 	file, err := os.Create(aLocalPathName)
 	if err != nil {
 		logger.Errorw(ctx, "could not create local file", log.Fields{"path_file": aLocalPathName, "error": err})
@@ -269,7 +269,7 @@ func (dm *AdapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aF
 		return nil, err
 	}
 	defer func() {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
 			logger.Errorw(ctx, "failed to close file", log.Fields{"error": err})
 		}

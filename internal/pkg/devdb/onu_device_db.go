@@ -59,10 +59,10 @@ type unknownAttribs struct {
 // OnuDeviceDB structure holds information about ME's
 type OnuDeviceDB struct {
 	ctx                 context.Context
-	deviceID            string
 	CommonMeDb          *OnuCmnMEDB // Reference to OnuCmnMEDB
-	OnuSpecificMeDbLock sync.RWMutex
 	OnuSpecificMeDb     MeDbMap
+	deviceID            string
+	OnuSpecificMeDbLock sync.RWMutex
 }
 
 // MIBUploadStatus represents the status of MIBUpload for a particular ONT.
@@ -78,10 +78,10 @@ const (
 
 // OnuCmnMEDB structure holds information about ME's common to ONT possessing same MIB Template.
 type OnuCmnMEDB struct {
-	MeDbLock             sync.RWMutex
 	MeDb                 MeDbMap
 	UnknownMeAndAttribDb UnknownMeAndAttribDbMap
 	MIBUploadStatus      MIBUploadStatus
+	MeDbLock             sync.RWMutex
 }
 
 // NewOnuCmnMEDB returns a new instance of OnuCmnMEDB
@@ -98,6 +98,7 @@ func NewOnuCmnMEDB(ctx context.Context) *OnuCmnMEDB {
 // NewOnuDeviceDB returns a new instance for a specific ONU_Device_Entry
 func NewOnuDeviceDB(ctx context.Context, aDeviceID string) *OnuDeviceDB {
 	logger.Debugw(ctx, "Init OnuDeviceDB for:", log.Fields{"device-id": aDeviceID})
+	//nolint:govet
 	var OnuDeviceDB OnuDeviceDB
 	OnuDeviceDB.ctx = ctx
 	OnuDeviceDB.deviceID = aDeviceID
@@ -171,7 +172,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint32Attrib(meAttribute interface{}) (uint32
 	case reflect.Uint32:
 		return meAttribute.(uint32), nil
 	default:
-		return uint32(0), fmt.Errorf(fmt.Sprintf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID))
+		return uint32(0), fmt.Errorf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID)
 	}
 }
 
@@ -185,7 +186,7 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint16Attrib(meAttribute interface{}) (uint16
 	case reflect.Uint16:
 		return meAttribute.(uint16), nil
 	default:
-		return uint16(0), fmt.Errorf(fmt.Sprintf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID))
+		return uint16(0), fmt.Errorf("wrong-interface-type-%v-received-for-device-%s", reflect.TypeOf(meAttribute).Kind(), OnuDeviceDB.deviceID)
 	}
 }
 
