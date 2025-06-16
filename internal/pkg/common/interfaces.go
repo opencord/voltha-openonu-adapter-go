@@ -192,6 +192,7 @@ type IonuUniTechProf interface {
 	GetAllBidirectionalGemPortIDsForOnu() []uint16
 	GetNumberOfConfiguredUsGemPorts(ctx context.Context) int
 	SetProfileToDelete(uint8, uint8, bool)
+	GetGEMportToAllocIDMappingForONU(ctx context.Context, aDeviceID string) map[uint16]uint16
 }
 
 // IuniVlanConfigFsm interface to uniVlanConfigFsm

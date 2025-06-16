@@ -1059,3 +1059,17 @@ func (onuTP *OnuUniTechProf) PrepareForGarbageCollection(ctx context.Context, aD
 		delete(onuTP.PAniConfigFsm, k)
 	}
 }
+
+// GetGEMportToAllocIDMappingForONU - function to get the GEM ports and corresponding alloc-id mapping for an ONU
+func (onuTP *OnuUniTechProf) GetGEMportToAllocIDMappingForONU(ctx context.Context, aDeviceID string) map[uint16]uint16 {
+	logger.Debugw(ctx, "getting GEM port to AllocID mapping for the ONU", log.Fields{"device-id": aDeviceID})
+	gemportAllocIdMap := make(map[uint16]uint16)
+	for _, tcontGemList := range onuTP.mapPonAniConfig {
+		for gemPortID := range tcontGemList.mapGemPortParams {
+			gemportAllocIdMap[gemPortID] = tcontGemList.tcontParams.allocID
+
+		}
+	}
+	logger.Debugw(ctx, "Mapping between all the GEM ports to corresponding AllocID", log.Fields{"device-id": aDeviceID, "gemportAllocIDMapping": gemportAllocIdMap})
+	return gemportAllocIdMap
+}

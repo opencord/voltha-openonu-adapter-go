@@ -4770,6 +4770,13 @@ func (dh *deviceHandler) getOnuActiveAlarms(ctx context.Context) *extension.Sing
 	return resp
 }
 
+// getONUGEMStatsInfo - Get the GEM PM history data of the request ONT device
+func (dh *deviceHandler) getONUGEMStatsInfo(ctx context.Context) *extension.SingleGetValueResponse {
+	resp := dh.pOnuMetricsMgr.GetONUGEMCounters(ctx)
+	logger.Debugw(ctx, "Received response from AlarmManager for Active Alarms for DeviceEntry", log.Fields{"device-id": dh.DeviceID})
+	return resp
+}
+
 func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool {
 	return dh.deviceDeleteCommChan
 }

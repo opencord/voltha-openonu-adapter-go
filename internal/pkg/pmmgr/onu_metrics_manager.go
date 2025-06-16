@@ -4050,3 +4050,62 @@ func (mm *OnuMetricsManager) SetdeviceDeletionInProgress(deleted bool) {
 	defer mm.OnuMetricsManagerLock.Unlock()
 	mm.deviceDeletionInProgress = true
 }
+
+// Obtain the ONU GEM counters for the ONU device
+func (mm *OnuMetricsManager) GetONUGEMCounters(ctx context.Context) *extension.SingleGetValueResponse {
+
+	resp := extension.SingleGetValueResponse{
+		Response: &extension.GetValueResponse{
+			Status: extension.GetValueResponse_OK,
+			Response: &extension.GetValueResponse_OnuAllocGemStatsResponse{
+				OnuAllocGemStatsResponse: &extension.GetOnuAllocGemHistoryResponse{},
+			},
+		},
+	}
+
+	if mm.GetdeviceDeletionInProgress() {
+		logger.Infow(ctx, "device already deleted, return", log.Fields{"curr-state": mm.PAdaptFsm.PFsm.Current, "deviceID": mm.deviceID})
+		return nil
+	}
+
+	mm.OnuMetricsManagerLock.RLock()
+	defer mm.OnuMetricsManagerLock.RUnlock()
+
+	gemtoAllocId := mm.pDeviceHandler.GetOnuTP().GetGEMportToAllocIDMappingForONU(ctx, mm.deviceID)
+	allocIDtoGem := make(map[uint16][]uint16)
+	for key, value := range gemtoAllocId {
+		allocIDtoGem[value] = append(allocIDtoGem[value], key)
+	}
+
+	for allocID, gemSlice := range allocIDtoGem {
+		logger.Infow(ctx, "AllocID", log.Fields{"alloc-id": allocID})
+		allocIdGemData := extension.OnuAllocGemHistoryData{
+			OnuAllocIdInfo: &extension.OnuAllocHistoryData{},
+			GemPortInfo:    []*extension.OnuGemPortHistoryData{},
+		}
+		allocIdGemData.OnuAllocIdInfo.AllocId = uint32(allocID)
+
+		// Loop through each element in the slice
+		for _, gem := range gemSlice {
+			logger.Debugw(ctx, "Collecting stats for Gem: ", log.Fields{"GEMID": gem})
+			if metricInfo := mm.collectGemHistoryData(ctx, gem); metricInfo != nil {
+				logger.Infow(ctx, "Metricinfo for GEM", log.Fields{"GEMID": gem, "metricInfo": metricInfo})
+				gemHistoryData := extension.OnuGemPortHistoryData{}
+				gemHistoryData.GemId = uint32(gem)
+				gemHistoryData.TransmittedGEMFrames = uint32(metricInfo.GetMetrics()["transmitted_gem_frames"])
+				gemHistoryData.ReceivedGEMFrames = uint32(metricInfo.GetMetrics()["received_gem_frames"])
+				gemHistoryData.ReceivedPayloadBytes = uint32(metricInfo.GetMetrics()["received_payload_bytes"])
+				gemHistoryData.TransmittedPayloadBytes = uint32(metricInfo.GetMetrics()["transmitted_payload_bytes"])
+				gemHistoryData.EncryptionKeyErrors = uint32(metricInfo.GetMetrics()["encryption_key_errors"])
+				allocIdGemData.GemPortInfo = append(allocIdGemData.GemPortInfo, &gemHistoryData)
+				logger.Debugw(ctx, " allocIdGemData value ", log.Fields{"AllocIDGemData": allocIdGemData})
+
+			}
+		}
+		resp.Response.GetOnuAllocGemStatsResponse().OnuAllocGemHistoryData = append(resp.Response.GetOnuAllocGemStatsResponse().OnuAllocGemHistoryData, &allocIdGemData)
+	}
+
+	logger.Debugw(ctx, "Request to fetch GEM Performance Counters  ", log.Fields{"device-id": mm.deviceID, "response": resp})
+	return &resp
+
+}
