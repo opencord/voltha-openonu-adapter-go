@@ -50,6 +50,7 @@ const (
 	cWaitCountEndSwDl                  = 6  //maximum number of EndSwDl requests
 	cWaitDelayEndSwDlSeconds           = 10 //duration, how long is waited before next request on EndSwDl
 	//cOmciDownloadCompleteTimeout = 5400 //in s for the complete timeout (may be better scale to image size/ noOfWindows)
+	cMaxRetryAttemptsForDownloadWindow = 3 //maximun number of retry attempts to download the window
 )
 
 // tEndSwDlResponseResult - Response result from EndSwDownload as used in channel indication
@@ -82,6 +83,10 @@ const (
 	cEndSwDlResponseBusy
 	// response error or abort waiting for response
 	cEndSwDlResponseAbort
+)
+
+const (
+	ResultErr = "result error"
 )
 
 // upgrade FSM related events
@@ -146,52 +151,54 @@ type OnuUpgradeFsm struct {
 	pOmciCC          *cmn.OmciCC
 	pOnuDB           *devdb.OnuDeviceDB
 	//omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
-	PAdaptFsm                        *cmn.AdapterFsm
-	pImageDsc                        *voltha.ImageDownload
-	pLastTxMeInstance                *me.ManagedEntity
-	chReceiveExpectedResponse        chan bool
-	chAdapterDlReady                 chan bool
-	chAbortDelayEndSwDl              chan struct{}
-	chOnuDlReady                     chan bool
-	chReceiveAbortEndSwDlResponse    chan tEndSwDlResponseResult
-	deviceID                         string
-	imageVersion                     string //name of the image as used within OMCI (and on extrenal API interface)
-	imageIdentifier                  string //name of the image as used in the adapter
-	imageBuffer                      []byte
-	requestEvent                     cmn.OnuDeviceEvent
-	downloadToOnuTimeout4MB          time.Duration //timeout for downloading the image to the ONU for a 4MB image slice
-	omciSectionInterleaveDelay       time.Duration //DownloadSectionInterleave delay in milliseconds
-	waitDelayEndSwDl                 time.Duration //duration, how long is waited before next request on EndSwDl
-	omciDownloadSectionSize          int64
-	mutexUpgradeParams               sync.RWMutex //mutex to protect members for parallel function requests and omci response processing
-	mutexIsAwaitingAdapterDlResponse sync.RWMutex
-	mutexAbortRequest                sync.RWMutex
-	origImageLength                  uint32 //as also limited by OMCI
-	imageCRC                         uint32 //as per OMCI - ITU I.363.5 crc
-	imageLength                      uint32 //including last bytes padding
-	noOfSections                     uint32 //uint32 range for sections should be sufficient for very long images
-	nextDownloadSectionsAbsolute     uint32 //number of next section to download in overall image
-	noOfWindows                      uint32 //uint32 range for windows should be sufficient for very long images
-	nextDownloadWindow               uint32 //number of next window to download
-	abortRequested                   voltha.ImageState_ImageFailureReason
-	volthaDownloadState              voltha.ImageState_ImageDownloadState
-	volthaDownloadReason             voltha.ImageState_ImageFailureReason
-	volthaImageState                 voltha.ImageState_ImageActivationState
-	InactiveImageMeID                uint16 //ME-ID of the inactive image
-	omciDownloadWindowSizeLimit      uint8  //windowSize-1 in sections
-	omciDownloadWindowSizeLast       uint8  //number of sections in last window
-	nextDownloadSectionsWindow       uint8  //number of next section to download within current window
-	delayEndSwDl                     bool   //flag to provide a delay between last section and EndSwDl
-	repeatAbort                      bool   //flag to indicate if OMCI EndSwDownload (abort) is to be repeated
-	waitCountEndSwDl                 uint8  //number, how often is waited for EndSwDl at maximum
-	useAPIVersion43                  bool   //flag for indication on which API version is used (and accordingly which specific methods)
-	isWaitingForAdapterDlResponse    bool
-	activateImage                    bool
-	commitImage                      bool
-	conditionalCancelRequested       bool
-	upgradePhase                     tUpgradePhase
-	isEndSwDlOpen                    bool
-	isExtendedOmci                   bool
+	PAdaptFsm                         *cmn.AdapterFsm
+	pImageDsc                         *voltha.ImageDownload
+	pLastTxMeInstance                 *me.ManagedEntity
+	chReceiveExpectedResponse         chan bool
+	chAdapterDlReady                  chan bool
+	chAbortDelayEndSwDl               chan struct{}
+	chOnuDlReady                      chan bool
+	chReceiveAbortEndSwDlResponse     chan tEndSwDlResponseResult
+	deviceID                          string
+	imageVersion                      string //name of the image as used within OMCI (and on extrenal API interface)
+	imageIdentifier                   string //name of the image as used in the adapter
+	currentErrState                   string
+	imageBuffer                       []byte
+	requestEvent                      cmn.OnuDeviceEvent
+	downloadToOnuTimeout4MB           time.Duration //timeout for downloading the image to the ONU for a 4MB image slice
+	omciSectionInterleaveDelay        time.Duration //DownloadSectionInterleave delay in milliseconds
+	waitDelayEndSwDl                  time.Duration //duration, how long is waited before next request on EndSwDl
+	omciDownloadSectionSize           int64
+	mutexUpgradeParams                sync.RWMutex //mutex to protect members for parallel function requests and omci response processing
+	mutexIsAwaitingAdapterDlResponse  sync.RWMutex
+	mutexAbortRequest                 sync.RWMutex
+	origImageLength                   uint32 //as also limited by OMCI
+	imageCRC                          uint32 //as per OMCI - ITU I.363.5 crc
+	imageLength                       uint32 //including last bytes padding
+	noOfSections                      uint32 //uint32 range for sections should be sufficient for very long images
+	nextDownloadSectionsAbsolute      uint32 //number of next section to download in overall image
+	noOfWindows                       uint32 //uint32 range for windows should be sufficient for very long images
+	nextDownloadWindow                uint32 //number of next window to download
+	abortRequested                    voltha.ImageState_ImageFailureReason
+	volthaDownloadState               voltha.ImageState_ImageDownloadState
+	volthaDownloadReason              voltha.ImageState_ImageFailureReason
+	volthaImageState                  voltha.ImageState_ImageActivationState
+	InactiveImageMeID                 uint16 //ME-ID of the inactive image
+	omciDownloadWindowSizeLimit       uint8  //windowSize-1 in sections
+	omciDownloadWindowSizeLast        uint8  //number of sections in last window
+	nextDownloadSectionsWindow        uint8  //number of next section to download within current window
+	maxRetryAttemptsForDownloadWindow uint8
+	delayEndSwDl                      bool  //flag to provide a delay between last section and EndSwDl
+	repeatAbort                       bool  //flag to indicate if OMCI EndSwDownload (abort) is to be repeated
+	waitCountEndSwDl                  uint8 //number, how often is waited for EndSwDl at maximum
+	useAPIVersion43                   bool  //flag for indication on which API version is used (and accordingly which specific methods)
+	isWaitingForAdapterDlResponse     bool
+	activateImage                     bool
+	commitImage                       bool
+	conditionalCancelRequested        bool
+	upgradePhase                      tUpgradePhase
+	isEndSwDlOpen                     bool
+	isExtendedOmci                    bool
 }
 
 // NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -201,21 +208,22 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler,
 	apDevEntry cmn.IonuDeviceEntry, apOnuDB *devdb.OnuDeviceDB,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message) *OnuUpgradeFsm {
 	instFsm := &OnuUpgradeFsm{
-		pDeviceHandler:             apDeviceHandler,
-		deviceID:                   apDeviceHandler.GetDeviceID(),
-		pDevEntry:                  apDevEntry,
-		pOmciCC:                    apDevEntry.GetDevOmciCC(),
-		pOnuDB:                     apOnuDB,
-		requestEvent:               aRequestEvent,
-		omciSectionInterleaveDelay: cOmciSectionInterleaveMilliseconds,
-		downloadToOnuTimeout4MB:    apDeviceHandler.GetDlToOnuTimeout4M(),
-		waitCountEndSwDl:           cWaitCountEndSwDl,
-		waitDelayEndSwDl:           cWaitDelayEndSwDlSeconds,
-		upgradePhase:               cUpgradeUndefined,
-		volthaDownloadState:        voltha.ImageState_DOWNLOAD_UNKNOWN,
-		volthaDownloadReason:       voltha.ImageState_NO_ERROR,
-		volthaImageState:           voltha.ImageState_IMAGE_UNKNOWN,
-		abortRequested:             voltha.ImageState_NO_ERROR,
+		pDeviceHandler:                    apDeviceHandler,
+		deviceID:                          apDeviceHandler.GetDeviceID(),
+		pDevEntry:                         apDevEntry,
+		pOmciCC:                           apDevEntry.GetDevOmciCC(),
+		pOnuDB:                            apOnuDB,
+		requestEvent:                      aRequestEvent,
+		omciSectionInterleaveDelay:        cOmciSectionInterleaveMilliseconds,
+		downloadToOnuTimeout4MB:           apDeviceHandler.GetDlToOnuTimeout4M(),
+		waitCountEndSwDl:                  cWaitCountEndSwDl,
+		waitDelayEndSwDl:                  cWaitDelayEndSwDlSeconds,
+		upgradePhase:                      cUpgradeUndefined,
+		volthaDownloadState:               voltha.ImageState_DOWNLOAD_UNKNOWN,
+		volthaDownloadReason:              voltha.ImageState_NO_ERROR,
+		volthaImageState:                  voltha.ImageState_IMAGE_UNKNOWN,
+		abortRequested:                    voltha.ImageState_NO_ERROR,
+		maxRetryAttemptsForDownloadWindow: cMaxRetryAttemptsForDownloadWindow,
 	}
 	instFsm.chReceiveExpectedResponse = make(chan bool)
 	instFsm.chAdapterDlReady = make(chan bool)
@@ -1500,8 +1508,14 @@ func (oFsm *OnuUpgradeFsm) handleRxSwSectionResponse(ctx context.Context, msg cm
 	logger.Debugw(ctx, "OnuUpgradeFsm DlSectionResponse Data", log.Fields{
 		"device-id": oFsm.deviceID, "data-fields": msgObj})
 	if msgObj.Result != me.Success {
-		logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse result error - later: repeat window once?", //TODO!!!
+		logger.Warnf(ctx, "OnuUpgradeFsm DlSectionResponse result error - later: repeat window once?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
+		if msgObj.Result == me.ProcessingError {
+			oFsm.currentErrState = ResultErr
+			oFsm.mutexUpgradeParams.Lock()
+			oFsm.retrySoftwareDownload(ctx)
+			return
+		}
 		oFsm.abortOnOmciError(ctx, false)
 		return
 	}
@@ -2016,4 +2030,23 @@ func (oFsm *OnuUpgradeFsm) PrepareForGarbageCollection(ctx context.Context, aDev
 	oFsm.pFileManager = nil
 	oFsm.pDevEntry = nil
 	oFsm.pOmciCC = nil
+}
+
+func (oFsm *OnuUpgradeFsm) retrySoftwareDownload(ctx context.Context) {
+	logger.Infow(ctx, "Number of retry attempts remaining for the download window ", log.Fields{"error": oFsm.currentErrState,
+		"device-id": oFsm.deviceID, "maxRetryAttemptsForDownloadWindow": oFsm.maxRetryAttemptsForDownloadWindow})
+	if oFsm.maxRetryAttemptsForDownloadWindow > 0 {
+		oFsm.maxRetryAttemptsForDownloadWindow--
+		oFsm.nextDownloadSectionsWindow = 0 // resets the section for current window
+
+		// reset absolute section counter to the start of the current window
+		oFsm.nextDownloadSectionsAbsolute = oFsm.nextDownloadWindow * uint32(oFsm.omciDownloadWindowSizeLimit+1)
+		oFsm.mutexUpgradeParams.Unlock()
+		_ = oFsm.PAdaptFsm.PFsm.Event(UpgradeEvContinueNextWindow)
+	} else {
+		oFsm.mutexUpgradeParams.Unlock()
+		logger.Errorw(ctx, "OnuUpgradeFsm DlSectionResponse, max limit reached", log.Fields{"error": oFsm.currentErrState,
+			"device-id": oFsm.deviceID})
+		oFsm.abortOnOmciError(ctx, false)
+	}
 }
