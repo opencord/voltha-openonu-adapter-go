@@ -162,6 +162,7 @@ type OnuUpgradeFsm struct {
 	deviceID                          string
 	imageVersion                      string //name of the image as used within OMCI (and on extrenal API interface)
 	imageIdentifier                   string //name of the image as used in the adapter
+	currentErrState                   string
 	imageBuffer                       []byte
 	requestEvent                      cmn.OnuDeviceEvent
 	downloadToOnuTimeout4MB           time.Duration //timeout for downloading the image to the ONU for a 4MB image slice
@@ -189,7 +190,8 @@ type OnuUpgradeFsm struct {
 	delayEndSwDl                      bool   //flag to provide a delay between last section and EndSwDl
 	repeatAbort                       bool   //flag to indicate if OMCI EndSwDownload (abort) is to be repeated
 	waitCountEndSwDl                  uint8  //number, how often is waited for EndSwDl at maximum
-	useAPIVersion43                   bool   //flag for indication on which API version is used (and accordingly which specific methods)
+	maxRetryAttemptsForDownloadWindow uint8
+	useAPIVersion43                   bool //flag for indication on which API version is used (and accordingly which specific methods)
 	isWaitingForAdapterDlResponse     bool
 	activateImage                     bool
 	commitImage                       bool
@@ -197,8 +199,6 @@ type OnuUpgradeFsm struct {
 	upgradePhase                      tUpgradePhase
 	isEndSwDlOpen                     bool
 	isExtendedOmci                    bool
-	maxRetryAttemptsForDownloadWindow uint8
-	currentErrState                   string
 }
 
 // NewOnuUpgradeFsm is the 'constructor' for the state machine to config the PON ANI ports
