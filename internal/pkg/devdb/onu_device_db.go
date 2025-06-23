@@ -145,12 +145,13 @@ func (OnuDeviceDB *OnuDeviceDB) PutMe(ctx context.Context, meClassID me.ClassID,
 // GetMe returns an ME instance from internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) GetMe(meClassID me.ClassID, meEntityID uint16) me.AttributeValueMap {
 	OnuDeviceDB.CommonMeDb.MeDbLock.RLock()
-	defer OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
 
 	// Check in the common MeDb
 	if meAttributes, present := OnuDeviceDB.CommonMeDb.MeDb[meClassID][meEntityID]; present {
+		OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
 		return meAttributes
 	}
+	OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
 
 	OnuDeviceDB.OnuSpecificMeDbLock.RLock()
 	defer OnuDeviceDB.OnuSpecificMeDbLock.RUnlock()
@@ -298,9 +299,10 @@ func (OnuDeviceDB *OnuDeviceDB) PutUnknownMeOrAttrib(ctx context.Context, aMeNam
 // DeleteMe deletes an ME instance from internal ONU DB
 func (OnuDeviceDB *OnuDeviceDB) DeleteMe(meClassID me.ClassID, meEntityID uint16) {
 	OnuDeviceDB.CommonMeDb.MeDbLock.Lock()
-	defer OnuDeviceDB.CommonMeDb.MeDbLock.Unlock()
+
 	meDb := OnuDeviceDB.CommonMeDb.MeDb
 	delete(meDb[meClassID], meEntityID)
+	OnuDeviceDB.CommonMeDb.MeDbLock.Unlock()
 
 	OnuDeviceDB.OnuSpecificMeDbLock.Lock()
 	defer OnuDeviceDB.OnuSpecificMeDbLock.Unlock()
