@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5988a6d1_39607198",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-06-23T17:17:02Z",
+      "side": 1,
+      "message": "please resolve the sca failure in verification and also bump up the version",
+      "revId": "b9c4a45aae8ef5d6ce37c946edd68b334339fdba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
