@@ -419,6 +419,8 @@ func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsIn
 
 // DownloadImage requests downloading some image according to indications as given in request
 // The ImageDownload needs to be called `request`due to library reflection requirements
+//
+//nolint:staticcheck
 func (oo *OpenONUAC) DownloadImage(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	ctx = log.WithSpanFromContext(context.Background(), ctx)
 	if imageInfo != nil && imageInfo.Image != nil && imageInfo.Image.Name != "" {
@@ -447,6 +449,8 @@ func (oo *OpenONUAC) DownloadImage(ctx context.Context, imageInfo *ca.ImageDownl
 //	according to indications as given in request and on success activate the image on the ONU
 //
 // The ImageDownload needs to be called `request`due to library reflection requirements
+//
+//nolint:staticcheck
 func (oo *OpenONUAC) ActivateImageUpdate(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	if imageInfo != nil && imageInfo.Image != nil && imageInfo.Image.Name != "" {
 		if oo.pDownloadManager.ImageLocallyDownloaded(ctx, imageInfo.Image) {
@@ -896,31 +900,30 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 
 	onuIndication := onuInd.OnuIndication
 	onuOperstate := onuIndication.GetOperState()
-	waitForDhInstPresent := false
-	if onuOperstate == "up" {
-		//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
-		//ONU_IND_REQUEST msg by olt-adapter could arrive a little bit earlier than rw_core was able to announce the corresponding
-		//ONU by RPC of Adopt_device(). Therefore it could be necessary to wait with processing of ONU_IND_REQUEST until call of
-		//Adopt_device() arrived and DeviceHandler instance was created
-		waitForDhInstPresent = true
-	}
+	//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
+	//ONU_IND_REQUEST msg by olt-adapter could arrive a little bit earlier than rw_core was able to announce the corresponding
+	//ONU by RPC of Adopt_device(). Therefore it could be necessary to wait with processing of ONU_IND_REQUEST until call of
+	//Adopt_device() arrived and DeviceHandler instance was created
+	waitForDhInstPresent := onuOperstate == "up"
+
 	if handler := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent); handler != nil {
 		logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": onuInd.DeviceId,
 			"OnuId":      onuIndication.GetOnuId(),
 			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
 			"SNR": onuIndication.GetSerialNumber()})
 
-		if onuOperstate == "up" {
+		switch onuOperstate {
+		case "up":
 			if err := handler.createInterface(ctx, onuIndication); err != nil {
 				return nil, err
 			}
 			return &empty.Empty{}, nil
-		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
+		case "down", "unreachable":
 			if err := handler.UpdateInterface(ctx); err != nil {
 				return nil, err
 			}
 			return &empty.Empty{}, nil
-		} else {
+		default:
 			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
 			return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, onuInd.DeviceId)
 		}
@@ -953,7 +956,7 @@ func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechP
 			logger.Warnw(ctx, "Device deletion  in progress - avoid processing Tech Profile", log.Fields{"device-id": tProfile.DeviceId})
 
 			handler.RUnlockMutexDeletionInProgressFlag()
-			return nil, fmt.Errorf("Can't proceed, device  deletion is in progress-%s", tProfile.DeviceId)
+			return nil, fmt.Errorf(" Can't proceed, device  deletion is in progress-%s", tProfile.DeviceId)
 		}
 		handler.RUnlockMutexDeletionInProgressFlag()
 		if err := handler.handleTechProfileDownloadRequest(log.WithSpanFromContext(context.Background(), ctx), tProfile); err != nil {
@@ -1290,16 +1293,22 @@ func (oo *OpenONUAC) UnSuppressEvent(ctx context.Context, filter *voltha.EventFi
 }
 
 // GetImageDownloadStatus is unimplemented
+//
+//nolint:staticcheck
 func (oo *OpenONUAC) GetImageDownloadStatus(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // CancelImageDownload is unimplemented
+//
+//nolint:staticcheck
 func (oo *OpenONUAC) CancelImageDownload(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // RevertImageUpdate is unimplemented
+//
+//nolint:staticcheck
 func (oo *OpenONUAC) RevertImageUpdate(ctx context.Context, imageInfo *ca.ImageDownloadMessage) (*voltha.ImageDownload, error) {
 	return nil, errors.New("unImplemented")
 }

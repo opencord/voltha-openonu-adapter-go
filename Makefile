@@ -83,7 +83,7 @@ DOCKER_BUILD_ARGS ?= \
 	--build-arg org_opencord_vcs_dirty="${DOCKER_LABEL_VCS_DIRTY}"
 
 # tool containers
-VOLTHA_TOOLS_VERSION ?= 3.1.1
+VOLTHA_TOOLS_VERSION ?= 3.1.2
 
 GO                = docker run --rm --user $$(id -u):$$(id -g) -v ${CURDIR}:/app -v gocache:/.cache -v gocache-${VOLTHA_TOOLS_VERSION}:/go/pkg voltha/voltha-ci-tools:${VOLTHA_TOOLS_VERSION}-golang go
 GO_JUNIT_REPORT   = docker run --rm --user $$(id -u):$$(id -g) -v ${CURDIR}:/app -i voltha/voltha-ci-tools:${VOLTHA_TOOLS_VERSION}-go-junit-report go-junit-report
@@ -233,7 +233,8 @@ test: lint ## Run unit tests
 sca: ## Runs static code analysis with the golangci-lint tool
 	@mkdir -p ./sca-report
 	@echo "Running static code analysis..."
-	@${GOLANGCI_LINT} run  --out-format junit-xml ./... | tee ./sca-report/sca-report.xml
+	@${GOLANGCI_LINT} run -vv ./... | tee ./sca-report/sca-report.json
+	@cat ./sca-report/sca-report.json | ${GO_JUNIT_REPORT} > ./sca-report/sca-report.xml
 	@echo "Static code analysis OK"
 
 ## -----------------------------------------------------------------------

@@ -147,7 +147,7 @@ type OnuUpgradeFsm struct {
 	pOnuDB           *devdb.OnuDeviceDB
 	//omciMIdsResponseReceived chan bool //seperate channel needed for checking multiInstance OMCI message responses
 	PAdaptFsm                        *cmn.AdapterFsm
-	pImageDsc                        *voltha.ImageDownload
+	pImageDsc                        *voltha.ImageDownload //nolint:staticcheck
 	pLastTxMeInstance                *me.ManagedEntity
 	chReceiveExpectedResponse        chan bool
 	chAdapterDlReady                 chan bool
@@ -319,6 +319,8 @@ func NewOnuUpgradeFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler,
 // SetDownloadParams configures the needed parameters for a specific download to the ONU
 //
 //	called from 'old' API Activate_image_update()
+//
+//nolint:staticcheck
 func (oFsm *OnuUpgradeFsm) SetDownloadParams(ctx context.Context, aInactiveImageID uint16,
 	apImageDsc *voltha.ImageDownload, apDownloadManager *AdapterDownloadManager) error {
 	pBaseFsm := oFsm.PAdaptFsm.PFsm
@@ -694,7 +696,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	//  this also limits the slice len to the expected maximum fileLen
 	copy(oFsm.imageBuffer, imageBuffer)
 
-	oFsm.noOfSections = uint32(fileLen / oFsm.omciDownloadSectionSize)
+	oFsm.noOfSections = uint32(fileLen / oFsm.omciDownloadSectionSize) //nolint:gosec
 	if fileLen%oFsm.omciDownloadSectionSize > 0 {
 		// Because the extended message format allows for variable length,
 		// software image sections are only padded in baseline message format
@@ -705,8 +707,8 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 		}
 		oFsm.noOfSections++
 	}
-	oFsm.origImageLength = uint32(fileLen)
-	oFsm.imageLength = uint32(len(oFsm.imageBuffer))
+	oFsm.origImageLength = uint32(fileLen)           //nolint:gosec
+	oFsm.imageLength = uint32(len(oFsm.imageBuffer)) //nolint:gosec
 	logger.Infow(ctx, "OnuUpgradeFsm starts with StartSwDl values", log.Fields{
 		"MeId": oFsm.InactiveImageMeID, "windowSizeLimit": oFsm.omciDownloadWindowSizeLimit,
 		"ImageSize": oFsm.imageLength, "original file size": fileLen})
@@ -782,8 +784,8 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 		}
 		oFsm.mutexAbortRequest.RUnlock()
 
-		bufferStartOffset = oFsm.nextDownloadSectionsAbsolute * uint32(oFsm.omciDownloadSectionSize)
-		bufferEndOffset = bufferStartOffset + uint32(oFsm.omciDownloadSectionSize) - 1
+		bufferStartOffset = oFsm.nextDownloadSectionsAbsolute * uint32(oFsm.omciDownloadSectionSize) //nolint:gosec
+		bufferEndOffset = bufferStartOffset + uint32(oFsm.omciDownloadSectionSize) - 1               //nolint:gosec
 		if oFsm.isExtendedOmci {
 			if bufferEndOffset > oFsm.origImageLength-1 {
 				bufferEndOffset = oFsm.origImageLength - 1
@@ -1525,7 +1527,7 @@ func (oFsm *OnuUpgradeFsm) handleRxSwSectionResponse(ctx context.Context, msg cm
 			//CRC computation for all data bytes of the file
 			imageCRC := crc32a.Checksum(oFsm.imageBuffer[:int(oFsm.origImageLength)]) //store internal for multiple usage
 			//revert the retrieved CRC Byte Order (seems not to deliver NetworkByteOrder)
-			var byteSlice []byte = make([]byte, 4)
+			var byteSlice = make([]byte, 4)
 			binary.LittleEndian.PutUint32(byteSlice, uint32(imageCRC))
 			oFsm.imageCRC = binary.BigEndian.Uint32(byteSlice)
 			oFsm.mutexUpgradeParams.Unlock()

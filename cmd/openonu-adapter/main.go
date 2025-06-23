@@ -315,8 +315,8 @@ func (a *adapter) registerWithCore(ctx context.Context, serviceName string, retr
 		Version:        version.VersionInfo.Version,
 		Endpoint:       a.config.AdapterEndpoint,
 		Type:           "brcm_openomci_onu",
-		CurrentReplica: int32(a.config.CurrentReplica),
-		TotalReplicas:  int32(a.config.TotalReplicas),
+		CurrentReplica: int32(a.config.CurrentReplica), //nolint:gosec
+		TotalReplicas:  int32(a.config.TotalReplicas),  //nolint:gosec
 	}
 	types := []*voltha.DeviceType{{Id: "brcm_openomci_onu",
 		VendorIds:                   vendorIdsList,

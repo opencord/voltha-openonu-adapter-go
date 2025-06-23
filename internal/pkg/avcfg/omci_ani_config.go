@@ -793,7 +793,7 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 	oFsm.pUniTechProf.setConfigDone(oFsm.pOnuUniPort.UniID, oFsm.techProfileID, true)
 	if !oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
 		//use DeviceHandler event notification directly
-		oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
+		oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset))) //nolint:gosec
 		//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
 		//  but only in case the techProfile was configured (not deleted)
 		if oFsm.requestEventOffset == 0 {
@@ -1149,7 +1149,7 @@ func (oFsm *UniPonAniConfigFsm) enterAniRemoveDone(ctx context.Context, e *fsm.E
 	logger.Info(ctx, "UniPonAniConfigFsm ani removal done", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	//use DeviceHandler event notification directly
-	oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset)))
+	oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent((uint8(oFsm.requestEvent) + oFsm.requestEventOffset))) //nolint:gosec
 	if oFsm.isChanSet() {
 		// indicate processing done to the caller
 		logger.Debugw(ctx, "UniPonAniConfigFsm processingDone on channel", log.Fields{
@@ -1801,7 +1801,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 					"Weight":    kv.Value,
 					"device-id": oFsm.deviceID})
 				meParams.Attributes[me.PriorityQueue_TrafficSchedulerPointer] = loTrafficSchedulerEID //ensure assignment of the relevant trafficScheduler
-				meParams.Attributes[me.PriorityQueue_Weight] = uint8(kv.Value.(uint16))
+				meParams.Attributes[me.PriorityQueue_Weight] = uint8(kv.Value.(uint16))               //nolint:gosec
 			}
 		} else {
 			// setting Traffic Scheduler (TS) pointer is not supported unless we point to another TS that points to the same TCONT.
@@ -1818,7 +1818,7 @@ func (oFsm *UniPonAniConfigFsm) performSettingPQs(ctx context.Context) {
 				"EntitytId": strconv.FormatInt(int64(queueIndex), 16),
 				"Weight":    kv.Value,
 				"device-id": oFsm.deviceID})
-			meParams.Attributes[me.PriorityQueue_Weight] = uint8(kv.Value.(uint16))
+			meParams.Attributes[me.PriorityQueue_Weight] = uint8(kv.Value.(uint16)) //nolint:gosec
 		}
 		oFsm.mutexPLastTxMeInstance.Lock()
 		meInstance, err := oFsm.pOmciCC.SendSetPrioQueueVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,

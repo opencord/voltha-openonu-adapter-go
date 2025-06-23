@@ -388,7 +388,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 
 	//note: the code is currently restricted to one TCcont per Onu (index [0])
 	//get the relevant values from the profile and store to mapPonAniConfig
-	onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID = uint16(tpInst.UsScheduler.AllocId)
+	onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID = uint16(tpInst.UsScheduler.AllocId) //nolint:gosec
 	//maybe tCont scheduling not (yet) needed - just to basically have it for future
 	//  (would only be relevant in case of ONU-2G QOS configuration flexibility)
 	if tpInst.UsScheduler.QSchedPolicy == tech_profile.SchedulingPolicy_StrictPriority {
@@ -400,7 +400,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 	loNumGemPorts := tpInst.NumGemPorts
 	loGemPortRead := false
 	for pos, content := range tpInst.UpstreamGemPortAttributeList {
-		if uint32(pos) == loNumGemPorts {
+		if uint32(pos) == loNumGemPorts { //nolint:gosec
 			logger.Debugw(ctx, "PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
 				log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
 			break
@@ -410,13 +410,12 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			loGemPortRead = true
 		}
 		//for all GemPorts we need to extend the mapGemPortParams
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)] = &gemPortParamStruct{}
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)] = &gemPortParamStruct{} //nolint:gosec
 
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortID =
-			uint16(content.GemportId)
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortID = uint16(content.GemportId) //nolint:gosec
 		//direction can be correlated later with Downstream list,
 		//  for now just assume bidirectional (upstream never exists alone)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].direction = cGemDirBiDirect
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].direction = cGemDirBiDirect //nolint:gosec
 		// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
 		if content.PriorityQ > 7 {
 			logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
@@ -426,22 +425,22 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			onuTP.chTpConfigProcessingStep <- 0 //error indication
 			return
 		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].prioQueueIndex =
-			uint8(content.PriorityQ)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].pbitString =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].prioQueueIndex = //nolint:gosec
+			uint8(content.PriorityQ) //nolint:gosec
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].pbitString = //nolint:gosec
 			strings.TrimPrefix(content.PbitMap, binaryStringPrefix)
 		if content.AesEncryption == "True" {
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortEncState = 1
+			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortEncState = 1 //nolint:gosec
 		} else {
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortEncState = 0
+			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortEncState = 0 //nolint:gosec
 		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].discardPolicy =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].discardPolicy = //nolint:gosec
 			content.DiscardPolicy.String()
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].queueSchedPolicy =
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].queueSchedPolicy = //nolint:gosec
 			content.SchedulingPolicy.String()
 		//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].queueWeight =
-			uint8(content.Weight)
+		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].queueWeight = //nolint:gosec
+			uint8(content.Weight) //nolint:gosec
 	}
 
 	for _, downstreamContent := range tpInst.DownstreamGemPortAttributeList {
@@ -464,7 +463,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 		}
 		logger.Infow(ctx, "Gem Port is multicast", log.Fields{"isMulticast": isMulticast})
 		if isMulticast {
-			mcastGemID := uint16(downstreamContent.MulticastGemId)
+			mcastGemID := uint16(downstreamContent.MulticastGemId) //nolint:gosec
 			_, existing := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID]
 			if existing {
 				//GEM port was previously configured, avoid setting multicast attributes
@@ -509,11 +508,11 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 					downstreamContent.SchedulingPolicy.String()
 				//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].queueWeight =
-					uint8(downstreamContent.Weight)
+					uint8(downstreamContent.Weight) //nolint:gosec
 
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].isMulticast = isMulticast
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].multicastGemPortID =
-					uint16(downstreamContent.MulticastGemId)
+					uint16(downstreamContent.MulticastGemId) //nolint:gosec
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].staticACL = downstreamContent.StaticAccessControlList
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].dynamicACL = downstreamContent.DynamicAccessControlList
 			}
@@ -586,7 +585,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 		onuTP.mutexTPState.RUnlock()
 
 		for gemPortID, gemEntry := range pLocAniConfigOnUni.mapGemPortParams {
-			if gemPortID == uint16(aEntryID) {
+			if gemPortID == uint16(aEntryID) { //nolint:gosec
 				//GemEntry to be deleted found
 				gemEntry.removeGemID = gemPortID //store the index for later removal
 				onuTP.mapRemoveGemEntry[uniTPKey] = pLocAniConfigOnUni.mapGemPortParams[gemPortID]
@@ -697,7 +696,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 		}
 		onuTP.mutexTPState.RUnlock()
 
-		if pLocAniConfigOnUni.tcontParams.allocID != uint16(aEntryID) {
+		if pLocAniConfigOnUni.tcontParams.allocID != uint16(aEntryID) { //nolint:gosec
 			logger.Errorw(ctx, "TCont removal aborted - indicated AllocId not found",
 				log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID, "AllocId": aEntryID})
 			/* Do not set some error indication to the outside system interface on delete

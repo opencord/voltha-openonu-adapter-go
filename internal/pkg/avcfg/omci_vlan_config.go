@@ -339,7 +339,7 @@ func (oFsm *UniVlanConfigFsm) initUniFlowParams(ctx context.Context, aTpID uint8
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 
 	if oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
-		oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid))
+		oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid)) //nolint:gosec
 	}
 	//cmp also usage in EVTOCDE create in omci_cc
 	oFsm.evtocdID = cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo)
@@ -570,7 +570,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 
 			if oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
-				oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid))
+				oFsm.reconcileVlanFilterList(ctx, uint16(loRuleParams.SetVid)) //nolint:gosec
 			}
 			oFsm.NumUniFlows++
 			pConfigVlanStateBaseFsm := oFsm.PAdaptFsm.PFsm
@@ -911,8 +911,8 @@ remove_loop:
 func (oFsm *UniVlanConfigFsm) removeRuleComplete(ctx context.Context,
 	aUniFlowParams cmn.UniVlanFlowParams, aCookie uint64, respChan *chan error) bool {
 	pConfigVlanStateBaseFsm := oFsm.PAdaptFsm.PFsm
-	var cancelPendingConfig bool = false
-	var loRemoveParams uniRemoveVlanFlowParams = uniRemoveVlanFlowParams{}
+	var cancelPendingConfig = false
+	var loRemoveParams = uniRemoveVlanFlowParams{}
 	logger.Debugw(ctx, "UniVlanConfigFsm flow removal - full flow removal", log.Fields{
 		"device-id": oFsm.deviceID})
 	//rwCore flow recovery may be the reason for this delete, in which case the flowToBeDeleted may be the same
@@ -1013,15 +1013,16 @@ removeFromSlice_loop:
 	for flow, storedUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
 		// if UniFlowParams exists, cookieSlice should always have at least one element
 		cookieSliceLen := len(storedUniFlowParams.CookieSlice)
-		if cookieSliceLen == 1 {
+		switch cookieSliceLen {
+		case 1:
 			if storedUniFlowParams.CookieSlice[0] == aCookie {
 				cookieFound = true
 			}
-		} else if cookieSliceLen == 0 {
+		case 0:
 			errStr := "UniVlanConfigFsm unexpected cookie slice length 0  - removal in uniVlanFlowParamsSlice aborted"
 			logger.Errorw(ctx, errStr, log.Fields{"device-id": oFsm.deviceID})
 			return errors.New(errStr)
-		} else {
+		default:
 			errStr := "UniVlanConfigFsm flow removal unexpected cookie slice length, but rule removal continued"
 			logger.Errorw(ctx, errStr, log.Fields{
 				"cookieSliceLen": len(oFsm.uniVlanFlowParamsSlice), "device-id": oFsm.deviceID})
@@ -1216,7 +1217,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 			"in state":  e.FSM.Current(), "device-id": oFsm.deviceID,
 			"macBpNo": oFsm.pOnuUniPort.MacBpNo, "TpID": oFsm.actualUniFlowParam.VlanRuleParams.TpID})
 		// setVid is assumed to be masked already by the caller to 12 bit
-		oFsm.vlanFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid)
+		oFsm.vlanFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid) //nolint:gosec
 		oFsm.mutexFlowParams.Unlock()
 		vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
 		vtfdFilterList[0] = oFsm.vlanFilterList[0]
@@ -1411,7 +1412,7 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 	// note: 'flowPushed' event is only generated if all 'pending' rules are configured
 	if oFsm.pDeviceHandler != nil {
 		//making use of the add->remove successor enum assumption/definition
-		go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(uint8(oFsm.requestEvent)+oFsm.requestEventOffset))
+		go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(uint8(oFsm.requestEvent)+oFsm.requestEventOffset)) //nolint:gosec
 	}
 }
 
@@ -1450,7 +1451,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 				"device-id": oFsm.deviceID,
 				"macBpNo":   oFsm.pOnuUniPort.MacBpNo, "TpID": oFsm.actualUniFlowParam.VlanRuleParams.TpID})
 			// 'SetVid' below is assumed to be masked already by the caller to 12 bit
-			oFsm.vlanFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid)
+			oFsm.vlanFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid) //nolint:gosec
 
 			vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
 			vtfdFilterList[0] = oFsm.vlanFilterList[0]
@@ -1497,13 +1498,13 @@ func (oFsm *UniVlanConfigFsm) enterConfigIncrFlow(ctx context.Context, e *fsm.Ev
 				"macBpNo":   oFsm.pOnuUniPort.MacBpNo, "TpID": oFsm.actualUniFlowParam.VlanRuleParams.TpID})
 			// setVid is assumed to be masked already by the caller to 12 bit
 			oFsm.vlanFilterList[oFsm.numVlanFilterEntries] =
-				uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid)
+				uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid) //nolint:gosec
 			vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
 
 			// FIXME: VOL-3685: Issues with resetting a table entry in EVTOCD ME
 			// VTFD has to be created afresh with a new entity ID that has the same entity ID as the MBPCD ME for every
 			// new vlan associated with a different TP.
-			vtfdFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid)
+			vtfdFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid) //nolint:gosec
 
 			oFsm.numVlanFilterEntries++
 			meParams := me.ParamData{
@@ -1711,10 +1712,11 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 			}
 
 			oFsm.mutexFlowParams.Lock()
-			if loVlanEntryClear == 1 {
+			switch loVlanEntryClear {
+			case 1:
 				oFsm.vlanFilterList[0] = 0 //first entry is the only that can contain the previous only-one element
 				oFsm.numVlanFilterEntries = 0
-			} else if loVlanEntryClear == 2 {
+			case 2:
 				// new VlanFilterList should be one entry smaller now - copy from last configured entry
 				// this loop now includes the 0 element on previous last valid entry
 				for i := uint8(0); i <= oFsm.numVlanFilterEntries; i++ {
@@ -2190,7 +2192,7 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 		meParams := me.ParamData{
 			EntityID: evtocdID,
 			Attributes: me.AttributeValueMap{
-				me.ExtendedVlanTaggingOperationConfigurationData_AssociationType:     uint8(associationType),
+				me.ExtendedVlanTaggingOperationConfigurationData_AssociationType:     uint8(associationType), //nolint:gosec
 				me.ExtendedVlanTaggingOperationConfigurationData_AssociatedMePointer: oFsm.pOnuUniPort.EntityID,
 			},
 		}
@@ -2993,7 +2995,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastME(ctx context.Context, tpI
 	// FIXME: VOL-3685: Issues with resetting a table entry in EVTOCD ME
 	// VTFD has to be created afresh with a new entity ID that has the same entity ID as the MBPCD ME for every
 	// new vlan associated with a different TP.
-	vtfdFilterList[0] = uint16(vlanID)
+	vtfdFilterList[0] = uint16(vlanID) //nolint:gosec
 
 	meParams = me.ParamData{
 		EntityID: mcastVtfdID,
@@ -3143,7 +3145,7 @@ func (oFsm *UniVlanConfigFsm) performSettingMulticastOperationProfile(ctx contex
 	binary.BigEndian.PutUint16(dynamicAccessCL[2:], multicastGemPortID)
 	// python version waits for installation of flows, see line 723 onward of
 	// brcm_openomci_onu_handler.py
-	binary.BigEndian.PutUint16(dynamicAccessCL[4:], uint16(vlanID))
+	binary.BigEndian.PutUint16(dynamicAccessCL[4:], uint16(vlanID)) //nolint:gosec
 	//Source IP all to 0
 	binary.BigEndian.PutUint32(dynamicAccessCL[6:], cmn.IPToInt32(net.IPv4(0, 0, 0, 0)))
 	//TODO start and end are hardcoded, get from TP

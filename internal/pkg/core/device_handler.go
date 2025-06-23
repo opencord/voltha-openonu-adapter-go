@@ -44,14 +44,11 @@ import (
 	pmmgr "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/pmmgr"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/swupg"
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
-	"github.com/opencord/voltha-protos/v5/go/common"
 	vc "github.com/opencord/voltha-protos/v5/go/common"
 	ca "github.com/opencord/voltha-protos/v5/go/core_adapter"
 	"github.com/opencord/voltha-protos/v5/go/extension"
-	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	of "github.com/opencord/voltha-protos/v5/go/openflow_13"
-	"github.com/opencord/voltha-protos/v5/go/openolt"
 	oop "github.com/opencord/voltha-protos/v5/go/openolt"
 	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
@@ -415,7 +412,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
 			techProfMsg.UniId, dh.DeviceID)
 	}
-	uniID := uint8(techProfMsg.UniId)
+	uniID := uint8(techProfMsg.UniId) //nolint:gosec
 	tpID, err := cmn.GetTpIDFromTpPath(techProfMsg.TpInstancePath)
 	if err != nil {
 		logger.Errorw(ctx, "error-parsing-tpid-from-tppath",
@@ -502,7 +499,7 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
 			delGemPortMsg.UniId, dh.DeviceID)
 	}
-	uniID := uint8(delGemPortMsg.UniId)
+	uniID := uint8(delGemPortMsg.UniId) //nolint:gosec
 	tpID, err := cmn.GetTpIDFromTpPath(delGemPortMsg.TpInstancePath)
 	if err != nil {
 		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{
@@ -543,7 +540,7 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
 			delTcontMsg.UniId, dh.DeviceID)
 	}
-	uniID := uint8(delTcontMsg.UniId)
+	uniID := uint8(delTcontMsg.UniId) //nolint:gosec
 	tpPath := delTcontMsg.TpInstancePath
 	tpID, err := cmn.GetTpIDFromTpPath(tpPath)
 	if err != nil {
@@ -551,7 +548,7 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 			"device-id": dh.DeviceID, "err": err, "tp-path": tpPath})
 		return err
 	}
-	pDevEntry.FreeTcont(ctx, uint16(delTcontMsg.AllocId))
+	pDevEntry.FreeTcont(ctx, uint16(delTcontMsg.AllocId)) //nolint:gosec
 
 	deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 	dctx, cancel := context.WithDeadline(context.Background(), deadline)
@@ -1134,13 +1131,13 @@ func (dh *deviceHandler) updateReconcileFlowConfig(ctx context.Context, apUniPor
 		//the CookieSlice can be passed 'by value' here, - which internally passes its reference
 		if _, exist := dh.UniVlanConfigFsmMap[loUniID]; exist {
 			if err := dh.UniVlanConfigFsmMap[loUniID].SetUniFlowParams(ctx, flowData.VlanRuleParams.TpID,
-				flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint8(flowData.VlanRuleParams.MatchPcp), uint16(flowData.VlanRuleParams.SetVid), uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, lastFlowToReconcile, flowData.Meter, nil); err != nil {
+				flowData.CookieSlice, uint16(flowData.VlanRuleParams.MatchVid), uint8(flowData.VlanRuleParams.MatchPcp), uint16(flowData.VlanRuleParams.SetVid), uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, lastFlowToReconcile, flowData.Meter, nil); err != nil { //nolint:gosec
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
 			}
 		} else {
 			if err := dh.createVlanFilterFsm(ctx, apUniPort, flowData.VlanRuleParams.TpID, flowData.CookieSlice,
-				uint16(flowData.VlanRuleParams.MatchVid), uint8(flowData.VlanRuleParams.MatchPcp), uint16(flowData.VlanRuleParams.SetVid),
-				uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil {
+				uint16(flowData.VlanRuleParams.MatchVid), uint8(flowData.VlanRuleParams.MatchPcp), uint16(flowData.VlanRuleParams.SetVid), //nolint:gosec
+				uint8(flowData.VlanRuleParams.SetPcp), flowData.VlanRuleParams.InnerCvlan, cmn.OmciVlanFilterAddDone, lastFlowToReconcile, flowData.Meter, nil); err != nil { //nolint:gosec
 				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
 			}
 		}
@@ -1183,7 +1180,7 @@ func (dh *deviceHandler) waitOnUniVlanConfigReconcilingReady(ctx context.Context
 					logger.Info(ctx, "reconciling flows has been finished in time for this UNI",
 						log.Fields{"device-id": dh.DeviceID, "uni-id": uniIndication})
 					if reconciledUniVlanConfigEntries, appended =
-						dh.appendIfMissing(reconciledUniVlanConfigEntries, uint8(uniIndication)); appended {
+						dh.appendIfMissing(reconciledUniVlanConfigEntries, uint8(uniIndication)); appended { //nolint:gosec
 						waitGroup.Done()
 					}
 				} else {
@@ -1303,6 +1300,8 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 // doOnuSwUpgrade initiates the SW download transfer to the ONU and on success activates the (inactive) image
 //
 //	used only for old - R2.7 style - upgrade API
+//
+//nolint:staticcheck
 func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.ImageDownload,
 	apDownloadManager *swupg.AdapterDownloadManager) error {
 	logger.Debugw(ctx, "onuSwUpgrade requested", log.Fields{
@@ -1850,7 +1849,7 @@ func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
 
 		//Update the device oper state and connection status
 		cloned.OperStatus = voltha.OperStatus_UNKNOWN
-		cloned.ConnectStatus = common.ConnectStatus_UNREACHABLE
+		cloned.ConnectStatus = vc.ConnectStatus_UNREACHABLE
 		dh.device = cloned
 
 		if er := dh.coreProxy.DeviceStateUpdate(ctx, cloned.Id, cloned.ConnectStatus, cloned.OperStatus); er != nil {
@@ -1999,7 +1998,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 
 			//VOL-4965: Recover previously Activating ONU during reconciliation.
-			if dh.device.OperStatus == common.OperStatus_ACTIVATING {
+			if dh.device.OperStatus == vc.OperStatus_ACTIVATING {
 				logger.Debugw(ctx, "Reconciling an ONU in previously activating state, perform MIB reset and resume normal start up",
 					log.Fields{"device-id": dh.DeviceID})
 				pDevEntry.MutexPersOnuConfig.Lock()
@@ -3214,10 +3213,10 @@ func (dh *deviceHandler) getFlowOfbFields(ctx context.Context, apFlowItem *of.Of
 		*/
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_VID:
 			{
-				*loMatchVlan = uint16(field.GetVlanVid())
-				loMatchVlanMask := uint16(field.GetVlanVidMask())
-				if !(*loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) &&
-					loMatchVlanMask == uint16(of.OfpVlanId_OFPVID_PRESENT)) {
+				*loMatchVlan = uint16(field.GetVlanVid())                 //nolint:gosec
+				loMatchVlanMask := uint16(field.GetVlanVidMask())         //nolint:gosec
+				if *loMatchVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) || //nolint:gosec
+					loMatchVlanMask != uint16(of.OfpVlanId_OFPVID_PRESENT) { //nolint:gosec
 					*loMatchVlan = *loMatchVlan & 0xFFF // not transparent: copy only ID bits
 				}
 				logger.Debugw(ctx, "flow field type", log.Fields{"device-id": dh.DeviceID,
@@ -3225,7 +3224,7 @@ func (dh *deviceHandler) getFlowOfbFields(ctx context.Context, apFlowItem *of.Of
 			}
 		case of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_PCP:
 			{
-				*loMatchPcp = uint8(field.GetVlanPcp())
+				*loMatchPcp = uint8(field.GetVlanPcp()) //nolint:gosec
 				logger.Debugw(ctx, "flow field type", log.Fields{"device-id": dh.DeviceID,
 					"PCP": loMatchPcp})
 			}
@@ -3287,11 +3286,11 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *of.OfpF
 						"OxcmClass": pActionSetField.Field.OxmClass})
 				}
 				if pActionSetField.Field.GetOfbField().Type == of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_VID {
-					*loSetVlan = uint16(pActionSetField.Field.GetOfbField().GetVlanVid())
+					*loSetVlan = uint16(pActionSetField.Field.GetOfbField().GetVlanVid()) //nolint:gosec
 					logger.Debugw(ctx, "flow Set VLAN from SetField action", log.Fields{"device-id": dh.DeviceID,
 						"SetVlan": strconv.FormatInt(int64(*loSetVlan), 16)})
 				} else if pActionSetField.Field.GetOfbField().Type == of.OxmOfbFieldTypes_OFPXMT_OFB_VLAN_PCP {
-					*loSetPcp = uint8(pActionSetField.Field.GetOfbField().GetVlanPcp())
+					*loSetPcp = uint8(pActionSetField.Field.GetOfbField().GetVlanPcp()) //nolint:gosec
 					logger.Debugw(ctx, "flow Set PCP from SetField action", log.Fields{"device-id": dh.DeviceID,
 						"SetPcp": *loSetPcp})
 				} else {
@@ -3312,8 +3311,8 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *of.OfpF
 // addFlowItemToUniPort parses the actual flow item to add it to the UniPort
 func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *of.OfpFlowStats, apUniPort *cmn.OnuUniPort,
 	apFlowMetaData *of.FlowMetadata, respChan *chan error) {
-	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
-	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
+	var loSetVlan = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
+	var loMatchVlan = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
 	var loSetPcp uint8
 	var loMatchPcp uint8 = 8 // could the const 'cPrioDoNotFilter' be used from omci_vlan_config.go ?
 	var loIPProto uint32
@@ -3333,7 +3332,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 			log.Fields{"device-id": dh.DeviceID})
 		*respChan <- fmt.Errorf("flow-add invalid metadata: %s", dh.DeviceID)
 	}
-	loTpID := uint8(flow.GetTechProfileIDFromWriteMetaData(ctx, metadata))
+	loTpID := uint8(flow.GetTechProfileIDFromWriteMetaData(ctx, metadata)) //nolint:gosec
 	loCookie := apFlowItem.GetCookie()
 	loCookieSlice := []uint64{loCookie}
 	loInnerCvlan := flow.GetInnerTagFromWriteMetaData(ctx, metadata)
@@ -4189,7 +4188,8 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 							log.Fields{"device-id": dh.DeviceID})
 					} else {
 						onuDevEntry.MutexPersOnuConfig.RLock()
-						if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
+						switch onuDevEntry.SOnuPersistentData.PersOperState {
+						case "up":
 							connectStatus = voltha.ConnectStatus_REACHABLE
 							if !onuDevEntry.SOnuPersistentData.PersUniDisableDone {
 								if onuDevEntry.SOnuPersistentData.PersUniUnlockDone {
@@ -4198,9 +4198,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 									operState = voltha.OperStatus_ACTIVATING
 								}
 							}
-						} else if onuDevEntry.SOnuPersistentData.PersOperState == "down" ||
-							onuDevEntry.SOnuPersistentData.PersOperState == "unknown" ||
-							onuDevEntry.SOnuPersistentData.PersOperState == "" {
+						case "down", "unknown", "":
 							operState = voltha.OperStatus_DISCOVERED
 						}
 						onuDevEntry.MutexPersOnuConfig.RUnlock()
@@ -4261,7 +4259,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				logger.Errorw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 			} else {
 				onuDevEntry.MutexReconciledTpInstances.Lock()
-				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage)
+				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]ia.TechProfileDownloadMessage)
 				onuDevEntry.MutexReconciledTpInstances.Unlock()
 			}
 		}()
@@ -4508,7 +4506,7 @@ func (dh *deviceHandler) SendOnuSwSectionsOfWindow(ctx context.Context, parentEn
 	request.ParentDeviceId = dh.GetProxyAddressID()
 	request.ChildDeviceId = dh.DeviceID
 	request.ProxyAddress = dh.GetProxyAddress()
-	request.ConnectStatus = common.ConnectStatus_REACHABLE
+	request.ConnectStatus = vc.ConnectStatus_REACHABLE
 
 	pgClient, err := dh.pOpenOnuAc.getParentAdapterServiceClient(parentEndpoint)
 	if err != nil || pgClient == nil {
@@ -4549,7 +4547,7 @@ func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint str
 func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDevEntry *mib.OnuDeviceEntry, tpInst tech_profile.TechProfileInstance) error {
 	// Check if there are additional TCONT instances necessary/available
 	pDevEntry.MutexPersOnuConfig.Lock()
-	if _, ok := pDevEntry.SOnuPersistentData.PersTcontMap[uint16(tpInst.UsScheduler.AllocId)]; !ok {
+	if _, ok := pDevEntry.SOnuPersistentData.PersTcontMap[uint16(tpInst.UsScheduler.AllocId)]; !ok { //nolint:gosec
 		numberOfTcontMapEntries := len(pDevEntry.SOnuPersistentData.PersTcontMap)
 		pDevEntry.MutexPersOnuConfig.Unlock()
 		numberOfTcontDbInsts := pDevEntry.GetOnuDB().GetNumberOfInst(me.TContClassID)
@@ -4677,7 +4675,7 @@ func (dh *deviceHandler) GetBackendPathPrefix() string {
 }
 
 // GetOnuIndication - TODO: add comment
-func (dh *deviceHandler) GetOnuIndication() *openolt.OnuIndication {
+func (dh *deviceHandler) GetOnuIndication() *oop.OnuIndication {
 	return dh.pOnuIndication
 }
 

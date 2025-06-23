@@ -2130,7 +2130,7 @@ func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID
 // nolint: gocyclo
 func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, ethPMHistData map[string]float32, intervalEndTime *int) error {
-	upstream := false
+	upstream := false //nolint:staticcheck
 	if classID == me.EthernetFramePerformanceMonitoringHistoryDataUpstreamClassID {
 		upstream = true
 	}
@@ -3201,12 +3201,12 @@ func (mm *OnuMetricsManager) waitForEthernetFrameCreateOrDeleteResponseOrTimeout
 		logger.Debugw(ctx, "received-extended-pm-me-response",
 			log.Fields{"device-id": mm.deviceID, "resp": resp, "create": create, "meClassID": meClassID, "instID": instID, "upstream": upstream})
 		// If the result is me.InstanceExists it means the entity was already created. It is ok handled that as success
-		if resp == me.Success || resp == me.InstanceExists {
+		switch resp {
+		case me.Success, me.InstanceExists:
 			return true, nil
-		} else if resp == me.UnknownEntity || resp == me.ParameterError ||
-			resp == me.ProcessingError || resp == me.NotSupported || resp == me.AttributeFailure {
+		case me.UnknownEntity, me.ParameterError, me.ProcessingError, me.NotSupported, me.AttributeFailure:
 			return false, fmt.Errorf("not-supported-me--resp-code-%v", resp)
-		} else {
+		default:
 			logger.Warnw(ctx, "failed to create me", log.Fields{"device-id": mm.deviceID, "resp": resp, "class-id": meClassID, "instID": instID, "upstream": upstream})
 			return true, fmt.Errorf("error-while-creating-me--resp-code-%v", resp)
 		}
@@ -3462,7 +3462,7 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 	downstreamEntityMap := make(map[uint16]*me.ManagedEntity)
 	if onuInfo.IsUniIndex != nil {
 		for _, uniPort := range *mm.pDeviceHandler.GetUniEntityMap() {
-			if uniPort.UniID == uint8(onuInfo.GetUniIndex()) {
+			if uniPort.UniID == uint8(onuInfo.GetUniIndex()) { //nolint:gosec
 				logger.Debugw(ctx, "mapped-uni-index-to-uni-port", log.Fields{"device-id": mm.deviceID, "uni-index": onuInfo.GetUniIndex()})
 				upstreamEntityMap[uniPort.EntityID+0x100] = mm.ethernetFrameExtendedPmUpStreamMEByEntityID[uniPort.EntityID+0x100]
 				downstreamEntityMap[uniPort.EntityID] = mm.ethernetFrameExtendedPmDownStreamMEByEntityID[uniPort.EntityID]

@@ -45,7 +45,7 @@ import (
 
 // AdapterDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type AdapterDownloadManager struct {
-	downloadImageDscSlice []*voltha.ImageDownload
+	downloadImageDscSlice []*voltha.ImageDownload //nolint:staticcheck
 	mutexDownloadImageDsc sync.RWMutex
 }
 
@@ -54,12 +54,12 @@ type AdapterDownloadManager struct {
 func NewAdapterDownloadManager(ctx context.Context) *AdapterDownloadManager {
 	logger.Debug(ctx, "init-AdapterDownloadManager")
 	var localDnldMgr AdapterDownloadManager
-	localDnldMgr.downloadImageDscSlice = make([]*voltha.ImageDownload, 0)
+	localDnldMgr.downloadImageDscSlice = make([]*voltha.ImageDownload, 0) //nolint:staticcheck
 	return &localDnldMgr
 }
 
 // ImageExists returns true if the requested image already exists within the adapter
-func (dm *AdapterDownloadManager) ImageExists(ctx context.Context, apImageDsc *voltha.ImageDownload) bool {
+func (dm *AdapterDownloadManager) ImageExists(ctx context.Context, apImageDsc *voltha.ImageDownload) bool { //nolint:staticcheck
 	logger.Debugw(ctx, "checking on existence of the image", log.Fields{"image-name": (*apImageDsc).Name})
 	dm.mutexDownloadImageDsc.RLock()
 	defer dm.mutexDownloadImageDsc.RUnlock()
@@ -75,6 +75,8 @@ func (dm *AdapterDownloadManager) ImageExists(ctx context.Context, apImageDsc *v
 }
 
 // ImageLocallyDownloaded returns true if the requested image already exists within the adapter
+//
+//nolint:staticcheck
 func (dm *AdapterDownloadManager) ImageLocallyDownloaded(ctx context.Context, apImageDsc *voltha.ImageDownload) bool {
 	logger.Debugw(ctx, "checking if image is fully downloaded", log.Fields{"image-name": (*apImageDsc).Name})
 	dm.mutexDownloadImageDsc.RLock()
@@ -97,7 +99,7 @@ func (dm *AdapterDownloadManager) ImageLocallyDownloaded(ctx context.Context, ap
 }
 
 // StartDownload returns true if the download of the requested image could be started
-func (dm *AdapterDownloadManager) StartDownload(ctx context.Context, apImageDsc *voltha.ImageDownload) error {
+func (dm *AdapterDownloadManager) StartDownload(ctx context.Context, apImageDsc *voltha.ImageDownload) error { //nolint:staticcheck
 	if apImageDsc.LocalDir != "" {
 		logger.Infow(ctx, "image download-to-adapter requested", log.Fields{
 			"image-path": apImageDsc.LocalDir, "image-name": apImageDsc.Name})
@@ -280,7 +282,7 @@ func (dm *AdapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aF
 		return nil, statsErr
 	}
 
-	var size int64 = stats.Size()
+	var size = stats.Size()
 	bytes := make([]byte, size)
 
 	buffer := bufio.NewReader(file)

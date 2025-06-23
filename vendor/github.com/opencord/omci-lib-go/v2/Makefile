@@ -85,7 +85,8 @@ lint: lint-style lint-sanity lint-mod
 sca:
 	rm -rf ./sca-report
 	@mkdir -p ./sca-report
-	${GOLANGCI_LINT} run --out-format junit-xml ./... | tee ./sca-report/sca-report.xml
+	@${GOLANGCI_LINT} run -vv ./... | tee ./sca-report/sca-report.json
+	@cat ./sca-report/sca-report.json | ${GO_JUNIT_REPORT} > ./sca-report/sca-report.xml
 
 test:
 	@mkdir -p ./tests/results

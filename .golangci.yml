@@ -11,7 +11,7 @@
 #WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #See the License for the specific language governing permissions and
 #limitations under the License.
-
+version : 2 
 linters-settings:
   govet:
     settings:
@@ -41,17 +41,21 @@ linters:
     #- gochecknoglobals
     #- gochecknoinits
     - gocyclo
-    - gofmt
+    # - gofmt
     - govet
     - ineffassign
     - misspell
     - gosec
     - errcheck
-    - goimports
-    - gosimple
+    # - goimports
+    # - gosimple
     - staticcheck
     - unused
     - unparam
+formatters:
+  enable:
+   - gofmt
+   - goimports
 
 run:
   modules-download-mode: vendor

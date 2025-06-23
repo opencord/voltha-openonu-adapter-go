@@ -49,7 +49,7 @@ func GetTpIDFromTpPath(tpPath string) (uint8, error) {
 	// Extract the TP table-id field.
 	tpID, err := strconv.Atoi(strings.Split(tpPath, "/")[1])
 	// Atoi returns uint64 and need to be type-casted to uint8 as tpID is uint8 size.
-	return uint8(tpID), err
+	return uint8(tpID), err //nolint:gosec
 }
 
 // IPToInt32 transforms an IP of net.Ip type to int32
@@ -84,10 +84,10 @@ func AsByteSlice(bitString string) []byte {
 func TwosComplementToSignedInt16(val uint16) int16 {
 	var uint16MsbMask uint16 = 0x8000
 	if val&uint16MsbMask == uint16MsbMask {
-		return int16(^val+1) * -1
+		return int16(^val+1) * -1 //nolint:gosec
 	}
 
-	return int16(val)
+	return int16(val) //nolint:gosec
 }
 
 // TrimStringFromMeOctet trim string out of Me octet

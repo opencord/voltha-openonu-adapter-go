@@ -399,7 +399,7 @@ func (oo *OnuDeviceEntry) enterUploadDoneState(ctx context.Context, e *fsm.Event
 
 func (oo *OnuDeviceEntry) enterInSyncState(ctx context.Context, e *fsm.Event) {
 	oo.MutexPersOnuConfig.Lock()
-	oo.SOnuPersistentData.PersMibLastDbSync = uint32(time.Now().Unix())
+	oo.SOnuPersistentData.PersMibLastDbSync = uint32(time.Now().Unix()) //nolint:gosec
 	oo.MutexPersOnuConfig.Unlock()
 	if oo.mibAuditInterval > 0 {
 		logger.Debugw(ctx, "MibSync FSM", log.Fields{"trigger next Audit in State": e.FSM.Current(), "oo.mibAuditInterval": oo.mibAuditInterval, "device-id": oo.deviceID})
@@ -730,9 +730,9 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		if meName == devdb.CUnknownItuG988ManagedEntity || meName == devdb.CUnknownVendorSpecificManagedEntity {
 			logger.Debugw(ctx, "MibUploadNextResponse contains unknown ME", log.Fields{"device-id": oo.deviceID,
 				"Me-Name": devdb.UnknownMeOrAttribName(meName), "Me-ClassId": meClassID, "Me-InstId": meEntityID,
-				"unknown mask": msgObj.ReportedME.GetAttributeMask(), "unknown attributes": msgObj.BaseLayer.Payload})
+				"unknown mask": msgObj.ReportedME.GetAttributeMask(), "unknown attributes": msgObj.Payload})
 			oo.pOnuDB.PutUnknownMeOrAttrib(ctx, devdb.UnknownMeOrAttribName(meName), meClassID, meEntityID,
-				msgObj.ReportedME.GetAttributeMask(), msgObj.BaseLayer.Payload[devdb.CStartUnknownMeAttribsInBaseLayerPayload:])
+				msgObj.ReportedME.GetAttributeMask(), msgObj.Payload[devdb.CStartUnknownMeAttribsInBaseLayerPayload:])
 		} else {
 			//with relaxed decoding set in the OMCI-LIB we have the chance to detect if there are some unknown attributes appended which we cannot decode
 			if unknownAttrLayer := (*msg.OmciPacket).Layer(omci.LayerTypeUnknownAttributes); unknownAttrLayer != nil {
@@ -1139,7 +1139,8 @@ func (oo *OnuDeviceEntry) handleOmciMessage(ctx context.Context, msg cmn.OmciMes
 
 func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttributes me.AttributeValueMap) error {
 	currentState := oo.PMibUploadFsm.PFsm.Current()
-	if currentState == UlStGettingVendorAndSerial {
+	switch currentState {
+	case UlStGettingVendorAndSerial:
 		if onuGVendorID, ok := meAttributes[me.OnuG_VendorId]; ok {
 			vendorID := cmn.TrimStringFromMeOctet(onuGVendorID)
 			if vendorID == "" {
@@ -1190,7 +1191,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttri
 		// trigger retrieval of Version
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetVersion)
 		return nil
-	} else if currentState == UlStGettingVersion {
+	case UlStGettingVersion:
 		if onuGVersion, ok := meAttributes[me.OnuG_Version]; ok {
 			version := cmn.TrimStringFromMeOctet(onuGVersion)
 			if version == "" {
@@ -1217,7 +1218,7 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttri
 		// trigger retrieval of EquipmentId and OMCC version
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetEquipIDAndOmcc)
 		return nil
-	} else {
+	default:
 		logger.Errorw(ctx, "MibSync FSM - wrong state OnuG response processing - handling of MibSyncChan stopped!",
 			log.Fields{"currentState": currentState, "device-id": oo.deviceID})
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)

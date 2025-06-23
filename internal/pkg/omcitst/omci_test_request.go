@@ -25,7 +25,6 @@ import (
 	gp "github.com/google/gopacket"
 	"github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
-	"github.com/opencord/omci-lib-go/v2/meframe"
 	oframe "github.com/opencord/omci-lib-go/v2/meframe"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
@@ -86,7 +85,9 @@ func (oo *OmciTestRequest) PerformOmciTest(ctx context.Context, execChannel chan
 		logger.Debugw(ctx, "performOmciTest-start sending frame", log.Fields{"for device-id": oo.deviceID, "onu2gGet": hex.EncodeToString(onu2gGet)})
 		// send with default timeout and normal prio
 		// Note: No reference to fetch the OMCI timeout value from configuration, so hardcode it to 10s
-		go oo.pDevOmciCC.Send(ctx, onu2gGet, CTestRequestOmciTimeout, cmn.CDefaultRetries, false, omciRxCallbackPair)
+		go func() {
+			_ = oo.pDevOmciCC.Send(ctx, onu2gGet, CTestRequestOmciTimeout, cmn.CDefaultRetries, false, omciRxCallbackPair)
+		}()
 
 	} else {
 		logger.Errorw(ctx, "performOmciTest: Device does not exist", log.Fields{"for device-id": oo.deviceID})
@@ -106,12 +107,12 @@ func (oo *OmciTestRequest) createOnu2gGet(ctx context.Context, tid uint16) ([]by
 	}
 	meInstance, omciErr := me.NewOnu2G(meParams)
 	if omciErr.GetError() == nil {
-		var messageSet omci.DeviceIdent = omci.BaselineIdent
+		var messageSet = omci.BaselineIdent
 		if oo.extended {
 			messageSet = omci.ExtendedIdent
 		}
 		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.GetRequestType, oframe.TransactionID(tid),
-			meframe.FrameFormat(messageSet))
+			oframe.FrameFormat(messageSet))
 		if err != nil {
 			logger.Errorw(ctx, "Cannot encode ONU2-G instance for get", log.Fields{
 				"Err": err, "device-id": oo.deviceID})

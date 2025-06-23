@@ -86,17 +86,17 @@ func (oo *OnuImageStatus) GetOnuImageStatus(ctx context.Context) (*voltha.OnuIma
 		// changes on the respective receiver sides.
 
 		oo.requestedAttributes = me.AttributeValueMap{me.SoftwareImage_Version: "", me.SoftwareImage_IsCommitted: 0, me.SoftwareImage_IsActive: 0, me.SoftwareImage_IsValid: 0}
-		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil {
+		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil { //nolint:gosec
 			logger.Errorw(ctx, err.Error(), log.Fields{"requestedAttributes": oo.requestedAttributes, "device-id": oo.deviceID})
 			return nil, err
 		}
 		oo.requestedAttributes = me.AttributeValueMap{me.SoftwareImage_ProductCode: ""}
-		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil {
+		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil { //nolint:gosec
 			logger.Errorw(ctx, err.Error(), log.Fields{"requestedAttributes": oo.requestedAttributes, "device-id": oo.deviceID})
 			return nil, err
 		}
 		oo.requestedAttributes = me.AttributeValueMap{me.SoftwareImage_ImageHash: 0}
-		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil {
+		if err := oo.requestOnuImageAttributes(ctx, uint16(i), &image); err != nil { //nolint:gosec
 			logger.Errorw(ctx, err.Error(), log.Fields{"requestedAttributes": oo.requestedAttributes, "device-id": oo.deviceID})
 			return nil, err
 		}

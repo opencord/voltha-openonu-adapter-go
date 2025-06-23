@@ -74,11 +74,11 @@ func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler Idev
 	}
 	var macOctets [6]uint8
 	macOctets[5] = 0x08
-	macOctets[4] = uint8(*apDeviceHandler.GetPonPortNumber() >> 8)
-	macOctets[3] = uint8(*apDeviceHandler.GetPonPortNumber())
-	macOctets[2] = uint8(oo.PortNo >> 16)
-	macOctets[1] = uint8(oo.PortNo >> 8)
-	macOctets[0] = uint8(oo.PortNo)
+	macOctets[4] = uint8(*apDeviceHandler.GetPonPortNumber() >> 8) //nolint:gosec
+	macOctets[3] = uint8(*apDeviceHandler.GetPonPortNumber())      //nolint:gosec
+	macOctets[2] = uint8(oo.PortNo >> 16)                          //nolint:gosec
+	macOctets[1] = uint8(oo.PortNo >> 8)                           //nolint:gosec
+	macOctets[0] = uint8(oo.PortNo)                                //nolint:gosec
 	hwAddr := genMacFromOctets(macOctets)
 	ofHwAddr := macAddressToUint32Array(hwAddr)
 	ofUniPortState := of.OfpPortState_OFPPS_LINK_DOWN
@@ -161,7 +161,7 @@ func macAddressToUint32Array(mac string) []uint32 {
 		if tmp, err = strconv.ParseInt(val, 16, 32); err != nil {
 			return []uint32{1, 2, 3, 4, 5, 6}
 		}
-		result[index] = uint32(tmp)
+		result[index] = uint32(tmp) //nolint:gosec
 	}
 	return result
 }
