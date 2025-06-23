@@ -327,8 +327,7 @@ func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID)
 }
 
-// nolint: gocyclo
-// TODO:visit here for refactoring for gocyclo
+//nolint:unparam
 func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm prepareAndEnterConfigState start", log.Fields{
 		"device-id": oFsm.deviceID})
