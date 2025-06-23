@@ -42,6 +42,7 @@ import (
 const (
 	// events of config PON ANI port FSM
 	aniEvStart             = "aniEvStart"
+	aniEvPrepareConfig     = "aniEvPrepareConfig"
 	aniEvStartConfig       = "aniEvStartConfig"
 	aniEvRxDot1pmapCResp   = "aniEvRxDot1pmapCResp"
 	aniEvRxMbpcdResp       = "aniEvRxMbpcdResp"
@@ -71,6 +72,7 @@ const (
 	// states of config PON ANI port FSM
 	aniStDisabled            = "aniStDisabled"
 	aniStStarting            = "aniStStarting"
+	aniStPrepareConfig       = "aniStPrepareConfig"
 	aniStCreatingDot1PMapper = "aniStCreatingDot1PMapper"
 	aniStCreatingMBPCD       = "aniStCreatingMBPCD"
 	aniStSettingTconts       = "aniStSettingTconts"
@@ -195,7 +197,8 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 			{Name: aniEvStart, Src: []string{aniStDisabled}, Dst: aniStStarting},
 
 			//Note: .1p-Mapper and MBPCD might also have multi instances (per T-Cont) - by now only one 1 T-Cont considered!
-			{Name: aniEvStartConfig, Src: []string{aniStStarting}, Dst: aniStCreatingDot1PMapper},
+			{Name: aniEvPrepareConfig, Src: []string{aniStStarting}, Dst: aniStPrepareConfig},
+			{Name: aniEvStartConfig, Src: []string{aniStPrepareConfig}, Dst: aniStCreatingDot1PMapper},
 			{Name: aniEvRxDot1pmapCResp, Src: []string{aniStCreatingDot1PMapper}, Dst: aniStCreatingMBPCD},
 			{Name: aniEvRxMbpcdResp, Src: []string{aniStCreatingMBPCD}, Dst: aniStSettingTconts},
 			{Name: aniEvRxTcontsResp, Src: []string{aniStSettingTconts}, Dst: aniStCreatingGemNCTPs},
@@ -229,18 +232,19 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 				aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs}, Dst: aniStStarting},
 
 			// exceptional treatment for all states except aniStResetting
-			{Name: aniEvReset, Src: []string{aniStStarting, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
+			{Name: aniEvReset, Src: []string{aniStStarting, aniStPrepareConfig, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
 				aniStSettingTconts, aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs, aniStSettingDot1PMapper,
 				aniStConfigDone, aniStRemovingGemIW, aniStWaitingFlowRem, aniStRemovingGemNCTP, aniStRemovingTD,
 				aniStResetTcont, aniStRemDot1PMapper, aniStRemAniBPCD, aniStRemoveDone}, Dst: aniStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: aniEvRestart, Src: []string{aniStResetting}, Dst: aniStDisabled},
-			{Name: aniEvSkipOmciConfig, Src: []string{aniStStarting}, Dst: aniStConfigDone},
+			{Name: aniEvSkipOmciConfig, Src: []string{aniStStarting, aniStPrepareConfig}, Dst: aniStConfigDone},
 		},
 
 		fsm.Callbacks{
 			"enter_state":                         func(e *fsm.Event) { instFsm.PAdaptFsm.LogFsmStateChange(ctx, e) },
 			("enter_" + aniStStarting):            func(e *fsm.Event) { instFsm.enterConfigStartingState(ctx, e) },
+			("enter_" + aniStPrepareConfig):       func(e *fsm.Event) { instFsm.prepareAndEnterConfigState(ctx, e) },
 			("enter_" + aniStCreatingDot1PMapper): func(e *fsm.Event) { instFsm.enterCreatingDot1PMapper(ctx, e) },
 			("enter_" + aniStCreatingMBPCD):       func(e *fsm.Event) { instFsm.enterCreatingMBPCD(ctx, e) },
 			("enter_" + aniStSettingTconts):       func(e *fsm.Event) { instFsm.enterSettingTconts(ctx, e) },
@@ -309,11 +313,9 @@ func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	PAdaptFsm := oFsm.PAdaptFsm
 	if PAdaptFsm != nil {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-		go func(aPAFsm *cmn.AdapterFsm) {
-			if aPAFsm.PFsm != nil {
-				_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
-			}
-		}(PAdaptFsm)
+		if PAdaptFsm.PFsm != nil {
+			_ = PAdaptFsm.PFsm.Event(aniEvReset)
+		}
 	}
 
 	// possible access conflicts on internal data by next needed data clearance
@@ -327,7 +329,10 @@ func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 
 // nolint: gocyclo
 // TODO:visit here for refactoring for gocyclo
-func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, aPAFsm *cmn.AdapterFsm) {
+func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, e *fsm.Event) {
+	logger.Info(ctx, "UniPonAniConfigFsm prepareAndEnterConfigState start", log.Fields{
+		"device-id": oFsm.deviceID})
+	aPAFsm := oFsm.PAdaptFsm
 	if aPAFsm != nil && aPAFsm.PFsm != nil {
 		var err error
 		oFsm.mapperSP0ID, err = cmn.GenerateIeeMaperServiceProfileEID(uint16(oFsm.pOnuUniPort.MacBpNo), uint16(oFsm.techProfileID))
@@ -480,11 +485,29 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			}
 		}
 		if !oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
-			_ = aPAFsm.PFsm.Event(aniEvStartConfig)
+			//let the state machine run forward from here directly
+			if oFsm.PAdaptFsm != nil {
+				go func(aPAFsm *cmn.AdapterFsm) {
+					if aPAFsm != nil && aPAFsm.PFsm != nil {
+						_ = aPAFsm.PFsm.Event(aniEvStartConfig)
+					}
+				}(oFsm.PAdaptFsm)
+
+			}
 		} else {
 			logger.Debugw(ctx, "reconciling - skip omci-config of ANI side ", log.Fields{"device-id": oFsm.deviceID})
-			_ = aPAFsm.PFsm.Event(aniEvSkipOmciConfig)
+			//let the state machine run forward from here directly
+			if oFsm.PAdaptFsm != nil {
+				go func(aPAFsm *cmn.AdapterFsm) {
+					if aPAFsm != nil && aPAFsm.PFsm != nil {
+						_ = aPAFsm.PFsm.Event(aniEvSkipOmciConfig)
+					}
+				}(oFsm.PAdaptFsm)
+
+			}
 		}
+		logger.Info(ctx, "UniPonAniConfigFsm prepareAndEnterConfigState end", log.Fields{
+			"device-id": oFsm.deviceID})
 	}
 }
 
@@ -518,7 +541,11 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e 
 	pConfigAniStateAFsm := oFsm.PAdaptFsm
 	if pConfigAniStateAFsm != nil {
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
-		go oFsm.prepareAndEnterConfigState(ctx, pConfigAniStateAFsm)
+		go func(aPAFsm *cmn.AdapterFsm) {
+			if aPAFsm != nil && aPAFsm.PFsm != nil {
+				_ = aPAFsm.PFsm.Event(aniEvPrepareConfig)
+			}
+		}(pConfigAniStateAFsm)
 
 	}
 }
