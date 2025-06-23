@@ -818,7 +818,6 @@ func (oo *OnuDeviceEntry) handleOmciMibUploadNextResponseMessage(ctx context.Con
 		oo.lastTxParamStruct.lastTxMessageType = omci.MibUploadNextRequestType
 		oo.mutexLastTxParamStruct.Unlock()
 	} else {
-		oo.pOnuDB.LogMeDb(ctx)
 		err := oo.createAndPersistMibTemplate(ctx)
 		if err != nil {
 			logger.Errorw(ctx, "MibSync - MibTemplate - Failed to create and persist the mib template", log.Fields{"error": err, "device-id": oo.deviceID})
