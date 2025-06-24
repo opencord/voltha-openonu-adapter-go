@@ -2239,8 +2239,9 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	// and deleteDevice is issued , returning error will further prevent clean up
 	// at rwcore . Returning success for clean up to happen and discovery to happen again.
 	if pDevEntry == nil {
-		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.DeviceID})
-		return nil
+		errMsg := fmt.Sprintf("Device entry is not found %s", dh.DeviceID)
+		logger.Error(ctx, errMsg)
+		return status.Error(codes.NotFound, errMsg)
 	}
 	if pDevEntry.PDevOmciCC != nil {
 		pDevEntry.PDevOmciCC.CancelRequestMonitoring(ctx)
