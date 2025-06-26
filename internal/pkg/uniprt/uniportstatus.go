@@ -138,11 +138,12 @@ func (portStatus *UniPortStatus) processGetUnitStatusResp(ctx context.Context, m
 		},
 	}
 	if pptpEthUniOperState, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState]; ok {
-		if pptpEthUniOperState.(uint8) == 0 {
+		switch pptpEthUniOperState.(uint8) {
+		case 0:
 			singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_ENABLED
-		} else if pptpEthUniOperState.(uint8) == 1 {
+		case 1:
 			singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_DISABLED
-		} else {
+		default:
 			singleValResp.Response.GetUniInfo().OperState = extension.GetOnuUniInfoResponse_OPERSTATE_UNDEFINED
 		}
 	} else {
@@ -152,11 +153,12 @@ func (portStatus *UniPortStatus) processGetUnitStatusResp(ctx context.Context, m
 	}
 
 	if pptpEthUniAdminState, ok := meAttributes[me.PhysicalPathTerminationPointEthernetUni_OperationalState]; ok {
-		if pptpEthUniAdminState.(uint8) == 0 {
+		switch pptpEthUniAdminState.(uint8) {
+		case 0:
 			singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_UNLOCKED
-		} else if pptpEthUniAdminState.(uint8) == 1 {
+		case 1:
 			singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_LOCKED
-		} else {
+		default:
 			singleValResp.Response.GetUniInfo().AdmState = extension.GetOnuUniInfoResponse_ADMSTATE_UNDEFINED
 		}
 	} else {
