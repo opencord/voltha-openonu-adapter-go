@@ -280,7 +280,7 @@ func (dm *AdapterDownloadManager) getDownloadImageBuffer(ctx context.Context, aF
 		return nil, statsErr
 	}
 
-	var size int64 = stats.Size()
+	var size = stats.Size()
 	bytes := make([]byte, size)
 
 	buffer := bufio.NewReader(file)
