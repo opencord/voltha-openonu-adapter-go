@@ -45,13 +45,10 @@ import (
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/swupg"
 	uniprt "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/uniprt"
 	"github.com/opencord/voltha-protos/v5/go/common"
-	vc "github.com/opencord/voltha-protos/v5/go/common"
 	ca "github.com/opencord/voltha-protos/v5/go/core_adapter"
 	"github.com/opencord/voltha-protos/v5/go/extension"
-	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	of "github.com/opencord/voltha-protos/v5/go/openflow_13"
-	"github.com/opencord/voltha-protos/v5/go/openolt"
 	oop "github.com/opencord/voltha-protos/v5/go/openolt"
 	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
@@ -2829,7 +2826,7 @@ func (dh *deviceHandler) EnableUniPortStateUpdate(ctx context.Context) {
 		// only if this port is validated for operState transfer
 		if (1<<uniPort.UniID)&dh.pOpenOnuAc.config.UniPortMask == (1 << uniPort.UniID) {
 			logger.Infow(ctx, "OnuUniPort-forced-OperState-ACTIVE", log.Fields{"for PortNo": uniNo, "device-id": dh.DeviceID})
-			uniPort.SetOperState(vc.OperStatus_ACTIVE)
+			uniPort.SetOperState(common.OperStatus_ACTIVE)
 			if !dh.IsReconciling() {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go func(port *cmn.OnuUniPort) {
@@ -2858,7 +2855,7 @@ func (dh *deviceHandler) DisableUniPortStateUpdate(ctx context.Context) {
 
 		if (1<<uniPort.UniID)&dh.pOpenOnuAc.config.UniPortMask == (1 << uniPort.UniID) {
 			logger.Infow(ctx, "OnuUniPort-forced-OperState-UNKNOWN", log.Fields{"for PortNo": uniNo, "device-id": dh.DeviceID})
-			uniPort.SetOperState(vc.OperStatus_UNKNOWN)
+			uniPort.SetOperState(common.OperStatus_UNKNOWN)
 			if !dh.IsReconciling() {
 				//maybe also use getter functions on uniPort - perhaps later ...
 				go func(port *cmn.OnuUniPort) {
@@ -2881,7 +2878,7 @@ func (dh *deviceHandler) DisableUniPortStateUpdate(ctx context.Context) {
 
 // ONU_Active/Inactive announcement on system KAFKA bus
 // tried to re-use procedure of oltUpDownIndication from openolt_eventmgr.go with used values from Py code
-func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState vc.OperStatus_Types, aDeviceID string, raisedTs int64) {
+func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState common.OperStatus_Types, aDeviceID string, raisedTs int64) {
 	var de voltha.DeviceEvent
 	eventContext := make(map[string]string)
 	//Populating event context
@@ -3216,8 +3213,8 @@ func (dh *deviceHandler) getFlowOfbFields(ctx context.Context, apFlowItem *of.Of
 			{
 				*loMatchVlan = uint16(field.GetVlanVid())
 				loMatchVlanMask := uint16(field.GetVlanVidMask())
-				if !(*loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) &&
-					loMatchVlanMask == uint16(of.OfpVlanId_OFPVID_PRESENT)) {
+				if *loMatchVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) ||
+					loMatchVlanMask != uint16(of.OfpVlanId_OFPVID_PRESENT) {
 					*loMatchVlan = *loMatchVlan & 0xFFF // not transparent: copy only ID bits
 				}
 				logger.Debugw(ctx, "flow field type", log.Fields{"device-id": dh.DeviceID,
@@ -3312,8 +3309,8 @@ func (dh *deviceHandler) getFlowActions(ctx context.Context, apFlowItem *of.OfpF
 // addFlowItemToUniPort parses the actual flow item to add it to the UniPort
 func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *of.OfpFlowStats, apUniPort *cmn.OnuUniPort,
 	apFlowMetaData *of.FlowMetadata, respChan *chan error) {
-	var loSetVlan uint16 = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
-	var loMatchVlan uint16 = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
+	var loSetVlan = uint16(of.OfpVlanId_OFPVID_NONE)      //noValidEntry
+	var loMatchVlan = uint16(of.OfpVlanId_OFPVID_PRESENT) //reserved VLANID entry
 	var loSetPcp uint8
 	var loMatchPcp uint8 = 8 // could the const 'cPrioDoNotFilter' be used from omci_vlan_config.go ?
 	var loIPProto uint32
@@ -4189,7 +4186,8 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 							log.Fields{"device-id": dh.DeviceID})
 					} else {
 						onuDevEntry.MutexPersOnuConfig.RLock()
-						if onuDevEntry.SOnuPersistentData.PersOperState == "up" {
+						switch onuDevEntry.SOnuPersistentData.PersOperState {
+						case "up":
 							connectStatus = voltha.ConnectStatus_REACHABLE
 							if !onuDevEntry.SOnuPersistentData.PersUniDisableDone {
 								if onuDevEntry.SOnuPersistentData.PersUniUnlockDone {
@@ -4198,9 +4196,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 									operState = voltha.OperStatus_ACTIVATING
 								}
 							}
-						} else if onuDevEntry.SOnuPersistentData.PersOperState == "down" ||
-							onuDevEntry.SOnuPersistentData.PersOperState == "unknown" ||
-							onuDevEntry.SOnuPersistentData.PersOperState == "" {
+						case "down", "unknown", "":
 							operState = voltha.OperStatus_DISCOVERED
 						}
 						onuDevEntry.MutexPersOnuConfig.RUnlock()
@@ -4261,7 +4257,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				logger.Errorw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 			} else {
 				onuDevEntry.MutexReconciledTpInstances.Lock()
-				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage)
+				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]ia.TechProfileDownloadMessage)
 				onuDevEntry.MutexReconciledTpInstances.Unlock()
 			}
 		}()
@@ -4370,7 +4366,7 @@ func (dh *deviceHandler) getDeviceFromCore(ctx context.Context, deviceID string)
 	subCtx, cancel := context.WithTimeout(log.WithSpanFromContext(context.Background(), ctx), dh.config.RPCTimeout)
 	defer cancel()
 	logger.Debugw(subCtx, "get-device-from-core", log.Fields{"device-id": deviceID})
-	return cClient.GetDevice(subCtx, &vc.ID{Id: deviceID})
+	return cClient.GetDevice(subCtx, &common.ID{Id: deviceID})
 }
 
 func (dh *deviceHandler) updateDeviceStateInCore(ctx context.Context, deviceStateFilter *ca.DeviceStateFilter) error {
@@ -4677,7 +4673,7 @@ func (dh *deviceHandler) GetBackendPathPrefix() string {
 }
 
 // GetOnuIndication - TODO: add comment
-func (dh *deviceHandler) GetOnuIndication() *openolt.OnuIndication {
+func (dh *deviceHandler) GetOnuIndication() *oop.OnuIndication {
 	return dh.pOnuIndication
 }
 

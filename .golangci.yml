@@ -11,7 +11,7 @@
 #WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #See the License for the specific language governing permissions and
 #limitations under the License.
-
+version: 2
 linters-settings:
   govet:
     settings:
@@ -35,41 +35,73 @@ linters-settings:
     ignore-words:
       - cancelled
 
+formatters:
+  enable:
+    - gofmt
+    - goimports
 linters:
   enable:
     #- gocritic
     #- gochecknoglobals
     #- gochecknoinits
     - gocyclo
-    - gofmt
     - govet
     - ineffassign
     - misspell
     - gosec
     - errcheck
-    - goimports
-    - gosimple
     - staticcheck
     - unused
     - unparam
+  exclusions:
+    rules:
+      - path: ".*_test.go"
+        linters:
+          - govet
+          - fieldalignment
+      - text: "weak cryptographic primitive"
+        linters:
+          - gosec
+      - text: "Error return value of `rxCallbackEntry.cbFunction` is not checked"
+        linters:
+          - gocritic
+      - text: "Error return value of `oo.sendNextRequest` is not checked"
+        linters:
+          - gocritic
+      - text: "Error return value of `oo.pDevOmciCC.send` is not checked"
+        linters:
+          - gocritic
+      - text: "Error return value of `onuDeviceEntry.mibDbClass` is not checked"
+        linters:
+          - gocritic
+      - text: "SA1019: voltha.ImageDownload is deprecated"
+        linters:
+          - staticcheck
+      - text: 'G115: integer overflow conversion'
+        linters:
+          - gosec
 
-run:
-  modules-download-mode: vendor
+
+
+
+# run:
+#   modules-download-mode: vendor
 
 issues:
-  exclude-rules:
-    - text: "weak cryptographic primitive"
-      linters:
-        - gosec
-    - path: ".*_test.go"
-      linters:
-        - govet
-        - fieldalignment
-  exclude:
-    - "Error return value of `rxCallbackEntry.cbFunction` is not checked"
-    - "Error return value of `oo.sendNextRequest` is not checked"
-    - "Error return value of `oo.pDevOmciCC.send` is not checked"
-    - "Error return value of `onuDeviceEntry.mibDbClass` is not checked"
-    - "SA1019: voltha.ImageDownload is deprecated"
-    - 'G115: integer overflow conversion'
-  exclude-use-default: false
+  modules-download-mode: vendor
+  # exclude-rules:
+  #   - text: "weak cryptographic primitive"
+  #     linters:
+  #       - gosec
+  #   - path: ".*_test.go"
+  #     linters:
+  #       - govet
+  #       - fieldalignment
+  # exclude:
+  #   - "Error return value of `rxCallbackEntry.cbFunction` is not checked"
+  #   - "Error return value of `oo.sendNextRequest` is not checked"
+  #   - "Error return value of `oo.pDevOmciCC.send` is not checked"
+  #   - "Error return value of `onuDeviceEntry.mibDbClass` is not checked"
+  #   - "SA1019: voltha.ImageDownload is deprecated"
+  #   - 'G115: integer overflow conversion'
+  # exclude-use-default: false

@@ -911,8 +911,8 @@ remove_loop:
 func (oFsm *UniVlanConfigFsm) removeRuleComplete(ctx context.Context,
 	aUniFlowParams cmn.UniVlanFlowParams, aCookie uint64, respChan *chan error) bool {
 	pConfigVlanStateBaseFsm := oFsm.PAdaptFsm.PFsm
-	var cancelPendingConfig bool = false
-	var loRemoveParams uniRemoveVlanFlowParams = uniRemoveVlanFlowParams{}
+	var cancelPendingConfig = false
+	var loRemoveParams = uniRemoveVlanFlowParams{}
 	logger.Debugw(ctx, "UniVlanConfigFsm flow removal - full flow removal", log.Fields{
 		"device-id": oFsm.deviceID})
 	//rwCore flow recovery may be the reason for this delete, in which case the flowToBeDeleted may be the same
@@ -1013,15 +1013,16 @@ removeFromSlice_loop:
 	for flow, storedUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
 		// if UniFlowParams exists, cookieSlice should always have at least one element
 		cookieSliceLen := len(storedUniFlowParams.CookieSlice)
-		if cookieSliceLen == 1 {
+		switch cookieSliceLen {
+		case 1:
 			if storedUniFlowParams.CookieSlice[0] == aCookie {
 				cookieFound = true
 			}
-		} else if cookieSliceLen == 0 {
-			errStr := "UniVlanConfigFsm unexpected cookie slice length 0  - removal in uniVlanFlowParamsSlice aborted"
+		case 0:
+			errStr := "UniVlanConfigFsm unexpected cookie slice length 0 - removal in uniVlanFlowParamsSlice aborted"
 			logger.Errorw(ctx, errStr, log.Fields{"device-id": oFsm.deviceID})
 			return errors.New(errStr)
-		} else {
+		default:
 			errStr := "UniVlanConfigFsm flow removal unexpected cookie slice length, but rule removal continued"
 			logger.Errorw(ctx, errStr, log.Fields{
 				"cookieSliceLen": len(oFsm.uniVlanFlowParamsSlice), "device-id": oFsm.deviceID})
@@ -1711,10 +1712,11 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 			}
 
 			oFsm.mutexFlowParams.Lock()
-			if loVlanEntryClear == 1 {
+			switch loVlanEntryClear {
+			case 1:
 				oFsm.vlanFilterList[0] = 0 //first entry is the only that can contain the previous only-one element
 				oFsm.numVlanFilterEntries = 0
-			} else if loVlanEntryClear == 2 {
+			case 2:
 				// new VlanFilterList should be one entry smaller now - copy from last configured entry
 				// this loop now includes the 0 element on previous last valid entry
 				for i := uint8(0); i <= oFsm.numVlanFilterEntries; i++ {
