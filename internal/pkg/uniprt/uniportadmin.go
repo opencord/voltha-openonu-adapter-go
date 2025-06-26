@@ -440,7 +440,8 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 		if (omciAdminState == 1) || (1<<uniPort.UniID)&oFsm.pDeviceHandler.GetUniPortMask() == (1<<uniPort.UniID) {
 			var meInstance *me.ManagedEntity
 			var err error
-			if uniPort.PortType == cmn.UniPPTP {
+			switch uniPort.PortType {
+			case cmn.UniPPTP:
 				logger.Debugw(ctx, "Setting PPTP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
 				oFsm.mutexPLastTxMeInstance.Lock()
@@ -460,7 +461,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				}
 				oFsm.pLastTxMeInstance = meInstance
 				oFsm.mutexPLastTxMeInstance.Unlock()
-			} else if uniPort.PortType == cmn.UniVEIP {
+			case cmn.UniVEIP:
 				logger.Debugw(ctx, "Setting VEIP admin state", log.Fields{
 					"device-id": oFsm.deviceID, "for PortNo": uniNo, "state (0-unlock)": omciAdminState})
 				oFsm.mutexPLastTxMeInstance.Lock()
@@ -480,7 +481,7 @@ func (oFsm *LockStateFsm) performUniPortAdminSet(ctx context.Context) {
 				}
 				oFsm.pLastTxMeInstance = meInstance
 				oFsm.mutexPLastTxMeInstance.Unlock()
-			} else {
+			default:
 				//TODO: Discuss on the uni port type POTS .
 				logger.Warnw(ctx, "Unsupported UniTP type - skip",
 					log.Fields{"device-id": oFsm.deviceID, "Port": uniNo})
