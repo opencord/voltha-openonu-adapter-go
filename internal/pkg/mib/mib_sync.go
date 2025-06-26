@@ -1139,7 +1139,8 @@ func (oo *OnuDeviceEntry) handleOmciMessage(ctx context.Context, msg cmn.OmciMes
 
 func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttributes me.AttributeValueMap) error {
 	currentState := oo.PMibUploadFsm.PFsm.Current()
-	if currentState == UlStGettingVendorAndSerial {
+	switch currentState {
+	case UlStGettingVendorAndSerial:
 		if onuGVendorID, ok := meAttributes[me.OnuG_VendorId]; ok {
 			vendorID := cmn.TrimStringFromMeOctet(onuGVendorID)
 			if vendorID == "" {
@@ -1190,7 +1191,8 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttri
 		// trigger retrieval of Version
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetVersion)
 		return nil
-	} else if currentState == UlStGettingVersion {
+
+	case UlStGettingVersion:
 		if onuGVersion, ok := meAttributes[me.OnuG_Version]; ok {
 			version := cmn.TrimStringFromMeOctet(onuGVersion)
 			if version == "" {
@@ -1217,7 +1219,8 @@ func (oo *OnuDeviceEntry) handleOmciGetResponseOnuG(ctx context.Context, meAttri
 		// trigger retrieval of EquipmentId and OMCC version
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetEquipIDAndOmcc)
 		return nil
-	} else {
+
+	default:
 		logger.Errorw(ctx, "MibSync FSM - wrong state OnuG response processing - handling of MibSyncChan stopped!",
 			log.Fields{"currentState": currentState, "device-id": oo.deviceID})
 		_ = oo.PMibUploadFsm.PFsm.Event(UlEvStop)
