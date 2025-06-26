@@ -1539,7 +1539,7 @@ func (oFsm *OnuUpgradeFsm) handleRxSwSectionResponse(ctx context.Context, msg cm
 			//CRC computation for all data bytes of the file
 			imageCRC := crc32a.Checksum(oFsm.imageBuffer[:int(oFsm.origImageLength)]) //store internal for multiple usage
 			//revert the retrieved CRC Byte Order (seems not to deliver NetworkByteOrder)
-			var byteSlice []byte = make([]byte, 4)
+			var byteSlice = make([]byte, 4)
 			binary.LittleEndian.PutUint32(byteSlice, uint32(imageCRC))
 			oFsm.imageCRC = binary.BigEndian.Uint32(byteSlice)
 			oFsm.mutexUpgradeParams.Unlock()
