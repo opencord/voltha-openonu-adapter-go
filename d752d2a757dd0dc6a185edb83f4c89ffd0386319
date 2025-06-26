@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5392cf0e_117a0510",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-06-26T05:25:06Z",
+      "side": 1,
+      "message": "Doesn\u0027t returning here leave the device data in KV, with  deletionInProgress state.",
+      "range": {
+        "startLine": 363,
+        "startChar": 0,
+        "endLine": 363,
+        "endChar": 4
+      },
+      "revId": "d752d2a757dd0dc6a185edb83f4c89ffd0386319",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
