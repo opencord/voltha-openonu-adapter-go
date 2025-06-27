@@ -22,6 +22,30 @@
       },
       "revId": "d752d2a757dd0dc6a185edb83f4c89ffd0386319",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "36fd4a7d_ec55ff6f",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 363,
+      "author": {
+        "id": 1001024
+      },
+      "writtenOn": "2025-06-27T08:16:05Z",
+      "side": 1,
+      "message": "I have updated the code so that if resetFsms returns an error, the deletionInProgress flag is set back to false before returning.\nSo, the device will not be left in a \"deletion in progress\" state, which will allow future delete attempts to proceed as expected.",
+      "parentUuid": "5392cf0e_117a0510",
+      "range": {
+        "startLine": 363,
+        "startChar": 0,
+        "endLine": 363,
+        "endChar": 4
+      },
+      "revId": "d752d2a757dd0dc6a185edb83f4c89ffd0386319",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
