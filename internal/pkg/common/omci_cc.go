@@ -649,6 +649,10 @@ func (oo *OmciCC) sendQueuedHighPrioRequests(ctx context.Context) error {
 			// In this case, resend attempts for the message are ensured by our retry
 			// mechanism after omci-timeout.
 			oo.highPrioTxQueue.Remove(queueElement) // Dequeue
+			//Remove the call back from the rxSchedulerMap
+			oo.mutexRxSchedMap.Lock()
+			delete(oo.rxSchedulerMap, queueElement.Value.(OmciTransferStructure).cbPair.CbKey)
+			oo.mutexRxSchedMap.Unlock()
 			return err
 		}
 		oo.highPrioTxQueue.Remove(queueElement) // Dequeue
@@ -670,6 +674,10 @@ func (oo *OmciCC) sendQueuedLowPrioRequests(ctx context.Context) error {
 				// mechanism after omci-timeout.
 				oo.lowPrioTxQueue.Remove(queueElement) // Dequeue
 				oo.mutexLowPrioTxQueue.Unlock()
+				//Remove the call back from the rxSchedulerMap
+				oo.mutexRxSchedMap.Lock()
+				delete(oo.rxSchedulerMap, queueElement.Value.(OmciTransferStructure).cbPair.CbKey)
+				oo.mutexRxSchedMap.Unlock()
 				return err
 			}
 		} else {
@@ -681,6 +689,9 @@ func (oo *OmciCC) sendQueuedLowPrioRequests(ctx context.Context) error {
 				// mechanism after omci-timeout.
 				oo.lowPrioTxQueue.Remove(queueElement) // Dequeue
 				oo.mutexLowPrioTxQueue.Unlock()
+				oo.mutexRxSchedMap.Lock()
+				delete(oo.rxSchedulerMap, queueElement.Value.(OmciTransferStructure).cbPair.CbKey)
+				oo.mutexRxSchedMap.Unlock()
 				return err
 			}
 		}
@@ -4459,6 +4470,11 @@ loop:
 		oo.lowPrioTxQueue.PushBack(aOmciTxRequest)
 		oo.mutexLowPrioTxQueue.Unlock()
 
+		//Register the call back again as we clean up the Map entry when we failed to send the message
+		oo.mutexRxSchedMap.Lock()
+		oo.rxSchedulerMap[aOmciTxRequest.cbPair.CbKey] = aOmciTxRequest.cbPair.CbEntry
+		oo.mutexRxSchedMap.Unlock()
+
 		go oo.sendQueuedRequests(ctx)
 
 		select {
@@ -4982,6 +4998,12 @@ loop:
 			oo.lowPrioTxQueue.PushBack(aOmciTxRequest)
 			oo.mutexLowPrioTxQueue.Unlock()
 		}
+
+		//Register the call back again as we clean up the Map entry when we failed to send the message .
+		oo.mutexRxSchedMap.Lock()
+		oo.rxSchedulerMap[aOmciTxRequest.cbPair.CbKey] = aOmciTxRequest.cbPair.CbEntry
+		oo.mutexRxSchedMap.Unlock()
+
 		go oo.sendQueuedRequests(ctx)
 
 		select {
