@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "322e40af_9d71c214",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2025-07-04T00:52:36Z",
+      "side": 1,
+      "message": "This is a potential redundant unlock!",
+      "revId": "dfc69dc65c831c74ae7a99729cb97cdb9d2b4c74",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
