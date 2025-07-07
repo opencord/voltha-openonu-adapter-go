@@ -34,6 +34,24 @@
       "parentUuid": "322e40af_9d71c214",
       "revId": "dfc69dc65c831c74ae7a99729cb97cdb9d2b4c74",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f3c20faf_98fb77f5",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2025-07-07T16:40:54Z",
+      "side": 1,
+      "message": "You\u0027re right! \nOne minor suggestion as the best practice: If you add ctx.done() in the select statement, the wait can be canceled if the context is canceled (e.g., due to a gRPC timeout from the caller).",
+      "parentUuid": "545e7b00_f34a40aa",
+      "revId": "dfc69dc65c831c74ae7a99729cb97cdb9d2b4c74",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
