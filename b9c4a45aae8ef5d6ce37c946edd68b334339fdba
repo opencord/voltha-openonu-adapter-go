@@ -60,6 +60,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "1628a848_30e27cca",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1001023
+      },
+      "writtenOn": "2025-07-09T05:53:19Z",
+      "side": 1,
+      "message": "This function will be executed as part of delete onu device , this is not part of fsm,above comment is stale one which i will remove",
+      "parentUuid": "0132649d_2817a86f",
+      "range": {
+        "startLine": 316,
+        "startChar": 1,
+        "endLine": 318,
+        "endChar": 1
+      },
+      "revId": "b9c4a45aae8ef5d6ce37c946edd68b334339fdba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "9d671100_c88fc416",
         "filename": "internal/pkg/avcfg/omci_ani_config.go",
         "patchSetId": 1
@@ -71,6 +95,30 @@
       "writtenOn": "2025-06-23T17:32:00Z",
       "side": 1,
       "message": "what is the reason letting fsm run?",
+      "range": {
+        "startLine": 487,
+        "startChar": 1,
+        "endLine": 488,
+        "endChar": 1
+      },
+      "revId": "b9c4a45aae8ef5d6ce37c946edd68b334339fdba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e0f74faf_f4d4d9fa",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 488,
+      "author": {
+        "id": 1001023
+      },
+      "writtenOn": "2025-07-09T05:53:19Z",
+      "side": 1,
+      "message": "prepareAndEnterConfigState function is now another state i have introduced as part of ani config fsm. Once preparation is done lettingthe fsm to proceed further",
+      "parentUuid": "9d671100_c88fc416",
       "range": {
         "startLine": 487,
         "startChar": 1,
