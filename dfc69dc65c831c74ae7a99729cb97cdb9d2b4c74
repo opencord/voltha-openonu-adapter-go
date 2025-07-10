@@ -70,6 +70,24 @@
       "parentUuid": "f3c20faf_98fb77f5",
       "revId": "dfc69dc65c831c74ae7a99729cb97cdb9d2b4c74",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e7f3dc80_b69c05b1",
+        "filename": "internal/pkg/core/openonu.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-07-10T05:26:50Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aff34d16_8c0eb758",
+      "revId": "dfc69dc65c831c74ae7a99729cb97cdb9d2b4c74",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
