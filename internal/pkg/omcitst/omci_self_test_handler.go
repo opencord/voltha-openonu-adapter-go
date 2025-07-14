@@ -141,7 +141,12 @@ func (selfTestCb *SelfTestControlBlock) selfTestFsmHandleSelfTestRequest(ctx con
 		logger.Fatalw(ctx, "class-id-not-found", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 	}
 	instKeys := selfTestCb.pDevEntry.GetOnuDB().GetSortedInstKeys(ctx, classID)
-
+	if len(instKeys) == 0 {
+		logger.Errorw(ctx, "no instances found for class id", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
+		selfTestCb.triggerFsmEvent(pFsmCb.fsm, selfTestEventAbort)
+		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
+		return
+	}
 	// TODO: Choosing the first index from the instance keys. For ANI-G, this is fine as there is only one ANI-G instance.
 	// How do we handle and report self test for multiple instances?
 	if err := selfTestCb.pDevEntry.GetDevOmciCC().SendSelfTestReq(ctx, classID, instKeys[0], selfTestCb.pDeviceHandler.GetOmciTimeout(),
