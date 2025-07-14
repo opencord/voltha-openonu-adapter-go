@@ -82,6 +82,30 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "2976d5ba_227f8d67",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-07-14T05:28:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1628a848_30e27cca",
+      "range": {
+        "startLine": 316,
+        "startChar": 1,
+        "endLine": 318,
+        "endChar": 1
+      },
+      "revId": "b9c4a45aae8ef5d6ce37c946edd68b334339fdba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9d671100_c88fc416",
@@ -119,6 +143,30 @@
       "side": 1,
       "message": "prepareAndEnterConfigState function is now another state i have introduced as part of ani config fsm. Once preparation is done lettingthe fsm to proceed further",
       "parentUuid": "9d671100_c88fc416",
+      "range": {
+        "startLine": 487,
+        "startChar": 1,
+        "endLine": 488,
+        "endChar": 1
+      },
+      "revId": "b9c4a45aae8ef5d6ce37c946edd68b334339fdba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7e790ee0_87d1119e",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 488,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-07-14T05:28:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e0f74faf_f4d4d9fa",
       "range": {
         "startLine": 487,
         "startChar": 1,
