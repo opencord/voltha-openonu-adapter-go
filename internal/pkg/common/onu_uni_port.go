@@ -53,6 +53,7 @@ func NewOnuUniPort(ctx context.Context, aUniID uint8, aPortNo uint32, aInstNo ui
 	OnuUniPort.AdminState = vc.AdminState_ENABLED //enabled per create
 	OnuUniPort.OperState = vc.OperStatus_UNKNOWN
 	OnuUniPort.PPort = nil // to be set on create
+	OnuUniPort.BridgePortNo = OnuUniPort.MacBpNo + 1
 	return &OnuUniPort
 }
 
