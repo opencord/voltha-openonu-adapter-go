@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "21b787fc_3ffa4deb",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 600,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-07-18T18:50:28Z",
+      "side": 1,
+      "message": "The definition for \u0027Port num\u0027 in G.988: \"This attribute is the bridge port number. It must be unique among all ports associated with a particular MAC bridge service profile. (R, W, set-by-create)(mandatory) (1 byte)\"\n\nThe method used here does not guarantee the uniqueness of the port number. It does not take consideration the ME deletions, but only ME creations. And it is not the portNo but the numberofCreatedPorts in fact. Also there is no control of it going beyond the single byte. I recommend to use the similar logic that is used for unique entityID generation. This logic is based on the idea that a MAC bridge port config data is created per tech-profile on each uni. So using  \"techProfileID - tpIDStart\" should be appropriate.There is no need to save this value as well, because it can be generated with techProfileID on FSM whenever needed. You can define a generation function like the GenerateANISideMBPCDEID in utils.go, which will return techProfileID-tpIDStart, and assign it to me.MacBridgePortConfigurationData_PortNum above.",
+      "range": {
+        "startLine": 600,
+        "startChar": 0,
+        "endLine": 600,
+        "endChar": 2
+      },
+      "revId": "2d1965415886b3a8e4af5d5ffe8789f66936fbdb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
