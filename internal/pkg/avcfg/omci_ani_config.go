@@ -587,15 +587,17 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 		"TPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	bridgePtr := cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo) //cmp also omci_cc.go::sendCreateMBServiceProfile
+	// incrementing the MacBpNo, since MacBpNo is unique for each MBPCD instance
 	meParams := me.ParamData{
 		EntityID: oFsm.macBPCD0ID,
 		Attributes: me.AttributeValueMap{
 			me.MacBridgePortConfigurationData_BridgeIdPointer: bridgePtr,
-			me.MacBridgePortConfigurationData_PortNum:         0xFF, //fixed unique ANI side indication
-			me.MacBridgePortConfigurationData_TpType:          3,    //for .1PMapper
+			me.MacBridgePortConfigurationData_PortNum:         oFsm.pOnuUniPort.BridgePortNo, //fixed unique ANI side indication
+			me.MacBridgePortConfigurationData_TpType:          3,                             //for .1PMapper
 			me.MacBridgePortConfigurationData_TpPointer:       oFsm.mapperSP0ID,
 		},
 	}
+	oFsm.pOnuUniPort.BridgePortNo++
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.SendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
 		oFsm.PAdaptFsm.CommChan, meParams)

@@ -271,17 +271,18 @@ const (
 
 // OnuUniPort structure holds information about the ONU attached Uni Ports
 type OnuUniPort struct {
-	PPort      *voltha.Port
-	Name       string
-	OfpPortNo  string
-	PortNo     uint32
-	AdminState vc.AdminState_Types
-	OperState  vc.OperStatus_Types
-	EntityID   uint16
-	Enabled    bool
-	PortType   UniPortType
-	UniID      uint8
-	MacBpNo    uint8
+	PPort        *voltha.Port
+	Name         string
+	OfpPortNo    string
+	PortNo       uint32
+	AdminState   vc.AdminState_Types
+	OperState    vc.OperStatus_Types
+	EntityID     uint16
+	Enabled      bool
+	PortType     UniPortType
+	UniID        uint8
+	MacBpNo      uint8
+	BridgePortNo uint8
 }
 
 // OnuUniPortMap - TODO: add comment
