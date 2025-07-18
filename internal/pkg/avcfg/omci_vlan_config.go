@@ -2328,7 +2328,8 @@ func (oFsm *UniVlanConfigFsm) performConfigEvtocdEntries(ctx context.Context, aF
 			if uint32(oFsm.actualUniFlowParam.VlanRuleParams.InnerCvlan) == uint32(of.OfpVlanId_OFPVID_NONE) {
 				// this defines VID translation scenario: singletagged->singletagged (if not transparent)
 				logger.Debugw(ctx, "UniVlanConfigFsm Tx Set::EVTOCD single tagged translation rule", log.Fields{
-					"match-pcp": matchPcp, "match-vid": matchVid, "set-pcp": setPcp, "set-vid:": setVid, "device-id": oFsm.deviceID})
+					"match-pcp": matchPcp, "match-vid": matchVid, "set-pcp": setPcp, "set-vid:": setVid, "device-id": oFsm.deviceID,
+					"tags-to-remove": oFsm.actualUniFlowParam.VlanRuleParams.TagsToRemove})
 				// fill vlan tagging operation table bit fields using network=bigEndian order and using slice offset 0 as highest 'word'
 				binary.BigEndian.PutUint32(sliceEvtocdRule[cFilterOuterOffset:],
 					cPrioIgnoreTag<<cFilterPrioOffset| // Not an outer-tag rule
