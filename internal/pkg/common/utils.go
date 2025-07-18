@@ -182,3 +182,11 @@ func (wg *WaitGroupWithTimeOut) WaitTimeout(timeout time.Duration) bool {
 		return false
 	}
 }
+
+// GenerateANISideMBPCDPortNo returns ANISideMacBridgePortConfigurationDataPortNo
+func GenerateANISideMBPCDPortNo(tpID uint16) (uint16, error) {
+	if tpID < tpIDStart || tpID >= tpIDEnd {
+		return 0, fmt.Errorf("tech profile id out of range - %d", tpID)
+	}
+	return tpID - tpIDStart, nil
+}
