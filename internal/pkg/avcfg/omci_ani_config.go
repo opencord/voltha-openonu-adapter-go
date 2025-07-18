@@ -586,15 +586,26 @@ func (oFsm *UniPonAniConfigFsm) enterCreatingMBPCD(ctx context.Context, e *fsm.E
 		"TPPtr":     strconv.FormatInt(int64(oFsm.mapperSP0ID), 16),
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	bridgePtr := cmn.MacBridgeServiceProfileEID + uint16(oFsm.pOnuUniPort.MacBpNo) //cmp also omci_cc.go::sendCreateMBServiceProfile
+	// generate unique MacBpNo from tech profile ID for ANI side
+	macBpNo, macBpNoErr := cmn.GenerateANISideMBPCDPortNo(uint16(oFsm.techProfileID))
+	if macBpNoErr != nil {
+		logger.Warn(ctx, "Failed to generate MAC bridge port number, Will set the port-number to 0xFF", log.Fields{
+			"device-id": oFsm.deviceID,
+			"uni-id":    oFsm.pOnuUniPort.UniID,
+			"error":     macBpNoErr,
+		})
+		macBpNo = 0xFF
+	}
 	meParams := me.ParamData{
 		EntityID: oFsm.macBPCD0ID,
 		Attributes: me.AttributeValueMap{
 			me.MacBridgePortConfigurationData_BridgeIdPointer: bridgePtr,
-			me.MacBridgePortConfigurationData_PortNum:         0xFF, //fixed unique ANI side indication
-			me.MacBridgePortConfigurationData_TpType:          3,    //for .1PMapper
+			me.MacBridgePortConfigurationData_PortNum:         uint8(macBpNo), //fixed unique ANI side indication
+			me.MacBridgePortConfigurationData_TpType:          3,              //for .1PMapper
 			me.MacBridgePortConfigurationData_TpPointer:       oFsm.mapperSP0ID,
 		},
 	}
+
 	oFsm.mutexPLastTxMeInstance.Lock()
 	meInstance, err := oFsm.pOmciCC.SendCreateMBPConfigDataVar(log.WithSpanFromContext(context.TODO(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), true,
 		oFsm.PAdaptFsm.CommChan, meParams)
