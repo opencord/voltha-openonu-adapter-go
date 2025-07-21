@@ -184,7 +184,8 @@ type UniVlanConfigFsm struct {
 	signalOnFlowDelete          bool
 	// Used to indicate if the FSM is for a reconciling flow and if it's the last flow to be reconciled
 	// thus notification needs to be sent on chan.
-	lastFlowToReconcile bool
+	lastFlowToReconcile      bool
+	lastFlowToConfigOnReboot bool
 }
 
 // NewUniVlanConfigFsm is the 'constructor' for the state machine to config the PON ANI ports
@@ -193,7 +194,7 @@ type UniVlanConfigFsm struct {
 func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, apDevOmciCC *cmn.OmciCC, apUniPort *cmn.OnuUniPort,
 	apUniTechProf *OnuUniTechProf, apOnuDB *devdb.OnuDeviceDB, aTechProfileID uint8,
 	aRequestEvent cmn.OnuDeviceEvent, aName string, aCommChannel chan cmn.Message, aAcceptIncrementalEvto bool,
-	aCookieSlice []uint64, aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, lastFlowToRec bool, aMeter *of.OfpMeterConfig, respChan *chan error) *UniVlanConfigFsm {
+	aCookieSlice []uint64, aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, lastFlowToRec bool, lastFlowToConfOnReboot bool, aMeter *of.OfpMeterConfig, respChan *chan error) *UniVlanConfigFsm {
 	instFsm := &UniVlanConfigFsm{
 		pDeviceHandler:              apDeviceHandler,
 		pOnuDeviceEntry:             apOnuDeviceEntry,
@@ -208,6 +209,7 @@ func NewUniVlanConfigFsm(ctx context.Context, apDeviceHandler cmn.IdeviceHandler
 		ConfiguredUniFlow:           0,
 		numRemoveFlows:              0,
 		lastFlowToReconcile:         lastFlowToRec,
+		lastFlowToConfigOnReboot:    lastFlowToConfOnReboot,
 	}
 
 	instFsm.PAdaptFsm = cmn.NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
@@ -404,7 +406,7 @@ func (oFsm *UniVlanConfigFsm) GetWaitingTpID(ctx context.Context) uint8 {
 // ignore complexity by now
 // nolint: gocyclo
 func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8, aCookieSlice []uint64,
-	aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, aInnerCvlan uint16, lastFlowToReconcile bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
+	aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, aInnerCvlan uint16, lastFlowToReconcile bool, lastFlowToConfigOnReboot bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	if oFsm == nil {
 		logger.Error(ctx, "no valid UniVlanConfigFsm!")
 		return fmt.Errorf("no-valid-UniVlanConfigFsm")
@@ -483,6 +485,7 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	flowCookieModify := false
 	requestAppendRule := false
 	oFsm.lastFlowToReconcile = lastFlowToReconcile
+	oFsm.lastFlowToConfigOnReboot = lastFlowToConfigOnReboot
 	//mutex protection is required for possible concurrent access to FSM members
 	oFsm.mutexFlowParams.Lock()
 	for flow, storedUniFlowParams := range oFsm.uniVlanFlowParamsSlice {
@@ -1344,6 +1347,11 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 		oFsm.pDeviceHandler.SendChUniVlanConfigFinished(uint16(oFsm.pOnuUniPort.UniID))
 	}
+	if oFsm.lastFlowToConfigOnReboot {
+		logger.Debugw(ctx, "rebooting - flow processing finished", log.Fields{
+			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
+		oFsm.pDeviceHandler.SendChUniVlanConfigFinishedOnReboot(uint16(oFsm.pOnuUniPort.UniID))
+	}
 	if oFsm.pDeviceHandler.IsSkipOnuConfigReconciling() {
 		oFsm.ConfiguredUniFlow = oFsm.NumUniFlows
 		logger.Debugw(ctx, "reconciling - skip enterVlanConfigDone processing",
@@ -1901,9 +1909,9 @@ func (oFsm *UniVlanConfigFsm) enterResetting(ctx context.Context, e *fsm.Event) 
 						// Send response on response channel if the caller is waiting on it with according error indication.
 						oFsm.pushReponseOnFlowResponseChannel(ctx, vlanRule.RespChan, fmt.Errorf("internal-error"))
 					}
-					//permanently remove possibly stored persistent data
-					var emptySlice = make([]cmn.UniVlanFlowParams, 0)
-					_ = oFsm.pDeviceHandler.StorePersUniFlowConfig(ctx, oFsm.pOnuUniPort.UniID, &emptySlice, true) //ignore errors
+					// Do not remove pers uni data during reset of FSM. It will be removed when the device is deleted
+					//var emptySlice = make([]cmn.UniVlanFlowParams, 0)
+					//_ = oFsm.pDeviceHandler.StorePersUniFlowConfig(ctx, oFsm.pOnuUniPort.UniID, &emptySlice, true) //ignore errors
 				} else {
 					// reset (cancel) of all Fsm is always accompanied by global persistency data removal
 					//  no need to remove specific data in this case here

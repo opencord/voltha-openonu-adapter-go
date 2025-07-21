@@ -76,6 +76,7 @@ type AdapterFlags struct {
 	MetricsEnabled              bool
 	ExtendedOmciSupportEnabled  bool
 	SkipOnuConfig               bool
+	CheckDeviceTechProfOnReboot bool
 }
 
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
@@ -292,6 +293,10 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"skip_onu_config_enabled",
 		false,
 		"Whether to enable/disable the Skipping of the ONU configuration via OMCI during reconciling")
+	fs.BoolVar(&(so.CheckDeviceTechProfOnReboot),
+		"check_device_tech_prof_on_reboot_enabled",
+		false,
+		"To check for device tech profile and configure during ONU reboot")
 	fs.UintVar(&(so.MaxRetries),
 		"max_grpc_client_retry",
 		0,
