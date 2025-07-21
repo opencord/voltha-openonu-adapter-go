@@ -102,6 +102,7 @@ type OpenONUAC struct {
 	MetricsEnabled              bool
 	ExtendedOmciSupportEnabled  bool
 	skipOnuConfig               bool
+	CheckDeviceTechProfOnReboot bool
 }
 
 // NewOpenONUAC returns a new instance of OpenONU_AC
@@ -162,6 +163,7 @@ func NewOpenONUAC(ctx context.Context, coreClient *vgrpc.Client, eventProxy even
 	openOnuAc.pFileManager = swupg.NewFileDownloadManager(ctx)
 	openOnuAc.pFileManager.SetDownloadTimeout(ctx, cfg.DownloadToAdapterTimeout)
 	openOnuAc.skipOnuConfig = cfg.SkipOnuConfig
+	openOnuAc.CheckDeviceTechProfOnReboot = cfg.CheckDeviceTechProfOnReboot
 	openOnuAc.mutexMibDatabaseMap = sync.RWMutex{}
 	openOnuAc.MibDatabaseMap = make(map[string]*devdb.OnuCmnMEDB)
 
