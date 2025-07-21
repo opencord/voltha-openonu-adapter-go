@@ -110,8 +110,11 @@ type IdeviceHandler interface {
 	PrepareReconcilingWithActiveAdapter(context.Context)
 	ReconcileDeviceTechProf(context.Context) bool
 	ReconcileDeviceFlowConfig(context.Context)
+	CheckForDeviceTechProf(context.Context) bool
+	DeviceFlowConfigOnReboot(context.Context)
 	GetReconcileExpiryVlanConfigAbort() time.Duration
 	SendChUniVlanConfigFinished(value uint16)
+	SendChUniVlanConfigFinishedOnReboot(value uint16)
 
 	VerifyUniVlanConfigRequest(context.Context, *OnuUniPort, uint8)
 	VerifyVlanConfigRequest(context.Context, uint8, uint8)

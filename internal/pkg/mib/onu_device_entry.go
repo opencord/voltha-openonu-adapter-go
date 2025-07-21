@@ -162,6 +162,7 @@ type onuPersistentData struct {
 	PersIsExtOmciSupported bool              `json:"is_ext_omci_supported"`
 	PersUniUnlockDone      bool              `json:"uni_unlock_done"`
 	PersUniDisableDone     bool              `json:"uni_disable_done"`
+	PersRebootInProgress   bool              `json:"reboot_in_progress"`
 	PersMibDataSyncAdpt    uint8             `json:"mib_data_sync_adpt"`
 }
 
