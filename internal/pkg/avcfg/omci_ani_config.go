@@ -355,7 +355,8 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 		}
 		// Access critical state with lock
 		oFsm.pUniTechProf.mutexTPState.RLock()
-		tcontInstID, tcontAlreadyExist, err := oFsm.pOnuDeviceEntry.AllocateFreeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
+		// Set T-Cont in device irrespective of whther it is stored in onu-adapter or not
+		tcontInstID, _, err := oFsm.pOnuDeviceEntry.AllocateFreeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
 		if err != nil {
 			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID, "err": err})
 			//reset the state machine to enable usage on subsequent requests
@@ -364,11 +365,9 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			return
 		}
 		oFsm.tcont0ID = tcontInstID
-		oFsm.tcontSetBefore = tcontAlreadyExist
 		logger.Debugw(ctx, "used-tcont-instance-id", log.Fields{"tcont-inst-id": oFsm.tcont0ID,
-			"alloc-id":          oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID,
-			"tcontAlreadyExist": tcontAlreadyExist,
-			"device-id":         oFsm.deviceID})
+			"alloc-id":  oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID,
+			"device-id": oFsm.deviceID})
 
 		oFsm.alloc0ID = oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID
 		mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
