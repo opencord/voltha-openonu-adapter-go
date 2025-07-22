@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "904937b6_93cab533",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 443,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-07-22T12:28:49Z",
+      "side": 1,
+      "message": "we dont need a bool here, basically it is meant it is down",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f812d3c6_2c847492",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 633,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-07-22T12:28:49Z",
+      "side": 1,
+      "message": "we have return an error here, if a nil is returned then for core it as good as success and the controller will not retry",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6c86dea3_671247c0",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1324,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-07-22T12:28:49Z",
+      "side": 1,
+      "message": "why do we need 2 flags",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
