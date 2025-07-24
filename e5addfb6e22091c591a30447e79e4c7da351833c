@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0d1d4e01_ab758449",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 591,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-07-24T18:21:24Z",
+      "side": 1,
+      "message": "I recommend checking the error returned here. If error is returned then print an error or warning log and set the port number to 0xFF.",
+      "range": {
+        "startLine": 591,
+        "startChar": 0,
+        "endLine": 591,
+        "endChar": 4
+      },
+      "revId": "e5addfb6e22091c591a30447e79e4c7da351833c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
