@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "70105efd_5b24539d",
+        "filename": "internal/pkg/avcfg/onu_uni_tp.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 909,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2025-07-24T18:13:18Z",
+      "side": 0,
+      "message": "What is the reason removing this line?",
+      "range": {
+        "startLine": 909,
+        "startChar": 0,
+        "endLine": 909,
+        "endChar": 3
+      },
+      "revId": "be650283e2dffb4e5ba45bc4a316a694f318ad35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
