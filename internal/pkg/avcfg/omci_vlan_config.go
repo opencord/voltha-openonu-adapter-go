@@ -993,8 +993,11 @@ func (oFsm *UniVlanConfigFsm) removeRuleComplete(ctx context.Context,
 				log.Fields{"fsmState": pConfigVlanStateBaseFsm.Current(), "error": fsmErr, "device-id": oFsm.deviceID})
 		}
 		oFsm.mutexFlowParams.Lock()
+		return true
 	} // if not in the appropriate state a new entry will be automatically considered later
 	//   when the configDone state is reached
+	// If the FSM is in Disabled or resetted state, push a response on the flow response channel
+	oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, nil)
 	return true
 }
 

@@ -290,9 +290,9 @@ func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
 					log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
 
 				onuTP.mutexTPState.Lock()
-				defer onuTP.mutexTPState.Unlock()
 				onuTP.procResult[uniTpKey] = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
 					aUniID, onuTP.deviceID)
+				onuTP.mutexTPState.Unlock()
 				//this issue here means that the AniConfigFsm has not finished successfully
 				//which requires to reset it to allow for new usage, e.g. also on a different UNI
 				//(without that it would be reset on device down indication latest)
@@ -906,7 +906,6 @@ func (onuTP *OnuUniTechProf) clearAniSideConfig(ctx context.Context, aUniID uint
 	//deleting a map entry should be safe, even if not existing
 	delete(onuTP.mapUniTpIndication, uniTpKey)
 	delete(onuTP.mapPonAniConfig, uniTpKey)
-	delete(onuTP.procResult, uniTpKey)
 	delete(onuTP.tpProfileExists, uniTpKey)
 	delete(onuTP.tpProfileResetting, uniTpKey)
 }
