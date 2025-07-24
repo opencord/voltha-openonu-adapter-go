@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "d9b857ff_449a6a8a",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 443,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2025-07-24T18:04:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "904937b6_93cab533",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f812d3c6_2c847492",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 2
@@ -37,6 +55,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "828a8ec4_0054d094",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 633,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2025-07-24T18:04:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f812d3c6_2c847492",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "6c86dea3_671247c0",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 2
@@ -48,6 +84,24 @@
       "writtenOn": "2025-07-22T12:28:49Z",
       "side": 1,
       "message": "why do we need 2 flags",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f493da38_ef52a0cb",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1324,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2025-07-24T18:04:54Z",
+      "side": 1,
+      "message": "Removed the redundant flag.",
+      "parentUuid": "6c86dea3_671247c0",
       "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
