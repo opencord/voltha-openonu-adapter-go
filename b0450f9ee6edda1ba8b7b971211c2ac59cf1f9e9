@@ -33,6 +33,24 @@
       "message": "I couldn\u0027t understand the logic here very well. I mostly reviewed in codding rules perspective. Looks good to me.",
       "revId": "b0450f9ee6edda1ba8b7b971211c2ac59cf1f9e9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e4b66fbc_4bfbd43c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000960
+      },
+      "writtenOn": "2025-07-31T08:37:14Z",
+      "side": 1,
+      "message": "Thanks for your review. Let me try to explain what this change does briefly.\n\n1. ONU goes for a reboot, adapter gets a Down indication and then followed by an Up indication.\n2. When the Down indication is received, if the reboot flag is enabled, adapter will not remove the TP and flow config stored in the adapter\u0027s cache and in the kv-store.\n3. During the Up indication, once the mib-sync is complete and mib is downloaded, if the reboot flag is enabled, adapter will check if there are any stored TP configs for the device.\n\n4a. If adapter has the TP config and is able to retrieve TP instance from the olt-adapter, it will start configuring the device with the TP instance and further configure the flows with the stored flow config.\n4b. If there is any failure while configuring TPs or flows, the adapter will send a OnuConfigFailure event on kafka, so that the NB can take corrective actions on failure.\n4c. If the TP config is not available at step 3, adapter will wait for the NB to configure the flows, as per the existing behavior.\n\n5. If the adapter restarts while configuring flows after reboot, it will start reconciling. During reconciling, it will check if the device was under reboot. If yes, it will use the same logic to configure the TPs and flows in the device using the stored configs.\n\nHope this helps. Let me know if you have any queries.",
+      "parentUuid": "7410c4a8_db46640e",
+      "revId": "b0450f9ee6edda1ba8b7b971211c2ac59cf1f9e9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
