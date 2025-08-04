@@ -36,6 +36,24 @@
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "69460b3c_28e24c75",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 443,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-08-04T11:25:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d9b857ff_449a6a8a",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f812d3c6_2c847492",
@@ -102,6 +120,24 @@
       "side": 1,
       "message": "Removed the redundant flag.",
       "parentUuid": "6c86dea3_671247c0",
+      "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "90d34a59_4a98cde5",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1324,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-08-04T11:25:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f493da38_ef52a0cb",
       "revId": "66a161ea106bfc6b72ec53e3f765696b8ded41b1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
