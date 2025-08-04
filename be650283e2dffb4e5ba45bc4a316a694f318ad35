@@ -22,6 +22,30 @@
       },
       "revId": "be650283e2dffb4e5ba45bc4a316a694f318ad35",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "01206bc5_f04eb3c9",
+        "filename": "internal/pkg/avcfg/onu_uni_tp.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 909,
+      "author": {
+        "id": 1001019
+      },
+      "writtenOn": "2025-08-04T11:03:40Z",
+      "side": 0,
+      "message": "The setAniSideConfigFromTechProfile() call timed out due to OMCI timeouts, and the resulting error message was correctly stored in the tpProcResult map. However, during the subsequent reset of the PonAniConfigFSM, this error entry was inadvertently removed from the tpProcResult map. As a result, despite the failure of the PonAniConfigFSM, the tech-profile path was persisted into the UNI configuration.\nRemoving this line will prevent the error message entry from being deleted during the reset of PonAniConfigFSM. Additionally, the tpProcResult map is reset at the beginning of each tech-profile processing cycle.",
+      "parentUuid": "70105efd_5b24539d",
+      "range": {
+        "startLine": 909,
+        "startChar": 0,
+        "endLine": 909,
+        "endChar": 3
+      },
+      "revId": "be650283e2dffb4e5ba45bc4a316a694f318ad35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
