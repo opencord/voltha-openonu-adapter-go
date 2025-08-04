@@ -22,6 +22,30 @@
       },
       "revId": "2d1965415886b3a8e4af5d5ffe8789f66936fbdb",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0b811411_528270fe",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 600,
+      "author": {
+        "id": 1001019
+      },
+      "writtenOn": "2025-08-04T11:12:45Z",
+      "side": 1,
+      "message": "I have addressed the changes as mentioned above. please review it once.",
+      "parentUuid": "21b787fc_3ffa4deb",
+      "range": {
+        "startLine": 600,
+        "startChar": 0,
+        "endLine": 600,
+        "endChar": 2
+      },
+      "revId": "2d1965415886b3a8e4af5d5ffe8789f66936fbdb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
