@@ -361,7 +361,12 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID, "err": err})
 			//reset the state machine to enable usage on subsequent requests
 			oFsm.pUniTechProf.mutexTPState.RUnlock()
-			_ = aPAFsm.PFsm.Event(aniEvReset)
+			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
+			go func(aPAFsm *cmn.AdapterFsm) {
+				if aPAFsm != nil && aPAFsm.PFsm != nil {
+					_ = aPAFsm.PFsm.Event(aniEvReset)
+				}
+			}(oFsm.PAdaptFsm)
 			return
 		}
 		oFsm.tcont0ID = tcontInstID
