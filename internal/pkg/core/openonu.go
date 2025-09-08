@@ -419,7 +419,7 @@ func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca
 	}
 
 	if handler, err := oo.getDeviceHandler(ctx, incrFlows.Device.Id, false); handler != nil {
-		if flowUpdateErr := handler.FlowUpdateIncremental(log.WithSpanFromContext(context.Background(), ctx), incrFlows.Flows, incrFlows.Groups, incrFlows.FlowMetadata); flowUpdateErr != nil {
+		if flowUpdateErr := handler.FlowUpdateIncremental(ctx, incrFlows.Flows, incrFlows.Groups, incrFlows.FlowMetadata); flowUpdateErr != nil {
 			return nil, flowUpdateErr
 		}
 		return &empty.Empty{}, nil
