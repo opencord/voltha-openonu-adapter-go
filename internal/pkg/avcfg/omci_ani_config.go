@@ -151,7 +151,7 @@ type UniPonAniConfigFsm struct {
 	macBPCD0ID               uint16
 	tcont0ID                 uint16
 	alloc0ID                 uint16
-	uniTpKey                 uniTP
+	uniTpKey                 UniTP
 	techProfileID            uint8
 	isCanceled               bool
 	isAwaitingResponse       bool
@@ -180,7 +180,7 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 		chanSet:         false,
 		tcontSetBefore:  false,
 	}
-	instFsm.uniTpKey = uniTP{uniID: apUniPort.UniID, tpID: aTechProfileID}
+	instFsm.uniTpKey = UniTP{UniID: apUniPort.UniID, TpID: aTechProfileID}
 	instFsm.waitFlowDeleteChannel = make(chan bool)
 
 	instFsm.PAdaptFsm = cmn.NewAdapterFsm(aName, instFsm.deviceID, aCommChannel)
