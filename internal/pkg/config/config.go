@@ -25,8 +25,10 @@ import (
 
 // Open ONU default constants
 const (
-	KVStoreName  = "etcd"
-	OnuVendorIds = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX,ZYXE"
+	KVStoreName             = "etcd"
+	OnuVendorIds            = "OPEN,ALCL,BRCM,TWSH,ALPH,ISKT,SFAA,BBSM,SCOM,ARPX,DACM,ERSN,HWTC,CIGG,ADTN,ARCA,AVMG,LEOX,ZYXE"
+	defaultProducerRetryMax = 10
+	defaultMetadataRetryMax = 15
 )
 
 // AdapterFlags represents the set of configurations used by the read-write adaptercore service
@@ -77,6 +79,8 @@ type AdapterFlags struct {
 	ExtendedOmciSupportEnabled  bool
 	SkipOnuConfig               bool
 	CheckDeviceTechProfOnReboot bool
+	ProducerRetryMax            int
+	MetadataRetryMax            int
 }
 
 // ParseCommandArguments parses the arguments when running read-write adaptercore service
@@ -301,6 +305,14 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"max_grpc_client_retry",
 		0,
 		"The maximum number of times olt adaptor will retry in case grpc request timeouts")
+	fs.IntVar(&so.ProducerRetryMax,
+		"producer_retry_max",
+		defaultProducerRetryMax,
+		"This option specifies the maximum number of times the producer will retry sending messages before giving up")
+	fs.IntVar(&so.MetadataRetryMax,
+		"metadata_retry_max",
+		defaultMetadataRetryMax,
+		"This option specifies the maximum number of times retry to receive messages before giving up")
 	_ = fs.Parse(args)
 	containerName := getContainerInfo()
 	if len(containerName) > 0 {
