@@ -16,6 +16,23 @@
       "message": "\u003e Patch Set 3: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_sanity-test/2002/ : FAILURE\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1725/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_licensed/1910/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1724/ : SUCCESS\n\nrecheck",
       "revId": "ef4b1ae453f1e99fb6ba1bb0b836e5cc15ec020f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e8ec2e1d_c62967f0",
+        "filename": "internal/pkg/avcfg/omci_ani_config.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1000537
+      },
+      "writtenOn": "2025-09-18T06:05:47Z",
+      "side": 1,
+      "message": "please update the VERSION file",
+      "revId": "ef4b1ae453f1e99fb6ba1bb0b836e5cc15ec020f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
