@@ -84,6 +84,23 @@
       "message": "\u003e Patch Set 4: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_sanity-test/2008/ : FAILURE\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1730/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_licensed/1916/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1731/ : SUCCESS\n\nrecheck",
       "revId": "3d7297cdcae6dd369148fafbc5d547569b28cae0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3e17da8c_10c6cabd",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001025
+      },
+      "writtenOn": "2025-10-23T05:32:29Z",
+      "side": 1,
+      "message": "\u003e Patch Set 4: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_sanity-test/2008/ : FAILURE\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1730/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_licensed/1916/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1731/ : SUCCESS\n\nrecheck",
+      "revId": "3d7297cdcae6dd369148fafbc5d547569b28cae0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
