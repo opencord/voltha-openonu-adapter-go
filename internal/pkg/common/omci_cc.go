@@ -1647,6 +1647,51 @@ func (oo *OmciCC) SendGetMeWithAttributeMask(ctx context.Context, classID me.Cla
 	return nil
 }
 
+// SendGetCurrentDataME gets current performance monitoring data from ME instance
+func (oo *OmciCC) SendGetCurrentDataME(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap,
+	timeout int, highPrio bool, rxChan chan Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
+
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send get-current-data-request-msg", log.Fields{"classID": classID, "device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16)})
+
+	meParams := me.ParamData{
+		EntityID:   entityID,
+		Attributes: requestedAttributes,
+	}
+	var messageSet = omci.BaselineIdent
+	if isExtendedOmci {
+		messageSet = omci.ExtendedIdent
+	}
+	meInstance, omciErr := me.LoadManagedEntityDefinition(classID, meParams)
+	if omciErr.GetError() == nil {
+		meClassIDName := meInstance.GetName()
+		omciLayer, msgLayer, err := oframe.EncodeFrame(meInstance, omci.GetCurrentDataRequestType, oframe.TransactionID(tid), oframe.FrameFormat(messageSet))
+		if err != nil {
+			logger.Errorf(ctx, "Cannot encode instance for get-current-data-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize get-current-data-request", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		omciRxCallbackPair := CallbackPair{
+			CbKey:   tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send get-current-data-request-msg", log.Fields{"meClassIDName": meClassIDName, "Err": err, "device-id": oo.deviceID})
+			return nil, err
+		}
+		logger.Debugw(ctx, "send get-current-data-request-msg done", log.Fields{"meClassIDName": meClassIDName, "device-id": oo.deviceID})
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate meDefinition", log.Fields{"classID": classID, "Err": omciErr.GetError(), "device-id": oo.deviceID})
+	return nil, omciErr.GetError()
+}
+
 // SendCreateDot1PMapper creates Ieee8021PMapperServiceProfile ME instance
 func (oo *OmciCC) SendCreateDot1PMapper(ctx context.Context, timeout int, highPrio bool,
 	aInstID uint16, rxChan chan Message) (*me.ManagedEntity, error) {

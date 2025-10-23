@@ -16,7 +16,7 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/looplab/fsm v0.2.0
-	github.com/opencord/omci-lib-go/v2 v2.2.3
+	github.com/opencord/omci-lib-go/v2 v2.2.4
 	github.com/opencord/voltha-lib-go/v7 v7.6.6
 	github.com/opencord/voltha-protos/v5 v5.6.5
 	github.com/stretchr/testify v1.8.1
