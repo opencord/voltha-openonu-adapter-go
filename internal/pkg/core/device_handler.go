@@ -5201,7 +5201,14 @@ func (dh *deviceHandler) getOnuActiveAlarms(ctx context.Context) *extension.Sing
 // getONUGEMStatsInfo - Get the GEM PM history data of the request ONT device
 func (dh *deviceHandler) getONUGEMStatsInfo(ctx context.Context) *extension.SingleGetValueResponse {
 	resp := dh.pOnuMetricsMgr.GetONUGEMCounters(ctx)
-	logger.Debugw(ctx, "Received response from AlarmManager for Active Alarms for DeviceEntry", log.Fields{"device-id": dh.DeviceID})
+	logger.Debugw(ctx, "Received response from ONU Metrics Manager for GEM Stats", log.Fields{"device-id": dh.DeviceID})
+	return resp
+}
+
+// getOnuFECStats - Get the GEM PM history data of the request ONT device
+func (dh *deviceHandler) getOnuFECStats(ctx context.Context) *extension.SingleGetValueResponse {
+	resp := dh.pOnuMetricsMgr.GetONUFECCounters(ctx)
+	logger.Debugw(ctx, "Received response from ONU Metrics Manager for FEC Stats", log.Fields{"device-id": dh.DeviceID})
 	return resp
 }
 
