@@ -527,8 +527,11 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			return resp, nil
 		case *extension.GetValueRequest_OnuAllocGemStats:
 			resp := handler.getONUGEMStatsInfo(ctx)
-			logger.Infow(ctx, "Received response for on demand active alarms request ", log.Fields{"response": resp})
+			logger.Infow(ctx, "Received response for on demand GEM counters ", log.Fields{"response": resp})
 			return resp, nil
+		case *extension.GetValueRequest_FecHistory:
+			return handler.getOnuFECStats(ctx), nil
+
 		default:
 			return uniprt.PostUniStatusErrResponse(extension.GetValueResponse_UNSUPPORTED), nil
 		}

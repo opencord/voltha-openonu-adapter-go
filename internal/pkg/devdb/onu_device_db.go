@@ -191,12 +191,12 @@ func (OnuDeviceDB *OnuDeviceDB) GetUint16Attrib(meAttribute interface{}) (uint16
 	}
 }
 
-// GetSortedInstKeys returns a sorted list of all instances of an ME
+// // GetSortedInstKeys returns a sorted list of all instances of an ME from both CommonMeDb and OnuSpecificMeDb
 func (OnuDeviceDB *OnuDeviceDB) GetSortedInstKeys(ctx context.Context, meClassID me.ClassID) []uint16 {
 
 	var meInstKeys []uint16
+	// Check CommonMeDb
 	OnuDeviceDB.CommonMeDb.MeDbLock.RLock()
-	defer OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
 	meDb := OnuDeviceDB.CommonMeDb.MeDb
 
 	// Check if the class ID exists in the MeDb map
@@ -206,6 +206,18 @@ func (OnuDeviceDB *OnuDeviceDB) GetSortedInstKeys(ctx context.Context, meClassID
 		}
 		logger.Debugw(ctx, "meInstKeys - input order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
 	}
+	OnuDeviceDB.CommonMeDb.MeDbLock.RUnlock()
+
+	// Check OnuSpecificMeDb
+	OnuDeviceDB.OnuSpecificMeDbLock.RLock()
+	if onuSpecificMap, found := OnuDeviceDB.OnuSpecificMeDb[meClassID]; found {
+		for k := range onuSpecificMap {
+			meInstKeys = append(meInstKeys, k)
+		}
+	}
+	OnuDeviceDB.OnuSpecificMeDbLock.RUnlock()
+
+	// Sort all instance keys
 	sort.Slice(meInstKeys, func(i, j int) bool { return meInstKeys[i] < meInstKeys[j] })
 	logger.Debugw(ctx, "meInstKeys - output order :", log.Fields{"meInstKeys": meInstKeys}) //TODO: delete the line after test phase!
 
