@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4fbd8dbf_4e2b63a8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2025-10-28T15:51:03Z",
+      "side": 1,
+      "message": "I guess the VERSION should be bumped up, too.",
+      "revId": "c6fae5cc0ca8b8087bcadeec35d708e1456834d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c1deba64_790ebb81",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4301,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2025-10-28T15:51:03Z",
+      "side": 1,
+      "message": "I see that metricInfo.getMetrics is used through the code without doing any type checks which may lead to a panic if the key is nil or is not numerical. It might be better to handle casting safely\n\nif val, ok :\u003d metricInfo.GetMetrics()[\"key\"].(float64); ok {}",
+      "revId": "c6fae5cc0ca8b8087bcadeec35d708e1456834d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
