@@ -929,6 +929,7 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 
 	onuIndication := onuInd.OnuIndication
 	onuOperstate := onuIndication.GetOperState()
+	//nolint:staticcheck
 	waitForDhInstPresent := false
 	if onuOperstate == "up" {
 		//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
@@ -943,17 +944,18 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
 			"SNR": onuIndication.GetSerialNumber()})
 
-		if onuOperstate == "up" {
+		switch onuOperstate {
+		case "up":
 			if err := handler.createInterface(ctx, onuIndication); err != nil {
 				return nil, err
 			}
 			return &empty.Empty{}, nil
-		} else if (onuOperstate == "down") || (onuOperstate == "unreachable") {
+		case "down", "unreachable":
 			if err := handler.UpdateInterface(ctx); err != nil {
 				return nil, err
 			}
 			return &empty.Empty{}, nil
-		} else {
+		default:
 			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
 			return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, onuInd.DeviceId)
 		}

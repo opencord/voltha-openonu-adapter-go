@@ -700,17 +700,18 @@ func (am *OnuAlarmManager) clearAlarm(ctx context.Context, classID me.ClassID, i
 
 func (am *OnuAlarmManager) getIntfIDAlarm(ctx context.Context, classID me.ClassID, instanceID uint16) *uint32 {
 	var intfID *uint32
-	if classID == circuitPackClassID || classID == physicalPathTerminationPointEthernetUniClassID {
+	switch classID {
+	case circuitPackClassID, physicalPathTerminationPointEthernetUniClassID:
 		for _, uniPort := range *am.pDeviceHandler.GetUniEntityMap() {
 			if uniPort.EntityID == instanceID {
 				intfID = &uniPort.PortNo
 				return intfID
 			}
 		}
-	} else if classID == aniGClassID || classID == onuGClassID {
+	case aniGClassID, onuGClassID:
 		intfID = am.pDeviceHandler.GetPonPortNumber()
 		return intfID
-	} else {
+	default:
 		logger.Warnw(ctx, "me-not-supported", log.Fields{"device-id": am.deviceID, "class-id": classID, "instance-id": instanceID})
 	}
 	return nil

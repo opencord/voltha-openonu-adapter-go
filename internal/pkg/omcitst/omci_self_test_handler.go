@@ -26,7 +26,6 @@ import (
 	"github.com/looplab/fsm"
 	"github.com/opencord/omci-lib-go/v2"
 	"github.com/opencord/omci-lib-go/v2/generated"
-	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-protos/v5/go/extension"
@@ -172,7 +171,7 @@ func (selfTestCb *SelfTestControlBlock) selfTestFsmHandleSelfTestResponse(ctx co
 func (selfTestCb *SelfTestControlBlock) getMeClassID(ctx context.Context, reqMsg extension.SingleGetValueRequest) (generated.ClassID, error) {
 	switch reqMsg.GetRequest().GetRequest().(type) {
 	case *extension.GetValueRequest_OnuOpticalInfo:
-		return me.AniGClassID, nil
+		return generated.AniGClassID, nil
 	default:
 		logger.Warnw(ctx, "unsupported me class id for self test", log.Fields{"device-id": selfTestCb.deviceID})
 		return 0, fmt.Errorf("unsupported me class id for self test %v", selfTestCb.deviceID)
@@ -264,7 +263,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResult(ctx context.Context
 	var msgObj *omci.OpticalLineSupervisionTestResult
 	var msgOk bool
 	switch classID {
-	case me.AniGClassID:
+	case generated.AniGClassID:
 		msgObj, msgOk = msgLayer.(*omci.OpticalLineSupervisionTestResult)
 	default:
 		// We should not really land here

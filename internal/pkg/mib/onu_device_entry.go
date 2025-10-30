@@ -518,7 +518,8 @@ func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.
 	logger.Debugw(ctx, "relaying system-event", log.Fields{"device-id": oo.deviceID, "Event": devEvent})
 	// decouple the handler transfer from further processing here
 	// TODO!!! check if really no synch is required within the system e.g. to ensure following steps ..
-	if devEvent == cmn.MibDatabaseSync {
+	switch devEvent {
+	case cmn.MibDatabaseSync:
 		if oo.devState < cmn.MibDatabaseSync { //devState has not been synced yet
 			oo.devState = cmn.MibDatabaseSync
 			go oo.baseDeviceHandler.DeviceProcStatusUpdate(ctx, devEvent)
@@ -527,7 +528,7 @@ func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.
 			logger.Debugw(ctx, "mibinsync-event in some already synced state - ignored",
 				log.Fields{"device-id": oo.deviceID, "state": oo.devState})
 		}
-	} else if devEvent == cmn.MibDownloadDone {
+	case cmn.MibDownloadDone:
 		if oo.devState < cmn.MibDownloadDone { //devState has not been synced yet
 			oo.devState = cmn.MibDownloadDone
 			go oo.baseDeviceHandler.DeviceProcStatusUpdate(ctx, devEvent)
@@ -535,7 +536,7 @@ func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.
 			logger.Debugw(ctx, "mibdownloaddone-event was already seen - ignored",
 				log.Fields{"device-id": oo.deviceID, "state": oo.devState})
 		}
-	} else {
+	default:
 		logger.Warnw(ctx, "device-event not yet handled",
 			log.Fields{"device-id": oo.deviceID, "state": devEvent})
 	}

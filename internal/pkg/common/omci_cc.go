@@ -30,7 +30,6 @@ import (
 
 	"github.com/google/gopacket"
 	// TODO!!! Some references could be resolved auto, but some need specific context ....
-	gp "github.com/google/gopacket"
 
 	"github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
@@ -78,7 +77,7 @@ const CDefaultRetries = 2
 // CallbackPairEntry to be used for OMCI send/receive correlation
 type CallbackPairEntry struct {
 	CbRespChannel chan Message
-	CbFunction    func(context.Context, *omci.OMCI, *gp.Packet, chan Message) error
+	CbFunction    func(context.Context, *omci.OMCI, *gopacket.Packet, chan Message) error
 	FramePrint    bool //true for printing
 }
 
@@ -231,7 +230,7 @@ func (oo *OmciCC) Stop(ctx context.Context) error {
 }
 
 // Rx handler for omci messages
-func (oo *OmciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet) error {
+func (oo *OmciCC) receiveOnuMessage(ctx context.Context, omciMsg *omci.OMCI, packet *gopacket.Packet) error {
 	logger.Debugw(ctx, "rx-onu-autonomous-message", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"payload": hex.EncodeToString(omciMsg.Payload)})
 	switch omciMsg.MessageType {
@@ -841,7 +840,7 @@ func hexEncode(omciPkt []byte) ([]byte, error) {
 */
 
 // supply a response handler for omci response messages to be transferred to the requested FSM
-func (oo *OmciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet, respChan chan Message) error {
+func (oo *OmciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, packet *gopacket.Packet, respChan chan Message) error {
 
 	logger.Debugw(ctx, "omci-message-response - transfer on omciRespChannel", log.Fields{"omciMsgType": omciMsg.MessageType,
 		"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16), "device-id": oo.deviceID})
@@ -1581,7 +1580,7 @@ func (oo *OmciCC) SendGetMe(ctx context.Context, classID me.ClassID, entityID ui
 		EntityID:   entityID,
 		Attributes: requestedAttributes,
 	}
-	var messageSet omci.DeviceIdent = omci.BaselineIdent
+	var messageSet = omci.BaselineIdent
 	if isExtendedOmci {
 		messageSet = omci.ExtendedIdent
 	}
@@ -4585,7 +4584,7 @@ func (oo *OmciCC) SendDownloadSection(ctx context.Context, aTimeout int, highPri
 	//TODO!!!: don't know by now on how to generate the possibly needed AR (or enforce it to 0) with current omci-lib
 	//    by now just try to send it as defined by omci-lib
 	msgType := omci.DownloadSectionRequestType
-	var timeout int = 0 //default value for no response expected
+	var timeout = 0 //default value for no response expected
 	if aAckRequest > 0 {
 		msgType = omci.DownloadSectionRequestWithResponseType
 		timeout = aTimeout
@@ -4852,7 +4851,7 @@ func (oo *OmciCC) SendSelfTestReq(ctx context.Context, classID me.ClassID, instd
 }
 
 // nolint: gocyclo
-func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciMsg *omci.OMCI, packet *gp.Packet) (bool, error) {
+func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciMsg *omci.OMCI, packet *gopacket.Packet) (bool, error) {
 
 	nextLayer, err := omci.MsgTypeToNextLayer(omciMsg.MessageType, false)
 	if err != nil {
@@ -4863,13 +4862,14 @@ func (oo *OmciCC) isSuccessfulResponseWithMibDataSync(ctx context.Context, omciM
 	if msgLayer != nil {
 		// Note: Due to relaxed decoding, you may now still have a decoding error attached to the layers
 		if failure := (*packet).ErrorLayer(); failure != nil {
-			if nextLayer == omci.LayerTypeMibUploadNextResponse {
+			switch nextLayer {
+			case omci.LayerTypeMibUploadNextResponse:
 				// In the case of MibUploadNextResponse, we let the packet pass so that later processing
 				// can examine for UnkonwnMEs and UnknownAttributes
 				logger.Debug(ctx, "omci-message: MibUploadNextResponse packet with ErrorLayer - let it pass",
 					log.Fields{"device-id": oo.deviceID, "error": failure.Error()})
 				return false, nil
-			} else if nextLayer == omci.LayerTypeGetResponse {
+			case omci.LayerTypeGetResponse:
 				if resp := msgLayer.(*omci.GetResponse); resp != nil {
 					if resp.NextLayerType() == omci.LayerTypeUnknownAttributes {
 						unknownAttrLayer := (*packet).Layer(omci.LayerTypeUnknownAttributes)
