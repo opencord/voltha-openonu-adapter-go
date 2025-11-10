@@ -153,7 +153,7 @@ docker-kind-load: ## Load docker images into a KinD cluster
 ## -----------------------------------------------------------------------
 lint-dockerfile: ## Perform static analysis on Dockerfile
 	@echo "Running Dockerfile lint check ..."
-	@${HADOLINT} $$(find . -name "Dockerfile.*")
+	@${HADOLINT} $$(find . -name "Dockerfile.*" -not -path "./vendor/*")
 	@echo "Dockerfile lint check OK"
 
 ## -----------------------------------------------------------------------
