@@ -26,14 +26,15 @@ import (
 
 // GetTrafficShapingInfo returns CIR,PIR and GIR values
 func GetTrafficShapingInfo(ctx context.Context, meterConfig *ofp.OfpMeterConfig) (*tp_pb.TrafficShapingInfo, error) {
-	switch meterBandSize := len(meterConfig.Bands); {
-	case meterBandSize == 1:
+	meterBandSize := len(meterConfig.Bands)
+	switch meterBandSize {
+	case 1:
 		band := meterConfig.Bands[0]
 		if band.BurstSize == 0 { // GIR = PIR, Burst Size = 0, tcont type 1
 			return &tp_pb.TrafficShapingInfo{Pir: band.Rate, Gir: band.Rate}, nil
 		}
 		return &tp_pb.TrafficShapingInfo{Pir: band.Rate, Pbs: band.BurstSize}, nil // PIR, tcont type 4
-	case meterBandSize == 2:
+	case 2:
 		firstBand, secondBand := meterConfig.Bands[0], meterConfig.Bands[1]
 		if firstBand.BurstSize == 0 && secondBand.BurstSize == 0 &&
 			firstBand.Rate == secondBand.Rate { // PIR = GIR, tcont type 1
@@ -45,7 +46,7 @@ func GetTrafficShapingInfo(ctx context.Context, meterConfig *ofp.OfpMeterConfig)
 			}
 			return &tp_pb.TrafficShapingInfo{Pir: secondBand.Rate, Pbs: secondBand.BurstSize, Cir: firstBand.Rate, Cbs: firstBand.BurstSize}, nil
 		}
-	case meterBandSize == 3: // PIR,CIR,GIR, tcont type 5
+	case 3: // PIR,CIR,GIR, tcont type 5
 		var count, girIndex int
 		for i, band := range meterConfig.Bands {
 			if band.BurstSize == 0 { // find GIR
