@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "eb091901_bc9f137a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001041
+      },
+      "writtenOn": "2025-11-11T06:08:13Z",
+      "side": 1,
+      "message": "\u003e Patch Set 2: Verified-1\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_sanity-test/2033/ : FAILURE\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1753/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1754/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_licensed/1939/ : SUCCESS\n\nrecheck",
+      "revId": "6c72c963b1bde276efa06df4c81655ea3ba5bb75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
