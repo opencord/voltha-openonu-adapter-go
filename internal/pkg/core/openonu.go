@@ -329,7 +329,10 @@ func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) 
 func (oo *OpenONUAC) RebootDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
 	logger.Infow(ctx, "reboot-device", log.Fields{"device-id": device.Id})
 	if handler, err := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
-		go handler.rebootDevice(log.WithSpanFromContext(context.Background(), ctx), true, device) //reboot request with device checking
+		err := handler.rebootDevice(log.WithSpanFromContext(context.Background(), ctx), true, device) //reboot request with device checking
+		if err != nil {
+			return nil, err
+		}
 		return &empty.Empty{}, nil
 	} else {
 		logger.Warnw(ctx, "no handler found for device-reboot", log.Fields{"device-id": device.Id})
