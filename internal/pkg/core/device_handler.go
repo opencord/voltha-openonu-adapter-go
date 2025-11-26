@@ -1562,16 +1562,16 @@ func (dh *deviceHandler) deleteDevicePersistencyData(ctx context.Context) error 
 //	return fmt.Errorf("device-unreachable: %s, %s", dh.DeviceID, device.SerialNumber)
 //
 // was and is called in background - error return does not make sense
-func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState bool, device *voltha.Device) {
+func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState bool, device *voltha.Device) error {
 	logger.Infow(ctx, "reboot-device", log.Fields{"device-id": dh.DeviceID, "SerialNumber": dh.device.SerialNumber})
 	if aCheckDeviceState && device.ConnectStatus != voltha.ConnectStatus_REACHABLE {
 		logger.Errorw(ctx, "device-unreachable", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber})
-		return
+		return fmt.Errorf("device-unreachable: %s, %s", dh.DeviceID, device.SerialNumber)
 	}
 	if err := dh.pOnuOmciDevice.Reboot(log.WithSpanFromContext(context.TODO(), ctx)); err != nil {
 		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 		logger.Errorw(ctx, "error-rebooting-device", log.Fields{"device-id": dh.DeviceID, "error": err})
-		return
+		return err
 	}
 
 	//transfer the possibly modified logical uni port state
@@ -1580,19 +1580,23 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 	logger.Debugw(ctx, "call DeviceStateUpdate upon reboot", log.Fields{
 		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.DeviceID})
 	// do not set the ConnStatus here as it may conflict with the parallel setting from ONU down indication (updateInterface())
-	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
-		DeviceId:   dh.DeviceID,
-		ConnStatus: connectStatusINVALID, //use some dummy value to prevent modification of the ConnStatus
-		OperStatus: voltha.OperStatus_DISCOVERED,
-	}); err != nil {
-		//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-		logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
-		return
-	}
-	if err := dh.ReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
-		return
-	}
-	dh.SetReadyForOmciConfig(false)
+	go func() {
+		if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
+			DeviceId:   dh.DeviceID,
+			ConnStatus: connectStatusINVALID, //use some dummy value to prevent modification of the ConnStatus
+			OperStatus: voltha.OperStatus_DISCOVERED,
+		}); err != nil {
+			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
+			logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
+			return
+		}
+		if err := dh.ReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
+			logger.Errorw(ctx, "errror-updating-device-reason-to-core", log.Fields{"device-id": dh.DeviceID, "error": err})
+			return
+		}
+		dh.SetReadyForOmciConfig(false)
+	}()
+	return nil
 	//no specific activity to synchronize any internal FSM to the 'rebooted' state is explicitly done here
 	//  the expectation ids for a real device, that it will be synced with the expected following 'down' indication
 	//  as BBSIM does not support this testing requires explicite disable/enable device calls in which sequence also
