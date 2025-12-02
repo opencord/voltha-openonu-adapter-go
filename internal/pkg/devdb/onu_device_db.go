@@ -325,7 +325,7 @@ func (OnuDeviceDB *OnuDeviceDB) PutOnuSpeficMe(ctx context.Context, meClassID me
 		OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = meAttributes
 	} else {
 		meAttribs, ok := OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID]
-		if !ok {
+		if !ok || meAttribs == nil {
 			OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = make(me.AttributeValueMap)
 			OnuDeviceDB.OnuSpecificMeDb[meClassID][meEntityID] = meAttributes
 		} else {
