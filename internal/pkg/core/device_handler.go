@@ -889,7 +889,25 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 	onuIndication.OperState = pDevEntry.SOnuPersistentData.PersOperState
 	onuIndication.AdminState = pDevEntry.SOnuPersistentData.PersAdminState
 	pDevEntry.MutexPersOnuConfig.RUnlock()
-	_ = dh.createInterface(ctx, &onuIndication)
+	if pDevEntry.SOnuPersistentData.PersRebootInProgress {
+		if pDevEntry.SOnuPersistentData.PersUniUnlockDone {
+			logger.Warnw(ctx, "ONU indication shows reboot in progress - cannot proceed with reconciliation", log.Fields{"device-id": dh.DeviceID})
+			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
+			return
+		}
+	}
+	if onuIndication.OperState == "up" {
+		if err := dh.createInterface(ctx, &onuIndication); err != nil {
+			logger.Errorw(ctx, "failed to handle device up indication", log.Fields{"device-id": dh.DeviceID, "error": err})
+			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+			return
+		}
+	} else {
+		logger.Warnw(ctx, "ONU indication does not have 'up' state, cannot proceed with reconciliation", log.Fields{"device-id": dh.DeviceID, "operState": onuIndication.OperState})
+		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+		return
+	}
+	logger.Debugw(ctx, "reconciling - simulate onu indication done", log.Fields{"device-id": dh.DeviceID})
 }
 
 func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
@@ -1589,6 +1607,7 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 		logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
 		return
 	}
+	dh.UpdateAndStoreRebootState(ctx, true)
 	if err := dh.ReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
 		return
 	}
@@ -2288,6 +2307,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			pDevEntry.MutexPersOnuConfig.Lock()
 			pDevEntry.SOnuPersistentData.PersMibLastDbSync = 0
 			pDevEntry.SOnuPersistentData.PersRebootInProgress = true
+			pDevEntry.SOnuPersistentData.PersUniUnlockDone = false
 			pDevEntry.MutexPersOnuConfig.Unlock()
 		}
 		// Moving the previous call to write to KV store here, to store the ONU pers data after the update.
@@ -2537,6 +2557,13 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 				log.Fields{"device-id": dh.DeviceID, "error": err})
 			// abort: system behavior is just unstable ...
 			return err
+		}
+		if dh.GetDeviceTechProfOnReboot() {
+			logger.Debugw(ctx, "Storing OnuPersData during device-down-indication", log.Fields{"device": dh.DeviceID, "onu-pers-data": dh.pOnuOmciDevice.SOnuPersistentData})
+			if err := dh.StorePersistentData(ctx); err != nil {
+				logger.Warnw(ctx, "store persistent data error - Failed to store DownIndication",
+					log.Fields{"device-id": dh.DeviceID, "err": err})
+			}
 		}
 	} else {
 		logger.Debugw(ctx, "updateInterface - device already stopped", log.Fields{"device-id": dh.DeviceID})
@@ -4536,7 +4563,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
 							log.Fields{"device-id": dh.DeviceID})
-					} else {
+					} else if !onuDevEntry.SOnuPersistentData.PersRebootInProgress {
 						onuDevEntry.MutexPersOnuConfig.RLock()
 						switch onuDevEntry.SOnuPersistentData.PersOperState {
 						case "up":
