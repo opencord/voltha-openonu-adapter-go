@@ -951,6 +951,7 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 			}
 			return &empty.Empty{}, nil
 		case "down", "unreachable":
+			handler.pOnuIndication = onuIndication
 			if err := handler.UpdateInterface(ctx); err != nil {
 				return nil, err
 			}
