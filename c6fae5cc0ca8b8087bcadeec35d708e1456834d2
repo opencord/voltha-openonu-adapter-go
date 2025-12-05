@@ -51,6 +51,24 @@
       "parentUuid": "c1deba64_790ebb81",
       "revId": "c6fae5cc0ca8b8087bcadeec35d708e1456834d2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b4fb9ab8_01c7473d",
+        "filename": "internal/pkg/pmmgr/onu_metrics_manager.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 4301,
+      "author": {
+        "id": 1000959
+      },
+      "writtenOn": "2025-12-05T05:35:47Z",
+      "side": 1,
+      "message": "Addressed.",
+      "parentUuid": "fb27c45a_25b2d8de",
+      "revId": "c6fae5cc0ca8b8087bcadeec35d708e1456834d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
