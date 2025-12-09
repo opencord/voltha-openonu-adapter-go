@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -41,6 +42,7 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/core_service"
 	"github.com/opencord/voltha-protos/v5/go/onu_inter_adapter_service"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 
@@ -572,6 +574,24 @@ func main() {
 	logger.Infow(ctx, "config", log.Fields{"config": *cf})
 
 	ad := newAdapter(cf)
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		logger.Infof(ctx, "Metrics available at %s/metrics", ad.config.PrometheusAddress)
+		// Create HTTP server with explicit timeouts to prevent slowloris attacks and resource exhaustion.
+		// Using http.ListenAndServe() directly doesn't allow setting timeouts, which is a security risk.
+		// The server uses http.DefaultServeMux (nil handler) which includes the /metrics endpoint registered above.
+		metricsServer := &http.Server{
+			Addr:              ad.config.PrometheusAddress,
+			Handler:           nil,
+			ReadHeaderTimeout: 10 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       120 * time.Second,
+		}
+		if err := metricsServer.ListenAndServe(); err != nil {
+			logger.Errorw(ctx, "failed to start metrics HTTP server: ", log.Fields{"error": err})
+		}
+	}()
 
 	p := &probe.Probe{}
 	logger.Infow(ctx, "resources", log.Fields{"Context": ctx, "Adapter": ad.instanceID, "ProbeCoreState": p.GetStatus("register-with-core")})

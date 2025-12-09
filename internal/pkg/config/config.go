@@ -41,6 +41,7 @@ type AdapterFlags struct {
 	EventTopic                  string
 	LogLevel                    string
 	ProbeHost                   string
+	PrometheusAddress           string
 	TraceAgentAddress           string
 	OnuVendorIds                string
 	AdapterEndpoint             string
@@ -147,6 +148,11 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"probe_port",
 		8080,
 		"The port on which to listen to answer liveness and readiness probe queries over HTTP")
+
+	fs.StringVar(&(so.PrometheusAddress),
+		"prometheus_port",
+		":8081",
+		"Used for exposing the metrics to prometheus.")
 
 	fs.DurationVar(&(so.LiveProbeInterval),
 		"live_probe_interval",
