@@ -323,6 +323,16 @@ func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
 	}
 }
 
+func (onuTP *OnuUniTechProf) SendChTpConfigProcessingFinished(value uint8) {
+	if onuTP != nil { //if the object still exists (might have been already deleted in background)
+		//use asynchronous channel sending to avoid blocking on non-waiting receiver
+		select {
+		case onuTP.chTpConfigProcessingStep <- value:
+		default:
+		}
+	}
+}
+
 /* internal methods *********************/
 // nolint: gocyclo
 func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
@@ -334,7 +344,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 	if len(subStringSlice) <= 2 {
 		logger.Errorw(ctx, "invalid path name format",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
-		onuTP.chTpConfigProcessingStep <- 0 //error indication
+		onuTP.SendChTpConfigProcessingFinished(0) //error indication
 		return
 	}
 
@@ -361,7 +371,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			logger.Warnw(ctx, "New TechProfile already exists - aborting configuration",
 				log.Fields{"device-id": onuTP.deviceID})
 			onuTP.tpProfileExists[uniTPKey] = true
-			onuTP.chTpConfigProcessingStep <- 0 //error indication
+			onuTP.SendChTpConfigProcessingFinished(0) //error indication
 			return
 		}
 		//delete on the mapUniTpIndication map not needed, just overwritten later
@@ -423,7 +433,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 				log.Fields{"device-id": onuTP.deviceID, "index": pos, "PrioQueue": content.PriorityQ})
 			//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
 			delete(onuTP.mapPonAniConfig, uniTPKey)
-			onuTP.chTpConfigProcessingStep <- 0 //error indication
+			onuTP.SendChTpConfigProcessingFinished(0) //error indication
 			return
 		}
 		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].prioQueueIndex =
@@ -495,7 +505,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 						log.Fields{"device-id": onuTP.deviceID, "index": mcastGemID, "PrioQueue": downstreamContent.PriorityQ})
 					//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
 					delete(onuTP.mapPonAniConfig, uniTPKey)
-					onuTP.chTpConfigProcessingStep <- 0 //error indication
+					onuTP.SendChTpConfigProcessingFinished(0) //error indication
 					return
 				}
 				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].prioQueueIndex =
@@ -525,7 +535,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
 		//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
 		delete(onuTP.mapPonAniConfig, uniTPKey)
-		onuTP.chTpConfigProcessingStep <- 0 //error indication
+		onuTP.SendChTpConfigProcessingFinished(0) //error indication
 		return
 	}
 	//logger does not simply output the given structures, just give some example debug values
@@ -538,7 +548,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 			"QueueScheduling": gemEntry.queueSchedPolicy})
 	}
 
-	onuTP.chTpConfigProcessingStep <- aProcessingStep //done
+	onuTP.SendChTpConfigProcessingFinished(aProcessingStep) //done
 }
 
 func (onuTP *OnuUniTechProf) setAniSideConfigFromTechProfile(
