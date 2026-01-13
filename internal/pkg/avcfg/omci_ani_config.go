@@ -847,7 +847,12 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 		// indicate processing done to the caller
 		logger.Debugw(ctx, "UniPonAniConfigFsm processingDone on channel", log.Fields{
 			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.deviceID})
-		oFsm.chSuccess <- oFsm.procStep
+		select {
+		case oFsm.chSuccess <- oFsm.procStep:
+		default:
+			logger.Infow(ctx, "enterAniConfigDone UniPonAniConfigFsm processingError not send on channel (no receiver)", log.Fields{
+				"device-id": oFsm.deviceID})
+		}
 		oFsm.setChanSet(false) //reset the internal channel state
 	}
 
@@ -1195,7 +1200,12 @@ func (oFsm *UniPonAniConfigFsm) enterAniRemoveDone(ctx context.Context, e *fsm.E
 		// indicate processing done to the caller
 		logger.Debugw(ctx, "UniPonAniConfigFsm processingDone on channel", log.Fields{
 			"ProcessingStep": oFsm.procStep, "from_State": e.FSM.Current(), "device-id": oFsm.deviceID})
-		oFsm.chSuccess <- oFsm.procStep
+		select {
+		case oFsm.chSuccess <- oFsm.procStep:
+		default:
+			logger.Infow(ctx, "enterAniRemoveDone UniPonAniConfigFsm processingError not send on channel (no receiver)", log.Fields{
+				"device-id": oFsm.deviceID})
+		}
 		oFsm.setChanSet(false) //reset the internal channel state
 	}
 
