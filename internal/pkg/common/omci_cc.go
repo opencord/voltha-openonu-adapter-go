@@ -640,6 +640,14 @@ func (oo *OmciCC) sendQueuedRequests(ctx context.Context) {
 func (oo *OmciCC) sendQueuedHighPrioRequests(ctx context.Context) error {
 	oo.mutexHighPrioTxQueue.Lock()
 	defer oo.mutexHighPrioTxQueue.Unlock()
+
+	if oo.pBaseDeviceHandler == nil {
+		logger.Warnw(ctx, "device handler is nil - abort sendQueuedHighPrioRequests", log.Fields{"device-id": oo.deviceID})
+		return nil
+	} else if oo.pBaseDeviceHandler.GetDeletionInProgress() {
+		logger.Warnw(ctx, "device deletion in progress - abort sendQueuedHighPrioRequests", log.Fields{"device-id": oo.deviceID})
+		return nil
+	}
 	for oo.highPrioTxQueue.Len() > 0 {
 		select {
 		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
@@ -668,6 +676,15 @@ func (oo *OmciCC) sendQueuedHighPrioRequests(ctx context.Context) error {
 
 func (oo *OmciCC) sendQueuedLowPrioRequests(ctx context.Context) error {
 	oo.mutexLowPrioTxQueue.Lock()
+
+	if oo.pBaseDeviceHandler == nil {
+		logger.Warnw(ctx, "device handler is nil - abort sendQueuedLowPrioRequests", log.Fields{"device-id": oo.deviceID})
+		return nil
+	} else if oo.pBaseDeviceHandler.GetDeletionInProgress() {
+		logger.Warnw(ctx, "device deletion in progress - abort sendQueuedLowPrioRequests", log.Fields{"device-id": oo.deviceID})
+		return nil
+	}
+
 	for oo.lowPrioTxQueue.Len() > 0 {
 		select {
 		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
@@ -5048,6 +5065,13 @@ func (oo *OmciCC) sendWithRxSupervision(ctx context.Context, aOmciTxRequest Omci
 	retryCounter := 0
 loop:
 	for retryCounter <= retries {
+		if oo.pBaseDeviceHandler == nil {
+			logger.Warnw(ctx, "pBaseDeviceHandler is nil - abort sendWithRxSupervision", log.Fields{"device-id": oo.deviceID})
+			break loop
+		} else if oo.pBaseDeviceHandler.GetDeletionInProgress() {
+			logger.Warnw(ctx, "device deletion in progress - abort sendWithRxSupervision", log.Fields{"device-id": oo.deviceID})
+			break loop
+		}
 		// enqueue
 		if aOmciTxRequest.highPrio {
 			oo.mutexHighPrioTxQueue.Lock()

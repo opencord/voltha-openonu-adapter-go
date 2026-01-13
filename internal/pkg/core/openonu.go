@@ -366,6 +366,15 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 			handler.pOnuMetricsMgr.SetdeviceDeletionInProgress(true)
 		}
 
+		if handler.pOnuOmciDevice != nil {
+			if handler.pOnuOmciDevice.PDevOmciCC != nil {
+				// Since we cannot rule out that one of the handlers had initiated any OMCI configurations during its
+				// reset handling (even in future coding), request monitoring is canceled here one last time to
+				// be sure that all corresponding go routines are terminated
+				handler.pOnuOmciDevice.PDevOmciCC.CancelRequestMonitoring(ctx)
+			}
+		}
+
 		close(handler.deviceDeleteCommChan)
 		if resetErr := handler.resetFsms(ctx, true); resetErr != nil {
 			logger.Errorw(ctx, "failed to reset FSMs for the device", log.Fields{"device-id": device.Id, "err": resetErr})
