@@ -4221,6 +4221,16 @@ func (dh *deviceHandler) handleStandalonePmConfigUpdates(ctx context.Context, pm
 // nolint: gocyclo
 func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcessor *sync.WaitGroup) {
 	logger.Debugw(ctx, "startingCollector", log.Fields{"device-id": dh.device.Id})
+	dh.RLockMutexDeletionInProgressFlag()
+	if dh.GetDeletionInProgress() {
+		logger.Warnw(ctx, "Device deletion in progress - avoid starting metrics collector routine", log.Fields{"device-id": dh.DeviceID})
+		dh.RUnlockMutexDeletionInProgressFlag()
+		return
+	}
+	// Set collectorIsRunning flag to true while still holding deviceDeletionFlag lock,
+	// to avoid potential race condition where resetFsm from DeleteDevice might avoid stopping the collector routine if this flag is not yet set
+	dh.setCollectorIsRunning(true)
+	dh.RUnlockMutexDeletionInProgressFlag()
 
 	// Start routine to process OMCI GET Responses
 	go dh.pOnuMetricsMgr.ProcessOmciMessages(ctx, waitForOmciProcessor)
@@ -4230,7 +4240,6 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
 	// reset like onu rebooted.
 	dh.pOnuMetricsMgr.InitializeMetricCollectionTime(ctx)
-	dh.setCollectorIsRunning(true)
 	statsCollectionticker := time.NewTicker((pmmgr.FrequencyGranularity) * time.Second)
 	defer statsCollectionticker.Stop()
 	for {
@@ -4530,10 +4539,20 @@ func (dh *deviceHandler) GetAlarmManagerIsRunning(ctx context.Context) bool {
 
 func (dh *deviceHandler) StartAlarmManager(ctx context.Context) {
 	logger.Debugw(ctx, "startingAlarmManager", log.Fields{"device-id": dh.device.Id})
+	dh.RLockMutexDeletionInProgressFlag()
+	if dh.GetDeletionInProgress() {
+		logger.Warnw(ctx, "Device deletion in progress - avoid starting alarm manager", log.Fields{"device-id": dh.DeviceID})
+		dh.RUnlockMutexDeletionInProgressFlag()
+		return
+	}
+	// Set alarmManagerIsRunning flag to true while still holding deviceDeletionFlag lock,
+	// to avoid potential race condition where resetFsm from DeleteDevice might avoid stopping the alarm manager if this flag is not yet set
+	dh.setAlarmManagerIsRunning(true)
+
+	dh.RUnlockMutexDeletionInProgressFlag()
 
 	// Start routine to process OMCI GET Responses
 	go dh.pAlarmMgr.StartOMCIAlarmMessageProcessing(ctx)
-	dh.setAlarmManagerIsRunning(true)
 	if stop := <-dh.stopAlarmManager; stop {
 		logger.Debugw(ctx, "stopping-alarm-manager-for-onu", log.Fields{"device-id": dh.device.Id})
 		go func() {
