@@ -388,15 +388,18 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
 	}
+	dh.lockDevice.RLock()
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Errorw(ctx, "onuTechProf instance not set up for DLMsg request - ignoring request",
 			log.Fields{"device-id": dh.DeviceID})
+		dh.lockDevice.RUnlock()
 		return fmt.Errorf("techProfile DLMsg request while onuTechProf instance not setup: %s", dh.DeviceID)
 	}
 	if !dh.IsReadyForOmciConfig() {
 		logger.Errorw(ctx, "TechProf-set rejected: improper device state", log.Fields{"device-id": dh.DeviceID,
 			"device-state": dh.GetDeviceReasonString()})
+		dh.lockDevice.RUnlock()
 		return fmt.Errorf("improper device state %s on device %s", dh.GetDeviceReasonString(), dh.DeviceID)
 	}
 	//previous state test here was just this one, now extended for more states to reject the SetRequest:
@@ -408,6 +411,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 	// to possible concurrent access by flow processing
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
+	defer dh.lockDevice.RUnlock()
 
 	if techProfMsg.UniId >= platform.MaxUnisPerOnu {
 		return fmt.Errorf("received UniId value exceeds range: %d, device-id: %s",
@@ -484,15 +488,18 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemPortMsg *ia.DeleteGemPortMessage) error {
 	logger.Infow(ctx, "delete-gem-port-request start", log.Fields{"device-id": dh.DeviceID})
 
+	dh.lockDevice.RLock()
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Warnw(ctx, "onuTechProf instance not set up for DelGem request - ignoring request",
 			log.Fields{"device-id": dh.DeviceID})
+		dh.lockDevice.RUnlock()
 		return fmt.Errorf("techProfile DelGem request while onuTechProf instance not setup: %s", dh.DeviceID)
 	}
 	//compare TECH_PROFILE_DOWNLOAD_REQUEST
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
+	defer dh.lockDevice.RUnlock()
 
 	if delGemPortMsg.UniId >= platform.MaxUnisPerOnu {
 		logger.Errorw(ctx, "delete-gem-port UniId exceeds range", log.Fields{
@@ -524,16 +531,19 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
 	}
+	dh.lockDevice.RLock()
 	if dh.pOnuTP == nil {
 		//should normally not happen ...
 		logger.Warnw(ctx, "onuTechProf instance not set up for DelTcont request - ignoring request",
 			log.Fields{"device-id": dh.DeviceID})
+		dh.lockDevice.RUnlock()
 		return fmt.Errorf("techProfile DelTcont request while onuTechProf instance not setup: %s", dh.DeviceID)
 	}
 
 	//compare TECH_PROFILE_DOWNLOAD_REQUEST
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
+	defer dh.lockDevice.RUnlock()
 
 	if delTcontMsg.UniId >= platform.MaxUnisPerOnu {
 		logger.Errorw(ctx, "delete-tcont UniId exceeds range", log.Fields{
@@ -903,8 +913,18 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 		return continueWithFlowConfig
 	}
+	dh.lockDevice.RLock()
+	if dh.pOnuTP == nil {
+		//should normally not happen ...
+		logger.Warnw(ctx, "onuTechProf instance not set up for reconcile tech prof - ignoring request",
+			log.Fields{"device-id": dh.DeviceID})
+		dh.lockDevice.RUnlock()
+		return continueWithFlowConfig
+	}
+
 	dh.pOnuTP.LockTpProcMutex()
 	defer dh.pOnuTP.UnlockTpProcMutex()
+	defer dh.lockDevice.RUnlock()
 
 	pDevEntry.MutexPersOnuConfig.RLock()
 	persMutexLock := true
@@ -5265,7 +5285,9 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 	}
 	dh.pOnuIndication = nil
 	dh.pOnuOmciDevice = nil
+	dh.lockDevice.Lock()
 	dh.pOnuTP = nil
+	dh.lockDevice.Unlock()
 	dh.pOnuMetricsMgr = nil
 	dh.pAlarmMgr = nil
 	dh.pSelfTestHdlr = nil
