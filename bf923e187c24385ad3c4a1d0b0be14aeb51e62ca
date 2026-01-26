@@ -16,6 +16,24 @@
       "message": "it might be safer to extend the scope of the RLock here.",
       "revId": "bf923e187c24385ad3c4a1d0b0be14aeb51e62ca",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9f17f942_81fb4695",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 891,
+      "author": {
+        "id": 1001025
+      },
+      "writtenOn": "2026-01-26T18:59:49Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "d8db6ef8_ab1a59e5",
+      "revId": "bf923e187c24385ad3c4a1d0b0be14aeb51e62ca",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
