@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2c228653_0a0565bd",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4175,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2026-01-26T18:08:09Z",
+      "side": 1,
+      "message": "Minor comment: The existing code uses dh.device.Id for logging purposes but here we use dh.DeviceID. Not sure it\u0027s different but we can stick to dh.device.Id for consistency.",
+      "revId": "d67ffa0fb0c92d038497efe606fbf4150bb60842",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
