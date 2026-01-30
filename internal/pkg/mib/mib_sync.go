@@ -353,6 +353,7 @@ func (oo *OnuDeviceEntry) enterGettingMibTemplateState(ctx context.Context, e *f
 		} else {
 			logger.Errorw(ctx, "A previous MIB Upload for this type of ONT  has failed, request for a MIB UPload", log.Fields{"device-id": oo.deviceID})
 			oo.pOpenOnuAc.ResetEntryFromMibDatabaseMap(ctx, oo.mibTemplatePath)
+			oo.pOnuDB.CommonMeDb.MeDbLock.Lock()
 			fsmMsg = cmn.LoadMibTemplateFailed
 		}
 		oo.pOpenOnuAc.UnlockMutexMibTemplateGenerated()
