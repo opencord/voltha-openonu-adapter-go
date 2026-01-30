@@ -427,7 +427,7 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 	metricsManager.opticalMetricsDelCommChan = make(chan bool, 2)
 	metricsManager.uniMetricsDelCommChan = make(chan bool, 2)
 
-	logger.Info(ctx, "init-OnuMetricsManager completed", log.Fields{"device-id": metricsManager.deviceID})
+	logger.Debug(ctx, "init-OnuMetricsManager completed", log.Fields{"device-id": metricsManager.deviceID})
 	return &metricsManager
 }
 
@@ -452,7 +452,7 @@ func (mm *OnuMetricsManager) InitializeMetricCollectionTime(ctx context.Context)
 		// If mm.pDeviceHandler.GetPmConfigs().FreqOverride is set to false, then overall metric specific interval applies
 		mm.NextGlobalMetricCollectionTime = time.Now().Add(time.Duration(mm.pDeviceHandler.GetPmConfigs().DefaultFreq) * time.Second)
 	}
-	logger.Infow(ctx, "initialized standalone group/metric collection time", log.Fields{"device-id": mm.deviceID})
+	logger.Debugw(ctx, "initialized standalone group/metric collection time", log.Fields{"device-id": mm.deviceID})
 }
 
 // UpdateDefaultFrequency - TODO: add comment
@@ -1092,7 +1092,7 @@ func (mm *OnuMetricsManager) publishMetrics(ctx context.Context, metricInfo []*v
 
 // ProcessOmciMessages - TODO: add comment
 func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context, waitForOmciProcessor *sync.WaitGroup) {
-	logger.Infow(ctx, "Start routine to process OMCI-GET messages for device-id", log.Fields{"device-id": mm.deviceID})
+	logger.Debugw(ctx, "Start routine to process OMCI-GET messages for device-id", log.Fields{"device-id": mm.deviceID})
 	// Flush metric collection channels to be safe.
 	// It is possible that there is stale data on this channel if the ProcessOmciMessages routine
 	// is stopped right after issuing a OMCI-GET request and started again.

@@ -1685,7 +1685,7 @@ func (oo *OnuDeviceEntry) updateOnuSpecificEntries(ctx context.Context) {
 // Updates a specific attribute in the MIB database
 func (oo *OnuDeviceEntry) updateAttribute(ctx context.Context, attributeName string, attributesMap me.AttributeValueMap, classID me.ClassID, entityID uint16, newValue interface{}) {
 	if _, exists := attributesMap[attributeName]; exists {
-		logger.Infow(ctx, "Updating "+attributeName, log.Fields{"classID": strconv.Itoa(int(classID)), "oldValue": attributesMap[attributeName], "newValue": newValue})
+		logger.Debugw(ctx, "Updating "+attributeName, log.Fields{"classID": strconv.Itoa(int(classID)), "oldValue": attributesMap[attributeName], "newValue": newValue})
 		attributeCopy := make(me.AttributeValueMap)
 		for k, v := range attributesMap {
 			attributeCopy[k] = v
@@ -1722,7 +1722,7 @@ func (oo *OnuDeviceEntry) populateMibDatabase(ctx context.Context, cmnMEDbValue 
 	cmnMEDbValue.MeDbLock.Lock()
 	defer cmnMEDbValue.MeDbLock.Unlock()
 
-	logger.Infow(ctx, "Populating MIbDatabase with the template information ", log.Fields{"device-id": oo.deviceID})
+	logger.Debugw(ctx, "Populating MIbDatabase with the template information ", log.Fields{"device-id": oo.deviceID})
 	for firstLevelKey, firstLevelValue := range firstLevelMap {
 		if uint16ValidNumber, err := strconv.ParseUint(firstLevelKey, 10, 16); err == nil {
 			meClassID := me.ClassID(uint16ValidNumber)
