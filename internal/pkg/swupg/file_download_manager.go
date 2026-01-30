@@ -101,7 +101,7 @@ func (dm *FileDownloadManager) GetDownloadTimeout(ctx context.Context) time.Dura
 // StartDownload returns FileState and error code from download request for the given file name and URL
 func (dm *FileDownloadManager) StartDownload(ctx context.Context, aImageName string, aURLCommand string) (FileState, error) {
 	logger.Infow(ctx, "image download-to-adapter requested", log.Fields{
-		"image-name": aImageName, "url-command": aURLCommand})
+		"image-name": aImageName, "url-command": aURLCommand, "local-path": cDefaultLocalDir})
 
 	// keep a semaphore over the complete method in order to avoid parallel entrance to this method
 	// otherwise a temporary file state 'Started' could be indicated allowing start of ONU upgrade handling
@@ -326,7 +326,7 @@ func (dm *FileDownloadManager) updateFileState(ctx context.Context, aImageName s
 // downloadFile downloads the specified file from the given http location
 func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand string, aFilePath string, aFileName string) error {
 	// Get the data
-	logger.Infow(ctx, "downloading with URL", log.Fields{"url": aURLCommand, "localPath": aFilePath})
+	logger.Debugw(ctx, "downloading with URL", log.Fields{"url": aURLCommand, "localPath": aFilePath})
 	// verifying the complete URL by parsing it to its URL elements
 	urlBase, err1 := url.Parse(aURLCommand)
 	if err1 != nil {
@@ -435,7 +435,7 @@ func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 			return
 		}
 		fileSize := fileStats.Size()
-		logger.Infow(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileSize})
+		logger.Debugw(ctx, "written file size is", log.Fields{"file": aLocalPathName, "length": fileSize})
 
 		dm.updateFileState(ctx, aFileName, fileSize)
 		//TODO:!!! further extension could be provided here, e.g. already computing and possibly comparing the CRC, vendor check

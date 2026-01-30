@@ -539,7 +539,7 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			return resp, nil
 		case *extension.GetValueRequest_OnuAllocGemStats:
 			resp := handler.getONUGEMStatsInfo(ctx)
-			logger.Infow(ctx, "Received response for on demand GEM counters ", log.Fields{"response": resp})
+			logger.Infow(ctx, "Received response for onu Alloc Gem Stats ", log.Fields{"response": resp})
 			return resp, nil
 		case *extension.GetValueRequest_FecHistory:
 			return handler.getOnuFECStats(ctx), nil
@@ -607,7 +607,7 @@ func (oo *OpenONUAC) DownloadOnuImage(ctx context.Context, request *voltha.Devic
 					firstDevice = false
 					vendorID = onuVolthaDevice.VendorId
 					imageIdentifier = vendorID + imageIdentifier //head on vendor ID of the ONU
-					logger.Infow(ctx, "download request for file",
+					logger.Debugw(ctx, "download request for file",
 						log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
 
 					// call the StartDownload synchronously to detect 'immediate' download problems

@@ -241,12 +241,12 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResponse(ctx context.Conte
 	}
 	logger.Debugw(ctx, "OMCI test response Data", log.Fields{"device-id": selfTestCb.deviceID, "data-fields": msgObj})
 	if msgObj.Result == generated.Success && msgObj.EntityClass == classID {
-		logger.Infow(ctx, "OMCI test response success", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
+		logger.Debugw(ctx, "OMCI test response success", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventTestResponseSuccess, classID)
 		return
 	}
 
-	logger.Infow(ctx, "OMCI test response failure", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
+	logger.Errorw(ctx, "OMCI test response failure", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 	selfTestCb.pDevEntry.GetDevOmciCC().ReleaseTid(ctx, msg.OmciMsg.TransactionID)
 	selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventAbort)
 	selfTestCb.submitFailureGetValueResponse(ctx, cb.respChan, extension.GetValueResponse_UNSUPPORTED, extension.GetValueResponse_ERROR, cb.reqMsg)
@@ -314,7 +314,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResult(ctx context.Context
 			"laser-bias-current": singleValResp.Response.GetOnuOpticalInfo().LaserBiasCurrent,
 			"temperature":        singleValResp.Response.GetOnuOpticalInfo().Temperature})
 	selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventTestResultSuccess)
-	logger.Infow(ctx, "OMCI test result success - pushing results", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
+	logger.Debugw(ctx, "OMCI test result success - pushing results", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 	cb.respChan <- singleValResp
 	selfTestCb.selfTestRequestComplete(ctx, cb.reqMsg)
 	logger.Infow(ctx, "OMCI test result success - pushing results complete", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
@@ -362,7 +362,7 @@ func (selfTestCb *SelfTestControlBlock) selfTestRequestComplete(ctx context.Cont
 	if err != nil {
 		return
 	}
-	logger.Infow(ctx, "self test req handling complete", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": meClassID})
+	logger.Debugw(ctx, "self test req handling complete", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": meClassID})
 	// Clear the fsmCb from the map
 	delete(selfTestCb.selfTestFsmMap, meClassID)
 }
@@ -415,7 +415,7 @@ func (selfTestCb *SelfTestControlBlock) SelfTestRequestStart(ctx context.Context
 		logger.Errorw(ctx, "self test already in progress for class id", log.Fields{"device-id": selfTestCb.deviceID, "class-id": meClassID})
 		return fmt.Errorf("self-test-already-in-progress-for-class-id-%v-device-id-%v", meClassID, selfTestCb.deviceID)
 	}
-	logger.Infow(ctx, "self test request initiated", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": meClassID})
+	logger.Debugw(ctx, "self test request initiated", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": meClassID})
 	// indicates only if the FSM was initiated correctly. Response is asynchronous on respChan.
 	// If the return from here is NOT nil, the caller shall not wait for async response.
 	return selfTestCb.initiateNewSelfTestFsm(ctx, reqMsg, CommChan, meClassID, respChan)
