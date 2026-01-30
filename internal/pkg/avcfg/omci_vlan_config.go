@@ -1969,7 +1969,7 @@ loop:
 		// 	break loop
 		message, ok := <-oFsm.PAdaptFsm.CommChan
 		if !ok {
-			logger.Info(ctx, "UniVlanConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.deviceID})
+			logger.Warnw(ctx, "UniVlanConfigFsm Rx Msg - could not read from channel", log.Fields{"device-id": oFsm.deviceID})
 			// but then we have to ensure a restart of the FSM as well - as exceptional procedure
 			_ = oFsm.PAdaptFsm.PFsm.Event(VlanEvReset)
 			break loop
