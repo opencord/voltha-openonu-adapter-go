@@ -472,7 +472,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 				continue
 			}
 		}
-		logger.Infow(ctx, "Gem Port is multicast", log.Fields{"isMulticast": isMulticast})
+		logger.Debugw(ctx, "Gem Port is multicast", log.Fields{"isMulticast": isMulticast})
 		if isMulticast {
 			mcastGemID := uint16(downstreamContent.MulticastGemId)
 			_, existing := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID]

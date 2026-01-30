@@ -2021,7 +2021,7 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 		}
 		//TODO Need to Update Device Reason To CORE as part of device update userstory
 	} else {
-		logger.Infow(ctx, "reconciling - don't notify core about DeviceUpdate",
+		logger.Debugw(ctx, "reconciling - don't notify core about DeviceUpdate",
 			log.Fields{"device-id": dh.DeviceID})
 	}
 
@@ -2066,7 +2066,7 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 			return
 		}
 	} else {
-		logger.Infow(ctx, "reconciling - pon-port already added", log.Fields{"device-id": dh.DeviceID})
+		logger.Debugw(ctx, "reconciling - pon-port already added", log.Fields{"device-id": dh.DeviceID})
 	}
 	logger.Debugw(ctx, "doStateInit-done", log.Fields{"device-id": dh.DeviceID})
 }
@@ -4036,7 +4036,7 @@ func (dh *deviceHandler) StorePersUniFlowConfig(ctx context.Context, aUniID uint
 	aUniVlanFlowParams *[]cmn.UniVlanFlowParams, aWriteToKvStore bool) error {
 
 	if dh.IsReconciling() {
-		logger.Info(ctx, "reconciling - don't store persistent UniFlowConfig", log.Fields{"device-id": dh.DeviceID})
+		logger.Debug(ctx, "reconciling - don't store persistent UniFlowConfig", log.Fields{"device-id": dh.DeviceID})
 		return nil
 	}
 	logger.Debugw(ctx, "Store or clear persistent UniFlowConfig", log.Fields{"device-id": dh.DeviceID})
@@ -4922,7 +4922,7 @@ func (dh *deviceHandler) GetTechProfileInstanceFromParentAdapter(ctx context.Con
 // This routine is unique per ONU ID and blocks on flowControlBlock channel for incoming flows
 // Each incoming flow is processed in a synchronous manner, i.e., the flow is processed to completion before picking another
 func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
-	logger.Infow(context.Background(), "starting-flow-handler-routine", log.Fields{"device-id": dh.DeviceID})
+	logger.Debugw(context.Background(), "starting-flow-handler-routine", log.Fields{"device-id": dh.DeviceID})
 	dh.setFlowMonitoringIsRunning(uniID, true)
 	for {
 		select {
