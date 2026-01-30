@@ -4780,6 +4780,19 @@ func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, device
 		logger.Errorw(ctx, "unable to update device state to core",
 			log.Fields{"device-id": dh.DeviceID, "Err": err})
 	}
+	context := make(map[string]string)
+	context["device-id"] = dh.DeviceID
+	context["onu-serial-number"] = dh.device.SerialNumber
+	context["parent-id"] = dh.parentID
+
+	deviceEvent := &voltha.DeviceEvent{
+		ResourceId:      dh.DeviceID,
+		DeviceEventName: cmn.OnuReconcileFailed,
+		Description:     cmn.OnuReconcileFailedAbortedDesc,
+		Context:         context,
+	}
+	logger.Debugw(ctx, "send device event", log.Fields{"deviceEvent": deviceEvent, "device-id": dh.DeviceID})
+	_ = dh.EventProxy.SendDeviceEvent(ctx, deviceEvent, voltha.EventCategory_EQUIPMENT, voltha.EventSubCategory_ONU, time.Now().Unix())
 }
 
 func (dh *deviceHandler) deviceRebootStateUpdate(ctx context.Context, techProfInstLoadFailed bool) {
