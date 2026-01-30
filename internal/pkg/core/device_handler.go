@@ -179,7 +179,8 @@ type deviceHandler struct {
 	pOnuUpradeFsm                  *swupg.OnuUpgradeFsm
 	chUniVlanConfigReconcilingDone chan uint16 //channel to indicate that VlanConfig reconciling for a specific UNI has been finished
 	chUniVlanConfigOnRebootDone    chan uint16
-	chReconcilingFinished          chan bool //channel to indicate that reconciling has been finished
+	chReconcilingFinished          chan bool     //channel to indicate that reconciling has been finished
+	chReconcilingStopped           chan struct{} //channel to indicate the current reconciling has been stopped
 	pLastUpgradeImageState         *voltha.ImageState
 	upgradeFsmChan                 chan struct{}
 
@@ -270,6 +271,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 	dh.disableDeviceRequested = false
 	dh.oltAvailable = false
 	dh.chReconcilingFinished = make(chan bool)
+	dh.chReconcilingStopped = make(chan struct{})
 	dh.reconcileExpiryComplete = adapter.maxTimeoutReconciling //assumption is to have it as duration in s!
 	rECSeconds := int(dh.reconcileExpiryComplete / time.Second)
 	if rECSeconds < 2 {
@@ -1264,6 +1266,8 @@ func (dh *deviceHandler) sendChReconcileFinished(success bool) {
 		case dh.chReconcilingFinished <- success:
 		default:
 		}
+		// Wait until the current running reconciliation has stopped
+		<-dh.chReconcilingStopped
 	}
 }
 
@@ -2357,11 +2361,15 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 
 			//VOL-4965: Recover previously Activating ONU during reconciliation.
-			if dh.device.OperStatus == common.OperStatus_ACTIVATING {
-				logger.Debugw(ctx, "Reconciling an ONU in previously activating state, perform MIB reset and resume normal start up",
+			// Allow the ONU device to perform mib-reset and follow the standard startup process, if it was previously in the Activating state or
+			// if its admin state was "up" before the ONU adapter restarted.
+			pDevEntry.MutexPersOnuConfig.Lock()
+			if dh.device.OperStatus == common.OperStatus_ACTIVATING || pDevEntry.SOnuPersistentData.PersAdminState == "up" {
+				logger.Debugw(ctx, "Reconciling an ONU in previously activating state or admin state up, perform MIB reset and resume normal start up",
 					log.Fields{"device-id": dh.DeviceID})
-				pDevEntry.MutexPersOnuConfig.Lock()
 				pDevEntry.SOnuPersistentData.PersMibLastDbSync = 0
+				pDevEntry.MutexPersOnuConfig.Unlock()
+			} else {
 				pDevEntry.MutexPersOnuConfig.Unlock()
 			}
 		} else {
@@ -4688,6 +4696,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]ia.TechProfileDownloadMessage)
 				onuDevEntry.MutexReconciledTpInstances.Unlock()
 			}
+			dh.chReconcilingStopped <- struct{}{}
 		}()
 	}
 	dh.mutexReconcilingFlag.Lock()
