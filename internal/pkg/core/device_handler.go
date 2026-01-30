@@ -1764,6 +1764,31 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 			logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
 				"device-id": dh.DeviceID, "error": err})
 		}
+		go func() {
+			onuDlChn := dh.pOnuUpradeFsm.GetOnuDLChannel()
+			select {
+			case <-ctx.Done():
+				logger.Errorw(ctx, "context Deadline Exceeded aborting ONU SW upgrade", log.Fields{"device-id": dh.DeviceID, "err": ctx.Err()})
+				dh.lockUpgradeFsm.Lock()
+				if dh.pOnuUpradeFsm != nil {
+					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST)
+				}
+				dh.lockUpgradeFsm.Unlock()
+				return
+			case <-dh.deviceDeleteCommChan:
+				logger.Errorw(ctx, "device deleted aborting ONU SW upgrade", log.Fields{"device-id": dh.DeviceID, "err": ctx.Err()})
+				dh.lockUpgradeFsm.Lock()
+				if dh.pOnuUpradeFsm != nil {
+					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST)
+				}
+				dh.lockUpgradeFsm.Unlock()
+				return
+			case success := <-onuDlChn:
+				logger.Infow(ctx, "onu SW upgrade download completed", log.Fields{"isSuccess": success, "device-id": dh.DeviceID})
+				return
+
+			}
+		}()
 		return
 	}
 	logger.Errorw(ctx, "start Onu SW upgrade rejected: no inactive image", log.Fields{
