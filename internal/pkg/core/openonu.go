@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/health"
 	"github.com/opencord/voltha-protos/v5/go/olt_inter_adapter_service"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -637,7 +639,28 @@ func (oo *OpenONUAC) DownloadOnuImage(ctx context.Context, request *voltha.Devic
 					//onu upgrade handling called in background without immediate error evaluation here
 					//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
 					//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
-					go handler.onuSwUpgradeAfterDownload(ctx, request, oo.pFileManager, imageIdentifier)
+					go func() {
+						onuswctx, cancel := context.WithTimeout(context.Background(), oo.config.ONUSwUpgradeTimeout)
+
+						if md, ok := metadata.FromIncomingContext(ctx); ok {
+							if deadlineStrs := md.Get("deadline"); len(deadlineStrs) > 0 {
+								if deadlineUnixNano, err := strconv.ParseInt(deadlineStrs[0], 10, 64); err == nil {
+									deadline := time.Unix(0, deadlineUnixNano)
+									onuswctx, _ = context.WithTimeout(context.Background(), time.Until(deadline))
+								} else {
+									logger.Warnw(ctx, "Failed to parse deadline metadata, using default timeout",
+										log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier, "err": err})
+								}
+							} else {
+								logger.Warnw(ctx, "No deadline metadata found, using default timeout",
+									log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
+							}
+						} else {
+							logger.Warnw(ctx, "Failed to retrieve metadata, using default timeout",
+								log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
+						}
+						handler.onuSwUpgradeAfterDownload(onuswctx, request, oo.pFileManager, imageIdentifier, cancel)
+					}()
 					loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_STARTED
 					loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
 					loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN

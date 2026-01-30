@@ -2050,3 +2050,9 @@ func (oFsm *OnuUpgradeFsm) retrySoftwareDownload(ctx context.Context) {
 		oFsm.abortOnOmciError(ctx, false)
 	}
 }
+
+func (oFsm *OnuUpgradeFsm) GetOnuDLChannel() chan bool {
+	oFsm.mutexUpgradeParams.Lock()
+	defer oFsm.mutexUpgradeParams.Unlock()
+	return oFsm.chOnuDlReady
+}
