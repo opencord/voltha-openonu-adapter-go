@@ -68,6 +68,7 @@ type AdapterFlags struct {
 	MinBackoffRetryDelay        time.Duration
 	MaxBackoffRetryDelay        time.Duration
 	RPCTimeout                  time.Duration
+	ONUSwUpgradeTimeout         time.Duration
 	MaxConcurrentFlowsPerUni    int
 	PerRPCRetryTimeout          time.Duration
 	MaxRetries                  uint
@@ -281,6 +282,11 @@ func (so *AdapterFlags) ParseCommandArguments(args []string) {
 		"rpc_timeout",
 		10*time.Second,
 		"The default timeout when making an RPC request")
+
+	fs.DurationVar(&(so.ONUSwUpgradeTimeout),
+		"onu_sw_upgrade_timeout",
+		3*time.Hour,
+		"The default timeout for ONU software upgrade")
 
 	fs.DurationVar(&(so.MinBackoffRetryDelay),
 		"min_retry_delay",
