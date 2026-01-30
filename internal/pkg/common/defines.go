@@ -378,4 +378,8 @@ const (
 
 	OnuFlowConfigFailed     = "ONU_CONFIG_FAILED"
 	OnuFlowConfigFailedDesc = "ONU flow configuration failed"
+
+	OnuReconcileFailed            = "ONU_RECONCILE_FAILED"
+	OnuReconcileFailedTimeoutDesc = "ONU reconcile failed - timed out"
+	OnuReconcileFailedAbortedDesc = "ONU reconcile failed - aborted"
 )
