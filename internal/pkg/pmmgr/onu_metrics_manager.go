@@ -4255,7 +4255,7 @@ func (mm *OnuMetricsManager) GetONUGEMCounters(ctx context.Context) *extension.S
 	}
 
 	for allocID, gemSlice := range allocIDtoGem {
-		logger.Infow(ctx, "AllocID", log.Fields{"alloc-id": allocID})
+		logger.Debugw(ctx, "AllocID", log.Fields{"alloc-id": allocID})
 		allocIdGemData := extension.OnuAllocGemHistoryData{
 			OnuAllocIdInfo: &extension.OnuAllocHistoryData{},
 			GemPortInfo:    []*extension.OnuGemPortHistoryData{},
