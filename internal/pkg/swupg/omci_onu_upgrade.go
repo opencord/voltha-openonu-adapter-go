@@ -715,7 +715,7 @@ func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
 	}
 	oFsm.origImageLength = uint32(fileLen)
 	oFsm.imageLength = uint32(len(oFsm.imageBuffer))
-	logger.Infow(ctx, "OnuUpgradeFsm starts with StartSwDl values", log.Fields{
+	logger.Debugw(ctx, "OnuUpgradeFsm starts with StartSwDl values", log.Fields{
 		"MeId": oFsm.InactiveImageMeID, "windowSizeLimit": oFsm.omciDownloadWindowSizeLimit,
 		"ImageSize": oFsm.imageLength, "original file size": fileLen})
 	//"NumberOfCircuitPacks": oFsm.numberCircuitPacks, "CircuitPacks MeId": 0}) //parallel circuit packs download not supported
@@ -826,7 +826,7 @@ func (oFsm *OnuUpgradeFsm) runSwDlSectionWindow(ctx context.Context) {
 			windowAckRequest = 1
 
 			oFsm.omciDownloadWindowSizeLast = oFsm.nextDownloadSectionsWindow
-			logger.Infow(ctx, "DlSection expect Response for last window (section)", log.Fields{
+			logger.Debugw(ctx, "DlSection expect Response for last window (section)", log.Fields{
 				"device-id": oFsm.deviceID, "DlSectionNoAbsolute": oFsm.nextDownloadSectionsAbsolute})
 		}
 		oFsm.mutexUpgradeParams.Unlock() //unlock here to give other functions some chance to process during/after the send request
@@ -883,7 +883,7 @@ func (oFsm *OnuUpgradeFsm) enterVerifyWindow(ctx context.Context, e *fsm.Event) 
 
 //nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
-	logger.Infow(ctx, "OnuUpgradeFsm finalize DL", log.Fields{
+	logger.Debugw(ctx, "OnuUpgradeFsm finalize DL", log.Fields{
 		"device-id": oFsm.deviceID, "crc": strconv.FormatInt(int64(oFsm.imageCRC), 16), "delay": oFsm.delayEndSwDl})
 	//use a background routine to wait EndSwDlDelay and then send the EndSwDl request
 	//  in order to avoid blocking on synchronous event calls for the complete wait time
@@ -943,7 +943,7 @@ func (oFsm *OnuUpgradeFsm) delayAndSendEndSwDl(ctx context.Context) {
 
 //nolint:unparam
 func (oFsm *OnuUpgradeFsm) enterWaitEndDL(ctx context.Context, e *fsm.Event) {
-	logger.Infow(ctx, "OnuUpgradeFsm WaitEndDl", log.Fields{
+	logger.Debugw(ctx, "OnuUpgradeFsm WaitEndDl", log.Fields{
 		"device-id": oFsm.deviceID, "wait delay": oFsm.waitDelayEndSwDl * time.Second, "wait count": oFsm.waitCountEndSwDl})
 	if oFsm.waitCountEndSwDl == 0 {
 		logger.Errorw(ctx, "WaitEndDl abort: max limit of EndSwDL reached", log.Fields{
@@ -1522,7 +1522,7 @@ func (oFsm *OnuUpgradeFsm) handleRxSwSectionResponse(ctx context.Context, msg cm
 	oFsm.mutexUpgradeParams.Lock()
 	if msgObj.EntityInstance == oFsm.InactiveImageMeID {
 		sectionNumber := msgObj.SectionNumber
-		logger.Infow(ctx, "DlSectionResponse received", log.Fields{
+		logger.Debugw(ctx, "DlSectionResponse received", log.Fields{
 			"window section-number": sectionNumber, "window": oFsm.nextDownloadWindow, "device-id": oFsm.deviceID})
 
 		oFsm.nextDownloadWindow++
@@ -1811,7 +1811,7 @@ func (oFsm *OnuUpgradeFsm) verifyOnuSwStatusAfterDownload(ctx context.Context, a
 		} else {
 			//have to wait on explicit activation request
 			oFsm.mutexUpgradeParams.Unlock()
-			logger.Infow(ctx, "OnuUpgradeFsm - expected ONU image version indicated by the ONU, wait for activate request",
+			logger.Debugw(ctx, "OnuUpgradeFsm - expected ONU image version indicated by the ONU, wait for activate request",
 				log.Fields{"device-id": oFsm.deviceID})
 			_ = oFsm.PAdaptFsm.PFsm.Event(UpgradeEvWaitForActivate)
 		}

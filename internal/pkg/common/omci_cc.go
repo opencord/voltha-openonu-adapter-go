@@ -4442,7 +4442,7 @@ func (oo *OmciCC) PrepareOnuSectionsOfWindow(ctx context.Context,
 	omciMsgsPerWindow *ia.OmciMessages, aIsExtendedOmci bool) (OmciTransferStructure, error) {
 	//onuswsections uses only low prioirity tids
 	tid := oo.GetOnuSwSecNextTid()
-	logger.Infow(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
+	logger.Debugw(ctx, "send DlSectionRequest:", log.Fields{"device-id": oo.deviceID,
 		"SequNo": strconv.FormatInt(int64(tid), 16),
 		"InstId": strconv.FormatInt(int64(aImageMeID), 16), "omci-ack": aAckRequest, "sectionNo": aDownloadSectionNo, "sectionData": aSection})
 
