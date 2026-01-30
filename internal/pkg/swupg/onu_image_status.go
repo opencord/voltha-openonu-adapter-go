@@ -257,14 +257,19 @@ func (oo *OnuImageStatus) processAttributesReceived(ctx context.Context, msgObj 
 				}
 			}
 		case me.SoftwareImage_ImageHash:
-			if msgObj.Result == me.Success {
-				bytes, _ := me.InterfaceToOctets(meAttributes[me.SoftwareImage_ImageHash])
-				image.Hash = hex.EncodeToString(bytes)
-			} else {
-				sResult := msgObj.Result.String()
-				logger.Infow(ctx, "processAttributesReceived - ImageHash",
-					log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
-				image.Hash = cResponse + sResult
+			// Check if me.SoftwareImage_ImageHash exists in meAttributes
+			if hashAttr, found := meAttributes[me.SoftwareImage_ImageHash]; found {
+				// Process the hash attribute if msgObj.Result is successful
+				if msgObj.Result == me.Success {
+					bytes, _ := me.InterfaceToOctets(hashAttr)
+					image.Hash = hex.EncodeToString(bytes)
+				} else {
+					// Handle unsuccessful result with logging and image.Hash update
+					sResult := msgObj.Result.String()
+					logger.Infow(ctx, "processAttributesReceived - ImageHash",
+						log.Fields{"result": sResult, "unsupported attribute mask": msgObj.UnsupportedAttributeMask, "device-id": oo.deviceID})
+					image.Hash = cResponse + sResult
+				}
 			}
 		}
 	}
