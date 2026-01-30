@@ -368,9 +368,10 @@ func (dh *deviceHandler) handleOMCIIndication(ctx context.Context, msg *ia.OmciM
 	logger.Debugw(ctx, "inter-adapter-recv-omci", log.Fields{
 		"device-id": dh.DeviceID, "RxOmciMessage": hex.EncodeToString(omciMsg.Message)})
 	*/
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry != nil {
 		if pDevEntry.PDevOmciCC != nil {
+			logger.Debugw(ctx, "pDevEntry.PDevOmciCC is not nil", log.Fields{"device-id": dh.DeviceID})
 			return pDevEntry.PDevOmciCC.ReceiveMessage(log.WithSpanFromContext(context.TODO(), ctx), msg.Message)
 		}
 		logger.Debugw(ctx, "omciCC not ready to receive omci messages - incoming omci message ignored", log.Fields{"device-id": dh.DeviceID,
@@ -383,7 +384,7 @@ func (dh *deviceHandler) handleOMCIIndication(ctx context.Context, msg *ia.OmciM
 func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, techProfMsg *ia.TechProfileDownloadMessage) error {
 	logger.Infow(ctx, "tech-profile-download-request", log.Fields{"device-id": dh.DeviceID})
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
@@ -526,7 +527,7 @@ func (dh *deviceHandler) handleDeleteGemPortRequest(ctx context.Context, delGemP
 func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontMsg *ia.DeleteTcontMessage) error {
 	logger.Infow(ctx, "delete-tcont-request start", log.Fields{"device-id": dh.DeviceID, "uni-id": delTcontMsg.UniId, "tcont": delTcontMsg.AllocId})
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
@@ -578,7 +579,7 @@ func (dh *deviceHandler) handleDeleteTcontRequest(ctx context.Context, delTcontM
 
 func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 	uniID uint8, tpID uint8, pathString string, resource avcfg.ResourceEntry, entryID uint32) error {
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
@@ -929,7 +930,7 @@ func (dh *deviceHandler) ReconcileDeviceTechProf(ctx context.Context) bool {
 
 	continueWithFlowConfig := false
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "reconciling - no valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
@@ -1059,7 +1060,7 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 	logger.Debugw(ctx, "reconciling - trigger flow config", log.Fields{"device-id": dh.DeviceID})
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "reconciling - no valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
@@ -1655,7 +1656,7 @@ func (dh *deviceHandler) doOnuSwUpgrade(ctx context.Context, apImageDsc *voltha.
 		"device-id": dh.DeviceID, "image-name": (*apImageDsc).Name})
 
 	var err error
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "start Onu SW upgrade rejected: no valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("start Onu SW upgrade rejected: no valid OnuDevice for device-id: %s", dh.DeviceID)
@@ -1706,7 +1707,7 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 	apDownloadManager *swupg.FileDownloadManager, aImageIdentifier string) {
 
 	var err error
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "start Onu SW upgrade rejected: no valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 		return
@@ -1778,7 +1779,7 @@ func (dh *deviceHandler) onuSwActivateRequest(ctx context.Context,
 	//  1.) activation of the image for a started upgrade process (in case the running upgrade runs on the requested image)
 	//  2.) activation of the inactive image
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "Onu image activation rejected: no valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 		return nil, fmt.Errorf("no valid OnuDevice for device-id: %s", dh.DeviceID)
@@ -1847,7 +1848,7 @@ func (dh *deviceHandler) onuSwCommitRequest(ctx context.Context,
 	//  1.) commitment of the image for a started upgrade process (in case the running upgrade runs on the requested image)
 	//  2.) commitment of the active image
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "Onu image commitment rejected: no valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 		return nil, fmt.Errorf("no valid OnuDevice for device-id: %s", dh.DeviceID)
@@ -3330,7 +3331,7 @@ func (dh *deviceHandler) createUniLockFsm(ctx context.Context, aAdminState bool,
 		sFsmName = "UnLockStateFSM"
 	}
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.DeviceID})
 		return
@@ -3850,7 +3851,7 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn
 	aMatchVlan uint16, aMatchPcp uint8, aSetVlan uint16, aSetPcp uint8, innerCvlan uint16, aDevEvent cmn.OnuDeviceEvent, lastFlowToReconcile bool, lastFlowToConfOnReboot bool, aMeter *of.OfpMeterConfig, respChan *chan error) error {
 	chVlanFilterFsm := make(chan cmn.Message, 2)
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice -aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice for device-id %x - aborting", dh.DeviceID)
@@ -4041,7 +4042,7 @@ func (dh *deviceHandler) StorePersUniFlowConfig(ctx context.Context, aUniID uint
 	}
 	logger.Debugw(ctx, "Store or clear persistent UniFlowConfig", log.Fields{"device-id": dh.DeviceID})
 
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
@@ -4089,7 +4090,7 @@ func (dh *deviceHandler) ReasonUpdate(ctx context.Context, deviceReason uint8, n
 }
 
 func (dh *deviceHandler) StorePersistentData(ctx context.Context) error {
-	pDevEntry := dh.GetOnuDeviceEntry(ctx, true)
+	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
 		logger.Warnw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
@@ -4607,7 +4608,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				// However, a later refactoring of the functionality remains unaffected.
 				dh.mutexReconcilingFlag.Lock()
 				if success {
-					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, false); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice - aborting Core DeviceStateUpdate",
 							log.Fields{"device-id": dh.DeviceID})
 					} else if !onuDevEntry.SOnuPersistentData.PersRebootInProgress {
@@ -4643,7 +4644,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 					logger.Errorw(ctx, "wait for reconciling aborted",
 						log.Fields{"device-id": dh.DeviceID})
 
-					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+					if onuDevEntry := dh.GetOnuDeviceEntry(ctx, false); onuDevEntry == nil {
 						logger.Errorw(ctx, "No valid OnuDevice",
 							log.Fields{"device-id": dh.DeviceID})
 					} else {
@@ -4660,7 +4661,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 					log.Fields{"device-id": dh.DeviceID})
 				dh.mutexReconcilingFlag.Lock()
 
-				if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+				if onuDevEntry := dh.GetOnuDeviceEntry(ctx, false); onuDevEntry == nil {
 					logger.Errorw(ctx, "No valid OnuDevice",
 						log.Fields{"device-id": dh.DeviceID})
 				} else {
@@ -4679,7 +4680,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 			dh.SetReconcilingReasonUpdate(false)
 			dh.SetReconcilingFirstPass(true)
 
-			if onuDevEntry := dh.GetOnuDeviceEntry(ctx, true); onuDevEntry == nil {
+			if onuDevEntry := dh.GetOnuDeviceEntry(ctx, false); onuDevEntry == nil {
 				logger.Errorw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 			} else {
 				onuDevEntry.MutexReconciledTpInstances.Lock()
