@@ -416,6 +416,9 @@ func (oo *OmciCC) ReceiveMessage(ctx context.Context, rxMsg []byte) error {
 		logger.Errorw(ctx, "Unexpected TransCorrId != 0  not accepted for autonomous messages",
 			log.Fields{"msgType": omciMsg.MessageType, "payload": hex.EncodeToString(omciMsg.Payload),
 				"device-id": oo.deviceID})
+		oo.mutexRxSchedMap.Lock()
+		delete(oo.rxSchedulerMap, omciMsg.TransactionID)
+		oo.mutexRxSchedMap.Unlock()
 		return fmt.Errorf("autonomous Omci Message with TranSCorrId != 0 not acccepted %s", oo.deviceID)
 	}
 	//logger.Debug(ctx,"RxMsg is a Omci Response Message: try to schedule it to the requester")
