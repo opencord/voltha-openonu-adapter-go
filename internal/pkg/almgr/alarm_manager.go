@@ -531,7 +531,7 @@ func (am *OnuAlarmManager) handleOmciGetAllAlarmNextResponseMessage(ctx context.
 
 // StartOMCIAlarmMessageProcessing - TODO: add comment: add comment
 func (am *OnuAlarmManager) StartOMCIAlarmMessageProcessing(ctx context.Context) {
-	logger.Infow(ctx, "alarm-manager-start-omci-alarm-message-processing-routines", log.Fields{"device-id": am.deviceID})
+	logger.Debugw(ctx, "alarm-manager-start-omci-alarm-message-processing-routines", log.Fields{"device-id": am.deviceID})
 	am.onuAlarmManagerLock.Lock()
 	am.processMessage = true
 	if am.activeAlarms == nil {
