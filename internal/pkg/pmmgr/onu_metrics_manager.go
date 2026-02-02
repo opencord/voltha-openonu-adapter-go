@@ -1413,12 +1413,23 @@ func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) 
 	mm.OnuMetricsManagerLock.Unlock()
 	logger.Debugw(ctx, "pms to add and delete",
 		log.Fields{"device-id": mm.deviceID, "pms-to-add": mm.l2PmToAdd, "pms-to-delete": mm.l2PmToDelete})
-	go func() {
-		// push a tick event to move to next state
-		if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
-			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
-		}
-	}()
+	//If metrics is disabled stop L2PM periodic data collection too and move directly to Idle state for further events.
+	if mm.pDeviceHandler.GetMetricsEnabled() {
+		go func() {
+			// push a tick event to move to next state
+			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
+				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			}
+		}()
+	} else {
+		go func() {
+			// push a tick event to move to next state
+			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventSuccess); err != nil {
+				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			}
+		}()
+
+	}
 }
 
 // nolint:unparam
