@@ -318,8 +318,6 @@ type OnuMetricsManager struct {
 	extPmKvStore                                  *db.Backend
 	onuOpticalMetricstimer                        *time.Timer
 	onuUniStatusMetricstimer                      *time.Timer
-	opticalMetricsDelCommChan                     chan bool
-	uniMetricsDelCommChan                         chan bool
 	deviceID                                      string
 
 	activeL2Pms  []string // list of active l2 pm MEs created on the ONU.
@@ -423,9 +421,6 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 
 	metricsManager.onuUniStatusMetricstimer = time.NewTimer(DefaultMetricCollectionFrequency)
 	metricsManager.onuUniStatusMetricstimer.Stop()
-
-	metricsManager.opticalMetricsDelCommChan = make(chan bool, 2)
-	metricsManager.uniMetricsDelCommChan = make(chan bool, 2)
 
 	logger.Debug(ctx, "init-OnuMetricsManager completed", log.Fields{"device-id": metricsManager.deviceID})
 	return &metricsManager
@@ -799,7 +794,7 @@ loop:
 				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.deviceID})
 				// The metrics will be empty in this case
 				break loop
-			case <-mm.opticalMetricsDelCommChan:
+			case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
 				logger.Warnw(ctx, "Deleting the device, stopping optical metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 				return nil, err
 			}
@@ -891,7 +886,7 @@ loop1:
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.deviceID})
 				// The metrics could be empty in this case
 				break loop1
-			case <-mm.uniMetricsDelCommChan:
+			case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
 				logger.Warnw(ctx, "Deleting the device, stopping UniMetrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 				return nil, err
 			}
@@ -959,7 +954,7 @@ loop2:
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.deviceID})
 				// The metrics could be empty in this case
 				break loop2
-			case <-mm.uniMetricsDelCommChan:
+			case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
 				logger.Warnw(ctx, "Deleting the device, stopping UniMetrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 				return nil, err
 			}
@@ -1034,7 +1029,7 @@ loop3:
 				logger.Errorw(ctx, "timeout waiting for omci-get response for uni status", log.Fields{"device-id": mm.deviceID})
 				// The metrics could be empty in this case
 				break loop3
-			case <-mm.uniMetricsDelCommChan:
+			case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
 				logger.Warnw(ctx, "Deleting the device, stopping UniMetrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 				return nil, err
 			}
@@ -1468,8 +1463,6 @@ func (mm *OnuMetricsManager) l2PMFsmNull(ctx context.Context, e *fsm.Event) {
 	if mm.GetdeviceDeletionInProgress() {
 		mm.onuOpticalMetricstimer.Stop()
 		mm.onuUniStatusMetricstimer.Stop()
-		mm.opticalMetricsDelCommChan <- true
-		mm.uniMetricsDelCommChan <- true
 		mm.pDeviceHandler = nil
 		mm.pOnuDeviceEntry = nil
 		mm.GarbageCollectionComplete <- true
