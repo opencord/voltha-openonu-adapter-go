@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -32,20 +31,15 @@ import (
 	"github.com/looplab/fsm"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
+	"github.com/opencord/voltha-lib-go/v7/pkg/platform"
+	"github.com/opencord/voltha-protos/v5/go/inter_adapter"
+	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 )
 
 // GetTpIDFromTpPath extracts TpID from the TpPath.
 // On success it returns a valid TpID and nil error.
 // On failure it returns TpID as 0 and the error.
 func GetTpIDFromTpPath(tpPath string) (uint8, error) {
-	// tpPath is of the format  <technology>/<table_id>/olt-{}/pon-{}/onu-{}/uni-{}
-	// A sample tpPath is ==> XGS-PON/64/olt-{12345abcd}/pon-{0}/onu-{1}/uni-{1}
-	var tpPathFormat = regexp.MustCompile(`^[a-zA-Z\-_]+/[0-9]+/olt-{[a-z0-9\-]+}/pon-{[0-9]+}/onu-{[0-9]+}/uni-{[0-9]+}$`)
-
-	// Ensure tpPath is of the format  <technology>/<table_id>/<uni_port_name>
-	if !tpPathFormat.Match([]byte(tpPath)) {
-		return 0, errors.New("tp-path-not-confirming-to-format")
-	}
 	// Extract the TP table-id field.
 	tpID, err := strconv.Atoi(strings.Split(tpPath, "/")[1])
 	// Atoi returns uint64 and need to be type-casted to uint8 as tpID is uint8 size.
@@ -182,6 +176,46 @@ func (wg *WaitGroupWithTimeOut) WaitTimeout(timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return false
 	}
+}
+
+func IsValidTechProfileInstance(ctx context.Context, techProfMsg inter_adapter.TechProfileDownloadMessage) error {
+
+	var tp *tech_profile.TechProfileInstance
+	if techProfMsg.GetTpInstance() == nil {
+		return fmt.Errorf("tech-profile-instance-is-nil")
+	}
+
+	switch tpInst := techProfMsg.TechTpInstance.(type) {
+	case *inter_adapter.TechProfileDownloadMessage_TpInstance:
+		tp = tpInst.TpInstance
+	default:
+		return fmt.Errorf("unsupported-tp-instance-type--tp-id-%v", techProfMsg.TpInstancePath)
+	}
+
+	// tpPath is of the format  <technology>/<table_id>/olt-{}/pon-{}/onu-{}/uni-{}
+	// A sample tpPath is ==> XGS-PON/64/olt-{12345abcd}/pon-{0}/onu-{1}/uni-{1}
+	var tpPathFormat = regexp.MustCompile(`^[a-zA-Z\-_]+/[0-9]+/olt-{[a-z0-9\-]+}/pon-{[0-9]+}/onu-{[0-9]+}/uni-{[0-9]+}$`)
+
+	// Ensure tpPath is of the format  <technology>/<table_id>/<uni_port_name>
+	if !tpPathFormat.Match([]byte(techProfMsg.TpInstancePath)) {
+		return fmt.Errorf("invalid-tp-path-%v", techProfMsg.TpInstancePath)
+	}
+
+	if techProfMsg.UniId >= platform.MaxUnisPerOnu {
+		return fmt.Errorf("%s", fmt.Sprintf("received uni-id value exceeds range: %d",
+			techProfMsg.UniId))
+	}
+	if tp.NumGemPorts == 0 {
+		return fmt.Errorf("no GEM ports configured as Tp Instance")
+	}
+	if len(tp.UpstreamGemPortAttributeList) == 0 {
+		return fmt.Errorf("no Upstream GEM port attributes configured as Tp Instance")
+	}
+	if len(tp.DownstreamGemPortAttributeList) == 0 {
+		return fmt.Errorf("no Downstream GEM port attributes configured as Tp Instance")
+	}
+
+	return nil
 }
 
 // GenerateANISideMBPCDPortNo returns ANISideMacBridgePortConfigurationDataPortNo

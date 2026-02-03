@@ -1002,12 +1002,13 @@ func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechP
 	if handler, err := oo.getDeviceHandler(ctx, tProfile.DeviceId, false); handler != nil {
 		handler.RLockMutexDeletionInProgressFlag()
 		if handler.GetDeletionInProgress() {
-			logger.Warnw(ctx, "Device deletion  in progress - avoid processing Tech Profile", log.Fields{"device-id": tProfile.DeviceId})
+			logger.Warnw(ctx, "Device deletion in progress - avoid processing Tech Profile", log.Fields{"device-id": tProfile.DeviceId})
 
 			handler.RUnlockMutexDeletionInProgressFlag()
-			return nil, fmt.Errorf("can't proceed, device  deletion is in progress-%s", tProfile.DeviceId)
+			return nil, fmt.Errorf("can't proceed, device deletion is in progress-%s", tProfile.DeviceId)
 		}
 		handler.RUnlockMutexDeletionInProgressFlag()
+
 		if tpDownloadErr := handler.handleTechProfileDownloadRequest(log.WithSpanFromContext(context.Background(), ctx), tProfile); tpDownloadErr != nil {
 			return nil, tpDownloadErr
 		}

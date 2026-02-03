@@ -1606,7 +1606,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 
 					}
 				}
-				if err == nil && iaTechTpInst != nil {
+				if err := cmn.IsValidTechProfileInstance(ctx, *iaTechTpInst); err == nil {
 					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
 						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
 					oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
@@ -1615,7 +1615,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 					// The no longer available TP and the associated flows must be deleted from the ONU KV store
 					// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
 					allTpInstPresent = false
-					logger.Infow(ctx, "reconciling - can't get tp instance - delete tp and associated flows",
+					logger.Infow(ctx, "reconciling - Not a valid TP Instance - delete tp and associated flows",
 						log.Fields{"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err})
 					delete(oo.SOnuPersistentData.PersUniConfig[indexUni].PersTpPathMap, tpID)
 					flowSlice := oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams
