@@ -328,7 +328,9 @@ func (oFsm *UniPonAniConfigFsm) CancelProcessing(ctx context.Context) {
 	//   as it may result in deadlock situations (as observed at soft-reboot handling where
 	//   TpProcMutex is already locked by some ongoing TechProfile config/removal processing
 	//remove all TechProf related internal data to allow for new configuration
-	oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID)
+
+	// Ani Config data will be cleared during FSM reset, hence skipping the below call
+	//oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID)
 }
 
 //nolint:gocyclo
@@ -532,6 +534,9 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e 
 		// (simple loop sufficient as we are the only receiver)
 		for len(oFsm.omciMIdsResponseReceived) > 0 {
 			<-oFsm.omciMIdsResponseReceived
+		}
+		for len(oFsm.PAdaptFsm.CommChan) > 0 {
+			<-oFsm.PAdaptFsm.CommChan
 		}
 	}
 	//ensure internal slices are empty (which might be set from previous run) - release memory
@@ -1261,6 +1266,7 @@ func (oFsm *UniPonAniConfigFsm) enterResettingState(ctx context.Context, e *fsm.
 				_ = aPAFsm.PFsm.Event(aniEvRestart)
 			}
 		}(pConfigAniStateAFsm)
+		oFsm.pUniTechProf.clearAniSideConfig(ctx, oFsm.pOnuUniPort.UniID, oFsm.techProfileID)
 		logger.Warnf(ctx, "calling  HandleAniConfigFSMFailure resetting", log.Fields{
 			"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 		oFsm.pDeviceHandler.HandleAniConfigFSMFailure(ctx, oFsm.pOnuUniPort.UniID)
@@ -1374,6 +1380,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigCreateResponseMessage(ctx con
 	} else {
 		logger.Errorw(ctx, "Omci CreateResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"Error": msgObj.Result, "device-id": oFsm.deviceID})
+		oFsm.omciMIdsResponseReceived <- false
 		// possibly force FSM into abort or ignore some errors for some messages?
 		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
 			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
@@ -1426,6 +1433,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetResponseMessage(ctx contex
 	if msgObj.Result != me.Success {
 		logger.Errorw(ctx, "UniPonAniConfigFsm - Omci SetResponse Error - later: drive FSM to abort state ?",
 			log.Fields{"device-id": oFsm.deviceID, "Error": msgObj.Result})
+		oFsm.omciMIdsResponseReceived <- false
 		// possibly force FSM into abort or ignore some errors for some messages?
 		oFsm.pOmciCC.NotifyAboutOnuConfigFailure(ctx, cmn.OnuConfigFailureResponseErr, msgObj.EntityClass,
 			msgObj.EntityInstance, msgObj.EntityClass.String(), msgObj.Result)
