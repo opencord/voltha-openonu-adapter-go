@@ -1546,6 +1546,9 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 	allTpInstPresent := true
 	oo.MutexPersOnuConfig.Lock()
 	oo.MutexReconciledTpInstances.Lock()
+	defer oo.MutexReconciledTpInstances.Unlock()
+	defer oo.MutexPersOnuConfig.Unlock()
+
 	for indexUni, uniData := range oo.SOnuPersistentData.PersUniConfig {
 		uniID := uniData.PersUniID
 		oo.ReconciledTpInstances[uniID] = make(map[uint8]inter_adapter.TechProfileDownloadMessage)
@@ -1597,8 +1600,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 							}
 
 							logger.Info(ctx, "Successfully retrieved TechProfileInstance after retry", log.Fields{
-								"retry": tpRetryAttempt, "device-id": oo.deviceID,
-							})
+								"retry": tpRetryAttempt, "device-id": oo.deviceID,})
 						}
 						if err == nil {
 							break // Exit the retry loop upon success
@@ -1606,35 +1608,44 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 
 					}
 				}
-				if err == nil && iaTechTpInst != nil {
-					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
-						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
-					oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
+				if iaTechTpInst != nil {
+					if err := cmn.IsValidTechProfileInstance(ctx, *iaTechTpInst); err == nil {
+						logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
+							"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
+						oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
+						continue
+					} else {
+						logger.Warnw(ctx, "reconciling - Tp instance is not valid", log.Fields{"tp-id": tpID, "tpPath": tpPath, "device-id": oo.deviceID, "err": err})
+					}
 				} else {
-					// During the absence of the ONU adapter there seem to have been TP specific configurations!
-					// The no longer available TP and the associated flows must be deleted from the ONU KV store
-					// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
-					allTpInstPresent = false
-					logger.Infow(ctx, "reconciling - can't get tp instance - delete tp and associated flows",
-						log.Fields{"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err})
-					delete(oo.SOnuPersistentData.PersUniConfig[indexUni].PersTpPathMap, tpID)
-					flowSlice := oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams
-					for indexFlow, flowData := range flowSlice {
-						if flowData.VlanRuleParams.TpID == tpID {
-							if len(flowSlice) == 1 {
-								flowSlice = []cmn.UniVlanFlowParams{}
-							} else {
-								flowSlice = append(flowSlice[:indexFlow], flowSlice[indexFlow+1:]...)
-							}
-							oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams = flowSlice
+					logger.Warnw(ctx, "reconciling - Tp instance is nil", log.Fields{"tp-id": tpID, "tpPath": tpPath,
+						"uni-id": uniID, "device-id": oo.deviceID})
+				}
+				// During the absence of the ONU adapter there seem to have been TP specific configurations!
+				// The no longer available TP and the associated flows must be deleted from the ONU KV store
+				// and after a MIB reset a new reconciling attempt with OMCI configuration must be started.
+				allTpInstPresent = false
+				logger.Warnw(ctx, "reconciling - Not a valid TP Instance - delete tp and associated flows",
+					log.Fields{"tp-id": tpID, "tpPath": tpPath, "uni-id": uniID, "device-id": oo.deviceID, "err": err})
+				delete(oo.SOnuPersistentData.PersUniConfig[indexUni].PersTpPathMap, tpID)
+				flowSlice := oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams
+				for indexFlow, flowData := range flowSlice {
+					if flowData.VlanRuleParams.TpID == tpID {
+						if len(flowSlice) == 1 {
+							flowSlice = []cmn.UniVlanFlowParams{}
+						} else {
+							flowSlice = append(flowSlice[:indexFlow], flowSlice[indexFlow+1:]...)
 						}
+						oo.SOnuPersistentData.PersUniConfig[indexUni].PersFlowParams = flowSlice
 					}
 				}
+			} else {
+				logger.Warnw(ctx, "Empty tppath , cannot retrieve the techProfile Instance", log.Fields{
+					"uniID": uniID, "tpID": tpID, "device-id": oo.deviceID,
+				})
 			}
 		}
 	}
-	oo.MutexReconciledTpInstances.Unlock()
-	oo.MutexPersOnuConfig.Unlock()
 	return allTpInstPresent
 }
 
