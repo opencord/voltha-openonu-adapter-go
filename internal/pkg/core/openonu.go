@@ -947,38 +947,17 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 	//nolint:staticcheck
 	waitForDhInstPresent := false
 	if onuOperstate == "up" {
-		//Race condition (relevant in BBSIM-environment only): Due to unsynchronized processing of olt-adapter and rw_core,
-		//ONU_IND_REQUEST msg by olt-adapter could arrive a little bit earlier than rw_core was able to announce the corresponding
-		//ONU by RPC of Adopt_device(). Therefore it could be necessary to wait with processing of ONU_IND_REQUEST until call of
-		//Adopt_device() arrived and DeviceHandler instance was created
 		waitForDhInstPresent = true
 	}
-	if handler, _ := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent); handler != nil {
-		logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": onuInd.DeviceId,
-			"OnuId":      onuIndication.GetOnuId(),
-			"AdminState": onuIndication.GetAdminState(), "OperState": onuOperstate,
-			"SNR": onuIndication.GetSerialNumber()})
 
-		switch onuOperstate {
-		case "up":
-			if err := handler.createInterface(ctx, onuIndication); err != nil {
-				return nil, err
-			}
-			return &empty.Empty{}, nil
-		case "down", "unreachable":
-			handler.pOnuIndication = onuIndication
-			if err := handler.UpdateInterface(ctx); err != nil {
-				return nil, err
-			}
-			return &empty.Empty{}, nil
-		default:
-			logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
-			return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, onuInd.DeviceId)
-		}
+	handler, err := oo.getDeviceHandler(ctx, onuInd.DeviceId, waitForDhInstPresent)
+	if handler == nil {
+		logger.Warnw(ctx, "no handler found for received onu-ind-request", log.Fields{
+			"msgToDeviceId": onuInd.DeviceId})
+		return nil, err
 	}
-	logger.Warnw(ctx, "no handler found for received onu-ind-request", log.Fields{
-		"msgToDeviceId": onuInd.DeviceId})
-	return nil, fmt.Errorf("handler-not-found-%s", onuInd.DeviceId)
+
+	return handler.processOnuIndication(ctx, onuInd)
 }
 
 // OmciIndication is part of the ONU Inter-adapter service API.
