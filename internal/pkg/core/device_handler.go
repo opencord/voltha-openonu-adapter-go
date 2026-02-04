@@ -634,8 +634,8 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	var errorsList []error
 	var retError error
 	if dh.GetPersRebootFlag(ctx) {
-		logger.Warnw(ctx, "FlowUpdateIncremental ignored as deivce is being configured post reboot", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf("errors-installing-one-or-more-flows-groups-reboot-in-progress")
+		logger.Warnw(ctx, "FlowUpdateIncremental ignored as device is being configured post reboot", log.Fields{"device-id": dh.DeviceID})
+		return nil
 	}
 	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
 	if apOfFlowChanges.ToRemove != nil {
@@ -5288,7 +5288,7 @@ func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool 
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
-	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	logger.Debugw(ctx, "prepare for garbage ", log.Fields{"device-id": aDeviceID})
 
 	// Note: This function must be called as a goroutine to prevent blocking of further processing!
 	// first let the objects rest for some time to give all asynchronously started
