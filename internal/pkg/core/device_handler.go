@@ -634,7 +634,7 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	var errorsList []error
 	var retError error
 	if dh.GetPersRebootFlag(ctx) {
-		logger.Warnw(ctx, "FlowUpdateIncremental ignored as deivce is being configured post reboot", log.Fields{"device-id": dh.DeviceID})
+		logger.Warnw(ctx, "FlowUpdateIncremental ignored as device is being configured post reboot", log.Fields{"device-id": dh.DeviceID})
 		return fmt.Errorf("errors-installing-one-or-more-flows-groups-reboot-in-progress")
 	}
 	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
@@ -1461,7 +1461,7 @@ func (dh *deviceHandler) SendChUniVlanConfigFinishedOnReboot(value uint16) {
 }
 
 func (dh *deviceHandler) CheckForDeviceTechProf(ctx context.Context) bool {
-	logger.Info(ctx, "Check for tech profile config", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "Check for tech profile config", log.Fields{"device-id": dh.DeviceID})
 	techProfInstLoadFailed := false
 	continueWithFlowConfig := false
 	defer dh.UpdateAndStoreRebootState(ctx, continueWithFlowConfig)
@@ -1632,7 +1632,9 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 			logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
 			return
 		}
-		dh.UpdateAndStoreRebootState(ctx, true)
+		if dh.GetDeviceTechProfOnReboot() {
+			dh.UpdateAndStoreRebootState(ctx, true)
+		}
 		if err := dh.ReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
 			logger.Errorw(ctx, "errror-updating-device-reason-to-core", log.Fields{"device-id": dh.DeviceID, "error": err})
 			return
