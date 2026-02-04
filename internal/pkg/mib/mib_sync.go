@@ -465,7 +465,7 @@ func (oo *OnuDeviceEntry) enterResynchronizingState(ctx context.Context, e *fsm.
 }
 
 func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *fsm.Event) {
-	logger.Debugw(ctx, "MibSync FSM",
+	logger.Infow(ctx, "MibSync FSM",
 		log.Fields{"Start processing on examining MDS success in State": e.FSM.Current(), "device-id": oo.deviceID})
 
 	if oo.getMibFromTemplate(ctx) {
@@ -510,7 +510,7 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		oo.MutexPersOnuConfig.RLock()
 		if oo.SOnuPersistentData.PersRebootInProgress {
 			oo.MutexPersOnuConfig.RUnlock()
-			logger.Debugw(ctx, "Set mib upload as success before proceeding with flow configuration", log.Fields{"device-id": oo.deviceID})
+			logger.Infow(ctx, "Set mib upload as success before proceeding with flow configuration", log.Fields{"device-id": oo.deviceID})
 			go func() {
 				_ = oo.PMibUploadFsm.PFsm.Event(UlEvSuccess)
 				if oo.baseDeviceHandler.CheckForDeviceTechProf(ctx) {
