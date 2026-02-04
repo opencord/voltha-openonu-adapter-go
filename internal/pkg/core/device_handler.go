@@ -634,8 +634,8 @@ func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	var errorsList []error
 	var retError error
 	if dh.GetPersRebootFlag(ctx) {
-		logger.Warnw(ctx, "FlowUpdateIncremental ignored as deivce is being configured post reboot", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf("errors-installing-one-or-more-flows-groups-reboot-in-progress")
+		logger.Warnw(ctx, "FlowUpdateIncremental ignored as device is being configured post reboot", log.Fields{"device-id": dh.DeviceID})
+		return nil
 	}
 	//Remove flows (always remove flows first - remove old and add new with same cookie may be part of the same request)
 	if apOfFlowChanges.ToRemove != nil {
@@ -1279,7 +1279,7 @@ func (dh *deviceHandler) SendChUniVlanConfigFinished(value uint16) {
 }
 
 func (dh *deviceHandler) DeviceFlowConfigOnReboot(ctx context.Context) {
-	logger.Debugw(ctx, "rebooting - trigger flow config", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "rebooting - trigger flow config", log.Fields{"device-id": dh.DeviceID})
 
 	defer dh.UpdateAndStoreRebootState(ctx, false)
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
@@ -1461,7 +1461,7 @@ func (dh *deviceHandler) SendChUniVlanConfigFinishedOnReboot(value uint16) {
 }
 
 func (dh *deviceHandler) CheckForDeviceTechProf(ctx context.Context) bool {
-	logger.Info(ctx, "Check for tech profile config", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "Check for tech profile config", log.Fields{"device-id": dh.DeviceID})
 	techProfInstLoadFailed := false
 	continueWithFlowConfig := false
 	defer dh.UpdateAndStoreRebootState(ctx, continueWithFlowConfig)
@@ -1500,7 +1500,7 @@ outerLoop:
 		uniID := uniData.PersUniID
 
 		if !dh.anyTpPathExists(uniData.PersTpPathMap) {
-			logger.Debugw(ctx, "no TPs stored for uniID",
+			logger.Warn(ctx, "no TPs stored for uniID",
 				log.Fields{"uni-id": uniID, "device-id": dh.DeviceID})
 			continue
 		}
@@ -2887,12 +2887,13 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 
 	if !dh.IsReconciling() {
 		// Check if TPs are available post device reboot. If TPs are available start processing them and configure flows
+		logger.Infow(ctx, "executing UNI unlock state done event", log.Fields{"device-id": dh.DeviceID, "CheckDeviceTechProfOnReboot": dh.GetDeviceTechProfOnReboot()})
 		if dh.GetDeviceTechProfOnReboot() {
 			if dh.CheckForDeviceTechProf(ctx) {
+				logger.Infow(ctx, "executing DeviceFlowConfigOnReboot", log.Fields{"device-id": dh.DeviceID, "CheckDeviceTechProfOnReboot": dh.GetDeviceTechProfOnReboot()})
 				go dh.DeviceFlowConfigOnReboot(ctx)
 			}
 		}
-		logger.Infow(ctx, "UniUnlockStateDone event: Sending OnuUp event", log.Fields{"device-id": dh.DeviceID})
 		raisedTs := time.Now().Unix()
 		go dh.sendOnuOperStateEvent(ctx, voltha.OperStatus_ACTIVE, dh.DeviceID, raisedTs) //cmp python onu_active_event
 		pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
@@ -2900,6 +2901,7 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 			logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
 			return
 		}
+		logger.Infow(ctx, "UniUnlockStateDone event: Sending OnuUp event", log.Fields{"device-id": dh.DeviceID, "uniPersUniConfig": pDevEntry.SOnuPersistentData.PersUniConfig})
 		pDevEntry.MutexPersOnuConfig.Lock()
 		pDevEntry.SOnuPersistentData.PersUniUnlockDone = true
 		pDevEntry.MutexPersOnuConfig.Unlock()
@@ -5288,7 +5290,7 @@ func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool 
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
-	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	logger.Debugw(ctx, "prepare for garbage ", log.Fields{"device-id": aDeviceID})
 
 	// Note: This function must be called as a goroutine to prevent blocking of further processing!
 	// first let the objects rest for some time to give all asynchronously started
