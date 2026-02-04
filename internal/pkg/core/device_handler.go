@@ -5288,7 +5288,7 @@ func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool 
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
-	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	logger.Debugw(ctx, "prepare for garbage ", log.Fields{"device-id": aDeviceID})
 
 	// Note: This function must be called as a goroutine to prevent blocking of further processing!
 	// first let the objects rest for some time to give all asynchronously started
