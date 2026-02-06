@@ -16,6 +16,52 @@
       "message": "recheck",
       "revId": "f1779d86174fb07b7a5bc9474ea297b766cf5189",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c3e1b401_300ae04d",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2305,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2026-02-06T07:24:07Z",
+      "side": 1,
+      "message": "if pDevEntry is nil, then you get an exception below. So it is not a bad thing to check if it is nil I guess. What is the reason of removing this check?",
+      "range": {
+        "startLine": 2305,
+        "startChar": 1,
+        "endLine": 2305,
+        "endChar": 10
+      },
+      "revId": "f1779d86174fb07b7a5bc9474ea297b766cf5189",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d5782d3c_eeeae296",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5291,
+      "author": {
+        "id": 1000218
+      },
+      "writtenOn": "2026-02-06T07:24:07Z",
+      "side": 1,
+      "message": "”pDevEntry :\u003d dh.pOnuOmciDevice” used before. Why not now?\nAnd it is not used anywhere below. Why need to check?",
+      "range": {
+        "startLine": 5291,
+        "startChar": 1,
+        "endLine": 5291,
+        "endChar": 45
+      },
+      "revId": "f1779d86174fb07b7a5bc9474ea297b766cf5189",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
