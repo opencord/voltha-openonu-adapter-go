@@ -33,6 +33,23 @@
       "message": "recheck",
       "revId": "4993693e8a157eb6fee02465d12c9a1b58eb09b1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ee3e2195_bf110796",
+        "filename": "internal/pkg/common/defines.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 383,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2026-02-06T04:43:08Z",
+      "side": 1,
+      "message": "was there any intention to use OnuReconcileFailedTimeoutDesc? This variable is not used in this patch.",
+      "revId": "4993693e8a157eb6fee02465d12c9a1b58eb09b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
