@@ -43,6 +43,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "715f10f6_63243e74",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 2305,
+      "author": {
+        "id": 1001019
+      },
+      "writtenOn": "2026-02-07T14:28:53Z",
+      "side": 1,
+      "message": "The necessary checks are performed prior to the execution of the doStateUp() transition handler (which calls the createInterface()). I’ve removed the redundant validation here to keep the logic concise.",
+      "parentUuid": "c3e1b401_300ae04d",
+      "range": {
+        "startLine": 2305,
+        "startChar": 1,
+        "endLine": 2305,
+        "endChar": 10
+      },
+      "revId": "f1779d86174fb07b7a5bc9474ea297b766cf5189",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d5782d3c_eeeae296",
         "filename": "internal/pkg/core/device_handler.go",
         "patchSetId": 1
@@ -54,6 +78,30 @@
       "writtenOn": "2026-02-06T07:24:07Z",
       "side": 1,
       "message": "”pDevEntry :\u003d dh.pOnuOmciDevice” used before. Why not now?\nAnd it is not used anywhere below. Why need to check?",
+      "range": {
+        "startLine": 5291,
+        "startChar": 1,
+        "endLine": 5291,
+        "endChar": 45
+      },
+      "revId": "f1779d86174fb07b7a5bc9474ea297b766cf5189",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dcf16a13_f3512a89",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5291,
+      "author": {
+        "id": 1001019
+      },
+      "writtenOn": "2026-02-07T14:28:53Z",
+      "side": 1,
+      "message": "To mitigate a race condition where the ONU indication arrives before the ONUDeviceEntry is initialized, we are calling GetOnuDeviceEntry() with wait\u003dtrue. This ensures the process waits for the entry to be created in the openonu adapter rather than immediately returning an error.",
+      "parentUuid": "d5782d3c_eeeae296",
       "range": {
         "startLine": 5291,
         "startChar": 1,
