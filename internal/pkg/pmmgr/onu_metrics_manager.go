@@ -2071,7 +2071,7 @@ func (mm *OnuMetricsManager) collectEthernetFramePerformanceMonitoringHistoryDat
 
 	logger.Debugw(ctx, "collecting data for EthernetFramePerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.deviceID, "entityID": entityID, "upstream": upstream, "metricInfo": metricInfo})
-	return &metricInfo
+	return metricInfo
 }
 
 func (mm *OnuMetricsManager) collectEthernetUniHistoryData(ctx context.Context, entityID uint16) *voltha.MetricInformation {
@@ -2101,7 +2101,7 @@ func (mm *OnuMetricsManager) collectEthernetUniHistoryData(ctx context.Context, 
 
 	logger.Debugw(ctx, "collecting data for EthernetPerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.deviceID, "entityID": entityID, "metricInfo": metricInfo})
-	return &metricInfo
+	return metricInfo
 }
 
 func (mm *OnuMetricsManager) collectFecHistoryData(ctx context.Context, entityID uint16, isCurrent bool) *voltha.MetricInformation {
@@ -2131,7 +2131,7 @@ func (mm *OnuMetricsManager) collectFecHistoryData(ctx context.Context, entityID
 
 	logger.Debugw(ctx, "collecting data for FecPerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.deviceID, "entityID": entityID, "metricInfo": metricInfo})
-	return &metricInfo
+	return metricInfo
 }
 
 func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID uint16, isCurrent bool) *voltha.MetricInformation {
@@ -2161,7 +2161,7 @@ func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID
 
 	logger.Debugw(ctx, "collecting data for GemPortNetworkCtpPerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.deviceID, "entityID": entityID, "metricInfo": metricInfo})
-	return &metricInfo
+	return metricInfo
 }
 
 // nolint: gocyclo
@@ -2784,7 +2784,7 @@ func (mm *OnuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 	return nil
 }
 
-func (mm *OnuMetricsManager) populateOnuMetricInfo(title string, data map[string]float32) voltha.MetricInformation {
+func (mm *OnuMetricsManager) populateOnuMetricInfo(title string, data map[string]float32) *voltha.MetricInformation {
 	metricsContext := make(map[string]string)
 	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetDevice().ProxyAddress.OnuId)
 	metricsContext["intfID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetDevice().ProxyAddress.ChannelId)
@@ -2802,7 +2802,7 @@ func (mm *OnuMetricsManager) populateOnuMetricInfo(title string, data map[string
 
 	// create slice of metrics given that there could be more than one VEIP instance
 	metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: data}
-	return metricInfo
+	return &metricInfo
 }
 
 func (mm *OnuMetricsManager) updateAndValidateIntervalEndTime(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap, intervalEndTime *int) bool {
@@ -3650,8 +3650,8 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 		}
 	}
 	// Collect metrics for upstream for all the PM Mes per uni port and aggregate
-	var pmUpstream extension.OmciEthernetFrameExtendedPm
-	var pmDownstream extension.OmciEthernetFrameExtendedPm
+	pmUpstream := &extension.OmciEthernetFrameExtendedPm{}
+	pmDownstream := &extension.OmciEthernetFrameExtendedPm{}
 	counterFormat := extension.GetOmciEthernetFrameExtendedPmResponse_SIXTY_FOUR_BIT
 	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
 		counterFormat = extension.GetOmciEthernetFrameExtendedPmResponse_THIRTY_TWO_BIT
@@ -3697,8 +3697,8 @@ func (mm *OnuMetricsManager) CollectEthernetFrameExtendedPMCounters(ctx context.
 			Status: extension.GetValueResponse_OK,
 			Response: &extension.GetValueResponse_OnuCounters{
 				OnuCounters: &extension.GetOmciEthernetFrameExtendedPmResponse{
-					Upstream:                          &pmUpstream,
-					Downstream:                        &pmDownstream,
+					Upstream:                          pmUpstream,
+					Downstream:                        pmDownstream,
 					OmciEthernetFrameExtendedPmFormat: counterFormat,
 				},
 			},
@@ -4065,7 +4065,7 @@ func (mm *OnuMetricsManager) getEthFrameExtPM64BitDataFromResponse(ctx context.C
 }
 
 func (mm *OnuMetricsManager) aggregateEthernetFrameExtendedPM(pmDataIn map[string]uint64,
-	pmData extension.OmciEthernetFrameExtendedPm, aggregate bool) extension.OmciEthernetFrameExtendedPm {
+	pmData *extension.OmciEthernetFrameExtendedPm, aggregate bool) *extension.OmciEthernetFrameExtendedPm {
 	errorCounterValue := UnsupportedCounterValue64bit
 	if mm.supportedEthernetFrameExtendedPMClass == me.EthernetFrameExtendedPmClassID {
 		errorCounterValue = UnsupportedCounterValue32bit
@@ -4158,7 +4158,7 @@ func (mm *OnuMetricsManager) aggregateEthernetFrameExtendedPM(pmDataIn map[strin
 		pmDataOut.Frames_512To_1023Octets = pmDataIn["512_to_1023_octets"]
 		pmDataOut.Frames_1024To_1518Octets = pmDataIn["1024_to_1518_octets"]
 	}
-	return pmDataOut
+	return &pmDataOut
 }
 
 //nolint:unparam
@@ -4276,14 +4276,14 @@ func (mm *OnuMetricsManager) GetONUGEMCounters(ctx context.Context) *extension.S
 				gemHistoryData.TransmittedPayloadBytes = mm.safeGetMetricValue(ctx, metrics, "transmitted_payload_bytes", mm.deviceID)
 				gemHistoryData.EncryptionKeyErrors = mm.safeGetMetricValue(ctx, metrics, "encryption_key_errors", mm.deviceID)
 				allocIdGemData.GemPortInfo = append(allocIdGemData.GemPortInfo, &gemHistoryData)
-				logger.Debugw(ctx, " allocIdGemData value ", log.Fields{"AllocIDGemData": allocIdGemData})
+				logger.Debugw(ctx, " allocIdGemData value ", log.Fields{"AllocIDGemData": &allocIdGemData})
 
 			}
 		}
 		resp.Response.GetOnuAllocGemStatsResponse().OnuAllocGemHistoryData = append(resp.Response.GetOnuAllocGemStatsResponse().OnuAllocGemHistoryData, &allocIdGemData)
 	}
 
-	logger.Debugw(ctx, "Request to fetch GEM Performance Counters  ", log.Fields{"device-id": mm.deviceID, "response": resp})
+	logger.Debugw(ctx, "Request to fetch GEM Performance Counters  ", log.Fields{"device-id": mm.deviceID, "response": &resp})
 	return &resp
 
 }

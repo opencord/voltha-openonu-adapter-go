@@ -102,7 +102,7 @@ func (oo *OnuImageStatus) GetOnuImageStatus(ctx context.Context) (*voltha.OnuIma
 		}
 		images.Items = append(images.Items, &image)
 	}
-	logger.Debugw(ctx, "images of the ONU", log.Fields{"images": images})
+	logger.Debugw(ctx, "images of the ONU", log.Fields{"images": &images})
 	oo.updateOnuSwImagePersistentData(ctx)
 	return &images, nil
 }
