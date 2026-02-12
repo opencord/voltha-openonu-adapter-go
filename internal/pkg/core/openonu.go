@@ -41,7 +41,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/events/eventif"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
@@ -50,6 +49,7 @@ import (
 	ia "github.com/opencord/voltha-protos/v5/go/inter_adapter"
 	"github.com/opencord/voltha-protos/v5/go/omci"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
@@ -66,6 +66,7 @@ type reachabilityFromRemote struct {
 
 // OpenONUAC structure holds the ONU core information
 type OpenONUAC struct {
+	adapter_service.UnimplementedAdapterServiceServer
 	eventProxy                  eventif.EventProxy
 	kvClient                    kvstore.Client
 	deviceHandlers              map[string]*deviceHandler
@@ -244,7 +245,7 @@ func (oo *OpenONUAC) getDeviceHandler(ctx context.Context, deviceID string, aWai
 }
 
 // AdoptDevice creates a new device handler if not present already and then adopts the device
-func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	if device == nil {
 		logger.Warn(ctx, "voltha-device-is-nil")
 		return nil, errors.New("nil-device")
@@ -264,11 +265,11 @@ func (oo *OpenONUAC) AdoptDevice(ctx context.Context, device *voltha.Device) (*e
 
 		go handler.adoptOrReconcileDevice(fsmCtx, device)
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 // ReconcileDevice is called once when the adapter needs to re-create device - usually on core restart
-func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	if device == nil {
 		logger.Warn(ctx, "reconcile-device-voltha-device-is-nil")
 		return nil, errors.New("nil-device")
@@ -298,17 +299,17 @@ func (oo *OpenONUAC) ReconcileDevice(ctx context.Context, device *voltha.Device)
 		// reconcilement will be continued after onu-device entry is added
 	} else {
 		logger.Warnf(ctx, "device-already-reconciled-or-active", log.Fields{"device-id": device.Id, "parent-id": device.ParentId})
-		return &empty.Empty{}, status.Errorf(codes.AlreadyExists, "handler exists: %s", device.Id)
+		return &emptypb.Empty{}, status.Errorf(codes.AlreadyExists, "handler exists: %s", device.Id)
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 // DisableDevice disables the given device
-func (oo *OpenONUAC) DisableDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) DisableDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	logger.Infow(ctx, "disable-device", log.Fields{"device-id": device.Id})
 	if handler, err := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		go handler.disableDevice(log.WithSpanFromContext(context.Background(), ctx), device)
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		logger.Warnw(ctx, "no handler found for device-disable", log.Fields{"device-id": device.Id})
 		return nil, err
@@ -316,11 +317,11 @@ func (oo *OpenONUAC) DisableDevice(ctx context.Context, device *voltha.Device) (
 }
 
 // ReEnableDevice enables the onu device after disable
-func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	logger.Infow(ctx, "reenable-device", log.Fields{"device-id": device.Id})
 	if handler, err := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		go handler.reEnableDevice(log.WithSpanFromContext(context.Background(), ctx), device)
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		logger.Warnw(ctx, "no handler found for device-reenable", log.Fields{"device-id": device.Id})
 		return nil, err
@@ -328,14 +329,14 @@ func (oo *OpenONUAC) ReEnableDevice(ctx context.Context, device *voltha.Device) 
 }
 
 // RebootDevice reboots the given device
-func (oo *OpenONUAC) RebootDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) RebootDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	logger.Infow(ctx, "reboot-device", log.Fields{"device-id": device.Id})
 	if handler, err := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
 		err := handler.rebootDevice(log.WithSpanFromContext(context.Background(), ctx), true, device) //reboot request with device checking
 		if err != nil {
 			return nil, err
 		}
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		logger.Warnw(ctx, "no handler found for device-reboot", log.Fields{"device-id": device.Id})
 		return nil, err
@@ -343,7 +344,7 @@ func (oo *OpenONUAC) RebootDevice(ctx context.Context, device *voltha.Device) (*
 }
 
 // DeleteDevice deletes the given device
-func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	nctx := log.WithSpanFromContext(context.Background(), ctx)
 	logger.Infow(ctx, "delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber, "ctx": ctx, "nctx": nctx})
 
@@ -404,7 +405,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 		oo.deleteDeviceHandlerToMap(handler)
 		handler.PrepareForGarbageCollection(ctx, handler.DeviceID)
 
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		errMsg := fmt.Sprintf("Device  Handler not found -%s with error %s", device.Id, err)
 		logger.Error(ctx, errMsg)
@@ -413,7 +414,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 }
 
 // UpdateFlowsIncrementally updates (add/remove) the flows on a given device
-func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca.IncrementalFlows) (*empty.Empty, error) {
+func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca.IncrementalFlows) (*emptypb.Empty, error) {
 	logger.Infow(ctx, "update-flows-incrementally", log.Fields{"device-id": incrFlows.Device.Id})
 
 	//flow config is relayed to handler even if the device might be in some 'inactive' state
@@ -436,7 +437,7 @@ func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca
 		if flowUpdateErr := handler.FlowUpdateIncremental(ctx, incrFlows.Flows, incrFlows.Groups, incrFlows.FlowMetadata); flowUpdateErr != nil {
 			return nil, flowUpdateErr
 		}
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		logger.Warnw(ctx, "no handler found for incremental flow update", log.Fields{"device-id": incrFlows.Device.Id})
 		return nil, err
@@ -444,13 +445,13 @@ func (oo *OpenONUAC) UpdateFlowsIncrementally(ctx context.Context, incrFlows *ca
 }
 
 // UpdatePmConfig returns PmConfigs nil or error
-func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsInfo) (*empty.Empty, error) {
+func (oo *OpenONUAC) UpdatePmConfig(ctx context.Context, configs *ca.PmConfigsInfo) (*emptypb.Empty, error) {
 	logger.Infow(ctx, "update-pm-config", log.Fields{"device-id": configs.DeviceId})
 	if handler, err := oo.getDeviceHandler(ctx, configs.DeviceId, false); handler != nil {
 		if pmConfigErr := handler.updatePmConfig(log.WithSpanFromContext(context.Background(), ctx), configs.PmConfigs); pmConfigErr != nil {
 			return nil, pmConfigErr
 		}
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		logger.Warnw(ctx, "no handler found for update-pm-config", log.Fields{"device-id": configs.DeviceId})
 		return nil, err
@@ -518,9 +519,9 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			return handler.GetUniPortStatus(ctx, reqType.UniInfo), nil
 		case *extension.GetValueRequest_OnuOpticalInfo:
 			CommChan := make(chan cmn.Message)
-			respChan := make(chan extension.SingleGetValueResponse)
+			respChan := make(chan *extension.SingleGetValueResponse)
 			// Initiate the self test request
-			if selfTestErr := handler.pSelfTestHdlr.SelfTestRequestStart(ctx, *request, CommChan, respChan); selfTestErr != nil {
+			if selfTestErr := handler.pSelfTestHdlr.SelfTestRequestStart(ctx, request, CommChan, respChan); selfTestErr != nil {
 				return &extension.SingleGetValueResponse{
 					Response: &extension.GetValueResponse{
 						Status:    extension.GetValueResponse_ERROR,
@@ -530,7 +531,7 @@ func (oo *OpenONUAC) GetSingleValue(ctx context.Context, request *extension.Sing
 			}
 			// The timeout handling is already implemented in omci_self_test_handler module
 			resp := <-respChan
-			return &resp, nil
+			return resp, nil
 		case *extension.GetValueRequest_OnuInfo:
 			return handler.getOnuOMCICounters(ctx, reqType.OnuInfo), nil
 		case *extension.GetValueRequest_OnuOmciStats:
@@ -958,7 +959,7 @@ func (oo *OpenONUAC) CommitOnuImage(ctx context.Context, in *voltha.DeviceImageR
  */
 
 // OnuIndication is part of the ONU Inter-adapter service API.
-func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*empty.Empty, error) {
+func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*emptypb.Empty, error) {
 	logger.Debugw(ctx, "onu-indication", log.Fields{"onu-indication": onuInd})
 
 	if onuInd == nil || onuInd.OnuIndication == nil {
@@ -984,21 +985,21 @@ func (oo *OpenONUAC) OnuIndication(ctx context.Context, onuInd *ia.OnuIndication
 }
 
 // OmciIndication is part of the ONU Inter-adapter service API.
-func (oo *OpenONUAC) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*empty.Empty, error) {
+func (oo *OpenONUAC) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*emptypb.Empty, error) {
 	logger.Debugw(ctx, "omci-response", log.Fields{"parent-device-id": msg.ParentDeviceId, "child-device-id": msg.ChildDeviceId})
 
 	if handler, err := oo.getDeviceHandler(ctx, msg.ChildDeviceId, false); handler != nil {
 		if omciIndErr := handler.handleOMCIIndication(log.WithSpanFromContext(context.Background(), ctx), msg); omciIndErr != nil {
 			return nil, omciIndErr
 		}
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		return nil, err
 	}
 }
 
 // DownloadTechProfile is part of the ONU Inter-adapter service API.
-func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*empty.Empty, error) {
+func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*emptypb.Empty, error) {
 	logger.Info(ctx, "download-tech-profile", log.Fields{"device-id": tProfile.DeviceId, "uni-id": tProfile.UniId})
 
 	if handler, err := oo.getDeviceHandler(ctx, tProfile.DeviceId, false); handler != nil {
@@ -1013,14 +1014,14 @@ func (oo *OpenONUAC) DownloadTechProfile(ctx context.Context, tProfile *ia.TechP
 		if tpDownloadErr := handler.handleTechProfileDownloadRequest(log.WithSpanFromContext(context.Background(), ctx), tProfile); tpDownloadErr != nil {
 			return nil, tpDownloadErr
 		}
-		return &empty.Empty{}, nil
+		return &emptypb.Empty{}, nil
 	} else {
 		return nil, err
 	}
 }
 
 // DeleteGemPort is part of the ONU Inter-adapter service API.
-func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortMessage) (*empty.Empty, error) {
+func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortMessage) (*emptypb.Empty, error) {
 	logger.Debugw(ctx, "delete-gem-port", log.Fields{"device-id": gPort.DeviceId, "uni-id": gPort.UniId})
 	if handler, _ := oo.getDeviceHandler(ctx, gPort.DeviceId, false); handler != nil {
 		if handler.GetDeletionInProgress() {
@@ -1034,11 +1035,11 @@ func (oo *OpenONUAC) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortM
 		logger.Debugw(ctx, "deviceHandler not found", log.Fields{"device-id": gPort.DeviceId})
 		// delete requests for objects of an already deleted ONU should be acknowledged positively - continue
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 // DeleteTCont is part of the ONU Inter-adapter service API.
-func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*empty.Empty, error) {
+func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*emptypb.Empty, error) {
 	logger.Debugw(ctx, "delete-tcont", log.Fields{"device-id": tConf.DeviceId, "tconf": tConf})
 	if handler, _ := oo.getDeviceHandler(ctx, tConf.DeviceId, false); handler != nil {
 		if handler.GetDeletionInProgress() {
@@ -1052,7 +1053,7 @@ func (oo *OpenONUAC) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessa
 		logger.Debugw(ctx, "deviceHandler not found", log.Fields{"device-id": tConf.DeviceId})
 		// delete requests for objects of an already deleted ONU should be acknowledged positively - continue
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 /*
@@ -1296,7 +1297,7 @@ func (oo *OpenONUAC) SimulateAlarm(context.Context, *ca.SimulateAlarmMessage) (*
 }
 
 // SetExtValue is unimplemented
-func (oo *OpenONUAC) SetExtValue(context.Context, *ca.SetExtValueMessage) (*empty.Empty, error) {
+func (oo *OpenONUAC) SetExtValue(context.Context, *ca.SetExtValueMessage) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
@@ -1332,12 +1333,12 @@ func (oo *OpenONUAC) StartOmciTest(ctx context.Context, test *ca.OMCITest) (*omc
 }
 
 // SuppressEvent unimplemented
-func (oo *OpenONUAC) SuppressEvent(ctx context.Context, filter *voltha.EventFilter) (*empty.Empty, error) {
+func (oo *OpenONUAC) SuppressEvent(ctx context.Context, filter *voltha.EventFilter) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // UnSuppressEvent  unimplemented
-func (oo *OpenONUAC) UnSuppressEvent(ctx context.Context, filter *voltha.EventFilter) (*empty.Empty, error) {
+func (oo *OpenONUAC) UnSuppressEvent(ctx context.Context, filter *voltha.EventFilter) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
@@ -1357,27 +1358,27 @@ func (oo *OpenONUAC) RevertImageUpdate(ctx context.Context, imageInfo *ca.ImageD
 }
 
 // UpdateFlowsBulk is unimplemented
-func (oo *OpenONUAC) UpdateFlowsBulk(ctx context.Context, flows *ca.BulkFlows) (*empty.Empty, error) {
+func (oo *OpenONUAC) UpdateFlowsBulk(ctx context.Context, flows *ca.BulkFlows) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // SelfTestDevice unimplented
-func (oo *OpenONUAC) SelfTestDevice(ctx context.Context, device *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) SelfTestDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // SendPacketOut sends packet out to the device
-func (oo *OpenONUAC) SendPacketOut(ctx context.Context, packet *ca.PacketOut) (*empty.Empty, error) {
+func (oo *OpenONUAC) SendPacketOut(ctx context.Context, packet *ca.PacketOut) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // EnablePort to Enable PON/NNI interface - seems not to be used/required according to python code
-func (oo *OpenONUAC) EnablePort(ctx context.Context, port *voltha.Port) (*empty.Empty, error) {
+func (oo *OpenONUAC) EnablePort(ctx context.Context, port *voltha.Port) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
 // DisablePort to Disable pon/nni interface  - seems not to be used/required according to python code
-func (oo *OpenONUAC) DisablePort(ctx context.Context, port *voltha.Port) (*empty.Empty, error) {
+func (oo *OpenONUAC) DisablePort(ctx context.Context, port *voltha.Port) (*emptypb.Empty, error) {
 	return nil, errors.New("unImplemented")
 }
 
@@ -1387,7 +1388,31 @@ func (oo *OpenONUAC) GetExtValue(ctx context.Context, extInfo *ca.GetExtValueMes
 }
 
 // ChildDeviceLost - unimplemented
-func (oo *OpenONUAC) ChildDeviceLost(ctx context.Context, childDevice *voltha.Device) (*empty.Empty, error) {
+func (oo *OpenONUAC) ChildDeviceLost(ctx context.Context, childDevice *voltha.Device) (*emptypb.Empty, error) {
+	return nil, errors.New("unImplemented")
+}
+
+// DisableOnuDevice - disable ONU device
+func (oo *OpenONUAC) DisableOnuDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
+	logger.Infow(ctx, "disable-onu-device", log.Fields{"device-id": device.Id})
+	return oo.DisableDevice(ctx, device)
+}
+
+// EnableOnuDevice - enable ONU device
+func (oo *OpenONUAC) EnableOnuDevice(ctx context.Context, device *voltha.Device) (*emptypb.Empty, error) {
+	logger.Infow(ctx, "enable-onu-device", log.Fields{"device-id": device.Id})
+	return oo.ReEnableDevice(ctx, device)
+}
+
+// DisableOnuSerialNumber - disable ONU by serial number
+func (oo *OpenONUAC) DisableOnuSerialNumber(ctx context.Context, serialNumber *voltha.OnuSerialNumberOnOLTPon) (*emptypb.Empty, error) {
+	logger.Infow(ctx, "disable-onu-serial-number", log.Fields{"serial-number": serialNumber.SerialNumber})
+	return nil, errors.New("unImplemented")
+}
+
+// EnableOnuSerialNumber - enable ONU by serial number
+func (oo *OpenONUAC) EnableOnuSerialNumber(ctx context.Context, serialNumber *voltha.OnuSerialNumberOnOLTPon) (*emptypb.Empty, error) {
+	logger.Infow(ctx, "enable-onu-serial-number", log.Fields{"serial-number": serialNumber.SerialNumber})
 	return nil, errors.New("unImplemented")
 }
 

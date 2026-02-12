@@ -178,7 +178,7 @@ func (onuTP *OnuUniTechProf) GetTpProcessingErrorIndication(aUniID uint8, aTpID 
 //
 //	use waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) for internal synchronization
 func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
-	aUniID uint8, aPathString string, tpInst tech_profile.TechProfileInstance, wg *sync.WaitGroup) {
+	aUniID uint8, aPathString string, tpInst *tech_profile.TechProfileInstance, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
 	logger.Info(ctx, "configure the Uni according to TpPath", log.Fields{
 		"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString})
@@ -336,7 +336,7 @@ func (onuTP *OnuUniTechProf) SendChTpConfigProcessingFinished(value uint8) {
 /* internal methods *********************/
 // nolint: gocyclo
 func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
-	ctx context.Context, aUniID uint8, aTpID uint8, aPathString string, tpInst tech_profile.TechProfileInstance, aProcessingStep uint8) {
+	ctx context.Context, aUniID uint8, aTpID uint8, aPathString string, tpInst *tech_profile.TechProfileInstance, aProcessingStep uint8) {
 	var err error
 	//store profile type and identifier for later usage within the OMCI identifier and possibly ME setup
 	//pathstring is defined to be in the form of <ProfType>/<profID>/<Interface/../Identifier>

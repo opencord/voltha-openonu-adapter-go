@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	"github.com/opencord/voltha-protos/v5/go/common"
 	"github.com/opencord/voltha-protos/v5/go/health"
@@ -32,6 +32,7 @@ import (
 
 // OpenONUACInterAdapter structure holds a reference to ONU adapter
 type OpenONUACInterAdapter struct {
+	onu_inter_adapter_service.UnimplementedOnuInterAdapterServiceServer
 	onuAdapter  *OpenONUAC
 	exitChannel chan struct{}
 }
@@ -48,27 +49,27 @@ func (oo *OpenONUACInterAdapter) Start(ctx context.Context) error {
 }
 
 // OnuIndication redirects the request the the core ONU adapter handler
-func (oo *OpenONUACInterAdapter) OnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*empty.Empty, error) {
+func (oo *OpenONUACInterAdapter) OnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*emptypb.Empty, error) {
 	return oo.onuAdapter.OnuIndication(ctx, onuInd)
 }
 
 // OmciIndication redirects the request the the core ONU adapter handler
-func (oo *OpenONUACInterAdapter) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*empty.Empty, error) {
+func (oo *OpenONUACInterAdapter) OmciIndication(ctx context.Context, msg *ia.OmciMessage) (*emptypb.Empty, error) {
 	return oo.onuAdapter.OmciIndication(ctx, msg)
 }
 
 // DownloadTechProfile redirects the request the the core ONU adapter handler
-func (oo *OpenONUACInterAdapter) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*empty.Empty, error) {
+func (oo *OpenONUACInterAdapter) DownloadTechProfile(ctx context.Context, tProfile *ia.TechProfileDownloadMessage) (*emptypb.Empty, error) {
 	return oo.onuAdapter.DownloadTechProfile(ctx, tProfile)
 }
 
 // DeleteGemPort redirects the request the the core ONU adapter handler
-func (oo *OpenONUACInterAdapter) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortMessage) (*empty.Empty, error) {
+func (oo *OpenONUACInterAdapter) DeleteGemPort(ctx context.Context, gPort *ia.DeleteGemPortMessage) (*emptypb.Empty, error) {
 	return oo.onuAdapter.DeleteGemPort(ctx, gPort)
 }
 
 // DeleteTCont redirects the request the the core ONU adapter handler
-func (oo *OpenONUACInterAdapter) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*empty.Empty, error) {
+func (oo *OpenONUACInterAdapter) DeleteTCont(ctx context.Context, tConf *ia.DeleteTcontMessage) (*emptypb.Empty, error) {
 	return oo.onuAdapter.DeleteTCont(ctx, tConf)
 }
 

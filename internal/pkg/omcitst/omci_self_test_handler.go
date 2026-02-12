@@ -54,9 +54,9 @@ const (
 // We initiate an fsmCb per Self Test Request
 type fsmCb struct {
 	fsm          *cmn.AdapterFsm
-	respChan     chan extension.SingleGetValueResponse
+	respChan     chan *extension.SingleGetValueResponse
 	stopOmciChan chan bool
-	reqMsg       extension.SingleGetValueRequest
+	reqMsg       *extension.SingleGetValueRequest
 }
 
 // SelfTestControlBlock - TODO: add comment
@@ -92,8 +92,8 @@ func NewSelfTestMsgHandlerCb(ctx context.Context, dh cmn.IdeviceHandler, devEntr
 	return &selfTestCb
 }
 
-func (selfTestCb *SelfTestControlBlock) initiateNewSelfTestFsm(ctx context.Context, reqMsg extension.SingleGetValueRequest,
-	CommChan chan cmn.Message, classID generated.ClassID, respChan chan extension.SingleGetValueResponse) error {
+func (selfTestCb *SelfTestControlBlock) initiateNewSelfTestFsm(ctx context.Context, reqMsg *extension.SingleGetValueRequest,
+	CommChan chan cmn.Message, classID generated.ClassID, respChan chan *extension.SingleGetValueResponse) error {
 	aFsm := cmn.NewAdapterFsm("selfTestFsm", selfTestCb.deviceID, CommChan)
 
 	if aFsm == nil {
@@ -168,7 +168,7 @@ func (selfTestCb *SelfTestControlBlock) selfTestFsmHandleSelfTestResponse(ctx co
 
 ///// Utility functions
 
-func (selfTestCb *SelfTestControlBlock) getMeClassID(ctx context.Context, reqMsg extension.SingleGetValueRequest) (generated.ClassID, error) {
+func (selfTestCb *SelfTestControlBlock) getMeClassID(ctx context.Context, reqMsg *extension.SingleGetValueRequest) (generated.ClassID, error) {
 	switch reqMsg.GetRequest().GetRequest().(type) {
 	case *extension.GetValueRequest_OnuOpticalInfo:
 		return generated.AniGClassID, nil
@@ -189,8 +189,8 @@ func (selfTestCb *SelfTestControlBlock) triggerFsmEvent(pSelfTestFsm *cmn.Adapte
 }
 
 //nolint:unparam
-func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx context.Context, respChan chan extension.SingleGetValueResponse,
-	errorCode extension.GetValueResponse_ErrorReason, statusCode extension.GetValueResponse_Status, reqMsg extension.SingleGetValueRequest) {
+func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx context.Context, respChan chan *extension.SingleGetValueResponse,
+	errorCode extension.GetValueResponse_ErrorReason, statusCode extension.GetValueResponse_Status, reqMsg *extension.SingleGetValueRequest) {
 	meClassID, err := selfTestCb.getMeClassID(ctx, reqMsg)
 	if err != nil {
 		return
@@ -204,7 +204,7 @@ func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx contex
 	logger.Infow(ctx, "OMCI test response failure - pushing failure response", log.Fields{"device-id": selfTestCb.deviceID})
 	// Clear the fsmCb from the map
 	delete(selfTestCb.selfTestFsmMap, meClassID)
-	respChan <- singleValResp
+	respChan <- &singleValResp
 	logger.Infow(ctx, "OMCI test response failure - pushing failure response complete", log.Fields{"device-id": selfTestCb.deviceID})
 }
 
@@ -315,7 +315,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciTestResult(ctx context.Context
 			"temperature":        singleValResp.Response.GetOnuOpticalInfo().Temperature})
 	selfTestCb.triggerFsmEvent(cb.fsm, selfTestEventTestResultSuccess)
 	logger.Debugw(ctx, "OMCI test result success - pushing results", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
-	cb.respChan <- singleValResp
+	cb.respChan <- &singleValResp
 	selfTestCb.selfTestRequestComplete(ctx, cb.reqMsg)
 	logger.Infow(ctx, "OMCI test result success - pushing results complete", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 }
@@ -357,7 +357,7 @@ func (selfTestCb *SelfTestControlBlock) handleOmciResponse(ctx context.Context, 
 }
 
 // selfTestRequestComplete removes the fsmCb from the local cache if found
-func (selfTestCb *SelfTestControlBlock) selfTestRequestComplete(ctx context.Context, reqMsg extension.SingleGetValueRequest) {
+func (selfTestCb *SelfTestControlBlock) selfTestRequestComplete(ctx context.Context, reqMsg *extension.SingleGetValueRequest) {
 	meClassID, err := selfTestCb.getMeClassID(ctx, reqMsg)
 	if err != nil {
 		return
@@ -405,8 +405,8 @@ func (selfTestCb *SelfTestControlBlock) GetSelfTestHandlerIsRunning() bool {
 
 // SelfTestRequestStart initiate Test Request handling procedure. The results are asynchronously conveyed on the respChan.
 // If the return from selfTestRequest is NOT nil, the caller shall not wait for async response.
-func (selfTestCb *SelfTestControlBlock) SelfTestRequestStart(ctx context.Context, reqMsg extension.SingleGetValueRequest,
-	CommChan chan cmn.Message, respChan chan extension.SingleGetValueResponse) error {
+func (selfTestCb *SelfTestControlBlock) SelfTestRequestStart(ctx context.Context, reqMsg *extension.SingleGetValueRequest,
+	CommChan chan cmn.Message, respChan chan *extension.SingleGetValueResponse) error {
 	meClassID, err := selfTestCb.getMeClassID(ctx, reqMsg)
 	if err != nil {
 		return err
