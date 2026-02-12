@@ -182,7 +182,7 @@ type OnuDeviceEntry struct {
 	PDevOmciCC                 *cmn.OmciCC
 	pOnuDB                     *devdb.OnuDeviceDB
 	mibTemplateKVStore         *db.Backend
-	ReconciledTpInstances      map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage
+	ReconciledTpInstances      map[uint8]map[uint8]*inter_adapter.TechProfileDownloadMessage
 	chReconcilingFlowsFinished chan bool //channel to indicate that reconciling of flows has been finished
 	onuKVStore                 *db.Backend
 	POnuImageStatus            *swupg.OnuImageStatus
@@ -239,7 +239,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.devState = cmn.DeviceStatusInit
 	onuDeviceEntry.SOnuPersistentData.PersUniConfig = make([]uniPersConfig, 0)
 	onuDeviceEntry.SOnuPersistentData.PersTcontMap = make(map[uint16]uint16)
-	onuDeviceEntry.ReconciledTpInstances = make(map[uint8]map[uint8]inter_adapter.TechProfileDownloadMessage)
+	onuDeviceEntry.ReconciledTpInstances = make(map[uint8]map[uint8]*inter_adapter.TechProfileDownloadMessage)
 	onuDeviceEntry.chReconcilingFlowsFinished = make(chan bool)
 	onuDeviceEntry.reconcilingFlows = false
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan cmn.Message, 2)

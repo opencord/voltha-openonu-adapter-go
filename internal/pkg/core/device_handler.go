@@ -25,10 +25,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/opencord/voltha-openonu-adapter-go/internal/pkg/config"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/looplab/fsm"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/db"
@@ -55,6 +53,8 @@ import (
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -430,7 +430,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 			logger.Debugw(ctx, "onu-uni-tp-path-modified", log.Fields{"device-id": dh.DeviceID,
 				"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 
-			err = dh.CheckAvailableOnuCapabilities(ctx, pDevEntry, *tpInst.TpInstance)
+			err = dh.CheckAvailableOnuCapabilities(ctx, pDevEntry, tpInst.TpInstance)
 			if err != nil {
 				logger.Errorw(ctx, "error-checking-available-onu-capabilities-stopping-device",
 					log.Fields{"device-id": dh.DeviceID, "err": err, "tp-path": techProfMsg.TpInstancePath})
@@ -455,7 +455,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
 			// attention: deadline completion check and wg.Done is to be done in both routines
-			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.TpInstancePath, *tpInst.TpInstance, &wg)
+			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.TpInstancePath, tpInst.TpInstance, &wg)
 			dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
 			if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
 				logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": techProfMsg.TpInstancePath})
@@ -977,11 +977,9 @@ outerLoop:
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		persMutexLock = false
 		techProfsFound = true // set to true if we found TP once for any UNI port
-		var iaTechTpInst ia.TechProfileDownloadMessage
-		var ok bool
 		for tpID := range uniData.PersTpPathMap {
 			pDevEntry.MutexReconciledTpInstances.RLock()
-			if iaTechTpInst, ok = pDevEntry.ReconciledTpInstances[uniID][tpID]; !ok {
+			if _, ok := pDevEntry.ReconciledTpInstances[uniID][tpID]; !ok {
 				logger.Errorw(ctx, "reconciling - no reconciled tp instance available",
 					log.Fields{"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID,
 						"device-id": dh.DeviceID})
@@ -989,12 +987,14 @@ outerLoop:
 				pDevEntry.MutexReconciledTpInstances.RUnlock()
 				break outerLoop
 			}
+			// Access the TpInstance directly without copying the whole message
+			techTpInst := pDevEntry.ReconciledTpInstances[uniID][tpID].TechTpInstance
 			pDevEntry.MutexReconciledTpInstances.RUnlock()
 			continueWithFlowConfig = true // valid TP found - try flow configuration later
-			var tpInst tech_profile.TechProfileInstance
-			switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
+			var tpInst *tech_profile.TechProfileInstance
+			switch tpInstCase := techTpInst.(type) {
 			case *ia.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
-				tpInst = *techTpInst.TpInstance
+				tpInst = tpInstCase.TpInstance
 				logger.Debugw(ctx, "reconciling - received-tp-instance-successfully-after-reconcile", log.Fields{
 					"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 			default: // do not support epon or other tech
@@ -1528,10 +1528,10 @@ outerLoop:
 					break outerLoop
 				}
 				if iaTechTpInst != nil {
-					var tpInst tech_profile.TechProfileInstance
+					var tpInst *tech_profile.TechProfileInstance
 					switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
 					case *ia.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
-						tpInst = *techTpInst.TpInstance
+						tpInst = techTpInst.TpInstance
 						logger.Debugw(ctx, "received-tp-instance-successfully-after-reboot", log.Fields{
 							"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
 					default: // do not support epon or other tech
@@ -4708,7 +4708,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				logger.Errorw(ctx, "No valid OnuDevice", log.Fields{"device-id": dh.DeviceID})
 			} else {
 				onuDevEntry.MutexReconciledTpInstances.Lock()
-				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]ia.TechProfileDownloadMessage)
+				onuDevEntry.ReconciledTpInstances = make(map[uint8]map[uint8]*ia.TechProfileDownloadMessage)
 				onuDevEntry.MutexReconciledTpInstances.Unlock()
 			}
 			dh.chReconcilingStopped <- struct{}{}
@@ -4954,7 +4954,7 @@ func (dh *deviceHandler) GetTechProfileInstanceFromParentAdapter(ctx context.Con
 	subCtx, cancel := context.WithTimeout(log.WithSpanFromContext(context.Background(), ctx), dh.config.MaxTimeoutInterAdapterComm)
 	defer cancel()
 	logger.Debugw(subCtx, "get-tech-profile-instance",
-		log.Fields{"device-id": dh.device.Id, "request": request, "parent-endpoint": dh.device.ProxyAddress.AdapterEndpoint})
+		log.Fields{"device-id": dh.device.Id, "tp-path": request.TpInstancePath, "uni-id": request.UniId, "parent-endpoint": dh.device.ProxyAddress.AdapterEndpoint})
 	return pgClient.GetTechProfileInstance(subCtx, &request)
 }
 
@@ -5079,7 +5079,7 @@ func (dh *deviceHandler) SendOMCIRequest(ctx context.Context, parentEndpoint str
 	return err
 }
 
-func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDevEntry *mib.OnuDeviceEntry, tpInst tech_profile.TechProfileInstance) error {
+func (dh *deviceHandler) CheckAvailableOnuCapabilities(ctx context.Context, pDevEntry *mib.OnuDeviceEntry, tpInst *tech_profile.TechProfileInstance) error {
 	// Check if there are additional TCONT instances necessary/available
 	pDevEntry.MutexPersOnuConfig.Lock()
 	if _, ok := pDevEntry.SOnuPersistentData.PersTcontMap[uint16(tpInst.UsScheduler.AllocId)]; !ok {
@@ -5325,7 +5325,7 @@ func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool 
 	return dh.deviceDeleteCommChan
 }
 
-func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*empty.Empty, error) {
+func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*emptypb.Empty, error) {
 
 	onuIndication := onuInd.OnuIndication
 	onuOperstate := onuIndication.GetOperState()
@@ -5371,7 +5371,7 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 		return nil, err
 	}
 
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection

@@ -1549,7 +1549,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 	oo.MutexReconciledTpInstances.Lock()
 	for indexUni, uniData := range oo.SOnuPersistentData.PersUniConfig {
 		uniID := uniData.PersUniID
-		oo.ReconciledTpInstances[uniID] = make(map[uint8]inter_adapter.TechProfileDownloadMessage)
+		oo.ReconciledTpInstances[uniID] = make(map[uint8]*inter_adapter.TechProfileDownloadMessage)
 		for tpID, tpPath := range uniData.PersTpPathMap {
 			if tpPath != "" {
 				logger.Infow(ctx, "Starting retrieval for TechProfileInstance", log.Fields{
@@ -1610,7 +1610,7 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 				if err == nil && iaTechTpInst != nil {
 					logger.Debugw(ctx, "reconciling - store Tp instance", log.Fields{"uniID": uniID, "tpID": tpID,
 						"*iaTechTpInst": iaTechTpInst, "device-id": oo.deviceID})
-					oo.ReconciledTpInstances[uniID][tpID] = *iaTechTpInst
+					oo.ReconciledTpInstances[uniID][tpID] = iaTechTpInst
 				} else {
 					// During the absence of the ONU adapter there seem to have been TP specific configurations!
 					// The no longer available TP and the associated flows must be deleted from the ONU KV store
