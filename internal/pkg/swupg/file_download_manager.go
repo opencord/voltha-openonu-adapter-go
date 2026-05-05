@@ -61,7 +61,7 @@ type downloadImageParams struct {
 	downloadActive          bool
 }
 
-type requesterChannelMap map[chan<- bool]struct{} //using an empty structure map for easier (unique) element appending
+type requesterChannelMap map[string]chan<- bool
 
 // FileDownloadManager structure holds information needed for downloading to and storing images within the adapter
 type FileDownloadManager struct {
@@ -184,7 +184,7 @@ func (dm *FileDownloadManager) GetDownloadImageBuffer(ctx context.Context, aFile
 }
 
 // RequestDownloadReady receives a channel that has to be used to inform the requester in case the concerned file is downloaded
-func (dm *FileDownloadManager) RequestDownloadReady(ctx context.Context, aFileName string, aWaitChannel chan<- bool) {
+func (dm *FileDownloadManager) RequestDownloadReady(ctx context.Context, aFileName string, aWaitChannel chan<- bool, deviceID string) {
 	//mutexDownloadImageDsc must already be locked here to avoid an update of the dnldImgReadyWaiting map
 	//  just after returning false on imageLocallyDownloaded() (not found) and immediate handling of the
 	//  download success (within updateFileState())
@@ -193,7 +193,7 @@ func (dm *FileDownloadManager) RequestDownloadReady(ctx context.Context, aFileNa
 	defer dm.mutexDownloadImageDsc.Unlock()
 	if dm.imageLocallyDownloaded(ctx, aFileName) {
 		//image found (by name) and fully downloaded
-		logger.Debugw(ctx, "file ready - immediate response", log.Fields{"image-name": aFileName})
+		logger.Debugw(ctx, "file ready - immediate response", log.Fields{"image-name": aFileName, "device-id": deviceID})
 		aWaitChannel <- true
 		return
 	}
@@ -201,39 +201,31 @@ func (dm *FileDownloadManager) RequestDownloadReady(ctx context.Context, aFileNa
 	//  add the device specific channel to the list of waiting requesters
 	if loRequesterChannelMap, ok := dm.dnldImgReadyWaiting[aFileName]; ok {
 		//entry for the file name already exists
-		if _, exists := loRequesterChannelMap[aWaitChannel]; !exists {
+		if _, exists := loRequesterChannelMap[deviceID]; !exists {
 			// requester channel does not yet exist for the image
-			loRequesterChannelMap[aWaitChannel] = struct{}{}
+			loRequesterChannelMap[deviceID] = aWaitChannel
 			dm.dnldImgReadyWaiting[aFileName] = loRequesterChannelMap
 			logger.Debugw(ctx, "file not ready - adding new requester", log.Fields{
-				"image-name": aFileName, "number-of-requesters": len(dm.dnldImgReadyWaiting[aFileName])})
+				"image-name": aFileName, "number-of-requesters": len(dm.dnldImgReadyWaiting[aFileName]), "device-id": deviceID})
 		}
 	} else {
 		//entry for the file name does not even exist
-		addRequesterChannelMap := make(map[chan<- bool]struct{})
-		addRequesterChannelMap[aWaitChannel] = struct{}{}
-		dm.dnldImgReadyWaiting[aFileName] = addRequesterChannelMap
+		loNewrequesterChannelMap := make(requesterChannelMap)
+		loNewrequesterChannelMap[deviceID] = aWaitChannel
+		dm.dnldImgReadyWaiting[aFileName] = loNewrequesterChannelMap
 		logger.Debugw(ctx, "file not ready - setting first requester", log.Fields{
-			"image-name": aFileName})
+			"image-name": aFileName, "device-id": deviceID})
 	}
 }
 
 // RemoveReadyRequest removes the specified channel from the requester(channel) map for the given file name
-func (dm *FileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName string, aWaitChannel chan bool) {
+func (dm *FileDownloadManager) RemoveReadyRequest(ctx context.Context, aFileName string, aDeviceID string) {
 	dm.mutexDownloadImageDsc.Lock()
 	defer dm.mutexDownloadImageDsc.Unlock()
-	for imageName, channelMap := range dm.dnldImgReadyWaiting {
-		if imageName == aFileName {
-			for channel := range channelMap {
-				if channel == aWaitChannel {
-					delete(dm.dnldImgReadyWaiting[imageName], channel)
-					logger.Debugw(ctx, "channel removed from the requester map", log.Fields{
-						"image-name": aFileName, "new number-of-requesters": len(dm.dnldImgReadyWaiting[aFileName])})
-					return //can leave directly
-				}
-			}
-			return //can leave directly
-		}
+	if loRequesterChannelMap, ok := dm.dnldImgReadyWaiting[aFileName]; ok {
+		delete(loRequesterChannelMap, aDeviceID)
+		logger.Debugw(ctx, "channel removed from the requester map", log.Fields{
+			"image-name": aFileName, "new number-of-requesters": len(dm.dnldImgReadyWaiting[aFileName]), "device-id": aDeviceID})
 	}
 }
 
@@ -308,14 +300,11 @@ func (dm *FileDownloadManager) updateFileState(ctx context.Context, aImageName s
 			logger.Debugw(ctx, "imageState download succeeded", log.Fields{
 				"image-name": aImageName, "image-size": aFileSize})
 			//in case upgrade process(es) was/were waiting for the file, inform them
-			for imageName, channelMap := range dm.dnldImgReadyWaiting {
-				if imageName == aImageName {
-					for channel := range channelMap {
-						// use all found channels to inform possible requesters about the existence of the file
-						channel <- true
-						delete(dm.dnldImgReadyWaiting[imageName], channel) //requester served
-					}
-					return //can leave directly
+			if loRequesterChannelMap, ok := dm.dnldImgReadyWaiting[aImageName]; ok {
+				for deviceID, channel := range loRequesterChannelMap {
+					// use all found channels to inform possible requesters about the existence of the file
+					channel <- true
+					delete(loRequesterChannelMap, deviceID) //requester served
 				}
 			}
 			return //can leave directly
@@ -430,7 +419,7 @@ func (dm *FileDownloadManager) downloadFile(ctx context.Context, aURLCommand str
 		}
 
 		fileStats, statsErr := file.Stat()
-		if err != nil {
+		if statsErr != nil {
 			logger.Errorw(ctx, "created file can't be accessed", log.Fields{"file": aLocalPathName, "stat-error": statsErr})
 			return
 		}
