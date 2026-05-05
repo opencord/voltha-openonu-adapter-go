@@ -4970,7 +4970,7 @@ func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
 		case flowCb := <-dh.flowCbChan[uniID]:
 			startTime := time.Now()
 			logger.Info(flowCb.ctx, "serial-flow-processor--start", log.Fields{"device-id": dh.DeviceID})
-			respChan := make(chan error)
+			respChan := make(chan error, 1)
 			if flowCb.addFlow {
 				go dh.addFlowItemToUniPort(flowCb.ctx, flowCb.flowItem, flowCb.uniPort, flowCb.flowMetaData, &respChan)
 			} else {
