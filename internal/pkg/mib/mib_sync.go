@@ -479,18 +479,25 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 			var waitForOmciProcess sync.WaitGroup
 			waitForOmciProcess.Add(1)
 			// Start PM collector routine
-			go oo.baseDeviceHandler.StartCollector(ctx, &waitForOmciProcess)
+			oo.baseDeviceHandler.RunTrackedRoutine(ctx, "StartCollector-mibSync", func(rCtx context.Context) {
+				oo.baseDeviceHandler.StartCollector(rCtx, &waitForOmciProcess)
+			})
 			waitForOmciProcess.Wait()
 		}
 		if !oo.baseDeviceHandler.GetAlarmManagerIsRunning(ctx) {
-			go oo.baseDeviceHandler.StartAlarmManager(ctx)
+			oo.baseDeviceHandler.RunTrackedRoutine(ctx, "StartAlarmManager-mibSync", func(rCtx context.Context) {
+				oo.baseDeviceHandler.StartAlarmManager(rCtx)
+			})
 		}
 
 		for _, uniPort := range *oo.baseDeviceHandler.GetUniEntityMap() {
 			// only if this port was enabled for use by the operator at startup
 			if (1<<uniPort.UniID)&oo.baseDeviceHandler.GetUniPortMask() == (1 << uniPort.UniID) {
 				if !oo.baseDeviceHandler.GetFlowMonitoringIsRunning(uniPort.UniID) {
-					go oo.baseDeviceHandler.PerOnuFlowHandlerRoutine(uniPort.UniID)
+					uniID := uniPort.UniID
+					oo.baseDeviceHandler.RunTrackedRoutine(ctx, "PerOnuFlowHandlerRoutine-mibSync", func(rCtx context.Context) {
+						oo.baseDeviceHandler.PerOnuFlowHandlerRoutine(uniID)
+					})
 				}
 			}
 		}
@@ -1580,12 +1587,10 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 					for tpRetryAttempt := initialRetryAttempt; tpRetryAttempt <= maxRetries; tpRetryAttempt++ {
 						ticker = time.NewTicker(retryDelay)
 						select {
-						case _, ok := <-oo.baseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-							if !ok {
-								logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": oo.deviceID})
-								ticker.Stop()
-								return false
-							}
+						case <-oo.baseDeviceHandler.GetDeviceContext().Done():
+							logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": oo.deviceID})
+							ticker.Stop()
+							return false
 						case <-ticker.C:
 							iaTechTpInst, err = oo.baseDeviceHandler.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
 							if err != nil {

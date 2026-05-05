@@ -747,7 +747,9 @@ func (oFsm *OnuUpgradeFsm) enterDownloadSection(ctx context.Context, e *fsm.Even
 		"device-id": oFsm.deviceID, "absolute window": oFsm.nextDownloadWindow})
 	//use a background routine to send the multiple download sections frames in a loop
 	//  in order to avoid blocking on synchronous event calls for the entire (long) processing time
-	go oFsm.runSwDlSectionWindow(ctx)
+	oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "runSwDlSectionWindow", func(rCtx context.Context) {
+		oFsm.runSwDlSectionWindow(rCtx)
+	})
 }
 
 // runSwDlSectionWindow runs a loop to send all DlSection frames of one window in background
@@ -888,7 +890,9 @@ func (oFsm *OnuUpgradeFsm) enterFinalizeDL(ctx context.Context, e *fsm.Event) {
 	//use a background routine to wait EndSwDlDelay and then send the EndSwDl request
 	//  in order to avoid blocking on synchronous event calls for the complete wait time
 	//  and to allow for state transition before sending the EndSwDl request
-	go oFsm.delayAndSendEndSwDl(ctx)
+	oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "delayAndSendEndSwDl", func(rCtx context.Context) {
+		oFsm.delayAndSendEndSwDl(rCtx)
+	})
 }
 
 // delayAndSendEndSwDl ensures a delay before sending the EndSwDl request
@@ -920,8 +924,6 @@ func (oFsm *OnuUpgradeFsm) delayAndSendEndSwDl(ctx context.Context) {
 		oFsm.mutexUpgradeParams.Lock()
 		oFsm.volthaDownloadReason = voltha.ImageState_UNKNOWN_ERROR
 		oFsm.mutexUpgradeParams.Unlock()
-		// Can't call FSM Event directly, decoupling it
-		_ = pBaseFsm.PFsm.Event(UpgradeEvAbort)
 		return
 	}
 	err := oFsm.pOmciCC.SendEndSoftwareDownload(log.WithSpanFromContext(context.Background(), ctx), oFsm.pDeviceHandler.GetOmciTimeout(), false,
@@ -2030,6 +2032,7 @@ func (oFsm *OnuUpgradeFsm) PrepareForGarbageCollection(ctx context.Context, aDev
 	oFsm.pFileManager = nil
 	oFsm.pDevEntry = nil
 	oFsm.pOmciCC = nil
+	oFsm.PAdaptFsm = nil
 }
 
 func (oFsm *OnuUpgradeFsm) retrySoftwareDownload(ctx context.Context) {

@@ -323,15 +323,20 @@ func (am *OnuAlarmManager) asFsmInSync(ctx context.Context, e *fsm.Event) {
 
 		}
 	} else {
-		<-am.AsyncAlarmsCommChan
-		go func() {
-			logger.Debugw(ctx, "On demand Auditing the ONU for Alarms  ", log.Fields{"device-id": am.deviceID})
-			if err := am.AlarmSyncFsm.PFsm.Event(AsEvAudit); err != nil {
-				logger.Errorw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing, use current snapshot of alarms", log.Fields{"device-id": am.deviceID, "err": err})
-				am.isAsyncAlarmRequest = false
-				am.AsyncAlarmsCommChan <- struct{}{}
-			}
-		}()
+		select {
+		case <-am.AsyncAlarmsCommChan:
+			go func() {
+				logger.Debugw(ctx, "On demand Auditing the ONU for Alarms  ", log.Fields{"device-id": am.deviceID})
+				if err := am.AlarmSyncFsm.PFsm.Event(AsEvAudit); err != nil {
+					logger.Errorw(ctx, "alarm-sync-fsm-cannot-go-to-state-auditing, use current snapshot of alarms", log.Fields{"device-id": am.deviceID, "err": err})
+					am.isAsyncAlarmRequest = false
+					am.AsyncAlarmsCommChan <- struct{}{}
+				}
+			}()
+		case <-am.StopAlarmAuditTimer:
+			logger.Infow(ctx, "stopping-alarm-sync-no-audit-interval", log.Fields{"device-id": am.deviceID})
+			return
+		}
 	}
 }
 
@@ -355,6 +360,16 @@ func (am *OnuAlarmManager) processAlarmSyncMessages(ctx context.Context) {
 			}
 		case <-am.StopProcessingOmciMessages:
 			logger.Infow(ctx, "alarm-manager-stop-omci-alarm-message-processing-routines", log.Fields{"device-id": am.deviceID})
+			am.onuAlarmManagerLock.Lock()
+			am.processMessage = false
+			am.activeAlarms = nil
+			am.alarmBitMapDB = nil
+			am.alarmUploadNoOfCmdsOrMEs = 0
+			am.alarmUploadSeqNo = 0
+			am.onuAlarmManagerLock.Unlock()
+			return
+		case <-ctx.Done():
+			logger.Infow(ctx, "device-context-canceled-stopping-alarm-sync-processing", log.Fields{"device-id": am.deviceID})
 			am.onuAlarmManagerLock.Lock()
 			am.processMessage = false
 			am.activeAlarms = nil
@@ -699,6 +714,11 @@ func (am *OnuAlarmManager) clearAlarm(ctx context.Context, classID me.ClassID, i
 }
 
 func (am *OnuAlarmManager) getIntfIDAlarm(ctx context.Context, classID me.ClassID, instanceID uint16) *uint32 {
+	if am.pDeviceHandler == nil {
+		logger.Warnw(ctx, "getIntfIDAlarm aborted - device handler nil", log.Fields{"device-id": am.deviceID})
+		return nil
+	}
+
 	var intfID *uint32
 	switch classID {
 	case circuitPackClassID, physicalPathTerminationPointEthernetUniClassID:
@@ -718,6 +738,13 @@ func (am *OnuAlarmManager) getIntfIDAlarm(ctx context.Context, classID me.ClassI
 }
 
 func (am *OnuAlarmManager) sendAlarm(ctx context.Context, classID me.ClassID, instanceID uint16, alarm uint8, raised bool) {
+	// Nil-guard: device handler or device entry may have been cleaned up during deletion
+	if am.pDeviceHandler == nil || am.pOnuDeviceEntry == nil {
+		logger.Warnw(ctx, "sendAlarm aborted - device references nil (deletion in progress?)",
+			log.Fields{"device-id": am.deviceID, "alarm-no": alarm, "class-id": classID})
+		return
+	}
+
 	context := make(map[string]string)
 	intfID := am.getIntfIDAlarm(ctx, classID, instanceID)
 	onuID := am.deviceID
@@ -873,6 +900,21 @@ func (am *OnuAlarmManager) GetOnuActiveAlarms(ctx context.Context) *extension.Si
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (am *OnuAlarmManager) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
 	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
+	am.onuAlarmManagerLock.Lock()
+	am.activeAlarms = nil
+	am.alarmBitMapDB = nil
+	am.onuEventsList = nil
+	am.oltDbCopy = nil
+	am.onuDBCopy = nil
+	am.bufferedNotifications = nil
+	am.onuAlarmManagerLock.Unlock()
+	// Break FSM callback circular references (callbacks capture am via closures)
+	if am.AlarmSyncFsm != nil {
+		if am.AlarmSyncFsm.PFsm != nil {
+			am.AlarmSyncFsm.PFsm = nil
+		}
+		am.AlarmSyncFsm = nil
+	}
 	am.pDeviceHandler = nil
 	am.pOnuDeviceEntry = nil
 }

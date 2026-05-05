@@ -90,7 +90,9 @@ func (onuDeviceEntry *OnuDeviceEntry) enterSettingOnu2gState(ctx context.Context
 func (onuDeviceEntry *OnuDeviceEntry) enterBridgeInitState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM - starting bridge config port loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
-	go onuDeviceEntry.performInitialBridgeSetup(ctx)
+	onuDeviceEntry.baseDeviceHandler.RunTrackedRoutine(ctx, "performInitialBridgeSetup", func(rCtx context.Context) {
+		onuDeviceEntry.performInitialBridgeSetup(rCtx)
+	})
 }
 
 func (onuDeviceEntry *OnuDeviceEntry) enterDownloadedState(ctx context.Context, e *fsm.Event) {
@@ -329,7 +331,9 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		if err != nil {
 			logger.Errorw(ctx, "InitialBridgeSetup failed at MBSP, aborting MIB Download!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
-			_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvReset)
+			if onuDeviceEntry.PMibDownloadFsm != nil && onuDeviceEntry.PMibDownloadFsm.PFsm != nil {
+				_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvReset)
+			}
 			return
 		}
 
@@ -351,7 +355,9 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		if err != nil {
 			logger.Errorw(ctx, "InitialBridgeSetup failed at MBPCD, aborting MIB Download!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
-			_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvReset)
+			if onuDeviceEntry.PMibDownloadFsm != nil && onuDeviceEntry.PMibDownloadFsm.PFsm != nil {
+				_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvReset)
+			}
 			return
 		}
 
@@ -373,7 +379,9 @@ func (onuDeviceEntry *OnuDeviceEntry) performInitialBridgeSetup(ctx context.Cont
 		if err != nil {
 			logger.Errorw(ctx, "InitialBridgeSetup failed at EVTOCD, aborting MIB Download!",
 				log.Fields{"device-id": onuDeviceEntry.deviceID})
-			_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvReset)
+			if onuDeviceEntry.PMibDownloadFsm != nil && onuDeviceEntry.PMibDownloadFsm.PFsm != nil {
+				_ = onuDeviceEntry.PMibDownloadFsm.PFsm.Event(DlEvReset)
+			}
 			return
 		}
 	}
@@ -407,12 +415,9 @@ func (onuDeviceEntry *OnuDeviceEntry) waitforOmciResponse(ctx context.Context, a
 		// should not happen so far
 		logger.Warnw(ctx, "MibDownload-bridge-init response error", log.Fields{"for device-id": onuDeviceEntry.deviceID})
 		return fmt.Errorf("mibDownloadBridgeInit responseError %s", onuDeviceEntry.deviceID)
-	case _, ok := <-onuDeviceEntry.baseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-		if !ok {
-			// The channel is closed, so log this and return an appropriate error.
-			logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": onuDeviceEntry.deviceID})
-			return fmt.Errorf("mibDownloadBridgeInit aborted: device deletion channel closed for device %s", onuDeviceEntry.deviceID)
-		}
-		return nil
+	case <-onuDeviceEntry.baseDeviceHandler.GetDeviceContext().Done():
+		// The device context is cancelled (device deleted), log and return an appropriate error.
+		logger.Warnw(ctx, "Device deletion channel closed - aborting retry", log.Fields{"device-id": onuDeviceEntry.deviceID})
+		return fmt.Errorf("mibDownloadBridgeInit aborted: device deletion channel closed for device %s", onuDeviceEntry.deviceID)
 	}
 }

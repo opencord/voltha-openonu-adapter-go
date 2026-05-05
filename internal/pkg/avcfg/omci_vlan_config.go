@@ -685,7 +685,9 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 				logger.Debugw(ctx, "UniVlanConfigFsm rule already set - send immediate add-success event for reason update", log.Fields{
 					"device-id": oFsm.deviceID})
 				// success indication without the need to write to kvStore (done already below with updated data from StorePersUniFlowConfig())
-				go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetAddNoKvStore))
+				oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-addNoKvStore", func(rCtx context.Context) {
+					oFsm.pDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetAddNoKvStore))
+				})
 			}
 		} else {
 			//  avoid device reason update as the rule config connected to this flow may still be in progress
@@ -864,7 +866,9 @@ remove_loop:
 					// state transition notification is checked in deviceHandler
 					if oFsm.pDeviceHandler != nil {
 						// success indication without the need to write to kvStore (done already below with updated data from StorePersUniFlowConfig())
-						go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetRemoveNoKvStore))
+						oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-removeNoKvStore", func(rCtx context.Context) {
+							oFsm.pDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetRemoveNoKvStore))
+						})
 					}
 					logger.Debugw(ctx, "UniVlanConfigFsm flow removal - rule persists with still valid cookies", log.Fields{
 						"device-id": oFsm.deviceID, "cookies": oFsm.uniVlanFlowParamsSlice[flow].CookieSlice})
@@ -899,7 +903,9 @@ remove_loop:
 		// state transition notification is checked in deviceHandler
 		if oFsm.pDeviceHandler != nil {
 			// success indication without the need to write to kvStore (no change)
-			go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetRemoveNoKvStore))
+			oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-removeNoKvStore2", func(rCtx context.Context) {
+				oFsm.pDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OnuDeviceEvent(oFsm.requestEvent+cDeviceEventOffsetRemoveNoKvStore))
+			})
 		}
 		// Push response on the response channel
 		oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, nil)
@@ -1423,7 +1429,9 @@ func (oFsm *UniVlanConfigFsm) enterVlanConfigDone(ctx context.Context, e *fsm.Ev
 	// note: 'flowPushed' event is only generated if all 'pending' rules are configured
 	if oFsm.pDeviceHandler != nil {
 		//making use of the add->remove successor enum assumption/definition
-		go oFsm.pDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OnuDeviceEvent(uint8(oFsm.requestEvent)+oFsm.requestEventOffset))
+		oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-flowPushed", func(rCtx context.Context) {
+			oFsm.pDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OnuDeviceEvent(uint8(oFsm.requestEvent)+oFsm.requestEventOffset))
+		})
 	}
 }
 
@@ -1740,7 +1748,9 @@ func (oFsm *UniVlanConfigFsm) enterRemoveFlow(ctx context.Context, e *fsm.Event)
 	}
 
 	if loAllowSpecificOmciConfig { //specific OMCI config is expected to work acc. to the device state
-		go oFsm.removeEvtocdEntries(ctx, loRuleParams)
+		oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "removeEvtocdEntries", func(rCtx context.Context) {
+			oFsm.removeEvtocdEntries(rCtx, loRuleParams)
+		})
 	} else {
 		// OMCI processing is not done, expectation is to have the ONU in some basic config state accordingly
 		logger.Debugw(ctx, "UniVlanConfigFsm remove EVTOCD OMCI handling skipped based on device state", log.Fields{
@@ -1953,7 +1963,9 @@ func (oFsm *UniVlanConfigFsm) enterDisabled(ctx context.Context, e *fsm.Event) {
 
 	if oFsm.pDeviceHandler != nil {
 		//request removal of 'reference' in the Handler (completely clear the FSM and its data)
-		go oFsm.pDeviceHandler.RemoveVlanFilterFsm(ctx, oFsm.pOnuUniPort)
+		oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "RemoveVlanFilterFsm", func(rCtx context.Context) {
+			oFsm.pDeviceHandler.RemoveVlanFilterFsm(rCtx, oFsm.pOnuUniPort)
+		})
 		return
 	}
 	logger.Warnw(ctx, "UniVlanConfigFsm - device handler already vanished",
@@ -3337,4 +3349,5 @@ func (oFsm *UniVlanConfigFsm) PrepareForGarbageCollection(ctx context.Context, a
 	oFsm.pDeviceHandler = nil
 	oFsm.pOnuDeviceEntry = nil
 	oFsm.pOmciCC = nil
+	oFsm.PAdaptFsm = nil
 }
