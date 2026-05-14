@@ -128,7 +128,10 @@ func (oo *OnuUniPort) CreateVolthaPort(ctx context.Context, apDeviceHandler Idev
 		}
 	}
 	if retryCnt == maxRetry { // maxed out..
-		logger.Errorf(ctx, "Device FSM: PortCreated-failed-%s", err)
+		logger.Errorw(ctx, "Device FSM: PortCreated-failed", log.Fields{"error": err, "device-id": apDeviceHandler.GetDeviceID(), "portNo": oo.PortNo})
+		// Send ONU initialization failed event for UNI port creation failure at rwcore
+		go apDeviceHandler.SendOnuInitializationFailedEvent(ctx, apDeviceHandler.GetDeviceID(), time.Now().Unix(),
+			ErrCodeUniPortCreationFailed, fmt.Sprintf("UNI port creation failed at rwcore: portNo=%d, error: %v", oo.PortNo, err))
 		return fmt.Errorf("device-fsm-port-create-failed-%s", err)
 	}
 	logger.Infow(ctx, "Voltha OnuUniPort-added", log.Fields{
