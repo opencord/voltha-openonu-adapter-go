@@ -81,6 +81,7 @@ const (
 	devEvDeviceInit    = "devEvDeviceInit"
 	devEvDeviceUpInd   = "devEvDeviceUpInd"
 	devEvDeviceDownInd = "devEvDeviceDownInd"
+	devEvDeviceFail    = "devEvDeviceFail"
 )
 const (
 	// states of Device FSM
@@ -88,6 +89,7 @@ const (
 	devStDown = "devStDown"
 	devStInit = "devStInit"
 	devStUp   = "devStUp"
+	devStFail = "devStFail"
 )
 
 // Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
@@ -109,7 +111,10 @@ const (
 	cEventObjectType = "ONU"
 )
 const (
-	cOnuActivatedEvent = "ONU_ACTIVATED"
+	cOnuActivatedEvent            = "ONU_ACTIVATED"
+	cOnuInitializationFailedEvent = "ONU_INITIALIZATION_FAILED"
+	cDeviceUpdateFailedEvent      = "ONU_DEVICE_UPDATE_FAILED"
+	cDeviceDBUpdateFailureEvent   = "ONU_DEVICE_DB_UPDATE_FAILURE"
 )
 
 type omciIdleCheckStruct struct {
@@ -301,6 +306,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 			{Name: devEvDeviceInit, Src: []string{devStNull, devStDown}, Dst: devStInit},
 			{Name: devEvDeviceUpInd, Src: []string{devStInit, devStDown}, Dst: devStUp},
 			{Name: devEvDeviceDownInd, Src: []string{devStUp}, Dst: devStDown},
+			{Name: devEvDeviceFail, Src: []string{devStInit, devStUp}, Dst: devStFail},
 		},
 		fsm.Callbacks{
 			"before_event":                   func(e *fsm.Event) { dh.logStateChange(ctx, e) },
@@ -308,6 +314,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 			("after_" + devEvDeviceInit):     func(e *fsm.Event) { dh.postInit(ctx, e) },
 			("before_" + devEvDeviceUpInd):   func(e *fsm.Event) { dh.doStateUp(ctx, e) },
 			("before_" + devEvDeviceDownInd): func(e *fsm.Event) { dh.doStateDown(ctx, e) },
+			("before_" + devEvDeviceFail):    func(e *fsm.Event) { dh.doStateFail(ctx, e) },
 		},
 	)
 
@@ -1133,16 +1140,12 @@ func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
 		logger.Debugw(ctx, "reconciling flows for all UNI's has been finished in time",
 			log.Fields{"device-id": dh.DeviceID})
 		dh.stopReconciling(ctx, true, cWaitReconcileFlowAbortOnSuccess)
-		if pDevEntry != nil {
-			pDevEntry.SendChReconcilingFlowsFinished(ctx, true)
-		}
+		pDevEntry.SendChReconcilingFlowsFinished(ctx, true)
 	} else {
 		logger.Errorw(ctx, "reconciling - timeout waiting for reconciling flows for all UNI's to be finished!",
 			log.Fields{"device-id": dh.DeviceID})
 		dh.stopReconciling(ctx, false, cWaitReconcileFlowAbortOnError)
-		if pDevEntry != nil {
-			pDevEntry.SendChReconcilingFlowsFinished(ctx, false)
-		}
+		pDevEntry.SendChReconcilingFlowsFinished(ctx, false)
 		return
 	}
 	_ = dh.ReasonUpdate(ctx, cmn.DrOmciFlowsPushed, dh.IsReconcilingReasonUpdate())
@@ -2093,7 +2096,13 @@ func (dh *deviceHandler) doStateInit(ctx context.Context, e *fsm.Event) {
 				PortNo: ponPortNo}}, // Peer port is parent's port number
 		}
 		if err = dh.CreatePortInCore(ctx, pPonPort); err != nil {
-			logger.Fatalf(ctx, "Device FSM: PortCreated-failed-%s:%s", err, dh.DeviceID)
+			logger.Errorw(ctx, "Device FSM: PortCreated-failed", log.Fields{"device-id": dh.DeviceID, "err": err})
+			// Trigger device failure event in a goroutine to avoid FSM reentrancy issues
+			go func() {
+				if failErr := dh.pDeviceStateFsm.Event(devEvDeviceFail); failErr != nil {
+					logger.Errorw(ctx, "error triggering device fail event", log.Fields{"device-id": dh.DeviceID, "error": failErr})
+				}
+			}()
 			e.Cancel(err)
 			return
 		}
@@ -2114,7 +2123,13 @@ func (dh *deviceHandler) postInit(ctx context.Context, e *fsm.Event) {
 		return nil
 	*/
 	if err = dh.addOnuDeviceEntry(log.WithSpanFromContext(context.TODO(), ctx)); err != nil {
-		logger.Fatalf(ctx, "Device FSM: addOnuDeviceEntry-failed-%s:%s", err, dh.DeviceID)
+		logger.Errorw(ctx, "Device FSM: addOnuDeviceEntry-failed", log.Fields{"error": err, "device-id": dh.DeviceID})
+		// Trigger device failure event in a goroutine to avoid FSM reentrancy issues
+		go func() {
+			if failErr := dh.pDeviceStateFsm.Event(devEvDeviceFail); failErr != nil {
+				logger.Errorw(ctx, "error triggering device fail event", log.Fields{"device-id": dh.DeviceID, "error": failErr})
+			}
+		}()
 		e.Cancel(err)
 		return
 	}
@@ -2259,6 +2274,39 @@ func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "doStateDown-done", log.Fields{"device-id": dh.DeviceID})
 }
 
+// doStateFail handle device failure scenarios and update device state to FAILED
+func (dh *deviceHandler) doStateFail(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "doStateFail-started", log.Fields{"device-id": dh.DeviceID})
+
+	device := dh.device
+	if device == nil {
+		logger.Errorw(ctx, "Failed to fetch handler device in doStateFail", log.Fields{"device-id": dh.DeviceID})
+		e.Cancel(fmt.Errorf("device not available"))
+		return
+	}
+
+	go dh.sendFailureEvent(ctx, cOnuInitializationFailedEvent, dh.DeviceID, time.Now().Unix(), cmn.ErrCodeDeviceStateTransitionFailed, "Device state transition to failed")
+
+	// Update device state to FAILED in the core
+	logger.Errorw(ctx, "Device failure detected, updating device state to FAILED", log.Fields{
+		"device-id":     dh.DeviceID,
+		"OperStatus":    voltha.OperStatus_FAILED,
+		"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
+	})
+
+	if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
+		DeviceId:   dh.DeviceID,
+		ConnStatus: voltha.ConnectStatus_UNREACHABLE,
+		OperStatus: voltha.OperStatus_FAILED,
+	}); err != nil {
+		logger.Errorw(ctx, "error-updating-device-state-to-failed", log.Fields{"device-id": dh.DeviceID, "error": err})
+		e.Cancel(err)
+		return
+	}
+
+	logger.Debugw(ctx, "doStateFail-done", log.Fields{"device-id": dh.DeviceID})
+}
+
 // deviceHandler StateMachine related state transition methods ##### end #########
 // #################################################################################
 
@@ -2348,7 +2396,13 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		}); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
 			logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
-			return fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
+			// Trigger device failure event in a goroutine to avoid FSM reentrancy issues
+			go func() {
+				if failErr := dh.pDeviceStateFsm.Event(devEvDeviceFail); failErr != nil {
+					logger.Errorw(ctx, "error triggering device fail event", log.Fields{"device-id": dh.DeviceID, "error": failErr})
+				}
+			}()
+			return fmt.Errorf("failed to update device state: %s", dh.DeviceID)
 		}
 		// On onu reboot, we have to perform mib-reset and persist the reboot state for reconciling scenario
 		if dh.GetDeviceTechProfOnReboot() {
@@ -2529,6 +2583,13 @@ func (dh *deviceHandler) CheckAndStartMibUploadFsm(ctx context.Context, pDevEntr
 			if pDevEntry.IsNewOnu() {
 				if err := pMibUlFsm.Event(mib.UlEvResetMib); err != nil {
 					logger.Errorw(ctx, "MibSyncFsm: Can't go to state resetting_mib", log.Fields{"device-id": dh.DeviceID, "err": err})
+					go func() {
+						if failErr := dh.pDeviceStateFsm.Event(devEvDeviceFail); failErr != nil {
+							logger.Errorw(ctx, "error triggering device fail event", log.Fields{"device-id": dh.DeviceID, "error": failErr})
+						}
+					}()
+					go dh.sendFailureEvent(ctx, cOnuInitializationFailedEvent, dh.DeviceID, time.Now().Unix(),
+						cmn.ErrCodeMibResetFailed, fmt.Sprintf("MIB reset Failed : %v", err))
 					return fmt.Errorf("can't go to state resetting_mib: %s", dh.DeviceID)
 				}
 			} else {
@@ -2742,6 +2803,13 @@ func (dh *deviceHandler) processMibDatabaseSyncEvent(ctx context.Context, devEve
 	if err := dh.StorePersistentData(ctx); err != nil {
 		logger.Warnw(ctx, "store persistent data error - continue as there will be additional write attempts",
 			log.Fields{"device-id": dh.DeviceID, "err": err})
+	}
+	// Clear MIB upload failure event flag as MIB upload processing is now complete
+	if deviceEntry := dh.GetOnuDeviceEntry(ctx, false); deviceEntry != nil {
+		deviceEntry.SetRaiseMibUploadFailureEvent(false)
+		logger.Debugw(ctx, "MIB upload failure event flag cleared (upload successful)", log.Fields{"device-id": dh.DeviceID})
+	} else {
+		logger.Errorw(ctx, "Failed to get device entry to clear MIB upload failure event flag", log.Fields{"device-id": dh.DeviceID})
 	}
 	_ = dh.ReasonUpdate(ctx, cmn.DrDiscoveryMibsyncComplete, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 	dh.AddAllUniPorts(ctx)
@@ -3244,6 +3312,10 @@ func (dh *deviceHandler) EnableUniPortStateUpdate(ctx context.Context) {
 						OperStatus: port.OperState,
 					}); err != nil {
 						logger.Errorw(ctx, "port-state-update-failed", log.Fields{"error": err, "port-no": uniPort.PortNo, "device-id": dh.DeviceID})
+						st, ok := status.FromError(err)
+						if ok && st.Code() == codes.Unavailable {
+							dh.sendFailureEvent(ctx, cOnuInitializationFailedEvent, dh.DeviceID, time.Now().Unix(), cmn.ErrCodePortStateUpdateFailed, "update port state to rwcore failed")
+						}
 					}
 				}(uniPort)
 			} else {
@@ -3294,12 +3366,24 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState c
 	if err != nil || parentDevice == nil {
 		logger.Errorw(ctx, "Failed to fetch parent device for OnuEvent",
 			log.Fields{"device-id": dh.DeviceID, "parentID": dh.parentID, "err": err})
+		go dh.sendFailureEvent(ctx, cOnuInitializationFailedEvent, dh.GetDeviceID(), time.Now().Unix(), cmn.ErrCodeCoreUnavailable, "core not available sendOnuOperStateEvent failed")
 		return //TODO with VOL-3045: rw-core is unresponsive: report error and/or perform self-initiated onu-reset?
 	}
 	oltSerialNumber := parentDevice.SerialNumber
 
-	eventContext["pon-id"] = strconv.FormatUint(uint64(dh.pOnuIndication.IntfId), 10)
-	eventContext["onu-id"] = strconv.FormatUint(uint64(dh.pOnuIndication.OnuId), 10)
+	var ponId, onuId uint32
+	if dh.pOnuIndication != nil {
+		ponId = dh.pOnuIndication.IntfId
+		onuId = dh.pOnuIndication.OnuId
+	} else {
+		logger.Warnw(ctx, "pOnuIndication is nil, using default values for event context",
+			log.Fields{"device-id": aDeviceID})
+		ponId = 0
+		onuId = 0
+	}
+
+	eventContext["pon-id"] = strconv.FormatUint(uint64(ponId), 10)
+	eventContext["onu-id"] = strconv.FormatUint(uint64(onuId), 10)
 	eventContext["serial-number"] = dh.device.SerialNumber
 	eventContext["olt-serial-number"] = oltSerialNumber
 	eventContext["device-id"] = aDeviceID
@@ -3340,6 +3424,83 @@ func (dh *deviceHandler) sendOnuOperStateEvent(ctx context.Context, aOperState c
 	}
 	logger.Infow(ctx, "ctx, ONU_ACTIVATED event sent to KAFKA",
 		log.Fields{"device-id": aDeviceID, "with-EventName": de.DeviceEventName})
+}
+
+// sendFailureEvent sends a failure event on the system KAFKA bus.
+// This is the single centralized implementation for all failure event types
+// (ONU_INITIALIZATION_FAILED, ONU_DEVICE_UPDATE_FAILED, ONU_DEVICE_DB_UPDATE_FAILURE).
+func (dh *deviceHandler) sendFailureEvent(ctx context.Context, eventName string, aDeviceID string, raisedTs int64, errorCode cmn.OnuFailureErrorCode, reason string) {
+	var de voltha.DeviceEvent
+	eventContext := make(map[string]string)
+	//Populating event context
+	parentDevice, err := dh.getDeviceFromCore(ctx, dh.parentID)
+	if err != nil || parentDevice == nil {
+		logger.Errorw(ctx, "Failed to fetch parent device for failure event",
+			log.Fields{"device-id": dh.DeviceID, "parentID": dh.parentID, "event-name": eventName, "err": err})
+	} else {
+		eventContext["olt-serial-number"] = parentDevice.SerialNumber
+	}
+
+	var ponId, onuId uint32
+	if dh.pOnuIndication != nil {
+		ponId = dh.pOnuIndication.IntfId
+		onuId = dh.pOnuIndication.OnuId
+	} else {
+		logger.Warnw(ctx, "pOnuIndication is nil, using default values for event context",
+			log.Fields{"device-id": aDeviceID})
+		ponId = 0
+		onuId = 0
+	}
+
+	eventContext["pon-id"] = strconv.FormatUint(uint64(ponId), 10)
+	eventContext["onu-id"] = strconv.FormatUint(uint64(onuId), 10)
+	eventContext["serial-number"] = dh.device.SerialNumber
+	eventContext["onu-serial-number"] = dh.device.SerialNumber
+
+	eventContext["device-id"] = aDeviceID
+	eventContext["registration-id"] = aDeviceID //py: string(device_id)??
+	eventContext["num-of-unis"] = strconv.Itoa(len(dh.uniEntityMap))
+	eventContext["failure-reason"] = reason
+	eventContext["parent-id"] = dh.parentID
+	eventContext["onu-device-id"] = aDeviceID
+	eventContext["olt-device-id"] = dh.parentID
+	eventContext["error-code"] = string(errorCode)
+	switch errorCode {
+	case cmn.ErrCodeDeviceUpdateAtCore:
+		eventContext["update-kind"] = "device"
+	case cmn.ErrCodeDeviceStateUpdateAtCore:
+		eventContext["update-kind"] = "device-state"
+	}
+
+	/* Populating device event body */
+	de.Context = eventContext
+	de.ResourceId = aDeviceID
+	de.DeviceEventName = eventName
+	de.Description = fmt.Sprintf("%s Event - %s - %s - ErrorCode: %s - Reason: %s",
+		cEventObjectType, eventName, "Raised", string(errorCode), reason)
+
+	/* Send event to KAFKA */
+	if err := dh.EventProxy.SendDeviceEventWithKey(ctx, &de, equipment, pon, raisedTs, aDeviceID); err != nil {
+		logger.Warnw(ctx, "could not send failure event",
+			log.Fields{"device-id": aDeviceID, "event-name": eventName, "error": err})
+	}
+	logger.Infow(ctx, "failure event sent to KAFKA",
+		log.Fields{"device-id": aDeviceID, "with-EventName": de.DeviceEventName, "reason": reason})
+}
+
+// SendOnuInitializationFailedEvent - public interface method to send ONU initialization failed event
+func (dh *deviceHandler) SendOnuInitializationFailedEvent(ctx context.Context, aDeviceID string, raisedTs int64, errorCode cmn.OnuFailureErrorCode, reason string) {
+	dh.sendFailureEvent(ctx, cOnuInitializationFailedEvent, aDeviceID, raisedTs, errorCode, reason)
+}
+
+// SendDeviceUpdateFailedEvent - public interface method to send device update failed event
+func (dh *deviceHandler) SendDeviceUpdateFailedEvent(ctx context.Context, aDeviceID string, raisedTs int64, errorCode cmn.OnuFailureErrorCode, reason string) {
+	dh.sendFailureEvent(ctx, cDeviceUpdateFailedEvent, aDeviceID, raisedTs, errorCode, reason)
+}
+
+// SendDeviceDBUpdateFailureEvent - public interface method to send device DB update failure event
+func (dh *deviceHandler) SendDeviceDBUpdateFailureEvent(ctx context.Context, aDeviceID string, raisedTs int64, errorCode cmn.OnuFailureErrorCode, reason string) {
+	dh.sendFailureEvent(ctx, cDeviceDBUpdateFailureEvent, aDeviceID, raisedTs, errorCode, reason)
 }
 
 // createUniLockFsm initializes and runs the UniLock FSM to transfer the OMCI related commands for port lock/unlock
@@ -4808,6 +4969,9 @@ func (dh *deviceHandler) deviceReconcileFailedUpdate(ctx context.Context, device
 	context["device-id"] = dh.DeviceID
 	context["onu-serial-number"] = dh.device.SerialNumber
 	context["parent-id"] = dh.parentID
+	context["serial-number"] = dh.device.SerialNumber
+	context["onu-device-id"] = dh.DeviceID
+	context["olt-device-id"] = dh.parentID
 
 	deviceEvent := &voltha.DeviceEvent{
 		ResourceId:      dh.DeviceID,
@@ -4867,6 +5031,12 @@ func (dh *deviceHandler) updateDeviceStateInCore(ctx context.Context, deviceStat
 	_, err = cClient.DeviceStateUpdate(subCtx, deviceStateFilter)
 	logger.Debugw(subCtx, "device-updated-in-core",
 		log.Fields{"device-id": dh.device.Id, "device-state": deviceStateFilter, "error": err})
+	// If update failed, send ONU_DEVICE_UPDATE_FAILED event
+	if err != nil {
+		go dh.sendFailureEvent(ctx, cDeviceUpdateFailedEvent, dh.DeviceID, time.Now().Unix(),
+			cmn.ErrCodeDeviceStateUpdateAtCore, fmt.Sprintf("Device state update failed at rwcore: ConnStatus=%s, OperStatus=%s, error: %v",
+				deviceStateFilter.ConnStatus, deviceStateFilter.OperStatus, err))
+	}
 	return err
 }
 
@@ -4892,6 +5062,11 @@ func (dh *deviceHandler) updateDeviceInCore(ctx context.Context, device *voltha.
 	defer cancel()
 	_, err = cClient.DeviceUpdate(subCtx, device)
 	logger.Debugw(subCtx, "device-updated-in-core", log.Fields{"device-id": device.Id, "error": err})
+	if err != nil {
+		go dh.sendFailureEvent(ctx, cDeviceUpdateFailedEvent, device.Id, time.Now().Unix(),
+			cmn.ErrCodeDeviceUpdateAtCore, fmt.Sprintf("Device update failed at rwcore: device-id=%s, error: %v",
+				device.Id, err))
+	}
 	return err
 }
 

@@ -96,6 +96,8 @@ func (onuDeviceEntry *OnuDeviceEntry) enterBridgeInitState(ctx context.Context, 
 func (onuDeviceEntry *OnuDeviceEntry) enterDownloadedState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibDownload FSM", log.Fields{"send notification to core in State": e.FSM.Current(), "device-id": onuDeviceEntry.deviceID})
 	onuDeviceEntry.transferSystemEvent(ctx, cmn.MibDownloadDone)
+	// Set MIB download success flag to true after successful completion
+	onuDeviceEntry.SetMibDownloadSuccess(true)
 	//let's reset the state machine in order to release all resources now
 	pMibDlFsm := onuDeviceEntry.PMibDownloadFsm
 	if pMibDlFsm != nil {
@@ -129,6 +131,13 @@ func (onuDeviceEntry *OnuDeviceEntry) enterResettingState(ctx context.Context, e
 				_ = a_pAFsm.PFsm.Event(DlEvRestart)
 			}
 		}(pMibDlFsm)
+		// Check if MIB download was not successful and raise device initialization failed event
+		if !onuDeviceEntry.IsMibDownloadSuccessful() {
+			logger.Errorw(ctx, "MIB download failed - raising device initialization failed event",
+				log.Fields{"device-id": onuDeviceEntry.deviceID})
+			go onuDeviceEntry.baseDeviceHandler.SendOnuInitializationFailedEvent(ctx, onuDeviceEntry.deviceID,
+				time.Now().Unix(), cmn.ErrCodeMibDownloadFailed, "MIB download failed - FSM entering reset state")
+		}
 	}
 }
 
