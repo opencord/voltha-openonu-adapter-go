@@ -241,6 +241,10 @@ func (oo *OpenONUAC) getDeviceHandler(ctx context.Context, deviceID string, aWai
 		}
 	}
 	oo.mutexDeviceHandlersMap.Unlock()
+	if agent == nil {
+		errMsg := fmt.Sprintf("device Handler not found -%s", deviceID)
+		return nil, status.Error(codes.NotFound, errMsg)
+	}
 	return agent, nil
 }
 

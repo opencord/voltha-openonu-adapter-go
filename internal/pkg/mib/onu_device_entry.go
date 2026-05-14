@@ -220,9 +220,13 @@ type OnuDeviceEntry struct {
 	mutexMibSyncMsgProcessorRunning sync.RWMutex
 	//remark: general usage of pAdapterFsm would require generalization of CommChan  usage and internal event setting
 	//  within the FSM event procedures
-	mutexPLastTxMeInstance     sync.RWMutex
-	reconcilingFlows           bool
-	mibSyncMsgProcessorRunning bool
+	mutexPLastTxMeInstance          sync.RWMutex
+	mutexMibDownloadSuccess         sync.RWMutex
+	mutexRaiseMibUploadFailureEvent sync.RWMutex
+	reconcilingFlows                bool
+	mibSyncMsgProcessorRunning      bool
+	mibDownloadSuccess              bool // Flag to indicate if MIB download was successful
+	raiseMibUploadFailureEvent      bool // Flag to indicate if MIB upload failure event should be raised
 }
 
 // NewOnuDeviceEntry returns a new instance of a OnuDeviceEntry
@@ -242,6 +246,8 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 	onuDeviceEntry.ReconciledTpInstances = make(map[uint8]map[uint8]*inter_adapter.TechProfileDownloadMessage)
 	onuDeviceEntry.chReconcilingFlowsFinished = make(chan bool)
 	onuDeviceEntry.reconcilingFlows = false
+	onuDeviceEntry.mibDownloadSuccess = false
+	onuDeviceEntry.raiseMibUploadFailureEvent = false // Initialize to false; set to true when MIB upload actually starts
 	onuDeviceEntry.omciRebootMessageReceivedChannel = make(chan cmn.Message, 2)
 	//openomciagent.lockDeviceHandlersMap = sync.RWMutex{}
 	//OMCI related databases are on a per-agent basis. State machines and tasks
@@ -359,6 +365,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 
 		fsm.Callbacks{
 			"enter_state":                         func(e *fsm.Event) { onuDeviceEntry.PMibUploadFsm.LogFsmStateChange(ctx, e) },
+			"enter_" + UlStDisabled:               func(e *fsm.Event) { onuDeviceEntry.enterDisabledState(ctx, e) },
 			"enter_" + UlStStarting:               func(e *fsm.Event) { onuDeviceEntry.enterStartingState(ctx, e) },
 			"enter_" + UlStResettingMib:           func(e *fsm.Event) { onuDeviceEntry.enterResettingMibState(ctx, e) },
 			"enter_" + UlStGettingVendorAndSerial: func(e *fsm.Event) { onuDeviceEntry.enterGettingVendorAndSerialState(ctx, e) },
@@ -667,6 +674,15 @@ func (oo *OnuDeviceEntry) UpdateOnuKvStore(ctx context.Context) error {
 	err := oo.storeDataInOnuKvStore(ctx)
 	if err != nil {
 		logger.Errorf(ctx, "onu-data update aborted: during writing process", log.Fields{"device-id": oo.deviceID, "err": err})
+		// Raise ONU_DEVICE_DB_UPDATE_FAILURE event for any error
+		raisedTs := time.Now().Unix()
+		oo.baseDeviceHandler.SendDeviceDBUpdateFailureEvent(
+			ctx,
+			oo.deviceID,
+			raisedTs,
+			cmn.ErrCodeDeviceDbKvStoreUpdate,
+			fmt.Sprintf("UpdateOnuKvStore failed: %v", err),
+		)
 		return err
 	}
 	return nil
@@ -1119,4 +1135,32 @@ func (oo *OnuDeviceEntry) IsMIBTemplateGenerated(ctx context.Context) bool {
 		return false
 	}
 	return true
+}
+
+// SetMibDownloadSuccess sets the MIB download success flag
+func (oo *OnuDeviceEntry) SetMibDownloadSuccess(success bool) {
+	oo.mutexMibDownloadSuccess.Lock()
+	defer oo.mutexMibDownloadSuccess.Unlock()
+	oo.mibDownloadSuccess = success
+}
+
+// IsMibDownloadSuccessful returns true if MIB download was successful
+func (oo *OnuDeviceEntry) IsMibDownloadSuccessful() bool {
+	oo.mutexMibDownloadSuccess.RLock()
+	defer oo.mutexMibDownloadSuccess.RUnlock()
+	return oo.mibDownloadSuccess
+}
+
+// SetRaiseMibUploadFailureEvent sets the MIB upload failure event flag
+func (oo *OnuDeviceEntry) SetRaiseMibUploadFailureEvent(raise bool) {
+	oo.mutexRaiseMibUploadFailureEvent.Lock()
+	defer oo.mutexRaiseMibUploadFailureEvent.Unlock()
+	oo.raiseMibUploadFailureEvent = raise
+}
+
+// ShouldRaiseMibUploadFailureEvent returns true if MIB upload failure event should be raised
+func (oo *OnuDeviceEntry) ShouldRaiseMibUploadFailureEvent() bool {
+	oo.mutexRaiseMibUploadFailureEvent.RLock()
+	defer oo.mutexRaiseMibUploadFailureEvent.RUnlock()
+	return oo.raiseMibUploadFailureEvent
 }

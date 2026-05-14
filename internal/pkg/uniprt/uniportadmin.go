@@ -56,6 +56,7 @@ const (
 	UniEvTimeoutUnis   = "UniEvTimeoutUnis"
 	UniEvReset         = "UniEvReset"
 	UniEvRestart       = "UniEvRestart"
+	UniEvOmciTimeout   = "UniEvOmciTimeout"
 )
 
 // states of lock/unlock UNI port FSM
@@ -66,6 +67,7 @@ const (
 	UniStSettingOnuG = "UniStSettingOnuG"
 	UniStAdminDone   = "UniStAdminDone"
 	UniStResetting   = "UniStResetting"
+	UniStOmciTimeout = "UniStOmciTimeout"
 )
 
 // CUniFsmIdleState - TODO: add comment
@@ -110,6 +112,7 @@ func NewLockStateFsm(ctx context.Context, aAdminState bool, aRequestEvent cmn.On
 				// exceptional treatment for all states except UniStResetting
 				{Name: UniEvRestart, Src: []string{UniStStarting, UniStSettingOnuG, UniStSettingUnis,
 					UniStAdminDone, UniStResetting}, Dst: UniStDisabled},
+				{Name: UniEvOmciTimeout, Src: []string{UniStSettingOnuG, UniStSettingUnis}, Dst: UniStOmciTimeout},
 			},
 
 			fsm.Callbacks{
@@ -119,6 +122,7 @@ func NewLockStateFsm(ctx context.Context, aAdminState bool, aRequestEvent cmn.On
 				("enter_" + UniStSettingUnis): func(e *fsm.Event) { instFsm.enterSettingUnisState(ctx, e) },
 				("enter_" + UniStAdminDone):   func(e *fsm.Event) { instFsm.enterAdminDoneState(ctx, e) },
 				("enter_" + UniStResetting):   func(e *fsm.Event) { instFsm.enterResettingState(ctx, e) },
+				("enter_" + UniStOmciTimeout): func(e *fsm.Event) { instFsm.enterOmciTimeoutState(ctx, e) },
 			},
 		)
 	} else { //port unlocking requested
@@ -143,6 +147,7 @@ func NewLockStateFsm(ctx context.Context, aAdminState bool, aRequestEvent cmn.On
 				// exceptional treatment for all states except UniStResetting
 				{Name: UniEvRestart, Src: []string{UniStStarting, UniStSettingOnuG, UniStSettingUnis,
 					UniStAdminDone, UniStResetting}, Dst: UniStDisabled},
+				{Name: UniEvOmciTimeout, Src: []string{UniStSettingOnuG, UniStSettingUnis}, Dst: UniStOmciTimeout},
 			},
 
 			fsm.Callbacks{
@@ -152,6 +157,7 @@ func NewLockStateFsm(ctx context.Context, aAdminState bool, aRequestEvent cmn.On
 				("enter_" + UniStSettingUnis): func(e *fsm.Event) { instFsm.enterSettingUnisState(ctx, e) },
 				("enter_" + UniStAdminDone):   func(e *fsm.Event) { instFsm.enterAdminDoneState(ctx, e) },
 				("enter_" + UniStResetting):   func(e *fsm.Event) { instFsm.enterResettingState(ctx, e) },
+				("enter_" + UniStOmciTimeout): func(e *fsm.Event) { instFsm.enterOmciTimeoutState(ctx, e) },
 			},
 		)
 	}
@@ -321,6 +327,12 @@ func (oFsm *LockStateFsm) enterResettingState(ctx context.Context, e *fsm.Event)
 	}
 }
 
+func (oFsm *LockStateFsm) enterOmciTimeoutState(ctx context.Context, e *fsm.Event) {
+	logger.Infow(ctx, "LockStateFSM - OmciTimeout", log.Fields{"device-id": oFsm.deviceID, "current state": e.FSM.Current()})
+
+	go oFsm.pDeviceHandler.SendOnuInitializationFailedEvent(ctx, oFsm.deviceID, time.Now().Unix(), cmn.ErrCodeUniOmciTimeout, "UNI port OMCI request timeout error during lock/unlock operation")
+}
+
 func (oFsm *LockStateFsm) processOmciLockMessages(ctx context.Context) {
 	logger.Debugw(ctx, "Start LockStateFsm Msg processing", log.Fields{"for device-id": oFsm.deviceID})
 loop:
@@ -342,6 +354,10 @@ loop:
 			msg, _ := message.Data.(cmn.TestMessage)
 			if msg.TestMessageVal == cmn.AbortMessageProcessing {
 				logger.Debugw(ctx, "LockStateFsm abort ProcessMsg", log.Fields{"for device-id": oFsm.deviceID})
+				break loop
+			} else if msg.TestMessageVal == cmn.TimeOutOccurred {
+				logger.Warnw(ctx, "LockStateFsm timeout occurred", log.Fields{"for device-id": oFsm.deviceID})
+				_ = oFsm.PAdaptFsm.PFsm.Event(UniEvOmciTimeout)
 				break loop
 			}
 			logger.Warnw(ctx, "LockStateFsm unknown TestMessage", log.Fields{"device-id": oFsm.deviceID, "MessageVal": msg.TestMessageVal})
@@ -546,6 +562,8 @@ func (oFsm *LockStateFsm) waitforOmciResponse(ctx context.Context, apMeInstance 
 		}
 		// should not happen so far
 		logger.Warnw(ctx, "lockStateFSM uni-set response error", log.Fields{"for device-id": oFsm.deviceID})
+		// Raise ONU_INITIALIZATION_FAILED event for OMCI response error during UNI port lock/unlock
+		go oFsm.pDeviceHandler.SendOnuInitializationFailedEvent(ctx, oFsm.deviceID, time.Now().Unix(), cmn.ErrCodeUniOmciResponseError, "UNI port OMCI response error during lock/unlock operation")
 		return fmt.Errorf("lockStateFsm uni-set responseError for device-id %s", oFsm.deviceID)
 	}
 }
