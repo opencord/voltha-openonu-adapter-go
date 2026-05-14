@@ -98,8 +98,28 @@ var omccVersionSupportsExtendedOmciFormat = map[uint8]bool{
 
 var fsmMsg cmn.TestMessageType
 
+func (oo *OnuDeviceEntry) enterDisabledState(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Entered UlStDisabled state": e.FSM.Current(), "device-id": oo.deviceID})
+
+	// Check if MIB upload failure event should be raised
+	if oo.ShouldRaiseMibUploadFailureEvent() {
+		logger.Infow(ctx, "MIB upload failed, raising device initialization failed event",
+			log.Fields{"device-id": oo.deviceID})
+
+		// Send device initialization failed event
+		go oo.baseDeviceHandler.SendOnuInitializationFailedEvent(ctx, oo.deviceID,
+			time.Now().Unix(), cmn.ErrCodeMibUploadFailed, "Unable to complete the MIB upload for the device")
+
+		// Clear the flag after raising the event
+		oo.SetRaiseMibUploadFailureEvent(false)
+	}
+}
+
 func (oo *OnuDeviceEntry) enterStartingState(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "MibSync FSM", log.Fields{"Start processing MibSync-msgs in State": e.FSM.Current(), "device-id": oo.deviceID})
+	// Set the flag to true when MIB upload actually starts
+	// This ensures the failure event is only raised if upload truly fails after starting
+	oo.SetRaiseMibUploadFailureEvent(true)
 	oo.pOnuDB = devdb.NewOnuDeviceDB(log.WithSpanFromContext(context.TODO(), ctx), oo.deviceID)
 	go oo.processMibSyncMessages(ctx)
 }
@@ -473,6 +493,8 @@ func (oo *OnuDeviceEntry) enterExaminingMdsSuccessState(ctx context.Context, e *
 		oo.baseDeviceHandler.StartReconciling(ctx, true)
 		oo.baseDeviceHandler.AddAllUniPorts(ctx)
 		_ = oo.baseDeviceHandler.ReasonUpdate(ctx, cmn.DrInitialMibDownloaded, oo.baseDeviceHandler.IsReconcilingReasonUpdate())
+		// Set MIB download success flag to true after InitialMibDownloaded event is triggered
+		oo.SetMibDownloadSuccess(true)
 		oo.baseDeviceHandler.SetReadyForOmciConfig(true)
 
 		if !oo.baseDeviceHandler.GetCollectorIsRunning() {
@@ -623,6 +645,9 @@ loop:
 				oo.mibSyncMsgProcessorRunning = false
 				oo.mutexMibSyncMsgProcessorRunning.Unlock()
 				break loop
+			} else if msg.TestMessageVal == cmn.TimeOutOccurred {
+				logger.Warnw(ctx, "MibSync timeout occurred", log.Fields{"for device-id": oo.deviceID})
+				break loop
 			}
 			oo.handleTestMsg(ctx, msg)
 		case cmn.OMCI:
@@ -665,6 +690,8 @@ func (oo *OnuDeviceEntry) handleOmciMibResetResponseMessage(ctx context.Context,
 					oo.SOnuPersistentData.PersMibDataSyncAdpt = cmn.MdsDefaultMib
 					oo.MutexPersOnuConfig.Unlock()
 					oo.PDevOmciCC.ResetConfFailMEs()
+					// Set MIB download flag to false when MIB reset is successful
+					oo.SetMibDownloadSuccess(false)
 					// trigger retrieval of VendorId and SerialNumber
 					_ = oo.PMibUploadFsm.PFsm.Event(UlEvGetVendorAndSerial)
 					return
@@ -1642,6 +1669,9 @@ func (oo *OnuDeviceEntry) getAllStoredTpInstFromParentAdapter(ctx context.Contex
 // CancelProcessing terminates potentially running reconciling processes and stops the FSM
 func (oo *OnuDeviceEntry) CancelProcessing(ctx context.Context) {
 	logger.Debugw(ctx, "CancelProcessing entered", log.Fields{"device-id": oo.deviceID})
+	// Clear the MIB upload failure event flag to avoid false event triggering
+	oo.SetRaiseMibUploadFailureEvent(false)
+	logger.Debugw(ctx, "Cleared MIB upload failure event flag during cancel processing", log.Fields{"device-id": oo.deviceID})
 	if oo.isReconcilingFlows() {
 		oo.SendChReconcilingFlowsFinished(ctx, false)
 	}
