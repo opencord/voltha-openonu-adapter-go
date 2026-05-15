@@ -33,6 +33,23 @@
       "message": "recheck",
       "revId": "4a1c446df0c4419952a6f6a718653e96aa199b39",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "301e1ea7_2c59c3e9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001023
+      },
+      "writtenOn": "2026-05-15T04:09:15Z",
+      "side": 1,
+      "message": "\u003e Patch Set 1:\n\u003e \n\u003e Build Failed \n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_sanity-test/2159/ : FAILURE\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_sanity-test-test/2/ : FAILURE\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-tests/1870/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_licensed/2056/ : SUCCESS\n\u003e \n\u003e https://jenkins.lfbroadband.org/job/verify_voltha-openonu-adapter-go_unit-test-lint/1871/ : SUCCESS\n\nrecheck",
+      "revId": "4a1c446df0c4419952a6f6a718653e96aa199b39",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
