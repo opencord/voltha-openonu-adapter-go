@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5138bab9_3506cefb",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2026-05-26T19:23:21Z",
+      "side": 1,
+      "message": "when the device enters the fail state, there is no way to recover it. Is this the intended behaviour?",
+      "revId": "6eea773869d6b5e6558461cfd80008cc1f91100f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9ae18b62_c3050ec6",
+        "filename": "internal/pkg/mib/onu_device_entry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1128,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2026-05-26T19:23:21Z",
+      "side": 1,
+      "message": "this seems identical with the GetMibDownloadSuccess",
+      "revId": "6eea773869d6b5e6558461cfd80008cc1f91100f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
