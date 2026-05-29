@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "29ff41a6_52679e52",
+        "filename": "internal/pkg/core/device_handler.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1001023
+      },
+      "writtenOn": "2026-05-29T03:35:35Z",
+      "side": 1,
+      "message": "That is intended behaviour, devEvDeviceFail triggers dh.doStateFail() so which sends failure events to NB. From NB for the onu delete onu call will be triggered and onu will be cleaned and freshly discovered",
+      "parentUuid": "5138bab9_3506cefb",
+      "revId": "6eea773869d6b5e6558461cfd80008cc1f91100f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "9ae18b62_c3050ec6",
         "filename": "internal/pkg/mib/onu_device_entry.go",
         "patchSetId": 2
