@@ -22,6 +22,30 @@
       },
       "revId": "dc63963e3407246b82e801b7ef540abc76914b69",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0b81a957_3fafb322",
+        "filename": ".github/workflows/release.yaml",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1001013
+      },
+      "writtenOn": "2026-07-10T00:42:11Z",
+      "side": 1,
+      "message": "Nope, that was a mistake. Thanks for catching it. I\u0027ve corrected it and pushed a new patch.",
+      "parentUuid": "f14a636d_0df42827",
+      "range": {
+        "startLine": 5,
+        "startChar": 6,
+        "endLine": 5,
+        "endChar": 23
+      },
+      "revId": "dc63963e3407246b82e801b7ef540abc76914b69",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
