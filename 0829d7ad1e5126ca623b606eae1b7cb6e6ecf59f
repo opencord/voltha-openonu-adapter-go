@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "17e9b949_1f100151",
+        "filename": ".github/workflows/gerrit-comment-handler.yaml",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000404
+      },
+      "writtenOn": "2026-07-21T19:00:05Z",
+      "side": 1,
+      "message": "I don\u0027t see where the GERRIT_URL parameter is defined.",
+      "revId": "0829d7ad1e5126ca623b606eae1b7cb6e6ecf59f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    }
+  ]
+}
