@@ -16,6 +16,23 @@
       "message": "@Serkant , @Abhilash",
       "revId": "c60fbf2b910da8d309e6af620bc29df4dca07820",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a2e05d24_c418f663",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001013
+      },
+      "writtenOn": "2026-08-06T23:36:07Z",
+      "side": 1,
+      "message": "Sanity test failure is a known issue. All other tests are passing, so I\u0027m going to +1 verify this.",
+      "revId": "c60fbf2b910da8d309e6af620bc29df4dca07820",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388"
     }
   ]
 }
