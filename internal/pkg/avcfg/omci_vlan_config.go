@@ -1226,6 +1226,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 		oFsm.vlanFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid)
 		oFsm.mutexFlowParams.Unlock()
 		vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
+		// #nosec G602
 		vtfdFilterList[0] = oFsm.vlanFilterList[0]
 		oFsm.numVlanFilterEntries = 1
 		meParams := me.ParamData{
