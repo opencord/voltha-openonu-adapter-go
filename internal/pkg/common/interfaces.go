@@ -138,7 +138,8 @@ type IdeviceHandler interface {
 	CreatePortInCore(context.Context, *voltha.Port) error
 
 	PerOnuFlowHandlerRoutine(uniID uint8)
-	GetDeviceDeleteCommChan(context.Context) chan bool
+	GetDeviceContext() context.Context
+	RunTrackedRoutine(ctx context.Context, name string, fn func(context.Context)) bool
 	GetSkipOnuConfigEnabled() bool
 }
 

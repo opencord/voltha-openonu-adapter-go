@@ -653,10 +653,8 @@ func (oo *OmciCC) sendQueuedHighPrioRequests(ctx context.Context) error {
 	}
 	for oo.highPrioTxQueue.Len() > 0 {
 		select {
-		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				return fmt.Errorf("device deletion channel is closed at sendQueuedHighPrioRequests %s", oo.deviceID)
-			}
+		case <-oo.pBaseDeviceHandler.GetDeviceContext().Done():
+			return fmt.Errorf("device deletion channel is closed at sendQueuedHighPrioRequests %s", oo.deviceID)
 		default:
 			queueElement := oo.highPrioTxQueue.Front() // First element
 			if err := oo.sendOMCIRequest(ctx, queueElement.Value.(OmciTransferStructure)); err != nil {
@@ -690,11 +688,9 @@ func (oo *OmciCC) sendQueuedLowPrioRequests(ctx context.Context) error {
 
 	for oo.lowPrioTxQueue.Len() > 0 {
 		select {
-		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				oo.mutexLowPrioTxQueue.Unlock()
-				return fmt.Errorf("device deletion channel is closed at sendQueuedLowPrioRequests %s", oo.deviceID)
-			}
+		case <-oo.pBaseDeviceHandler.GetDeviceContext().Done():
+			oo.mutexLowPrioTxQueue.Unlock()
+			return fmt.Errorf("device deletion channel is closed at sendQueuedLowPrioRequests %s", oo.deviceID)
 		default:
 			queueElement := oo.lowPrioTxQueue.Front() // First element
 			// check if the element is for onu sw section
@@ -885,6 +881,15 @@ func (oo *OmciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, p
 	}
 	oo.mutexMonReq.RUnlock()
 
+	// Fast-path check: if device deletion is already in progress, skip processing.
+	// This avoids unnecessary work but cannot fully prevent the race (see recover below).
+	pHandler := oo.pBaseDeviceHandler
+	if pHandler == nil {
+		logger.Warnw(ctx, "Abort receiving OMCI response, device handler is nil", log.Fields{
+			"device-id": oo.deviceID})
+		return nil
+	}
+
 	// no further test on SeqNo is done here, assignment from rxScheduler is trusted
 	// MibSync responses are simply transferred via deviceEntry to MibSync, no specific analysis here
 	omciRespMsg := Message{
@@ -894,8 +899,31 @@ func (oo *OmciCC) receiveOmciResponse(ctx context.Context, omciMsg *omci.OMCI, p
 			OmciPacket: packet,
 		},
 	}
-	//logger.Debugw(ctx,"Message to be sent into channel:", log.Fields{"mibSyncMsg": mibSyncMsg})
-	respChan <- omciRespMsg
+	// recover() guard: This is the only reliable protection against the race condition where
+	// the CommChan (respChan) is closed by CleanupOnDeviceDeletion between our checks above
+	// and the actual send below. The checks above serve as fast-path optimizations to avoid
+	// unnecessary processing, but the Go scheduler can preempt between any two statements,
+	// so a send on a closed channel can still occur. recover() catches the resulting panic.
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Warnw(ctx, "MSg could not be sent on closed channel, device likely deleted",
+				log.Fields{"device-id": oo.deviceID,
+					"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16),
+					"error":       r})
+		}
+	}()
+
+	select {
+	case <-pHandler.GetDeviceContext().Done():
+		logger.Infow(ctx, "Skipping OMCI response, device delete channel closed",
+			log.Fields{
+				"device-id":   oo.deviceID,
+				"transCorrId": strconv.FormatInt(int64(omciMsg.TransactionID), 16),
+			})
+		return nil
+	case respChan <- omciRespMsg:
+	}
+	// response delivered successfully
 
 	return nil
 }
@@ -4585,18 +4613,12 @@ loop:
 			logger.Infow(ctx, "reqMon: timeout waiting for response - retry",
 				log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 			oo.incrementTxRetries()
-		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "device deletion channel is closed", log.Fields{"device-id": oo.deviceID})
-				oo.mutexMonReq.Lock()
-				delete(oo.monitoredRequests, tid)
-				oo.mutexMonReq.Unlock()
-				return fmt.Errorf("device deletion channel is closed device-id: %v", oo.deviceID)
-			}
+		case <-oo.pBaseDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "device deletion channel is closed", log.Fields{"device-id": oo.deviceID})
 			oo.mutexMonReq.Lock()
 			delete(oo.monitoredRequests, tid)
 			oo.mutexMonReq.Unlock()
-			return fmt.Errorf("received response from device deletion comm channel while waiting for a OMCI response device-id: %v", oo.deviceID)
+			return fmt.Errorf("device deletion channel is closed device-id: %v", oo.deviceID)
 		}
 		retryCounter++
 	}
@@ -5120,11 +5142,9 @@ loop:
 					log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				oo.incrementTxRetries()
 			}
-		case _, ok := <-oo.pBaseDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "device deletion channel is closed at sendWithRxSupervision", log.Fields{"device-id": oo.deviceID})
-				break loop
-			}
+		case <-oo.pBaseDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "device deletion channel is closed at sendWithRxSupervision", log.Fields{"device-id": oo.deviceID})
+			break loop
 		}
 		retryCounter++
 	}

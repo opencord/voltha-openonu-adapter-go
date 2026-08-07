@@ -522,7 +522,9 @@ func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.
 	case cmn.MibDatabaseSync:
 		if oo.devState < cmn.MibDatabaseSync { //devState has not been synced yet
 			oo.devState = cmn.MibDatabaseSync
-			go oo.baseDeviceHandler.DeviceProcStatusUpdate(ctx, devEvent)
+			oo.baseDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-MibDatabaseSync", func(rCtx context.Context) {
+				oo.baseDeviceHandler.DeviceProcStatusUpdate(rCtx, devEvent)
+			})
 			//TODO!!! device control: next step: start MIB capability verification from here ?!!!
 		} else {
 			logger.Debugw(ctx, "mibinsync-event in some already synced state - ignored",
@@ -531,7 +533,9 @@ func (oo *OnuDeviceEntry) transferSystemEvent(ctx context.Context, devEvent cmn.
 	case cmn.MibDownloadDone:
 		if oo.devState < cmn.MibDownloadDone { //devState has not been synced yet
 			oo.devState = cmn.MibDownloadDone
-			go oo.baseDeviceHandler.DeviceProcStatusUpdate(ctx, devEvent)
+			oo.baseDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-MibDownloadDone", func(rCtx context.Context) {
+				oo.baseDeviceHandler.DeviceProcStatusUpdate(rCtx, devEvent)
+			})
 		} else {
 			logger.Debugw(ctx, "mibdownloaddone-event was already seen - ignored",
 				log.Fields{"device-id": oo.deviceID, "state": oo.devState})
@@ -770,7 +774,10 @@ func (oo *OnuDeviceEntry) UpdateOnuUniTpPath(ctx context.Context, aUniID uint8, 
 				if oo.pOnuTP != nil {
 					oo.pOnuTP.SetProfileToDelete(aUniID, aTpID, false)
 				}
-				go oo.baseDeviceHandler.VerifyVlanConfigRequest(ctx, aUniID, aTpID)
+				oo.baseDeviceHandler.RunTrackedRoutine(ctx, "VerifyVlanConfigRequest", func(rCtx context.Context) {
+					oo.baseDeviceHandler.VerifyVlanConfigRequest(rCtx, aUniID, aTpID)
+				})
+
 			}
 			return false //indicate 'no change' - nothing more to do, TechProf inter-adapter message is return with success anyway here
 		}
@@ -1059,6 +1066,26 @@ func (oo *OnuDeviceEntry) PrepareForGarbageCollection(ctx context.Context, aDevi
 		oo.PDevOmciCC.PrepareForGarbageCollection(ctx, aDeviceID)
 	}
 	oo.PDevOmciCC = nil
+	// Break FSM callback circular references for MIB upload/download FSMs.
+	// The FSM callbacks capture oo (the device entry) in closures, creating
+	// circular references that prevent GC.
+	if oo.PMibUploadFsm != nil {
+		if oo.PMibUploadFsm.PFsm != nil {
+			oo.PMibUploadFsm.PFsm = nil
+		}
+		oo.PMibUploadFsm = nil
+	}
+	if oo.PMibDownloadFsm != nil {
+		if oo.PMibDownloadFsm.PFsm != nil {
+			oo.PMibDownloadFsm.PFsm = nil
+		}
+		oo.PMibDownloadFsm = nil
+	}
+	// Release KV store and DB references
+	oo.mibTemplateKVStore = nil
+	oo.onuKVStore = nil
+	oo.pOnuDB = nil
+	oo.pOpenOnuAc = nil
 }
 
 // SendOnuDeviceEvent sends an ONU DeviceEvent via eventProxy
