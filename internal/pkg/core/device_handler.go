@@ -78,16 +78,23 @@ const (
 
 const (
 	// events of Device FSM
-	devEvDeviceInit    = "devEvDeviceInit"
-	devEvDeviceUpInd   = "devEvDeviceUpInd"
-	devEvDeviceDownInd = "devEvDeviceDownInd"
+	devEvDeviceInit       = "devEvDeviceInit"
+	devEvDeviceUpInd      = "devEvDeviceUpInd"
+	devEvActivationDone   = "devEvActivationDone"
+	devEvActivationFail   = "devEvActivationFail"
+	devEvDeviceDownInd    = "devEvDeviceDownInd"
+	devEvDeactivationDone = "devEvDeactivationDone"
+	devEvDeviceDelete     = "devEvDeviceDelete"
 )
 const (
 	// states of Device FSM
-	devStNull = "devStNull"
-	devStDown = "devStDown"
-	devStInit = "devStInit"
-	devStUp   = "devStUp"
+	devStNull         = "devStNull"
+	devStDown         = "devStDown"
+	devStInit         = "devStInit"
+	devStActivating   = "devStActivating"
+	devStUp           = "devStUp"
+	devStDeactivating = "devStDeactivating"
+	devStDeleting     = "devStDeleting"
 )
 
 // Event category and subcategory definitions - same as defiend for OLT in eventmgr.go  - should be done more centrally
@@ -182,14 +189,16 @@ type deviceHandler struct {
 	pLastUpgradeImageState         *voltha.ImageState
 	upgradeFsmChan                 chan struct{}
 
-	deviceDeleteCommChan chan bool
-	DeviceID             string
-	DeviceType           string
-	adminState           string
-	logicalDeviceID      string
-	ProxyAddressID       string
-	ProxyAddressType     string
-	parentID             string
+	deviceCtx        context.Context    // per-device lifecycle context, canceled on delete
+	deviceCtxCancel  context.CancelFunc // cancels deviceCtx
+	activeRoutinesWg sync.WaitGroup     // tracks goroutines accessing device state
+	DeviceID         string
+	DeviceType       string
+	adminState       string
+	logicalDeviceID  string
+	ProxyAddressID   string
+	ProxyAddressType string
+	parentID         string
 
 	flowCbChan                     []chan FlowCb
 	stopFlowMonitoringRoutine      []chan bool // length of slice equal to number of uni ports
@@ -286,7 +295,7 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 		ImageState:    voltha.ImageState_IMAGE_UNKNOWN,
 	}
 	dh.upgradeFsmChan = make(chan struct{})
-	dh.deviceDeleteCommChan = make(chan bool, 2)
+	dh.deviceCtx, dh.deviceCtxCancel = context.WithCancel(context.Background())
 
 	if dh.device.PmConfigs != nil { // can happen after onu adapter restart
 		dh.pmConfigs = cloned.PmConfigs
@@ -299,15 +308,19 @@ func newDeviceHandler(ctx context.Context, cc *vgrpc.Client, ep eventif.EventPro
 		devStNull,
 		fsm.Events{
 			{Name: devEvDeviceInit, Src: []string{devStNull, devStDown}, Dst: devStInit},
-			{Name: devEvDeviceUpInd, Src: []string{devStInit, devStDown}, Dst: devStUp},
-			{Name: devEvDeviceDownInd, Src: []string{devStUp}, Dst: devStDown},
+			{Name: devEvDeviceUpInd, Src: []string{devStInit, devStDown}, Dst: devStActivating},
+			{Name: devEvActivationDone, Src: []string{devStActivating}, Dst: devStUp},
+			{Name: devEvActivationFail, Src: []string{devStActivating}, Dst: devStDown},
+			{Name: devEvDeviceDownInd, Src: []string{devStUp, devStActivating}, Dst: devStDeactivating},
+			{Name: devEvDeactivationDone, Src: []string{devStDeactivating}, Dst: devStDown},
+			{Name: devEvDeviceDelete, Src: []string{devStNull, devStDown, devStInit, devStUp, devStActivating, devStDeactivating}, Dst: devStDeleting},
 		},
 		fsm.Callbacks{
-			"before_event":                   func(e *fsm.Event) { dh.logStateChange(ctx, e) },
-			("before_" + devEvDeviceInit):    func(e *fsm.Event) { dh.doStateInit(ctx, e) },
-			("after_" + devEvDeviceInit):     func(e *fsm.Event) { dh.postInit(ctx, e) },
-			("before_" + devEvDeviceUpInd):   func(e *fsm.Event) { dh.doStateUp(ctx, e) },
-			("before_" + devEvDeviceDownInd): func(e *fsm.Event) { dh.doStateDown(ctx, e) },
+			"before_event":                 func(e *fsm.Event) { dh.logStateChange(ctx, e) },
+			("before_" + devEvDeviceInit):  func(e *fsm.Event) { dh.doStateInit(ctx, e) },
+			("after_" + devEvDeviceInit):   func(e *fsm.Event) { dh.postInit(ctx, e) },
+			("enter_" + devStActivating):   func(e *fsm.Event) { dh.doActivation(ctx, e) },
+			("enter_" + devStDeactivating): func(e *fsm.Event) { dh.doDeactivation(ctx, e) },
 		},
 	)
 
@@ -363,6 +376,11 @@ func (dh *deviceHandler) handleOMCIIndication(ctx context.Context, msg *ia.OmciM
 	logger.Debugw(ctx, "inter-adapter-recv-omci", log.Fields{
 		"device-id": dh.DeviceID, "RxOmciMessage": hex.EncodeToString(omciMsg.Message)})
 	*/
+	if dh.GetDeletionInProgress() {
+		logger.Debugw(ctx, "device deletion in progress - ignoring OMCI indication",
+			log.Fields{"device-id": dh.DeviceID})
+		return nil
+	}
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry != nil {
 		if pDevEntry.PDevOmciCC != nil {
@@ -912,11 +930,22 @@ func (dh *deviceHandler) reconcileDeviceOnuInd(ctx context.Context) {
 			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 			return
 		}
+		// Two-phase activation: DeviceUpInd → Activating, then ActivationDone → Up
 		err := dh.pDeviceStateFsm.Event(devEvDeviceUpInd, &onuIndication)
 		if err != nil {
+			// Activation failed — transition Activating → Down
+			if fsmErr := dh.pDeviceStateFsm.Event(devEvActivationFail); fsmErr != nil {
+				logger.Warnw(ctx, "FSM: could not transition to Down after activation failure",
+					log.Fields{"device-id": dh.DeviceID, "fsmErr": fsmErr})
+			}
 			logger.Errorw(ctx, "failed to handle device up indication", log.Fields{"device-id": dh.DeviceID, "error": err})
 			dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
 			return
+		}
+		// Activation succeeded — transition Activating → Up
+		if fsmErr := dh.pDeviceStateFsm.Event(devEvActivationDone); fsmErr != nil {
+			logger.Warnw(ctx, "FSM: could not transition to Up after activation (state may have changed)",
+				log.Fields{"device-id": dh.DeviceID, "fsmErr": fsmErr})
 		}
 	} else {
 		logger.Warnw(ctx, "ONU indication does not have 'up' state, cannot proceed with reconciliation", log.Fields{"device-id": dh.DeviceID, "operState": onuIndication.OperState})
@@ -1425,7 +1454,7 @@ func (dh *deviceHandler) waitOnUniVlanConfigOnRebootReady(ctx context.Context, a
 	aSyncChannel <- struct{}{}
 	for {
 		select {
-		case <-dh.deviceDeleteCommChan:
+		case <-dh.deviceCtx.Done():
 			// Cancel the context and return
 			logger.Warnw(ctx, "Device Deletion invoked , stop further processing ", log.Fields{"device-id": dh.DeviceID})
 			return
@@ -1575,7 +1604,9 @@ outerLoop:
 	if persMutexLock {
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 	}
-	go dh.deviceRebootStateUpdate(ctx, techProfInstLoadFailed)
+	dh.runTrackedRoutine(ctx, "deviceRebootStateUpdate", func(rCtx context.Context) {
+		dh.deviceRebootStateUpdate(rCtx, techProfInstLoadFailed)
+	})
 	return continueWithFlowConfig
 }
 
@@ -1626,25 +1657,25 @@ func (dh *deviceHandler) rebootDevice(ctx context.Context, aCheckDeviceState boo
 	logger.Debugw(ctx, "call DeviceStateUpdate upon reboot", log.Fields{
 		"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.DeviceID})
 	// do not set the ConnStatus here as it may conflict with the parallel setting from ONU down indication (updateInterface())
-	go func() {
-		if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
+	dh.runTrackedRoutine(ctx, "rebootStateUpdate", func(rCtx context.Context) {
+		if err := dh.updateDeviceStateInCore(rCtx, &ca.DeviceStateFilter{
 			DeviceId:   dh.DeviceID,
 			ConnStatus: connectStatusINVALID, //use some dummy value to prevent modification of the ConnStatus
 			OperStatus: voltha.OperStatus_DISCOVERED,
 		}); err != nil {
 			//TODO with VOL-3045/VOL-3046: return the error and stop further processing
-			logger.Errorw(ctx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
+			logger.Errorw(rCtx, "error-updating-device-state", log.Fields{"device-id": dh.DeviceID, "error": err})
 			return
 		}
 		if dh.GetDeviceTechProfOnReboot() {
-			dh.UpdateAndStoreRebootState(ctx, true)
+			dh.UpdateAndStoreRebootState(rCtx, true)
 		}
-		if err := dh.ReasonUpdate(ctx, cmn.DrRebooting, true); err != nil {
-			logger.Errorw(ctx, "errror-updating-device-reason-to-core", log.Fields{"device-id": dh.DeviceID, "error": err})
+		if err := dh.ReasonUpdate(rCtx, cmn.DrRebooting, true); err != nil {
+			logger.Errorw(rCtx, "errror-updating-device-reason-to-core", log.Fields{"device-id": dh.DeviceID, "error": err})
 			return
 		}
 		dh.SetReadyForOmciConfig(false)
-	}()
+	})
 	return nil
 	//no specific activity to synchronize any internal FSM to the 'rebooted' state is explicitly done here
 	//  the expectation ids for a real device, that it will be synced with the expected following 'down' indication
@@ -1770,32 +1801,32 @@ func (dh *deviceHandler) onuSwUpgradeAfterDownload(ctx context.Context, apImageR
 			logger.Errorw(ctx, "onu upgrade fsm could not be created", log.Fields{
 				"device-id": dh.DeviceID, "error": err})
 		}
-		go func() {
+		dh.runTrackedRoutine(ctx, "onuSwUpgradeMonitor", func(rCtx context.Context) {
 			onuDlChn := dh.pOnuUpradeFsm.GetOnuDLChannel()
 			select {
-			case <-ctx.Done():
-				logger.Errorw(ctx, "context Deadline Exceeded aborting ONU SW upgrade", log.Fields{"device-id": dh.DeviceID, "err": ctx.Err()})
+			case <-rCtx.Done():
+				logger.Errorw(rCtx, "context Deadline Exceeded aborting ONU SW upgrade", log.Fields{"device-id": dh.DeviceID, "err": rCtx.Err()})
 				dh.lockUpgradeFsm.Lock()
 				if dh.pOnuUpradeFsm != nil {
-					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST)
+					dh.pOnuUpradeFsm.CancelProcessing(rCtx, true, voltha.ImageState_CANCELLED_ON_REQUEST)
 				}
 				dh.lockUpgradeFsm.Unlock()
 				return
-			case <-dh.deviceDeleteCommChan:
-				logger.Errorw(ctx, "device deleted aborting ONU SW upgrade", log.Fields{"device-id": dh.DeviceID, "err": ctx.Err()})
+			case <-dh.deviceCtx.Done():
+				logger.Errorw(rCtx, "device deleted aborting ONU SW upgrade", log.Fields{"device-id": dh.DeviceID, "err": rCtx.Err()})
 				dh.lockUpgradeFsm.Lock()
 				if dh.pOnuUpradeFsm != nil {
-					dh.pOnuUpradeFsm.CancelProcessing(ctx, true, voltha.ImageState_CANCELLED_ON_REQUEST)
+					dh.pOnuUpradeFsm.CancelProcessing(rCtx, true, voltha.ImageState_CANCELLED_ON_REQUEST)
 				}
 				dh.lockUpgradeFsm.Unlock()
 				return
 			case success := <-onuDlChn:
-				logger.Infow(ctx, "onu SW upgrade download completed", log.Fields{"isSuccess": success, "device-id": dh.DeviceID})
+				logger.Infow(rCtx, "onu SW upgrade download completed", log.Fields{"isSuccess": success, "device-id": dh.DeviceID})
 				aCancel()
 				return
 
 			}
-		}()
+		})
 		return
 	}
 	logger.Errorw(ctx, "start Onu SW upgrade rejected: no inactive image", log.Fields{
@@ -2120,7 +2151,9 @@ func (dh *deviceHandler) postInit(ctx context.Context, e *fsm.Event) {
 	}
 
 	if dh.IsReconciling() {
-		go dh.reconcileDeviceOnuInd(ctx)
+		dh.runTrackedRoutine(ctx, "reconcileDeviceOnuInd", func(rCtx context.Context) {
+			dh.reconcileDeviceOnuInd(rCtx)
+		})
 		// reconcilement will be continued after mib download is done
 	}
 
@@ -2171,47 +2204,37 @@ func (dh *deviceHandler) postInit(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "postInit-done", log.Fields{"device-id": dh.DeviceID})
 }
 
-// doStateUp handle the onu up indication and update to voltha core
-func (dh *deviceHandler) doStateUp(ctx context.Context, e *fsm.Event) {
+// doActivation handles the ONU activation (enter_devStActivating callback).
+// Runs createInterface synchronously. State is already Activating when this runs.
+// The caller is responsible for firing devEvActivationDone or devEvActivationFail
+// after Event() returns, based on the error returned by Event().
+func (dh *deviceHandler) doActivation(ctx context.Context, e *fsm.Event) {
 
-	logger.Debugw(ctx, "doStateUp-started", log.Fields{"device-id": dh.DeviceID})
+	logger.Debugw(ctx, "doActivation-started", log.Fields{"device-id": dh.DeviceID})
 	onuIndication := e.Args[0].(*oop.OnuIndication)
 	if err := dh.createInterface(ctx, onuIndication); err != nil {
-		logger.Errorw(ctx, "failed to create interface", log.Fields{"device-id": dh.DeviceID, "error": err})
+		logger.Errorw(ctx, "activation failed - createInterface error", log.Fields{"device-id": dh.DeviceID, "error": err})
 		e.Cancel(err)
 	}
-	logger.Debugw(ctx, "doStateUp-done", log.Fields{"device-id": dh.DeviceID})
-
-	/*
-		// Synchronous call to update device state - this method is run in its own go routine
-		if err := dh.coreProxy.DeviceStateUpdate(ctx, dh.device.Id, voltha.ConnectStatus_REACHABLE,
-			voltha.OperStatus_ACTIVE); err != nil {
-			logger.Errorw("Failed to update device with OLT UP indication", log.Fields{"device-id": dh.device.Id, "error": err})
-			return err
-		}
-		return nil
-	*/
+	logger.Debugw(ctx, "doActivation-done", log.Fields{"device-id": dh.DeviceID})
 }
 
-// doStateDown handle the onu down indication
-func (dh *deviceHandler) doStateDown(ctx context.Context, e *fsm.Event) {
+// doDeactivation handles the ONU deactivation (enter_devStDeactivating callback).
+// Runs UpdateInterface synchronously. State is already Deactivating when this runs.
+// The caller is responsible for firing devEvDeactivationDone after Event() returns.
+func (dh *deviceHandler) doDeactivation(ctx context.Context, e *fsm.Event) {
 
-	logger.Debugw(ctx, "doStateDown-started", log.Fields{"device-id": dh.DeviceID})
-	var err error
+	logger.Debugw(ctx, "doDeactivation-started", log.Fields{"device-id": dh.DeviceID})
 
 	device := dh.device
 	if device == nil {
-		/*TODO: needs to handle error scenarios */
 		logger.Errorw(ctx, "Failed to fetch handler device", log.Fields{"device-id": dh.DeviceID})
-		e.Cancel(err)
+		e.Cancel(fmt.Errorf("no handler device for %s", dh.DeviceID))
 		return
 	}
 
-	cloned := proto.Clone(device).(*voltha.Device)
-
-	logger.Debugw(ctx, "do-state-down", log.Fields{"ClonedDeviceID": cloned.Id})
 	if err := dh.UpdateInterface(ctx); err != nil {
-		logger.Errorw(ctx, "failed to update interface", log.Fields{"device-id": dh.DeviceID, "error": err})
+		logger.Errorw(ctx, "deactivation failed - UpdateInterface error", log.Fields{"device-id": dh.DeviceID, "error": err})
 		e.Cancel(err)
 	}
 	/*
@@ -2337,6 +2360,10 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	dh.pOnuIndication = onuind // let's revise if storing the pointer is sufficient...
 	pDevEntry := dh.pOnuOmciDevice
 
+	if dh.GetDeletionInProgress() {
+		logger.Warnw(ctx, "device deletion in progress, ignoring the createInterface ", log.Fields{"device-id": dh.DeviceID})
+		return fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
+	}
 	if !dh.IsReconciling() {
 		logger.Debugw(ctx, "call DeviceStateUpdate upon create interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_REACHABLE,
 			"OperStatus": voltha.OperStatus_ACTIVATING, "device-id": dh.DeviceID})
@@ -2362,6 +2389,11 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 		if err := dh.StorePersistentData(ctx); err != nil {
 			logger.Warnw(ctx, "store persistent data error - continue as there will be additional write attempts",
 				log.Fields{"device-id": dh.DeviceID, "err": err})
+		}
+		// Check again if device deletion started during the above synchronous work
+		if dh.GetDeletionInProgress() {
+			logger.Warnw(ctx, "device deletion started during createInterface setup, aborting", log.Fields{"device-id": dh.DeviceID})
+			return fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
 		}
 	} else {
 		logger.Info(ctx, "reconciling - don't notify core about DeviceStateUpdate to ACTIVATING",
@@ -2407,6 +2439,12 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	if err := pDevEntry.Start(log.WithSpanFromContext(context.TODO(), ctx)); err != nil {
 		return err
 	}
+	// Re-check deletion after device entry start — this is a major checkpoint
+	if dh.GetDeletionInProgress() {
+		logger.Warnw(ctx, "device deletion detected after device entry start, aborting createInterface", log.Fields{"device-id": dh.DeviceID})
+		_ = pDevEntry.Stop(log.WithSpanFromContext(context.TODO(), ctx), false)
+		return fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
+	}
 	_ = dh.ReasonUpdate(ctx, cmn.DrStartingOpenomci, !dh.IsReconciling() || dh.IsReconcilingReasonUpdate())
 	if !dh.IsReconciling() && !dh.GetSkipOnuConfigEnabled() {
 		/* this might be a good time for Omci Verify message?  */
@@ -2424,7 +2462,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 			logger.Warnw(ctx, "omci start-verification timed out (continue normal)", log.Fields{"device-id": dh.DeviceID})
 		case testresult := <-verifyExec:
 			logger.Infow(ctx, "Omci start verification done", log.Fields{"device-id": dh.DeviceID, "result": testresult})
-		case <-dh.deviceDeleteCommChan:
+		case <-dh.deviceCtx.Done():
 			logger.Warnw(ctx, "Deleting device, stopping the omci test activity", log.Fields{"device-id": dh.DeviceID})
 			return nil
 		}
@@ -2509,6 +2547,11 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	 *   otherwise some processing synchronization would be required - cmp. e.g TechProfile processing
 	 */
 
+	// Final deletion check before starting MIB upload — avoid kicking off a lengthy FSM sequence
+	if dh.GetDeletionInProgress() {
+		logger.Warnw(ctx, "device deletion detected before MIB upload start, aborting createInterface", log.Fields{"device-id": dh.DeviceID})
+		return fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
+	}
 	//call MibUploadFSM - transition up to state UlStInSync
 	// Breaking this part of code due to sca complexity
 	err := dh.CheckAndStartMibUploadFsm(ctx, pDevEntry)
@@ -2556,6 +2599,13 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 	if dh.getDeviceReason() != cmn.DrStoppingOpenomci {
 		logger.Info(ctx, "updateInterface-started - stopping-device", log.Fields{"device-id": dh.DeviceID})
 
+		// If device deletion is already in progress, skip the entire down processing.
+		// DeleteDevice handles its own teardown through resetFsms + cleanup.
+		// Running resetFsms from both paths concurrently causes double-teardown issues.
+		if dh.GetDeletionInProgress() {
+			logger.Warnw(ctx, "device deletion in progress, skipping UpdateInterface teardown", log.Fields{"device-id": dh.DeviceID})
+			return fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
+		}
 		//stop all running FSM processing - make use of the DH-state as mirrored in the deviceReason
 		//here no conflict with aborted FSM's should arise as a complete OMCI initialization is assumed on ONU-Up
 		//but that might change with some simple MDS check on ONU-Up treatment -> attention!!!
@@ -2589,6 +2639,10 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			self._tech_profile_download_done[uni_id].clear()
 		*/
 
+		if dh.GetDeletionInProgress() {
+			logger.Warnw(ctx, "device deletion in progress, ignoring the updateinterface ", log.Fields{"device-id": dh.DeviceID})
+			return fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
+		}
 		dh.DisableUniPortStateUpdate(ctx)
 
 		dh.SetReadyForOmciConfig(false)
@@ -2850,7 +2904,9 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		var waitForOmciProcessor sync.WaitGroup
 		waitForOmciProcessor.Add(1)
 		// Start PM collector routine
-		go dh.StartCollector(ctx, &waitForOmciProcessor)
+		dh.runTrackedRoutine(ctx, "StartAlarmManager", func(rCtx context.Context) {
+			dh.StartAlarmManager(rCtx)
+		})
 		waitForOmciProcessor.Wait()
 	}
 	if !dh.GetAlarmManagerIsRunning(ctx) {
@@ -2862,7 +2918,10 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		// only if this port was enabled for use by the operator at startup
 		if (1<<uniPort.UniID)&dh.pOpenOnuAc.config.UniPortMask == (1 << uniPort.UniID) {
 			if !dh.GetFlowMonitoringIsRunning(uniPort.UniID) {
-				go dh.PerOnuFlowHandlerRoutine(uniPort.UniID)
+				portID := uniPort.UniID // capture for closure
+				dh.runTrackedRoutine(ctx, "PerOnuFlowHandlerRoutine", func(rCtx context.Context) {
+					dh.PerOnuFlowHandlerRoutine(portID)
+				})
 			}
 		}
 	}
@@ -2913,12 +2972,16 @@ func (dh *deviceHandler) processUniUnlockStateDoneEvent(ctx context.Context, dev
 		// Check if TPs are available post device reboot. If TPs are available start processing them and configure flows
 		if dh.GetDeviceTechProfOnReboot() {
 			if dh.CheckForDeviceTechProf(ctx) {
-				go dh.DeviceFlowConfigOnReboot(ctx)
+				dh.runTrackedRoutine(ctx, "DeviceFlowConfigOnReboot", func(rCtx context.Context) {
+					dh.DeviceFlowConfigOnReboot(rCtx)
+				})
 			}
 		}
 		logger.Infow(ctx, "UniUnlockStateDone event: Sending OnuUp event", log.Fields{"device-id": dh.DeviceID})
 		raisedTs := time.Now().Unix()
-		go dh.sendOnuOperStateEvent(ctx, voltha.OperStatus_ACTIVE, dh.DeviceID, raisedTs) //cmp python onu_active_event
+		dh.runTrackedRoutine(ctx, "sendOnuOperStateEvent", func(rCtx context.Context) {
+			dh.sendOnuOperStateEvent(rCtx, voltha.OperStatus_ACTIVE, dh.DeviceID, raisedTs)
+		})
 		pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 		if pDevEntry == nil {
 			logger.Errorw(ctx, "No valid OnuDevice - aborting", log.Fields{"device-id": dh.DeviceID})
@@ -3041,7 +3104,9 @@ func (dh *deviceHandler) processOmciAniConfigDoneEvent(ctx context.Context, devE
 			if dh.reconcilingFirstPass {
 				logger.Info(ctx, "reconciling - OmciAniConfigDone first pass, start flow processing", log.Fields{"device-id": dh.DeviceID})
 				dh.reconcilingFirstPass = false
-				go dh.ReconcileDeviceFlowConfig(ctx)
+				dh.runTrackedRoutine(ctx, "ReconcileDeviceFlowConfig", func(rCtx context.Context) {
+					dh.ReconcileDeviceFlowConfig(rCtx)
+				})
 			}
 			dh.mutexReconcilingFirstPassFlag.Unlock()
 		}
@@ -3236,16 +3301,17 @@ func (dh *deviceHandler) EnableUniPortStateUpdate(ctx context.Context) {
 			uniPort.SetOperState(common.OperStatus_ACTIVE)
 			if !dh.IsReconciling() {
 				//maybe also use getter functions on uniPort - perhaps later ...
-				go func(port *cmn.OnuUniPort) {
-					if err := dh.updatePortStateInCore(ctx, &ca.PortState{
+				port := uniPort
+				dh.runTrackedRoutine(ctx, "portStateUpdate-ACTIVE", func(rCtx context.Context) {
+					if err := dh.updatePortStateInCore(rCtx, &ca.PortState{
 						DeviceId:   dh.DeviceID,
 						PortType:   voltha.Port_ETHERNET_UNI,
 						PortNo:     port.PortNo,
 						OperStatus: port.OperState,
 					}); err != nil {
-						logger.Errorw(ctx, "port-state-update-failed", log.Fields{"error": err, "port-no": uniPort.PortNo, "device-id": dh.DeviceID})
+						logger.Errorw(rCtx, "port-state-update-failed", log.Fields{"error": err, "port-no": port.PortNo, "device-id": dh.DeviceID})
 					}
-				}(uniPort)
+				})
 			} else {
 				logger.Debug(ctx, "reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.DeviceID})
 			}
@@ -3265,16 +3331,17 @@ func (dh *deviceHandler) DisableUniPortStateUpdate(ctx context.Context) {
 			uniPort.SetOperState(common.OperStatus_UNKNOWN)
 			if !dh.IsReconciling() {
 				//maybe also use getter functions on uniPort - perhaps later ...
-				go func(port *cmn.OnuUniPort) {
-					if err := dh.updatePortStateInCore(ctx, &ca.PortState{
+				port := uniPort
+				dh.runTrackedRoutine(ctx, "portStateUpdate-UNKNOWN", func(rCtx context.Context) {
+					if err := dh.updatePortStateInCore(rCtx, &ca.PortState{
 						DeviceId:   dh.DeviceID,
 						PortType:   voltha.Port_ETHERNET_UNI,
 						PortNo:     port.PortNo,
 						OperStatus: port.OperState,
 					}); err != nil {
-						logger.Errorw(ctx, "port-state-update-failed", log.Fields{"error": err, "port-no": uniPort.PortNo, "device-id": dh.DeviceID})
+						logger.Errorw(rCtx, "port-state-update-failed", log.Fields{"error": err, "port-no": port.PortNo, "device-id": dh.DeviceID})
 					}
-				}(uniPort)
+				})
 			} else {
 				logger.Debug(ctx, "reconciling - don't notify core about PortStateUpdate", log.Fields{"device-id": dh.DeviceID})
 			}
@@ -3865,7 +3932,9 @@ func (dh *deviceHandler) removeFlowItemFromUniPort(ctx context.Context, apFlowIt
 		default:
 		}
 	}
-	go dh.DeviceProcStatusUpdate(ctx, cmn.OmciVlanFilterRemDone)
+	dh.runTrackedRoutine(ctx, "DeviceProcStatusUpdate-VlanFilterRemDone", func(rCtx context.Context) {
+		dh.DeviceProcStatusUpdate(rCtx, cmn.OmciVlanFilterRemDone)
+	})
 }
 
 // createVlanFilterFsm initializes and runs the VlanFilter FSM to transfer OMCI related VLAN config
@@ -3881,9 +3950,10 @@ func (dh *deviceHandler) createVlanFilterFsm(ctx context.Context, apUniPort *cmn
 		return fmt.Errorf("no valid OnuDevice for device-id %x - aborting", dh.DeviceID)
 	}
 
-	if dh.pDeviceStateFsm.Current() == devStDown {
-		logger.Warnw(ctx, "UniVlanConfigFsm : aborting, device state down", log.Fields{"device-id": dh.DeviceID})
-		return fmt.Errorf("device state down for device-id %x - aborting", dh.DeviceID)
+	if dh.pDeviceStateFsm.Current() == devStDown || dh.pDeviceStateFsm.Current() == devStDeactivating || dh.pDeviceStateFsm.Current() == devStDeleting {
+		logger.Warnw(ctx, "UniVlanConfigFsm : aborting, device state not operational",
+			log.Fields{"device-id": dh.DeviceID, "state": dh.pDeviceStateFsm.Current()})
+		return fmt.Errorf("device state %s for device-id %x - aborting", dh.pDeviceStateFsm.Current(), dh.DeviceID)
 	}
 
 	pVlanFilterFsm := avcfg.NewUniVlanConfigFsm(ctx, dh, pDevEntry, pDevEntry.PDevOmciCC, apUniPort, dh.pOnuTP,
@@ -4258,9 +4328,13 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 	dh.RUnlockMutexDeletionInProgressFlag()
 
 	// Start routine to process OMCI GET Responses
-	go dh.pOnuMetricsMgr.ProcessOmciMessages(ctx, waitForOmciProcessor)
+	dh.runTrackedRoutine(ctx, "ProcessOmciMessages", func(rCtx context.Context) {
+		dh.pOnuMetricsMgr.ProcessOmciMessages(rCtx, waitForOmciProcessor)
+	})
 	// Create Extended Frame PM ME
-	go dh.pOnuMetricsMgr.CreateEthernetFrameExtendedPMME(ctx)
+	dh.runTrackedRoutine(ctx, "CreateEthernetFrameExtendedPMME", func(rCtx context.Context) {
+		dh.pOnuMetricsMgr.CreateEthernetFrameExtendedPMME(rCtx)
+	})
 	// Initialize the next metric collection time.
 	// Normally done when the onu_metrics_manager is initialized the first time, but needed again later when ONU is
 	// reset like onu rebooted.
@@ -4288,13 +4362,32 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 			if dh.pOnuMetricsMgr.GetTickGenerationStatus() {
 				dh.pOnuMetricsMgr.StopTicks <- true
 			}
-
+			return
+		case <-dh.deviceCtx.Done():
+			logger.Debugw(ctx, "device-context-canceled-stopping-collector", log.Fields{"device-id": dh.device.Id})
+			// Also stop the L2 PM FSM and processing routines on device context cancel
+			go func() {
+				if dh.pOnuMetricsMgr.PAdaptFsm != nil && dh.pOnuMetricsMgr.PAdaptFsm.PFsm != nil {
+					if err := dh.pOnuMetricsMgr.PAdaptFsm.PFsm.Event(pmmgr.L2PmEventStop); err != nil {
+						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": dh.DeviceID, "err": err})
+					}
+				}
+			}()
+			if dh.pOnuMetricsMgr.GetOmciProcessingStatus() {
+				dh.pOnuMetricsMgr.StopProcessingOmciResponses <- true
+			}
+			if dh.pOnuMetricsMgr.GetTickGenerationStatus() {
+				dh.pOnuMetricsMgr.StopTicks <- true
+			}
 			return
 		case <-statsCollectionticker.C: // Check every FrequencyGranularity to see if it is time for collecting metrics
 			if !dh.pmConfigs.FreqOverride { // If FreqOverride is false, then NextGlobalMetricCollectionTime applies
 				// If the current time is eqaul to or greater than the NextGlobalMetricCollectionTime, collect the group and standalone metrics
 				if time.Now().Equal(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) || time.Now().After(dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime) {
-					go dh.pOnuMetricsMgr.CollectAllGroupAndStandaloneMetrics(ctx)
+					dh.runTrackedRoutine(ctx, "CollectAllGroupAndStandaloneMetrics", func(rCtx context.Context) {
+						dh.pOnuMetricsMgr.CollectAllGroupAndStandaloneMetrics(rCtx)
+					})
+
 					// Update the next metric collection time.
 					prevInternal := dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime
 					dh.pOnuMetricsMgr.NextGlobalMetricCollectionTime = prevInternal.Add(time.Duration(dh.pmConfigs.DefaultFreq) * time.Second)
@@ -4308,13 +4401,19 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 						// If the group is enabled AND (current time is equal to OR after NextCollectionInterval, collect the group metric)
 						// Since the L2 PM counters are collected in a separate FSM, we should avoid those counters in the check.
 						if g.Enabled && !g.IsL2PMCounter && (time.Now().Equal(g.NextCollectionInterval) || time.Now().After(g.NextCollectionInterval)) {
-							go dh.pOnuMetricsMgr.CollectGroupMetric(ctx, n)
+							metricName := n // capture for closure
+							dh.runTrackedRoutine(ctx, "CollectGroupMetric", func(rCtx context.Context) {
+								dh.pOnuMetricsMgr.CollectGroupMetric(rCtx, metricName)
+							})
 						}
 					}
 					for n, m := range dh.pOnuMetricsMgr.StandaloneMetricMap {
 						// If the standalone is enabled AND (current time is equal to OR after NextCollectionInterval, collect the metric)
 						if m.Enabled && (time.Now().Equal(m.NextCollectionInterval) || time.Now().After(m.NextCollectionInterval)) {
-							go dh.pOnuMetricsMgr.CollectStandaloneMetric(ctx, n)
+							metricName := n // capture for closure
+							dh.runTrackedRoutine(ctx, "CollectStandaloneMetric", func(rCtx context.Context) {
+								dh.pOnuMetricsMgr.CollectStandaloneMetric(rCtx, metricName)
+							})
 						}
 					}
 					dh.pOnuMetricsMgr.OnuMetricsManagerLock.RUnlock()
@@ -4577,9 +4676,24 @@ func (dh *deviceHandler) StartAlarmManager(ctx context.Context) {
 	dh.RUnlockMutexDeletionInProgressFlag()
 
 	// Start routine to process OMCI GET Responses
-	go dh.pAlarmMgr.StartOMCIAlarmMessageProcessing(ctx)
-	if stop := <-dh.stopAlarmManager; stop {
-		logger.Debugw(ctx, "stopping-alarm-manager-for-onu", log.Fields{"device-id": dh.device.Id})
+	dh.runTrackedRoutine(ctx, "StartOMCIAlarmMessageProcessing", func(rCtx context.Context) {
+		dh.pAlarmMgr.StartOMCIAlarmMessageProcessing(rCtx)
+	})
+
+	select {
+	case stop := <-dh.stopAlarmManager:
+		if stop {
+			logger.Debugw(ctx, "stopping-alarm-manager-for-onu", log.Fields{"device-id": dh.device.Id})
+			go func() {
+				if dh.pAlarmMgr.AlarmSyncFsm != nil && dh.pAlarmMgr.AlarmSyncFsm.PFsm != nil {
+					_ = dh.pAlarmMgr.AlarmSyncFsm.PFsm.Event(almgr.AsEvStop)
+				}
+			}()
+			dh.pAlarmMgr.StopProcessingOmciMessages <- true
+			dh.pAlarmMgr.StopAlarmAuditTimer <- struct{}{}
+		}
+	case <-dh.deviceCtx.Done():
+		logger.Debugw(ctx, "device-context-canceled-stopping-alarm-manager", log.Fields{"device-id": dh.device.Id})
 		go func() {
 			if dh.pAlarmMgr.AlarmSyncFsm != nil && dh.pAlarmMgr.AlarmSyncFsm.PFsm != nil {
 				_ = dh.pAlarmMgr.AlarmSyncFsm.PFsm.Event(almgr.AsEvStop)
@@ -4587,7 +4701,6 @@ func (dh *deviceHandler) StartAlarmManager(ctx context.Context) {
 		}()
 		dh.pAlarmMgr.StopProcessingOmciMessages <- true // Stop the OMCI routines if any(This will stop the fsms also)
 		dh.pAlarmMgr.StopAlarmAuditTimer <- struct{}{}
-		logger.Debugw(ctx, "sent-all-stop-signals-to-alarm-manager", log.Fields{"device-id": dh.device.Id})
 	}
 }
 
@@ -4616,8 +4729,8 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 	operState := voltha.OperStatus_UNKNOWN
 
 	if !dh.IsReconciling() {
-		go func() {
-			logger.Debugw(ctx, "wait for channel signal or timeout",
+		dh.runTrackedRoutine(ctx, "reconcileWatcher", func(rCtx context.Context) {
+			logger.Debugw(rCtx, "wait for channel signal or timeout",
 				log.Fields{"timeout": dh.reconcileExpiryComplete, "device-id": dh.DeviceID})
 			select {
 			case success := <-dh.chReconcilingFinished:
@@ -4712,7 +4825,7 @@ func (dh *deviceHandler) StartReconciling(ctx context.Context, skipOnuConfig boo
 				onuDevEntry.MutexReconciledTpInstances.Unlock()
 			}
 			dh.chReconcilingStopped <- struct{}{}
-		}()
+		})
 	}
 	dh.mutexReconcilingFlag.Lock()
 	if skipOnuConfig || dh.GetSkipOnuConfigEnabled() {
@@ -4972,9 +5085,13 @@ func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
 			logger.Info(flowCb.ctx, "serial-flow-processor--start", log.Fields{"device-id": dh.DeviceID})
 			respChan := make(chan error)
 			if flowCb.addFlow {
-				go dh.addFlowItemToUniPort(flowCb.ctx, flowCb.flowItem, flowCb.uniPort, flowCb.flowMetaData, &respChan)
+				dh.runTrackedRoutine(flowCb.ctx, "addFlowItemToUniPort", func(rCtx context.Context) {
+					dh.addFlowItemToUniPort(rCtx, flowCb.flowItem, flowCb.uniPort, flowCb.flowMetaData, &respChan)
+				})
 			} else {
-				go dh.removeFlowItemFromUniPort(flowCb.ctx, flowCb.flowItem, flowCb.uniPort, &respChan)
+				dh.runTrackedRoutine(flowCb.ctx, "removeFlowItemFromUniPort", func(rCtx context.Context) {
+					dh.removeFlowItemFromUniPort(rCtx, flowCb.flowItem, flowCb.uniPort, &respChan)
+				})
 			}
 			// Block on response and tunnel it back to the caller
 			select {
@@ -5321,8 +5438,35 @@ func (dh *deviceHandler) getOnuFECStats(ctx context.Context) *extension.SingleGe
 	return resp
 }
 
-func (dh *deviceHandler) GetDeviceDeleteCommChan(ctx context.Context) chan bool {
-	return dh.deviceDeleteCommChan
+// GetDeviceContext returns the device lifecycle context.
+func (dh *deviceHandler) GetDeviceContext() context.Context {
+	return dh.deviceCtx
+}
+
+// runTrackedRoutine launches a goroutine tracked by activeRoutinesWg WaitGroup.
+// The goroutine will not start if deletion is already in progress.
+// The Add(1) is done under RLock of the deletion flag so that DeleteDevice's
+// Wait() is guaranteed to see all registered goroutines.
+func (dh *deviceHandler) runTrackedRoutine(ctx context.Context, name string, fn func(context.Context)) bool {
+	dh.mutexDeletionInProgressFlag.RLock()
+	if dh.deletionInProgress {
+		dh.mutexDeletionInProgressFlag.RUnlock()
+		logger.Debugw(ctx, "skipping routine launch - deletion in progress",
+			log.Fields{"device-id": dh.DeviceID, "routine": name})
+		return false
+	}
+	dh.activeRoutinesWg.Add(1)
+	dh.mutexDeletionInProgressFlag.RUnlock()
+	go func() {
+		defer dh.activeRoutinesWg.Done()
+		fn(ctx)
+	}()
+	return true
+}
+
+// RunTrackedRoutine is the exported version of runTrackedRoutine for cross-package use via IdeviceHandler.
+func (dh *deviceHandler) RunTrackedRoutine(ctx context.Context, name string, fn func(context.Context)) bool {
+	return dh.runTrackedRoutine(ctx, name, fn)
 }
 
 func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.OnuIndicationMessage) (*emptypb.Empty, error) {
@@ -5330,10 +5474,18 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 	onuIndication := onuInd.OnuIndication
 	onuOperstate := onuIndication.GetOperState()
 
-	if dh.GetDeletionInProgress() {
+	// Atomically check deletion flag and register with WaitGroup under the same lock.
+	// This ensures DeleteDevice's Wait() will see us, or we won't start at all.
+	dh.mutexDeletionInProgressFlag.RLock()
+	if dh.deletionInProgress {
+		dh.mutexDeletionInProgressFlag.RUnlock()
 		logger.Warnw(ctx, "device deletion in progress, ignoring the ONU Indication", log.Fields{"device-id": dh.DeviceID})
 		return nil, fmt.Errorf("device deletion in progress for device-id: %s", dh.DeviceID)
 	}
+
+	dh.activeRoutinesWg.Add(1)
+	dh.mutexDeletionInProgressFlag.RUnlock()
+	defer dh.activeRoutinesWg.Done()
 
 	logger.Infow(ctx, "onu-ind-request", log.Fields{"device-id": dh.DeviceID,
 		"OnuId":      onuIndication.GetOnuId(),
@@ -5346,29 +5498,49 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 		return nil, fmt.Errorf("no valid OnuDevice: %s", dh.DeviceID)
 	}
 
-	var event string
-
 	switch onuOperstate {
 	case "up":
-		if dh.pDeviceStateFsm.Current() == devStUp {
-			logger.Errorw(ctx, "invalid state transition", log.Fields{"expectedState": devStDown, "currentState": dh.pDeviceStateFsm.Current()})
-			return nil, fmt.Errorf("invalid state transition: expected %s, got %s", devStDown, dh.pDeviceStateFsm.Current())
+		if !dh.pDeviceStateFsm.Can(devEvDeviceUpInd) {
+			logger.Errorw(ctx, "invalid state transition for up indication",
+				log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
+			return nil, fmt.Errorf("invalid state transition for up indication: current state %s, device %s",
+				dh.pDeviceStateFsm.Current(), dh.DeviceID)
 		}
-		event = devEvDeviceUpInd
+		// Two-phase activation: DeviceUpInd → Activating (heavy work), then ActivationDone → Up
+		err := dh.pDeviceStateFsm.Event(devEvDeviceUpInd, onuIndication)
+		if err != nil {
+			// Activation failed — transition Activating → Down
+			if fsmErr := dh.pDeviceStateFsm.Event(devEvActivationFail); fsmErr != nil {
+				logger.Warnw(ctx, "FSM: could not transition to Down after activation failure",
+					log.Fields{"device-id": dh.DeviceID, "fsmErr": fsmErr})
+			}
+			return nil, err
+		}
+		// Activation succeeded — transition Activating → Up
+		if fsmErr := dh.pDeviceStateFsm.Event(devEvActivationDone); fsmErr != nil {
+			logger.Warnw(ctx, "FSM: could not transition to Up after activation (state may have changed)",
+				log.Fields{"device-id": dh.DeviceID, "fsmErr": fsmErr})
+		}
 	case "down", "unreachable":
-		if dh.pDeviceStateFsm.Current() == devStDown {
-			logger.Errorw(ctx, "invalid state transition", log.Fields{"expectedState": devStUp, "currentState": dh.pDeviceStateFsm.Current()})
-			return nil, fmt.Errorf("invalid state transition: expected %s, got %s", devStUp, dh.pDeviceStateFsm.Current())
+		if !dh.pDeviceStateFsm.Can(devEvDeviceDownInd) {
+			logger.Errorw(ctx, "invalid state transition for down indication",
+				log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
+			return nil, fmt.Errorf("invalid state transition for down indication: current state %s, device %s",
+				dh.pDeviceStateFsm.Current(), dh.DeviceID)
 		}
-		event = devEvDeviceDownInd
+		// Two-phase deactivation: DeviceDownInd → Deactivating (heavy work), then DeactivationDone → Down
+		err := dh.pDeviceStateFsm.Event(devEvDeviceDownInd, onuIndication)
+		// Always complete deactivation regardless of error
+		if fsmErr := dh.pDeviceStateFsm.Event(devEvDeactivationDone); fsmErr != nil {
+			logger.Warnw(ctx, "FSM: could not complete deactivation (state may have changed)",
+				log.Fields{"device-id": dh.DeviceID, "fsmErr": fsmErr})
+		}
+		if err != nil {
+			return nil, err
+		}
 	default:
 		logger.Errorw(ctx, "unknown-onu-ind-request operState", log.Fields{"OnuId": onuIndication.GetOnuId()})
 		return nil, fmt.Errorf("invalidOperState: %s, %s", onuOperstate, dh.DeviceID)
-	}
-
-	err := dh.pDeviceStateFsm.Event(event, onuIndication)
-	if err != nil {
-		return nil, err
 	}
 
 	return &emptypb.Empty{}, nil
@@ -5389,15 +5561,24 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 		dh.pOnuTP.PrepareForGarbageCollection(ctx, aDeviceID)
 	}
 	if dh.pOnuMetricsMgr != nil {
-		logger.Debugw(ctx, "preparation of garbage collection is done under control of pm fsm - wait for completion",
-			log.Fields{"device-id": aDeviceID})
-		select {
-		case <-dh.pOnuMetricsMgr.GarbageCollectionComplete:
-			logger.Debugw(ctx, "pm fsm shut down and garbage collection complete", log.Fields{"deviceID": aDeviceID})
-		case <-time.After(pmmgr.MaxTimeForPmFsmShutDown * time.Second):
-			logger.Errorw(ctx, "fsm did not shut down in time", log.Fields{"deviceID": aDeviceID})
-		default:
+		// Wait for the L2 PM FSM to reach Null state before cleaning up.
+		// This ensures no OMCI operations are in progress that could cause
+		// nil pointer dereferences when we nil out maps and pointers.
+		if dh.pOnuMetricsMgr.PAdaptFsm != nil && dh.pOnuMetricsMgr.PAdaptFsm.PFsm != nil &&
+			!dh.pOnuMetricsMgr.PAdaptFsm.PFsm.Is(pmmgr.L2PmStNull) {
+			logger.Debugw(ctx, "waiting for PM FSM to reach null state before cleanup",
+				log.Fields{"device-id": aDeviceID, "current-state": dh.pOnuMetricsMgr.PAdaptFsm.PFsm.Current()})
+			select {
+			case <-dh.pOnuMetricsMgr.GarbageCollectionComplete:
+				logger.Debugw(ctx, "PM FSM reached null state, proceeding with cleanup", log.Fields{"device-id": aDeviceID})
+			case <-time.After(pmmgr.MaxTimeForPmFsmShutDown * time.Second):
+				logger.Errorw(ctx, "PM FSM did not reach null state in time, proceeding with cleanup anyway", log.Fields{"device-id": aDeviceID})
+			}
+		} else {
+			logger.Debugw(ctx, "PM FSM already in null state, proceeding with cleanup", log.Fields{"device-id": aDeviceID})
 		}
+		// Now safe to clean up - FSM is idle
+		dh.pOnuMetricsMgr.CleanupOnDeviceDeletion(ctx)
 	}
 	if dh.pAlarmMgr != nil {
 		dh.pAlarmMgr.PrepareForGarbageCollection(ctx, aDeviceID)
@@ -5432,4 +5613,32 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 	dh.pLockStateFsm = nil
 	dh.pUnlockStateFsm = nil
 	dh.pOnuUpradeFsm = nil
+	dh.pDeviceStateFsm = nil
+	dh.uniEntityMap = nil
+	dh.flowCbChan = nil
+	dh.stopFlowMonitoringRoutine = nil
+	dh.isFlowMonitoringRoutineActive = nil
+
+	// Nil out remaining channel references to allow GC
+	dh.stopCollector = nil
+	dh.stopAlarmManager = nil
+	dh.stopHeartbeatCheck = nil
+	dh.deviceEntrySet = nil
+	dh.exitChannel = nil
+	dh.chReconcilingFinished = nil
+	dh.chReconcilingStopped = nil
+	dh.chUniVlanConfigReconcilingDone = nil
+	dh.upgradeFsmChan = nil
+	dh.deviceCtxCancel = nil
+
+	// Nil out the device proto to release protobuf memory
+	dh.device = nil
+	dh.pmConfigs = nil
+	dh.pOnuIndication = nil
+	dh.pLastUpgradeImageState = nil
+
+	// Nil out adapter reference to break remaining reference chains
+	dh.pOpenOnuAc = nil
+	dh.EventProxy = nil
+	dh.coreClient = nil
 }

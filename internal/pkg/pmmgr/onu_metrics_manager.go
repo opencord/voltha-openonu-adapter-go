@@ -1114,10 +1114,15 @@ func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context, waitForOmc
 			logger.Infow(ctx, "Stop routine to process OMCI-GET messages for device-id", log.Fields{"device-id": mm.deviceID})
 			mm.updateOmciProcessingStatus(false)
 			return
+		case <-ctx.Done():
+			logger.Infow(ctx, "device-context-canceled-stopping-omci-processing", log.Fields{"device-id": mm.deviceID})
+			mm.updateOmciProcessingStatus(false)
+			return
 		case message, ok := <-mm.PAdaptFsm.CommChan:
 			if !ok {
-				logger.Errorw(ctx, "Message couldn't be read from channel", log.Fields{"device-id": mm.deviceID})
-				continue
+				logger.Errorw(ctx, "CommChan closed, exiting ProcessOmciMessages", log.Fields{"device-id": mm.deviceID})
+				mm.updateOmciProcessingStatus(false)
+				return
 			}
 			logger.Debugw(ctx, "Received message on ONU metrics channel", log.Fields{"device-id": mm.deviceID})
 
@@ -1415,8 +1420,10 @@ func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) 
 		log.Fields{"device-id": mm.deviceID, "pms-to-add": mm.l2PmToAdd, "pms-to-delete": mm.l2PmToDelete})
 	go func() {
 		// push a tick event to move to next state
-		if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
-			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+		if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
+				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			}
 		}
 	}()
 }
@@ -1435,10 +1442,17 @@ func (mm *OnuMetricsManager) l2PMFsmSyncTime(ctx context.Context, e *fsm.Event) 
 			return
 		}
 		go func() {
-			time.Sleep(SyncTimeRetryInterval * time.Second) // retry to sync time after this timeout
-			// This will result in FSM attempting to sync time again
-			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventFailure); err != nil {
-				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			// Use select with context to avoid blocking delete for the full retry interval
+			select {
+			case <-time.After(SyncTimeRetryInterval * time.Second):
+				// Nil-guard: PAdaptFsm/PFsm may have been cleaned up during deletion
+				if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+					if err := mm.PAdaptFsm.PFsm.Event(L2PmEventFailure); err != nil {
+						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+					}
+				}
+			case <-ctx.Done():
+				logger.Debugw(ctx, "device context canceled during sync-time retry wait", log.Fields{"device-id": mm.deviceID})
 			}
 		}()
 	}
@@ -1446,8 +1460,10 @@ func (mm *OnuMetricsManager) l2PMFsmSyncTime(ctx context.Context, e *fsm.Event) 
 	go mm.generateTicks(ctx)
 
 	go func() {
-		if err := mm.PAdaptFsm.PFsm.Event(L2PmEventSuccess); err != nil {
-			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+		if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventSuccess); err != nil {
+				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			}
 		}
 	}()
 }
@@ -1465,15 +1481,59 @@ func (mm *OnuMetricsManager) l2PMFsmNull(ctx context.Context, e *fsm.Event) {
 		_ = mm.clearPmGroupData(ctx) // ignore error
 	}
 
-	if mm.GetdeviceDeletionInProgress() {
-		mm.onuOpticalMetricstimer.Stop()
-		mm.onuUniStatusMetricstimer.Stop()
-		mm.opticalMetricsDelCommChan <- true
-		mm.uniMetricsDelCommChan <- true
-		mm.pDeviceHandler = nil
-		mm.pOnuDeviceEntry = nil
-		mm.GarbageCollectionComplete <- true
+	// Always signal that the FSM has reached Null state.
+	// This is needed because PrepareForGarbageCollection waits on this signal
+	// to confirm the FSM is idle before performing resource cleanup.
+	// Previously this was gated by deviceDeletionInProgress, but that flag
+	// is only set during DeleteDevice which happens AFTER the FSM has already
+	// transitioned to Null (during UpdateInterface/ONU-down), and looplab/fsm
+	// does not fire enter_ callbacks on self-transitions (src==dst), so the
+	// signal was never sent during the actual deletion flow.
+	// Use non-blocking send since the channel buffer is 1.
+	select {
+	case mm.GarbageCollectionComplete <- true:
+	default:
 	}
+}
+
+// CleanupOnDeviceDeletion releases all resources held by the metrics manager.
+// This is called from deviceHandler.PrepareForGarbageCollection after the
+// L2 PM FSM has been confirmed to be in Null state (idle), ensuring no
+// OMCI operations are in progress that could cause nil pointer dereferences.
+func (mm *OnuMetricsManager) CleanupOnDeviceDeletion(ctx context.Context) {
+	logger.Debugw(ctx, "cleanup-metrics-manager-on-device-deletion", log.Fields{"device-id": mm.deviceID})
+	mm.onuOpticalMetricstimer.Stop()
+	mm.onuUniStatusMetricstimer.Stop()
+
+	mm.OnuMetricsManagerLock.Lock()
+	mm.GroupMetricMap = nil
+	mm.StandaloneMetricMap = nil
+	mm.ethernetFrameExtendedPmUpStreamMEByEntityID = nil
+	mm.ethernetFrameExtendedPmDownStreamMEByEntityID = nil
+	mm.activeL2Pms = nil
+	mm.l2PmToAdd = nil
+	mm.l2PmToDelete = nil
+
+	mm.OnuMetricsManagerLock.Unlock()
+
+	// Nil out the KV store backends to release etcd client references
+	mm.pmKvStore = nil
+	mm.extPmKvStore = nil
+
+	// Break circular reference: FSM callbacks capture mm via closures.
+	// Nil out the FSM to allow the entire callback tree to be GC'd.
+	if mm.PAdaptFsm != nil {
+		if mm.PAdaptFsm.PFsm != nil {
+			if mm.PAdaptFsm.CommChan != nil {
+				close(mm.PAdaptFsm.CommChan)
+				mm.PAdaptFsm.CommChan = nil
+			}
+			mm.PAdaptFsm.PFsm = nil
+		}
+		mm.PAdaptFsm = nil
+	}
+	mm.pDeviceHandler = nil
+	mm.pOnuDeviceEntry = nil
 }
 
 // nolint:unparam
@@ -1521,11 +1581,9 @@ func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 
 	for _, n := range copyOfActiveL2Pms {
 		select {
-		case _, ok := <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "Deleting the device, stopping l2PmFsmCollectData for the device ", log.Fields{"device-id": mm.deviceID})
-				return
-			}
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "Deleting the device, stopping l2PmFsmCollectData for the device ", log.Fields{"device-id": mm.deviceID})
+			return
 		default:
 			var metricInfoSlice []*voltha.MetricInformation
 
@@ -2206,7 +2264,7 @@ func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 				log.Fields{"device-id": mm.deviceID, "upstream": upstream, "entityID": entityID})
 			// The metrics will be empty in this case
 			return fmt.Errorf("timeout-during-l2-pm-collection-for-ethernet-bridge-history-%v", mm.deviceID)
-		case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping Ethernet Performance metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 			return fmt.Errorf("deleting the device, stopping Ethernet Performance metrics collection for the device %v", mm.deviceID)
 		}
@@ -2317,7 +2375,7 @@ func (mm *OnuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	}
 	if meInstance != nil {
 		select {
-		case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping EthernetUniHistory metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 			return fmt.Errorf("deleting the device, stopping EthernetUniHistory metrics collection for the device %v", mm.deviceID)
 		case meAttributes = <-mm.l2PmChan:
@@ -2436,11 +2494,9 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	}
 	if meInstance != nil {
 		select {
-		case _, ok := <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "Deleting the device, stopping FEC history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
-				return fmt.Errorf("deleting the device, stopping FEC history metrics collection for the device %v", mm.deviceID)
-			}
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "Deleting the device, stopping FEC history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
+			return fmt.Errorf("deleting the device, stopping FEC history metrics collection for the device %v", mm.deviceID)
 		case meAttributes = <-func() chan me.AttributeValueMap {
 			if isCurrent {
 				return mm.opticalMetricsChan
@@ -2501,7 +2557,7 @@ func (mm *OnuMetricsManager) GetMeInstance(ctx context.Context, classID me.Class
 	timeout int, highPrio bool, rxChan chan cmn.Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
 
 	select {
-	case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+	case <-mm.pDeviceHandler.GetDeviceContext().Done():
 		errMsg := "deleting the device, stopping GetMeInstance for the device " + mm.deviceID
 		logger.Warn(ctx, errMsg)
 		return nil, status.Error(codes.NotFound, errMsg)
@@ -2520,7 +2576,7 @@ func (mm *OnuMetricsManager) GetCurrentDataMEInstance(ctx context.Context, class
 	timeout int, highPrio bool, rxChan chan cmn.Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
 
 	select {
-	case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+	case <-mm.pDeviceHandler.GetDeviceContext().Done():
 		errMsg := "deleting the device, stopping GetCurrentDataMEInstance for the device " + mm.deviceID
 		logger.Warn(ctx, errMsg)
 		return nil, status.Error(codes.NotFound, errMsg)
@@ -2582,7 +2638,7 @@ func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 				log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
 			return fmt.Errorf("timeout-during-l2-pm-collection-for-gemport-history-%v", mm.deviceID)
-		case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping GEM port history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 			return fmt.Errorf("deleting the device, stopping GEM port history metrics collection for the device %v", mm.deviceID)
 		}
@@ -2704,8 +2760,10 @@ func (mm *OnuMetricsManager) generateTicks(ctx context.Context) {
 		select {
 		case <-time.After(L2PmCollectionInterval * time.Second):
 			go func() {
-				if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
-					logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+				if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+					if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
+						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+					}
 				}
 			}()
 		case <-mm.StopTicks:
