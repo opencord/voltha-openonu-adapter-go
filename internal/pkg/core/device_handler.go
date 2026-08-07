@@ -2851,6 +2851,15 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 		}
 	}
 
+	// Signal any in-progress l2PmFsmCollectData loop to exit without waiting
+	// for the collector goroutine to propagate L2PmEventStop through the FSM.
+	if dh.pOnuMetricsMgr != nil {
+		select {
+		case dh.pOnuMetricsMgr.StopCollectData <- struct{}{}:
+		default:
+		}
+	}
+
 	logger.Infow(ctx, "resetFsms done", log.Fields{"device-id": dh.DeviceID})
 	return nil
 }
