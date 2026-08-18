@@ -800,7 +800,9 @@ func (onuTP *OnuUniTechProf) IsTechProfileConfigCleared(ctx context.Context, uni
 			if _, ok := onuTP.PAniConfigFsm[uniTPKey]; ok {
 				_ = onuTP.PAniConfigFsm[uniTPKey].PAdaptFsm.PFsm.Event(aniEvReset)
 			}
-			go onuTP.baseDeviceHandler.DeviceProcStatusUpdate(ctx, cmn.OmciAniResourceRemoved)
+			onuTP.baseDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-AniResourceRemoved", func(rCtx context.Context) {
+				onuTP.baseDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OmciAniResourceRemoved)
+			})
 			return true
 		}
 	}

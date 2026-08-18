@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -32,6 +31,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
+	otst "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/omcitst"
 	"github.com/opencord/voltha-protos/v5/go/extension"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 	codes "google.golang.org/grpc/codes"
@@ -81,9 +81,12 @@ const (
 
 // OpticalPowerGroupMetrics are supported optical pm names
 var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
-	"ani_g_instance_id":  voltha.PmConfig_CONTEXT,
-	"transmit_power_dBm": voltha.PmConfig_GAUGE,
-	"receive_power_dBm":  voltha.PmConfig_GAUGE,
+	"ani_g_instance_id":     voltha.PmConfig_CONTEXT,
+	"transmit_power_dBm":    voltha.PmConfig_GAUGE,
+	"receive_power_dBm":     voltha.PmConfig_GAUGE,
+	"supply_voltage_Volts":  voltha.PmConfig_GAUGE,
+	"laser_bias_current_mA": voltha.PmConfig_GAUGE,
+	"temperature_Celsius":   voltha.PmConfig_GAUGE,
 }
 
 // OpticalPowerGroupMetrics specific constants
@@ -293,6 +296,7 @@ type OnuMetricsManager struct {
 
 	pDeviceHandler  cmn.IdeviceHandler
 	pOnuDeviceEntry cmn.IonuDeviceEntry
+	pSelfTestHdlr   *otst.SelfTestControlBlock
 	PAdaptFsm       *cmn.AdapterFsm
 
 	opticalMetricsChan             chan me.AttributeValueMap
@@ -310,6 +314,7 @@ type OnuMetricsManager struct {
 
 	StopTicks                 chan bool
 	GarbageCollectionComplete chan bool
+	StopCollectData           chan struct{} // closed/signalled by resetFsms to abort an in-progress l2PmFsmCollectData loop
 
 	pmKvStore *db.Backend
 
@@ -350,13 +355,15 @@ type OnuMetricsManager struct {
 // the collection interval configurable.
 // The global PM config is part of the voltha.Device struct and is backed up on KV store (by rw-core).
 // This module also implements resiliency for L2 PM ME instances that are active/pending-delete/pending-add.
-func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.IonuDeviceEntry) *OnuMetricsManager {
+func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.IonuDeviceEntry,
+	pSelfTestHdlr *otst.SelfTestControlBlock) *OnuMetricsManager {
 
 	var metricsManager OnuMetricsManager
 	metricsManager.deviceID = dh.GetDeviceID()
 	logger.Debugw(ctx, "init-OnuMetricsManager", log.Fields{"device-id": metricsManager.deviceID})
 	metricsManager.pDeviceHandler = dh
 	metricsManager.pOnuDeviceEntry = onuDev
+	metricsManager.pSelfTestHdlr = pSelfTestHdlr
 
 	commMetricsChan := make(chan cmn.Message)
 	metricsManager.opticalMetricsChan = make(chan me.AttributeValueMap)
@@ -364,12 +371,13 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 	metricsManager.l2PmChan = make(chan me.AttributeValueMap)
 	metricsManager.extendedPmMeChan = make(chan me.AttributeValueMap)
 
-	metricsManager.syncTimeResponseChan = make(chan bool)
+	metricsManager.syncTimeResponseChan = make(chan bool, 1)
 	metricsManager.l2PmCreateOrDeleteResponseChan = make(chan bool)
 	metricsManager.extendedPMMeResponseChan = make(chan me.Results)
 
 	metricsManager.StopProcessingOmciResponses = make(chan bool)
 	metricsManager.StopTicks = make(chan bool)
+	metricsManager.StopCollectData = make(chan struct{}, 1)
 
 	metricsManager.GroupMetricMap = make(map[string]*groupMetric)
 	metricsManager.StandaloneMetricMap = make(map[string]*standaloneMetric)
@@ -772,55 +780,58 @@ func (mm *OnuMetricsManager) collectOpticalMetrics(ctx context.Context) ([]*volt
 
 	// get the ANI-G instance IDs
 	anigInstKeys := mm.pOnuDeviceEntry.GetOnuDB().GetSortedInstKeys(ctx, me.AniGClassID)
-loop:
 	for _, anigInstID := range anigInstKeys {
-		var meAttributes me.AttributeValueMap
 		opticalMetrics := make(map[string]float32)
-		// Get the ANI-G instance optical power attributes
-		requestedAttributes := me.AttributeValueMap{me.AniG_OpticalSignalLevel: 0, me.AniG_TransmitOpticalLevel: 0}
-		meInstance, err := mm.GetMeInstance(ctx, me.AniGClassID, anigInstID, requestedAttributes,
-			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
+		request := &extension.SingleGetValueRequest{
+			Request: &extension.GetValueRequest{
+				Request: &extension.GetValueRequest_OnuOpticalInfo{
+					OnuOpticalInfo: &extension.GetOnuPonOpticalInfo{},
+				},
+			},
+		}
+		CommChan := make(chan cmn.Message)
+		respChan := make(chan *extension.SingleGetValueResponse, 1)
+		err := mm.pSelfTestHdlr.SelfTestRequestStartForInstance(ctx, request, anigInstID, CommChan, respChan)
 		if err != nil {
 			if CheckMeInstanceStatusCode(err) {
 				return nil, err // Device is being deleted, so we stop processing
 			}
-			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
+			logger.Errorw(ctx, "optical metrics SelfTestME failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
 			return nil, err
 		}
-
-		if meInstance != nil {
-			mm.onuOpticalMetricstimer.Reset(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second)
-			select {
-			case meAttributes = <-mm.opticalMetricsChan:
-				mm.onuOpticalMetricstimer.Stop()
-				logger.Debugw(ctx, "received optical metrics, stopping the optical metrics collection timer", log.Fields{"device-id": mm.deviceID})
-			case <-mm.onuOpticalMetricstimer.C:
-				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.deviceID})
-				// The metrics will be empty in this case
-				break loop
-			case <-mm.opticalMetricsDelCommChan:
-				logger.Warnw(ctx, "Deleting the device, stopping optical metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
-				return nil, err
+		var selfTestResponse *extension.SingleGetValueResponse
+		select {
+		case selfTestResponse = <-respChan:
+			if selfTestResponse == nil || selfTestResponse.GetResponse() == nil ||
+				selfTestResponse.GetResponse().GetStatus() != extension.GetValueResponse_OK {
+				return nil, fmt.Errorf("self-test-response-failure-device-%s", mm.deviceID)
 			}
-			// Populate metric only if it was enabled.
-			for k := range OpticalPowerGroupMetrics {
-				switch k {
-				case "ani_g_instance_id":
-					if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
-						opticalMetrics[k] = float32(val.(uint16))
-					}
-				case "transmit_power_dBm":
-					if val, ok := meAttributes[me.AniG_TransmitOpticalLevel]; ok && val != nil {
-						opticalMetrics[k] = float32(math.Round((float64(cmn.TwosComplementToSignedInt16(val.(uint16)))/500.0)*10) / 10) // convert to dBm rounded of to single decimal place
-					}
-				case "receive_power_dBm":
-					if val, ok := meAttributes[me.AniG_OpticalSignalLevel]; ok && val != nil {
-						opticalMetrics[k] = float32(math.Round((float64(cmn.TwosComplementToSignedInt16(val.(uint16)))/500.0)*10) / 10) // convert to dBm rounded of to single decimal place
-					}
-				default:
-					// do nothing
-				}
+		case <-mm.opticalMetricsDelCommChan:
+			logger.Warnw(ctx, "Deleting the device, stopping optical metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
+			return nil, context.Canceled
+		}
+		opticalInfo := selfTestResponse.GetResponse().GetOnuOpticalInfo()
+		if opticalInfo == nil {
+			return nil, fmt.Errorf("self-test-optical-info-missing-device-%s", mm.deviceID)
+		}
+		// Populate metric only if it was enabled.
+		for k := range OpticalPowerGroupMetrics {
+			switch k {
+			case "ani_g_instance_id":
+				opticalMetrics[k] = float32(anigInstID)
+			case "transmit_power_dBm":
+				opticalMetrics[k] = opticalInfo.GetMeanOpticalLaunchPower()
+			case "receive_power_dBm":
+				opticalMetrics[k] = opticalInfo.GetReceivedOpticalPower()
+			case "supply_voltage_Volts":
+				opticalMetrics[k] = opticalInfo.GetPowerFeedVoltage()
+			case "laser_bias_current_mA":
+				opticalMetrics[k] = opticalInfo.GetLaserBiasCurrent()
+			case "temperature_Celsius":
+				opticalMetrics[k] = opticalInfo.GetTemperature()
+			default:
+				// do nothing
 			}
 		}
 		// create slice of metrics given that there could be more than one ANI-G instance and
@@ -1114,10 +1125,15 @@ func (mm *OnuMetricsManager) ProcessOmciMessages(ctx context.Context, waitForOmc
 			logger.Infow(ctx, "Stop routine to process OMCI-GET messages for device-id", log.Fields{"device-id": mm.deviceID})
 			mm.updateOmciProcessingStatus(false)
 			return
+		case <-ctx.Done():
+			logger.Infow(ctx, "device-context-canceled-stopping-omci-processing", log.Fields{"device-id": mm.deviceID})
+			mm.updateOmciProcessingStatus(false)
+			return
 		case message, ok := <-mm.PAdaptFsm.CommChan:
 			if !ok {
-				logger.Errorw(ctx, "Message couldn't be read from channel", log.Fields{"device-id": mm.deviceID})
-				continue
+				logger.Errorw(ctx, "CommChan closed, exiting ProcessOmciMessages", log.Fields{"device-id": mm.deviceID})
+				mm.updateOmciProcessingStatus(false)
+				return
 			}
 			logger.Debugw(ctx, "Received message on ONU metrics channel", log.Fields{"device-id": mm.deviceID})
 
@@ -1170,9 +1186,6 @@ func (mm *OnuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 	if msgObj.Result == me.Success {
 		meAttributes := msgObj.Attributes
 		switch msgObj.EntityClass {
-		case me.AniGClassID:
-			mm.opticalMetricsChan <- meAttributes
-			return nil
 		case me.UniGClassID:
 			mm.uniStatusMetricsChan <- meAttributes
 			return nil
@@ -1380,6 +1393,13 @@ func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) 
 	// list of active L2 PM list then mark it for creation
 	// It it is a L2 PM Interval metric and it is disabled, then if it is in the
 	// list of active L2 PM list then mark it for deletion
+	// Drain any stale stop-signal from a previous resetFsms call so the new
+	// collection cycle is not immediately cancelled.
+	select {
+	case <-mm.StopCollectData:
+	default:
+	}
+
 	mm.OnuMetricsManagerLock.Lock()
 	for n, g := range mm.GroupMetricMap {
 		if g.IsL2PMCounter { // it is a l2 pm counter
@@ -1415,8 +1435,10 @@ func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) 
 		log.Fields{"device-id": mm.deviceID, "pms-to-add": mm.l2PmToAdd, "pms-to-delete": mm.l2PmToDelete})
 	go func() {
 		// push a tick event to move to next state
-		if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
-			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+		if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
+				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			}
 		}
 	}()
 }
@@ -1435,10 +1457,17 @@ func (mm *OnuMetricsManager) l2PMFsmSyncTime(ctx context.Context, e *fsm.Event) 
 			return
 		}
 		go func() {
-			time.Sleep(SyncTimeRetryInterval * time.Second) // retry to sync time after this timeout
-			// This will result in FSM attempting to sync time again
-			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventFailure); err != nil {
-				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			// Use select with context to avoid blocking delete for the full retry interval
+			select {
+			case <-time.After(SyncTimeRetryInterval * time.Second):
+				// Nil-guard: PAdaptFsm/PFsm may have been cleaned up during deletion
+				if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+					if err := mm.PAdaptFsm.PFsm.Event(L2PmEventFailure); err != nil {
+						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+					}
+				}
+			case <-ctx.Done():
+				logger.Debugw(ctx, "device context canceled during sync-time retry wait", log.Fields{"device-id": mm.deviceID})
 			}
 		}()
 	}
@@ -1446,8 +1475,10 @@ func (mm *OnuMetricsManager) l2PMFsmSyncTime(ctx context.Context, e *fsm.Event) 
 	go mm.generateTicks(ctx)
 
 	go func() {
-		if err := mm.PAdaptFsm.PFsm.Event(L2PmEventSuccess); err != nil {
-			logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+		if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+			if err := mm.PAdaptFsm.PFsm.Event(L2PmEventSuccess); err != nil {
+				logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+			}
 		}
 	}()
 }
@@ -1465,15 +1496,59 @@ func (mm *OnuMetricsManager) l2PMFsmNull(ctx context.Context, e *fsm.Event) {
 		_ = mm.clearPmGroupData(ctx) // ignore error
 	}
 
-	if mm.GetdeviceDeletionInProgress() {
-		mm.onuOpticalMetricstimer.Stop()
-		mm.onuUniStatusMetricstimer.Stop()
-		mm.opticalMetricsDelCommChan <- true
-		mm.uniMetricsDelCommChan <- true
-		mm.pDeviceHandler = nil
-		mm.pOnuDeviceEntry = nil
-		mm.GarbageCollectionComplete <- true
+	// Always signal that the FSM has reached Null state.
+	// This is needed because PrepareForGarbageCollection waits on this signal
+	// to confirm the FSM is idle before performing resource cleanup.
+	// Previously this was gated by deviceDeletionInProgress, but that flag
+	// is only set during DeleteDevice which happens AFTER the FSM has already
+	// transitioned to Null (during UpdateInterface/ONU-down), and looplab/fsm
+	// does not fire enter_ callbacks on self-transitions (src==dst), so the
+	// signal was never sent during the actual deletion flow.
+	// Use non-blocking send since the channel buffer is 1.
+	select {
+	case mm.GarbageCollectionComplete <- true:
+	default:
 	}
+}
+
+// CleanupOnDeviceDeletion releases all resources held by the metrics manager.
+// This is called from deviceHandler.PrepareForGarbageCollection after the
+// L2 PM FSM has been confirmed to be in Null state (idle), ensuring no
+// OMCI operations are in progress that could cause nil pointer dereferences.
+func (mm *OnuMetricsManager) CleanupOnDeviceDeletion(ctx context.Context) {
+	logger.Debugw(ctx, "cleanup-metrics-manager-on-device-deletion", log.Fields{"device-id": mm.deviceID})
+	mm.onuOpticalMetricstimer.Stop()
+	mm.onuUniStatusMetricstimer.Stop()
+
+	mm.OnuMetricsManagerLock.Lock()
+	mm.GroupMetricMap = nil
+	mm.StandaloneMetricMap = nil
+	mm.ethernetFrameExtendedPmUpStreamMEByEntityID = nil
+	mm.ethernetFrameExtendedPmDownStreamMEByEntityID = nil
+	mm.activeL2Pms = nil
+	mm.l2PmToAdd = nil
+	mm.l2PmToDelete = nil
+
+	mm.OnuMetricsManagerLock.Unlock()
+
+	// Nil out the KV store backends to release etcd client references
+	mm.pmKvStore = nil
+	mm.extPmKvStore = nil
+
+	// Break circular reference: FSM callbacks capture mm via closures.
+	// Nil out the FSM to allow the entire callback tree to be GC'd.
+	if mm.PAdaptFsm != nil {
+		if mm.PAdaptFsm.PFsm != nil {
+			if mm.PAdaptFsm.CommChan != nil {
+				close(mm.PAdaptFsm.CommChan)
+				mm.PAdaptFsm.CommChan = nil
+			}
+			mm.PAdaptFsm.PFsm = nil
+		}
+		mm.PAdaptFsm = nil
+	}
+	mm.pDeviceHandler = nil
+	mm.pOnuDeviceEntry = nil
 }
 
 // nolint:unparam
@@ -1521,11 +1596,12 @@ func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 
 	for _, n := range copyOfActiveL2Pms {
 		select {
-		case _, ok := <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "Deleting the device, stopping l2PmFsmCollectData for the device ", log.Fields{"device-id": mm.deviceID})
-				return
-			}
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "Deleting the device, stopping l2PmFsmCollectData for the device ", log.Fields{"device-id": mm.deviceID})
+			return
+		case <-mm.StopCollectData:
+			logger.Warnw(ctx, "resetFsms triggered, stopping l2PmFsmCollectData for the device", log.Fields{"device-id": mm.deviceID})
+			return
 		default:
 			var metricInfoSlice []*voltha.MetricInformation
 
@@ -2206,7 +2282,7 @@ func (mm *OnuMetricsManager) populateEthernetBridgeHistoryMetrics(ctx context.Co
 				log.Fields{"device-id": mm.deviceID, "upstream": upstream, "entityID": entityID})
 			// The metrics will be empty in this case
 			return fmt.Errorf("timeout-during-l2-pm-collection-for-ethernet-bridge-history-%v", mm.deviceID)
-		case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping Ethernet Performance metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 			return fmt.Errorf("deleting the device, stopping Ethernet Performance metrics collection for the device %v", mm.deviceID)
 		}
@@ -2317,7 +2393,7 @@ func (mm *OnuMetricsManager) populateEthernetUniHistoryMetrics(ctx context.Conte
 	}
 	if meInstance != nil {
 		select {
-		case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping EthernetUniHistory metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 			return fmt.Errorf("deleting the device, stopping EthernetUniHistory metrics collection for the device %v", mm.deviceID)
 		case meAttributes = <-mm.l2PmChan:
@@ -2436,11 +2512,9 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	}
 	if meInstance != nil {
 		select {
-		case _, ok := <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "Deleting the device, stopping FEC history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
-				return fmt.Errorf("deleting the device, stopping FEC history metrics collection for the device %v", mm.deviceID)
-			}
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "Deleting the device, stopping FEC history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
+			return fmt.Errorf("deleting the device, stopping FEC history metrics collection for the device %v", mm.deviceID)
 		case meAttributes = <-func() chan me.AttributeValueMap {
 			if isCurrent {
 				return mm.opticalMetricsChan
@@ -2501,7 +2575,7 @@ func (mm *OnuMetricsManager) GetMeInstance(ctx context.Context, classID me.Class
 	timeout int, highPrio bool, rxChan chan cmn.Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
 
 	select {
-	case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+	case <-mm.pDeviceHandler.GetDeviceContext().Done():
 		errMsg := "deleting the device, stopping GetMeInstance for the device " + mm.deviceID
 		logger.Warn(ctx, errMsg)
 		return nil, status.Error(codes.NotFound, errMsg)
@@ -2520,7 +2594,7 @@ func (mm *OnuMetricsManager) GetCurrentDataMEInstance(ctx context.Context, class
 	timeout int, highPrio bool, rxChan chan cmn.Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
 
 	select {
-	case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+	case <-mm.pDeviceHandler.GetDeviceContext().Done():
 		errMsg := "deleting the device, stopping GetCurrentDataMEInstance for the device " + mm.deviceID
 		logger.Warn(ctx, errMsg)
 		return nil, status.Error(codes.NotFound, errMsg)
@@ -2582,7 +2656,7 @@ func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 				log.Fields{"device-id": mm.deviceID, "entityID": entityID})
 			// The metrics will be empty in this case
 			return fmt.Errorf("timeout-during-l2-pm-collection-for-gemport-history-%v", mm.deviceID)
-		case <-mm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping GEM port history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
 			return fmt.Errorf("deleting the device, stopping GEM port history metrics collection for the device %v", mm.deviceID)
 		}
@@ -2704,8 +2778,10 @@ func (mm *OnuMetricsManager) generateTicks(ctx context.Context) {
 		select {
 		case <-time.After(L2PmCollectionInterval * time.Second):
 			go func() {
-				if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
-					logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+				if mm.PAdaptFsm != nil && mm.PAdaptFsm.PFsm != nil {
+					if err := mm.PAdaptFsm.PFsm.Event(L2PmEventTick); err != nil {
+						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": mm.deviceID, "err": err})
+					}
 				}
 			}()
 		case <-mm.StopTicks:

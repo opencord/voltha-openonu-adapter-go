@@ -691,20 +691,26 @@ func (oFsm *UniPonAniConfigFsm) enterSettingTconts(ctx context.Context, e *fsm.E
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemNCTPs(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniPonAniConfigFsm - start creating GemNWCtp loop", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
-	go oFsm.performCreatingGemNCTPs(ctx)
+	oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "performCreatingGemNCTPs", func(rCtx context.Context) {
+		oFsm.performCreatingGemNCTPs(rCtx)
+	})
 }
 
 //nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterCreatingGemIWs(ctx context.Context, e *fsm.Event) {
 	logger.Debugw(ctx, "UniPonAniConfigFsm - start creating GemIwTP loop", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
-	go oFsm.performCreatingGemIWs(ctx)
+	oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "performCreatingGemIWs", func(rCtx context.Context) {
+		oFsm.performCreatingGemIWs(rCtx)
+	})
 }
 
 func (oFsm *UniPonAniConfigFsm) enterSettingPQs(ctx context.Context, e *fsm.Event) {
 	logger.Info(ctx, "UniPonAniConfigFsm - start setting PrioQueue loop", log.Fields{
 		"in state": e.FSM.Current(), "device-id": oFsm.deviceID})
-	go oFsm.performSettingPQs(ctx)
+	oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "performSettingPQs", func(rCtx context.Context) {
+		oFsm.performSettingPQs(rCtx)
+	})
 }
 
 func (oFsm *UniPonAniConfigFsm) enterSettingDot1PMapper(ctx context.Context, e *fsm.Event) {
@@ -842,7 +848,9 @@ func (oFsm *UniPonAniConfigFsm) enterAniConfigDone(ctx context.Context, e *fsm.E
 		//if techProfile processing is done it must be checked, if some prior/parallel flow configuration is pending
 		//  but only in case the techProfile was configured (not deleted)
 		if oFsm.requestEventOffset == 0 {
-			go oFsm.pDeviceHandler.VerifyUniVlanConfigRequest(ctx, oFsm.pOnuUniPort, oFsm.techProfileID)
+			oFsm.pDeviceHandler.RunTrackedRoutine(ctx, "VerifyUniVlanConfigRequest", func(rCtx context.Context) {
+				oFsm.pDeviceHandler.VerifyUniVlanConfigRequest(rCtx, oFsm.pOnuUniPort, oFsm.techProfileID)
+			})
 		}
 	} else {
 		logger.Debugw(ctx, "reconciling - skip AniConfigDone processing", log.Fields{"device-id": oFsm.deviceID})
@@ -1308,10 +1316,8 @@ loop:
 				logger.Warn(ctx, "UniPonAniConfigFsm Rx unknown message", log.Fields{"device-id": oFsm.deviceID,
 					"message.Type": message.Type})
 			}
-		case _, ok := <-oFsm.pDeviceHandler.GetDeviceDeleteCommChan(ctx):
-			if !ok {
-				logger.Warnw(ctx, "Device deletion channel closed", log.Fields{"device-id": oFsm.deviceID})
-			}
+		case <-oFsm.pDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "Device deletion channel closed", log.Fields{"device-id": oFsm.deviceID})
 			break loop
 		}
 
@@ -1973,4 +1979,5 @@ func (oFsm *UniPonAniConfigFsm) PrepareForGarbageCollection(ctx context.Context,
 	oFsm.pDeviceHandler = nil
 	oFsm.pOnuDeviceEntry = nil
 	oFsm.pOmciCC = nil
+	oFsm.PAdaptFsm = nil
 }

@@ -137,8 +137,15 @@ type IdeviceHandler interface {
 
 	CreatePortInCore(context.Context, *voltha.Port) error
 
+	// SendOnuInitializationFailedEvent sends ONU initialization failed event
+	SendOnuInitializationFailedEvent(context.Context, string, int64, OnuFailureErrorCode, string)
+	// SendDeviceUpdateFailedEvent sends device or device state update failed event
+	SendDeviceUpdateFailedEvent(context.Context, string, int64, OnuFailureErrorCode, string)
+	// SendDeviceDBUpdateFailureEvent sends device DB update failure event
+	SendDeviceDBUpdateFailureEvent(context.Context, string, int64, OnuFailureErrorCode, string)
 	PerOnuFlowHandlerRoutine(uniID uint8)
-	GetDeviceDeleteCommChan(context.Context) chan bool
+	GetDeviceContext() context.Context
+	RunTrackedRoutine(ctx context.Context, name string, fn func(context.Context)) bool
 	GetSkipOnuConfigEnabled() bool
 }
 
