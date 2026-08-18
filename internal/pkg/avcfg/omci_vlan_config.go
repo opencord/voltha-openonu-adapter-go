@@ -371,6 +371,7 @@ func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 	if oFsm.isAwaitingResponse {
 		//attention: for an unbuffered channel the sender is blocked until the value is received (processed)!
 		// accordingly the mutex must be released before sending to channel here (mutex acquired in receiver)
+		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
 		//use channel to indicate that the response waiting shall be aborted
 		oFsm.omciMIdsResponseReceived <- false
