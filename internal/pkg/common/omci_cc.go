@@ -5135,6 +5135,17 @@ loop:
 					logger.Errorw(ctx, "reqMon: timeout waiting for response - no of max retries reached - skip ONU device event: OLT unavailable!",
 						log.Fields{"tid": tid, "retries": retryCounter, "device-id": oo.deviceID})
 				}
+				fsmTimeOutMsg := Message{
+					Type: TestMsg,
+					Data: TestMessage{
+						TestMessageVal: TimeOutOccurred,
+					},
+				}
+				select {
+				case aOmciTxRequest.cbPair.CbEntry.CbRespChannel <- fsmTimeOutMsg:
+				default:
+					logger.Warnw(context.Background(), "timeout message channel-blocking-avoid-send", log.Fields{"device-id": oo.deviceID})
+				}
 				oo.incrementTxTimesouts()
 				break loop
 			} else {
