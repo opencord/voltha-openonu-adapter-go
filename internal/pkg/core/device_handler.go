@@ -2385,10 +2385,10 @@ func (dh *deviceHandler) addOnuDeviceEntry(ctx context.Context) error {
 		/* also no 'clock' argument - usage open ...*/
 		/* and no alarm_db yet (oo.alarm_db)  */
 		deviceEntry = mib.NewOnuDeviceEntry(ctx, dh.coreClient, dh, dh.pOpenOnuAc)
-		onuTechProfProc := avcfg.NewOnuUniTechProf(ctx, dh, deviceEntry)
-		onuMetricsMgr := pmmgr.NewOnuMetricsManager(ctx, dh, deviceEntry)
-		onuAlarmManager := almgr.NewAlarmManager(ctx, dh, deviceEntry)
 		selfTestHdlr := otst.NewSelfTestMsgHandlerCb(ctx, dh, deviceEntry)
+		onuTechProfProc := avcfg.NewOnuUniTechProf(ctx, dh, deviceEntry)
+		onuMetricsMgr := pmmgr.NewOnuMetricsManager(ctx, dh, deviceEntry, selfTestHdlr)
+		onuAlarmManager := almgr.NewAlarmManager(ctx, dh, deviceEntry)
 		//error treatment possible //TODO!!!
 		dh.setDeviceHandlerEntries(deviceEntry, onuTechProfProc, onuMetricsMgr, onuAlarmManager, selfTestHdlr)
 		// fire deviceEntry ready event to spread to possibly waiting processing
@@ -2499,6 +2499,7 @@ func (dh *deviceHandler) createInterface(ctx context.Context, onuind *oop.OnuInd
 	if err := pDevEntry.Start(log.WithSpanFromContext(context.TODO(), ctx)); err != nil {
 		return err
 	}
+	dh.pSelfTestHdlr.Start(ctx)
 	// Re-check deletion after device entry start — this is a major checkpoint
 	if dh.GetDeletionInProgress() {
 		logger.Warnw(ctx, "device deletion detected after device entry start, aborting createInterface", log.Fields{"device-id": dh.DeviceID})
@@ -2826,13 +2827,12 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	}
 	dh.mutextAlarmManagerFlag.Unlock()
 
-	dh.pSelfTestHdlr.SelfTestHandlerLock.Lock()
-	logger.Debugw(ctx, "check-self-test-control-block-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.pSelfTestHdlr.SelfTestHandlerActive})
-	if dh.pSelfTestHdlr.SelfTestHandlerActive {
-		dh.pSelfTestHdlr.StopSelfTestModule <- true
-		dh.pSelfTestHdlr.SelfTestHandlerActive = false
+	logger.Debugw(ctx, "check-and-stop-self-test-control-block-if-running", log.Fields{"device-id": dh.DeviceID, "flag": dh.pSelfTestHdlr.GetSelfTestHandlerIsRunning()})
+	dh.pSelfTestHdlr.Stop(ctx)
+	if !includingMibSyncFsm {
+		// start the selftestHandler again here when Mibsync FSM not going to reset
+		dh.pSelfTestHdlr.Start(ctx)
 	}
-	dh.pSelfTestHdlr.SelfTestHandlerLock.Unlock()
 
 	// Note: We want flow deletes to be processed on onu down, so do not stop flow monitoring routines
 

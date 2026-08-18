@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -32,6 +31,7 @@ import (
 	"github.com/opencord/voltha-lib-go/v7/pkg/db/kvstore"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
 	cmn "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/common"
+	otst "github.com/opencord/voltha-openonu-adapter-go/internal/pkg/omcitst"
 	"github.com/opencord/voltha-protos/v5/go/extension"
 	"github.com/opencord/voltha-protos/v5/go/voltha"
 	codes "google.golang.org/grpc/codes"
@@ -81,9 +81,12 @@ const (
 
 // OpticalPowerGroupMetrics are supported optical pm names
 var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
-	"ani_g_instance_id":  voltha.PmConfig_CONTEXT,
-	"transmit_power_dBm": voltha.PmConfig_GAUGE,
-	"receive_power_dBm":  voltha.PmConfig_GAUGE,
+	"ani_g_instance_id":     voltha.PmConfig_CONTEXT,
+	"transmit_power_dBm":    voltha.PmConfig_GAUGE,
+	"receive_power_dBm":     voltha.PmConfig_GAUGE,
+	"supply_voltage_Volts":  voltha.PmConfig_GAUGE,
+	"laser_bias_current_mA": voltha.PmConfig_GAUGE,
+	"temperature_Celsius":   voltha.PmConfig_GAUGE,
 }
 
 // OpticalPowerGroupMetrics specific constants
@@ -293,6 +296,7 @@ type OnuMetricsManager struct {
 
 	pDeviceHandler  cmn.IdeviceHandler
 	pOnuDeviceEntry cmn.IonuDeviceEntry
+	pSelfTestHdlr   *otst.SelfTestControlBlock
 	PAdaptFsm       *cmn.AdapterFsm
 
 	opticalMetricsChan             chan me.AttributeValueMap
@@ -350,13 +354,15 @@ type OnuMetricsManager struct {
 // the collection interval configurable.
 // The global PM config is part of the voltha.Device struct and is backed up on KV store (by rw-core).
 // This module also implements resiliency for L2 PM ME instances that are active/pending-delete/pending-add.
-func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.IonuDeviceEntry) *OnuMetricsManager {
+func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn.IonuDeviceEntry,
+	pSelfTestHdlr *otst.SelfTestControlBlock) *OnuMetricsManager {
 
 	var metricsManager OnuMetricsManager
 	metricsManager.deviceID = dh.GetDeviceID()
 	logger.Debugw(ctx, "init-OnuMetricsManager", log.Fields{"device-id": metricsManager.deviceID})
 	metricsManager.pDeviceHandler = dh
 	metricsManager.pOnuDeviceEntry = onuDev
+	metricsManager.pSelfTestHdlr = pSelfTestHdlr
 
 	commMetricsChan := make(chan cmn.Message)
 	metricsManager.opticalMetricsChan = make(chan me.AttributeValueMap)
@@ -772,55 +778,58 @@ func (mm *OnuMetricsManager) collectOpticalMetrics(ctx context.Context) ([]*volt
 
 	// get the ANI-G instance IDs
 	anigInstKeys := mm.pOnuDeviceEntry.GetOnuDB().GetSortedInstKeys(ctx, me.AniGClassID)
-loop:
 	for _, anigInstID := range anigInstKeys {
-		var meAttributes me.AttributeValueMap
 		opticalMetrics := make(map[string]float32)
-		// Get the ANI-G instance optical power attributes
-		requestedAttributes := me.AttributeValueMap{me.AniG_OpticalSignalLevel: 0, me.AniG_TransmitOpticalLevel: 0}
-		meInstance, err := mm.GetMeInstance(ctx, me.AniGClassID, anigInstID, requestedAttributes,
-			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
+		request := &extension.SingleGetValueRequest{
+			Request: &extension.GetValueRequest{
+				Request: &extension.GetValueRequest_OnuOpticalInfo{
+					OnuOpticalInfo: &extension.GetOnuPonOpticalInfo{},
+				},
+			},
+		}
+		CommChan := make(chan cmn.Message)
+		respChan := make(chan *extension.SingleGetValueResponse, 1)
+		err := mm.pSelfTestHdlr.SelfTestRequestStartForInstance(ctx, request, anigInstID, CommChan, respChan)
 		if err != nil {
 			if CheckMeInstanceStatusCode(err) {
 				return nil, err // Device is being deleted, so we stop processing
 			}
-			logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
+			logger.Errorw(ctx, "optical metrics SelfTestME failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
 			_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
 			return nil, err
 		}
-
-		if meInstance != nil {
-			mm.onuOpticalMetricstimer.Reset(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second)
-			select {
-			case meAttributes = <-mm.opticalMetricsChan:
-				mm.onuOpticalMetricstimer.Stop()
-				logger.Debugw(ctx, "received optical metrics, stopping the optical metrics collection timer", log.Fields{"device-id": mm.deviceID})
-			case <-mm.onuOpticalMetricstimer.C:
-				logger.Errorw(ctx, "timeout waiting for omci-get response for optical metrics", log.Fields{"device-id": mm.deviceID})
-				// The metrics will be empty in this case
-				break loop
-			case <-mm.opticalMetricsDelCommChan:
-				logger.Warnw(ctx, "Deleting the device, stopping optical metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
-				return nil, err
+		var selfTestResponse *extension.SingleGetValueResponse
+		select {
+		case selfTestResponse = <-respChan:
+			if selfTestResponse == nil || selfTestResponse.GetResponse() == nil ||
+				selfTestResponse.GetResponse().GetStatus() != extension.GetValueResponse_OK {
+				return nil, fmt.Errorf("self-test-response-failure-device-%s", mm.deviceID)
 			}
-			// Populate metric only if it was enabled.
-			for k := range OpticalPowerGroupMetrics {
-				switch k {
-				case "ani_g_instance_id":
-					if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
-						opticalMetrics[k] = float32(val.(uint16))
-					}
-				case "transmit_power_dBm":
-					if val, ok := meAttributes[me.AniG_TransmitOpticalLevel]; ok && val != nil {
-						opticalMetrics[k] = float32(math.Round((float64(cmn.TwosComplementToSignedInt16(val.(uint16)))/500.0)*10) / 10) // convert to dBm rounded of to single decimal place
-					}
-				case "receive_power_dBm":
-					if val, ok := meAttributes[me.AniG_OpticalSignalLevel]; ok && val != nil {
-						opticalMetrics[k] = float32(math.Round((float64(cmn.TwosComplementToSignedInt16(val.(uint16)))/500.0)*10) / 10) // convert to dBm rounded of to single decimal place
-					}
-				default:
-					// do nothing
-				}
+		case <-mm.opticalMetricsDelCommChan:
+			logger.Warnw(ctx, "Deleting the device, stopping optical metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
+			return nil, context.Canceled
+		}
+		opticalInfo := selfTestResponse.GetResponse().GetOnuOpticalInfo()
+		if opticalInfo == nil {
+			return nil, fmt.Errorf("self-test-optical-info-missing-device-%s", mm.deviceID)
+		}
+		// Populate metric only if it was enabled.
+		for k := range OpticalPowerGroupMetrics {
+			switch k {
+			case "ani_g_instance_id":
+				opticalMetrics[k] = float32(anigInstID)
+			case "transmit_power_dBm":
+				opticalMetrics[k] = opticalInfo.GetMeanOpticalLaunchPower()
+			case "receive_power_dBm":
+				opticalMetrics[k] = opticalInfo.GetReceivedOpticalPower()
+			case "supply_voltage_Volts":
+				opticalMetrics[k] = opticalInfo.GetPowerFeedVoltage()
+			case "laser_bias_current_mA":
+				opticalMetrics[k] = opticalInfo.GetLaserBiasCurrent()
+			case "temperature_Celsius":
+				opticalMetrics[k] = opticalInfo.GetTemperature()
+			default:
+				// do nothing
 			}
 		}
 		// create slice of metrics given that there could be more than one ANI-G instance and
@@ -1175,9 +1184,6 @@ func (mm *OnuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 	if msgObj.Result == me.Success {
 		meAttributes := msgObj.Attributes
 		switch msgObj.EntityClass {
-		case me.AniGClassID:
-			mm.opticalMetricsChan <- meAttributes
-			return nil
 		case me.UniGClassID:
 			mm.uniStatusMetricsChan <- meAttributes
 			return nil
