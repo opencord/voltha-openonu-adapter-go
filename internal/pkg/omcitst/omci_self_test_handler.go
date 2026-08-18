@@ -57,6 +57,7 @@ type fsmCb struct {
 	respChan     chan *extension.SingleGetValueResponse
 	stopOmciChan chan bool
 	reqMsg       *extension.SingleGetValueRequest
+	entityID     uint16
 }
 
 // SelfTestControlBlock - TODO: add comment
@@ -71,6 +72,7 @@ type SelfTestControlBlock struct {
 
 	SelfTestHandlerLock   sync.RWMutex
 	SelfTestHandlerActive bool
+	selfTestStopDone      chan struct{}
 }
 
 // NewSelfTestMsgHandlerCb creates the SelfTestControlBlock
@@ -85,15 +87,13 @@ func NewSelfTestMsgHandlerCb(ctx context.Context, dh cmn.IdeviceHandler, devEntr
 		pDevEntry:      devEntry,
 	}
 	selfTestCb.selfTestFsmMap = make(map[generated.ClassID]*fsmCb)
-	selfTestCb.StopSelfTestModule = make(chan bool)
-
-	go selfTestCb.waitForStopSelfTestModuleSignal(ctx)
+	selfTestCb.Start(ctx)
 
 	return &selfTestCb
 }
 
 func (selfTestCb *SelfTestControlBlock) initiateNewSelfTestFsm(ctx context.Context, reqMsg *extension.SingleGetValueRequest,
-	CommChan chan cmn.Message, classID generated.ClassID, respChan chan *extension.SingleGetValueResponse) error {
+	CommChan chan cmn.Message, classID generated.ClassID, entityID uint16, respChan chan *extension.SingleGetValueResponse) error {
 	aFsm := cmn.NewAdapterFsm("selfTestFsm", selfTestCb.deviceID, CommChan)
 
 	if aFsm == nil {
@@ -118,12 +118,11 @@ func (selfTestCb *SelfTestControlBlock) initiateNewSelfTestFsm(ctx context.Conte
 			"enter_" + selfTestStHandleSelfTestResp: func(e *fsm.Event) { selfTestCb.selfTestFsmHandleSelfTestResponse(ctx, e) },
 		},
 	)
-	selfTestCb.selfTestFsmLock.Lock()
-	selfTestCb.selfTestFsmMap[classID] = &fsmCb{fsm: aFsm, reqMsg: reqMsg, respChan: respChan, stopOmciChan: make(chan bool)}
+
+	selfTestCb.selfTestFsmMap[classID] = &fsmCb{fsm: aFsm, reqMsg: reqMsg, entityID: entityID, respChan: respChan, stopOmciChan: make(chan bool)}
 	// Initiate the selfTestEventTestRequest on the FSM. Also pass the additional argument - classID.
 	// This is useful for the the FSM handler function to pull out fsmCb from the selfTestCb.selfTestFsmMap map.
 	selfTestCb.triggerFsmEvent(aFsm, selfTestEventTestRequest, classID)
-	selfTestCb.selfTestFsmLock.Unlock()
 
 	return nil
 }
@@ -136,8 +135,8 @@ func (selfTestCb *SelfTestControlBlock) selfTestFsmHandleSelfTestRequest(ctx con
 	pFsmCb, ok := selfTestCb.selfTestFsmMap[classID]
 	selfTestCb.selfTestFsmLock.RUnlock()
 	if !ok {
-		// This case is impossible. Would be curious to see if this happens
-		logger.Fatalw(ctx, "class-id-not-found", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
+		logger.Errorw(ctx, "class-id-not-found", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
+		return
 	}
 	instKeys := selfTestCb.pDevEntry.GetOnuDB().GetSortedInstKeys(ctx, classID)
 	if len(instKeys) == 0 {
@@ -146,9 +145,12 @@ func (selfTestCb *SelfTestControlBlock) selfTestFsmHandleSelfTestRequest(ctx con
 		selfTestCb.submitFailureGetValueResponse(ctx, pFsmCb.respChan, extension.GetValueResponse_INTERNAL_ERROR, extension.GetValueResponse_ERROR, pFsmCb.reqMsg)
 		return
 	}
-	// TODO: Choosing the first index from the instance keys. For ANI-G, this is fine as there is only one ANI-G instance.
-	// How do we handle and report self test for multiple instances?
-	if err := selfTestCb.pDevEntry.GetDevOmciCC().SendSelfTestReq(ctx, classID, instKeys[0], selfTestCb.pDeviceHandler.GetOmciTimeout(),
+	entityID := pFsmCb.entityID
+	if entityID == 0 {
+		// Preserve the original behavior for callers that do not specify an instance.
+		entityID = instKeys[0]
+	}
+	if err := selfTestCb.pDevEntry.GetDevOmciCC().SendSelfTestReq(ctx, classID, entityID, selfTestCb.pDeviceHandler.GetOmciTimeout(),
 		false, pFsmCb.fsm.CommChan); err != nil {
 		logger.Errorw(ctx, "error sending self test request", log.Fields{"device-id": selfTestCb.deviceID, "classID": classID})
 		selfTestCb.triggerFsmEvent(pFsmCb.fsm, selfTestEventAbort)
@@ -203,7 +205,9 @@ func (selfTestCb *SelfTestControlBlock) submitFailureGetValueResponse(ctx contex
 	}
 	logger.Infow(ctx, "OMCI test response failure - pushing failure response", log.Fields{"device-id": selfTestCb.deviceID})
 	// Clear the fsmCb from the map
+	selfTestCb.selfTestFsmLock.Lock()
 	delete(selfTestCb.selfTestFsmMap, meClassID)
+	selfTestCb.selfTestFsmLock.Unlock()
 	respChan <- &singleValResp
 	logger.Infow(ctx, "OMCI test response failure - pushing failure response complete", log.Fields{"device-id": selfTestCb.deviceID})
 }
@@ -364,16 +368,24 @@ func (selfTestCb *SelfTestControlBlock) selfTestRequestComplete(ctx context.Cont
 	}
 	logger.Debugw(ctx, "self test req handling complete", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": meClassID})
 	// Clear the fsmCb from the map
+	selfTestCb.selfTestFsmLock.Lock()
 	delete(selfTestCb.selfTestFsmMap, meClassID)
+	selfTestCb.selfTestFsmLock.Unlock()
 }
 
-func (selfTestCb *SelfTestControlBlock) waitForStopSelfTestModuleSignal(ctx context.Context) {
-	selfTestCb.SetSelfTestHandlerIsRunning(true)
-	<-selfTestCb.StopSelfTestModule // block on stop signal
+func (selfTestCb *SelfTestControlBlock) waitForStopSelfTestModuleSignal(ctx context.Context, stopChan chan bool, stopDone chan struct{}) {
+	defer close(stopDone)
+	<-stopChan // block on stop signal
 
 	logger.Infow(ctx, "received stop signal - clean up start", log.Fields{"device-id": selfTestCb.deviceID})
-	selfTestCb.selfTestFsmLock.Lock()
+	selfTestCb.selfTestFsmLock.RLock()
+	fsmEntries := make(map[generated.ClassID]*fsmCb, len(selfTestCb.selfTestFsmMap))
 	for classID, fsmCb := range selfTestCb.selfTestFsmMap {
+		fsmEntries[classID] = fsmCb
+	}
+	selfTestCb.selfTestFsmLock.RUnlock()
+
+	for classID, fsmCb := range fsmEntries {
 		select {
 		case fsmCb.stopOmciChan <- true: // stop omci processing routine if one was active. It eventually aborts the fsm
 			logger.Debugw(ctx, "stopped omci processing", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": classID})
@@ -382,9 +394,38 @@ func (selfTestCb *SelfTestControlBlock) waitForStopSelfTestModuleSignal(ctx cont
 			selfTestCb.submitFailureGetValueResponse(ctx, fsmCb.respChan, extension.GetValueResponse_REASON_UNDEFINED, extension.GetValueResponse_ERROR, fsmCb.reqMsg)
 		}
 	}
+	selfTestCb.selfTestFsmLock.Lock()
 	selfTestCb.selfTestFsmMap = make(map[generated.ClassID]*fsmCb) // reset map
 	selfTestCb.selfTestFsmLock.Unlock()
 	logger.Infow(ctx, "received stop signal - clean up end", log.Fields{"device-id": selfTestCb.deviceID})
+}
+
+// Start starts the self-test module. It is safe to call Start more than once.
+func (selfTestCb *SelfTestControlBlock) Start(ctx context.Context) {
+	logger.Infow(ctx, "starting self-test handler", log.Fields{"device-id": selfTestCb.deviceID})
+	selfTestCb.SelfTestHandlerLock.Lock()
+	defer selfTestCb.SelfTestHandlerLock.Unlock()
+	if selfTestCb.SelfTestHandlerActive {
+		return
+	}
+
+	selfTestCb.StopSelfTestModule = make(chan bool)
+	selfTestCb.selfTestStopDone = make(chan struct{})
+	selfTestCb.SelfTestHandlerActive = true
+	go selfTestCb.waitForStopSelfTestModuleSignal(ctx, selfTestCb.StopSelfTestModule, selfTestCb.selfTestStopDone)
+}
+
+// Stop stops the self-test module. It is safe to call Stop more than once.
+func (selfTestCb *SelfTestControlBlock) Stop(ctx context.Context) {
+	selfTestCb.SelfTestHandlerLock.Lock()
+	defer selfTestCb.SelfTestHandlerLock.Unlock()
+	if !selfTestCb.SelfTestHandlerActive {
+		return
+	}
+
+	selfTestCb.StopSelfTestModule <- true
+	selfTestCb.SelfTestHandlerActive = false
+	<-selfTestCb.selfTestStopDone
 }
 
 //// Exported functions
@@ -407,10 +448,25 @@ func (selfTestCb *SelfTestControlBlock) GetSelfTestHandlerIsRunning() bool {
 // If the return from selfTestRequest is NOT nil, the caller shall not wait for async response.
 func (selfTestCb *SelfTestControlBlock) SelfTestRequestStart(ctx context.Context, reqMsg *extension.SingleGetValueRequest,
 	CommChan chan cmn.Message, respChan chan *extension.SingleGetValueResponse) error {
+	return selfTestCb.SelfTestRequestStartForInstance(ctx, reqMsg, 0, CommChan, respChan)
+}
+
+// SelfTestRequestStartForInstance starts a self-test for the requested ME instance.
+// An entityID of zero preserves the default behavior of selecting the first known instance.
+func (selfTestCb *SelfTestControlBlock) SelfTestRequestStartForInstance(ctx context.Context, reqMsg *extension.SingleGetValueRequest,
+	entityID uint16, CommChan chan cmn.Message, respChan chan *extension.SingleGetValueResponse) error {
+	selfTestCb.SelfTestHandlerLock.RLock()
+	defer selfTestCb.SelfTestHandlerLock.RUnlock()
+	if !selfTestCb.SelfTestHandlerActive {
+		logger.Errorw(ctx, "self test FSM not active", log.Fields{"device-id": selfTestCb.deviceID})
+		return fmt.Errorf("self-test-fsm-not-active-device-id-%v", selfTestCb.deviceID)
+	}
 	meClassID, err := selfTestCb.getMeClassID(ctx, reqMsg)
 	if err != nil {
 		return err
 	}
+	selfTestCb.selfTestFsmLock.Lock()
+	defer selfTestCb.selfTestFsmLock.Unlock()
 	if _, ok := selfTestCb.selfTestFsmMap[meClassID]; ok {
 		logger.Errorw(ctx, "self test already in progress for class id", log.Fields{"device-id": selfTestCb.deviceID, "class-id": meClassID})
 		return fmt.Errorf("self-test-already-in-progress-for-class-id-%v-device-id-%v", meClassID, selfTestCb.deviceID)
@@ -418,7 +474,7 @@ func (selfTestCb *SelfTestControlBlock) SelfTestRequestStart(ctx context.Context
 	logger.Debugw(ctx, "self test request initiated", log.Fields{"device-id": selfTestCb.deviceID, "meClassID": meClassID})
 	// indicates only if the FSM was initiated correctly. Response is asynchronous on respChan.
 	// If the return from here is NOT nil, the caller shall not wait for async response.
-	return selfTestCb.initiateNewSelfTestFsm(ctx, reqMsg, CommChan, meClassID, respChan)
+	return selfTestCb.initiateNewSelfTestFsm(ctx, reqMsg, CommChan, meClassID, entityID, respChan)
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
