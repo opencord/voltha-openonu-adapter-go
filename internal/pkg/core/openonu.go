@@ -241,6 +241,10 @@ func (oo *OpenONUAC) getDeviceHandler(ctx context.Context, deviceID string, aWai
 		}
 	}
 	oo.mutexDeviceHandlersMap.Unlock()
+	if agent == nil {
+		errMsg := fmt.Sprintf("device Handler not found -%s", deviceID)
+		return nil, status.Error(codes.NotFound, errMsg)
+	}
 	return agent, nil
 }
 
@@ -349,18 +353,15 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 	logger.Infow(ctx, "delete-device", log.Fields{"device-id": device.Id, "SerialNumber": device.SerialNumber, "ctx": ctx, "nctx": nctx})
 
 	if handler, err := oo.getDeviceHandler(ctx, device.Id, false); handler != nil {
-		// Acquire read lock to check if deletion is already in progress
-		handler.mutexDeletionInProgressFlag.RLock()
+		// Fix TOCTOU: single Lock with check-and-set to prevent duplicate deletes
+		handler.mutexDeletionInProgressFlag.Lock()
 		if handler.deletionInProgress {
-			// If deletion is already in progress, release the read lock and return
-			handler.mutexDeletionInProgressFlag.RUnlock()
+			handler.mutexDeletionInProgressFlag.Unlock()
 			errMsg := fmt.Sprintf("Device deletion is already in progress %s err: %s", device.Id, err)
 			logger.Info(ctx, errMsg)
 			return nil, status.Error(codes.FailedPrecondition, errMsg)
 		}
 		// Release read lock before setting the deletion flag
-		handler.mutexDeletionInProgressFlag.RUnlock()
-		handler.mutexDeletionInProgressFlag.Lock()
 		handler.deletionInProgress = true
 		handler.mutexDeletionInProgressFlag.Unlock()
 
@@ -378,7 +379,18 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 			}
 		}
 
-		close(handler.deviceDeleteCommChan)
+		// Cancel the device lifecycle context — broadcasts stop to all goroutines
+		// using dh.deviceCtx.Done() in their select loops
+		handler.deviceCtxCancel()
+		logger.Infow(ctx, "canceled device lifecycle context", log.Fields{"device-id": device.Id})
+
+		// Transition device FSM to Deleting state — this prevents any new operations
+		// from starting. The event may fail if another transition is in progress (the
+		// eventMu serialization will wait for it to complete first).
+		if fsmErr := handler.pDeviceStateFsm.Event(devEvDeviceDelete); fsmErr != nil {
+			logger.Warnw(ctx, "FSM: could not transition to Deleting state (may already be in compatible state)",
+				log.Fields{"device-id": device.Id, "fsmErr": fsmErr})
+		}
 		if resetErr := handler.resetFsms(ctx, true); resetErr != nil {
 			logger.Errorw(ctx, "failed to reset FSMs for the device", log.Fields{"device-id": device.Id, "err": resetErr})
 			handler.mutexDeletionInProgressFlag.Lock()
@@ -397,6 +409,22 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 				}
 			}
 		}
+
+		// Wait for all tracked goroutines to complete before cleaning up.
+		// This ensures no goroutine is accessing device state when we nil pointers.
+		waitCh := make(chan struct{})
+		go func() {
+			handler.activeRoutinesWg.Wait()
+			close(waitCh)
+		}()
+		select {
+		case <-waitCh:
+			logger.Debugw(ctx, "all active routines drained", log.Fields{"device-id": device.Id})
+		case <-time.After(10 * time.Second):
+			logger.Warnw(ctx, "timeout waiting for active routines to drain, proceeding with cleanup",
+				log.Fields{"device-id": device.Id})
+		}
+
 		//don't leave any garbage in kv-store
 		if forceDeleteErr := oo.forceDeleteDeviceKvData(ctx, device.Id); forceDeleteErr != nil {
 			logger.Errorw(ctx, "failed to delete  ONU data from KV store", log.Fields{"device-id": device.Id, "err": forceDeleteErr})
@@ -640,28 +668,29 @@ func (oo *OpenONUAC) DownloadOnuImage(ctx context.Context, request *voltha.Devic
 					//onu upgrade handling called in background without immediate error evaluation here
 					//  as the processing can be done for multiple ONU's and an error on one ONU should not stop processing for others
 					//  state/progress/success of the request has to be verified using the Get_onu_image_status() API
-					go func() {
-						onuswctx, cancel := context.WithTimeout(context.Background(), oo.config.ONUSwUpgradeTimeout)
 
-						if md, ok := metadata.FromIncomingContext(ctx); ok {
+					handler.RunTrackedRoutine(ctx, "onuSwUpgradeAfterDownload", func(rCtx context.Context) {
+						onuswctx, cancel := context.WithTimeout(handler.GetDeviceContext(), oo.config.ONUSwUpgradeTimeout)
+
+						if md, ok := metadata.FromIncomingContext(rCtx); ok {
 							if deadlineStrs := md.Get("deadline"); len(deadlineStrs) > 0 {
 								if deadlineUnixNano, err := strconv.ParseInt(deadlineStrs[0], 10, 64); err == nil {
 									deadline := time.Unix(0, deadlineUnixNano)
-									onuswctx, cancel = context.WithTimeout(context.Background(), time.Until(deadline))
+									onuswctx, cancel = context.WithTimeout(handler.GetDeviceContext(), time.Until(deadline))
 								} else {
-									logger.Warnw(ctx, "Failed to parse deadline metadata, using default timeout",
+									logger.Warnw(rCtx, "Failed to parse deadline metadata, using default timeout",
 										log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier, "err": err})
 								}
 							} else {
-								logger.Warnw(ctx, "No deadline metadata found, using default timeout",
+								logger.Warnw(rCtx, "No deadline metadata found, using default timeout",
 									log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
 							}
 						} else {
-							logger.Warnw(ctx, "Failed to retrieve metadata, using default timeout",
+							logger.Warnw(rCtx, "Failed to retrieve metadata, using default timeout",
 								log.Fields{"device-id": loDeviceID, "image-id": imageIdentifier})
 						}
 						handler.onuSwUpgradeAfterDownload(onuswctx, request, oo.pFileManager, imageIdentifier, cancel)
-					}()
+					})
 					loDeviceImageState.ImageState.DownloadState = voltha.ImageState_DOWNLOAD_STARTED
 					loDeviceImageState.ImageState.Reason = voltha.ImageState_NO_ERROR
 					loDeviceImageState.ImageState.ImageState = voltha.ImageState_IMAGE_UNKNOWN
