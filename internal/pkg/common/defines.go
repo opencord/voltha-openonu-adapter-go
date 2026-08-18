@@ -186,6 +186,25 @@ const (
 	// Add other events here as needed (alarms separate???)
 )
 
+// OnuFailureErrorCode is a typed string alias for structured failure error codes
+// carried in DeviceEvent.Context["error-code"].
+type OnuFailureErrorCode string
+
+const (
+	ErrCodeDeviceStateTransitionFailed OnuFailureErrorCode = "ERR_DEVICE_STATE_TRANSITION_FAILED"
+	ErrCodeMibResetFailed              OnuFailureErrorCode = "ERR_MIB_RESET_FAILED"
+	ErrCodePortStateUpdateFailed       OnuFailureErrorCode = "ERR_PORT_STATE_UPDATE_FAILED"
+	ErrCodeCoreUnavailable             OnuFailureErrorCode = "ERR_CORE_UNAVAILABLE"
+	ErrCodeUniPortCreationFailed       OnuFailureErrorCode = "ERR_UNI_PORT_CREATION_FAILED"
+	ErrCodeUniOmciTimeout              OnuFailureErrorCode = "ERR_UNI_OMCI_TIMEOUT"
+	ErrCodeUniOmciResponseError        OnuFailureErrorCode = "ERR_UNI_OMCI_RESPONSE_ERROR"
+	ErrCodeMibDownloadFailed           OnuFailureErrorCode = "ERR_MIB_DOWNLOAD_FAILED"
+	ErrCodeMibUploadFailed             OnuFailureErrorCode = "ERR_MIB_UPLOAD_FAILED"
+	ErrCodeDeviceUpdateAtCore          OnuFailureErrorCode = "ERR_DEVICE_UPDATE_AT_CORE"
+	ErrCodeDeviceStateUpdateAtCore     OnuFailureErrorCode = "ERR_DEVICE_STATE_UPDATE_AT_CORE"
+	ErrCodeDeviceDbKvStoreUpdate       OnuFailureErrorCode = "ERR_DEVICE_DB_KV_STORE_UPDATE"
+)
+
 ///////////////////////////////////////////////////////////
 
 // definitions as per G.988 softwareImage::valid ME IDs
