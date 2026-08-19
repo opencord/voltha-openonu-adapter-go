@@ -470,22 +470,36 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 			//TODO!!! Generally: In this scheme it would be good to have some means to indicate
 			//  possible problems to the caller later autonomously
 
+			dh.pOnuTP.ResetTpProcessingErrorIndication(uniID, tpID)
+
+			// Validate and prepare tech profile configuration
+			TpID, pCurrentUniPort, err := dh.validateAndPrepareTechProfile(ctx, uniID, techProfMsg.TpInstancePath)
+			if err != nil {
+				logger.Errorw(ctx, "error-validating-preparing-tech-profile-stopping-device",
+					log.Fields{"device-id": dh.DeviceID, "err": err, "tp-path": techProfMsg.TpInstancePath})
+				return err
+			}
+
 			// deadline context to ensure completion of background routines waited for
 			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 			deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 			dctx, cancel := context.WithDeadline(context.Background(), deadline)
 
-			dh.pOnuTP.ResetTpProcessingErrorIndication(uniID, tpID)
-
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
 			// attention: deadline completion check and wg.Done is to be done in both routines
-			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.TpInstancePath, tpInst.TpInstance, &wg)
-			dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld") //wait for background process to finish
-			if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
-				logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": techProfMsg.TpInstancePath})
-				return tpErr
+			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.TpInstancePath, tpInst.TpInstance, pCurrentUniPort, &wg)
+			err = dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld")
+			if err != nil {
+				logger.Errorw(ctx, "TechProfile configuration to the device UNI port  failed", log.Fields{"device-id": dh.DeviceID, "uniID": uniID, "err": err})
+				return err
+			} else {
+				if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, TpID); tpErr != nil {
+					logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": techProfMsg.TpInstancePath})
+					return tpErr
+				}
 			}
+			pDevEntry.StoreOnuUniTpPath(ctx, uniID, uint8(TpID), techProfMsg.TpInstancePath)
 			deadline = time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 			dctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
 			defer cancel2()
@@ -621,10 +635,15 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 	wg.Add(1) // for the 1 go routine to finish
 	go dh.pOnuTP.DeleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, pathString,
 		resource, entryID, &wg)
-	dh.waitForCompletion(ctx, cancel, &wg, resourceName+"Delete") //wait for background process to finish
-	if err := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, tpID); err != nil {
-		logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
+	err := dh.waitForCompletion(ctx, cancel, &wg, "DeleteTechProfileResource")
+	if err != nil {
+		logger.Errorw(ctx, "Delete TechProfile resource failed for the UNI port", log.Fields{"device-id": dh.DeviceID, "uniID": uniID, "err": err})
 		return err
+	} else {
+		if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
+			logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": pathString})
+			return err
+		}
 	}
 
 	if dh.pOnuTP.IsTechProfileConfigCleared(ctx, uniID, tpID) {
@@ -1040,21 +1059,37 @@ outerLoop:
 				break outerLoop
 			}
 
+			dh.pOnuTP.ResetTpProcessingErrorIndication(uniData.PersUniID, tpID)
+
+			// Validate and prepare tech profile configuration
+			TpID, pCurrentUniPort, err := dh.validateAndPrepareTechProfile(ctx, uniData.PersUniID, uniData.PersTpPathMap[tpID])
+			if err != nil {
+				logger.Errorw(ctx, "TechProfile validation failed during reconcile", log.Fields{"device-id": dh.DeviceID, "err": err})
+				return false
+			}
+
 			// deadline context to ensure completion of background routines waited for
 			//20200721: 10s proved to be less in 8*8 ONU test on local vbox machine with debug, might be further adapted
 			deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
 			dctx, cancel := context.WithDeadline(ctx, deadline)
 
-			dh.pOnuTP.ResetTpProcessingErrorIndication(uniData.PersUniID, tpID)
 			var wg sync.WaitGroup
 			wg.Add(1) // for the 1 go routine to finish
-			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], tpInst, &wg)
-			dh.waitForCompletion(ctx, cancel, &wg, "TechProfReconcile") //wait for background process to finish
-			if err := dh.pOnuTP.GetTpProcessingErrorIndication(uniData.PersUniID, tpID); err != nil {
-				logger.Errorw(ctx, err.Error(), log.Fields{"device-id": dh.DeviceID})
-				techProfInstLoadFailed = true // stop loading tp instance as soon as we hit failure
-				break outerLoop
+			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], tpInst, pCurrentUniPort, &wg)
+			// Wait for either completion or cancellation
+			err = dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwldDuringReconcile")
+			if err != nil {
+				logger.Errorw(ctx, "TechProfile configuration to the device UNI port  failed", log.Fields{"device-id": dh.DeviceID, "uniID": uniData.PersUniID, "err": err})
+				return false
+			} else {
+				if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, TpID); tpErr != nil {
+					logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": uniData.PersTpPathMap[tpID]})
+					// Stop reconciliation, if it is in progress
+					dh.stopReconciling(ctx, false, cWaitReconcileFlowNoActivity)
+					return false
+				}
 			}
+
 		} // for all TpPath entries for this UNI
 		if len(uniData.PersFlowParams) != 0 {
 			flowsFound = true
@@ -1501,8 +1536,6 @@ func (dh *deviceHandler) CheckForDeviceTechProf(ctx context.Context) bool {
 	techProfInstLoadFailed := false
 	continueWithFlowConfig := false
 	defer dh.UpdateAndStoreRebootState(ctx, continueWithFlowConfig)
-	// Stop any on going reconciling thread as the flow configuration post reboot will be performed here
-	dh.stopReconciling(ctx, true, cWaitReconcileFlowNoActivity)
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
@@ -1540,59 +1573,50 @@ outerLoop:
 				log.Fields{"uni-id": uniID, "device-id": dh.DeviceID})
 			continue
 		}
+
 		//release MutexPersOnuConfig before TechProfile (ANIConfig) processing as otherwise the reception of
 		//  OMCI frames may get completely stuck due to lock request within IncrementMibDataSync() at OMCI
 		//  frame reception may also lock the complete OMCI reception processing based on mutexRxSchedMap
 		pDevEntry.MutexPersOnuConfig.RUnlock()
 		persMutexLock = false
+		//TODO: check for uni-port specific reconcilement in case of multi-uni-port-per-onu-support
 		for tpID, tpPath := range uniData.PersTpPathMap {
+			// verify whether the TP instance is present in the PonAniConfig FSM
+			if !dh.pOnuTP.IsTechProfileInstancePresent(ctx, uniID, tpID) {
+				logger.Warnw(ctx, "TP instance not present in FSM", log.Fields{
+					"device-id": dh.DeviceID, "uni-id": uniID, "tp-id": tpID})
+				techProfInstLoadFailed = true
+				break outerLoop
+			}
 			if tpPath != "" {
-				logger.Infow(ctx, "Starting retrieval for TechProfileInstance", log.Fields{
-					"uniID": uniID, "tpID": tpID, "tpPath": tpPath, "device-id": dh.DeviceID,
-				})
-				// Attempt the initial call before entering the retry loop
-				iaTechTpInst, err := dh.GetTechProfileInstanceFromParentAdapter(ctx, uniID, tpPath)
+				_, pCurrentUniPort, err := dh.validateAndPrepareTechProfile(ctx, uniData.PersUniID, uniData.PersTpPathMap[tpID])
 				if err != nil {
-					logger.Warnw(ctx, "Starting retrieval for TechProfileInstance", log.Fields{
-						"uniID": uniID, "tpID": tpID, "tpPath": tpPath, "device-id": dh.DeviceID,
-					})
+					logger.Errorw(ctx, "TechProfile validation failed during reboot", log.Fields{"device-id": dh.DeviceID, "err": err})
 					techProfInstLoadFailed = true
 					break outerLoop
 				}
-				if iaTechTpInst != nil {
-					var tpInst *tech_profile.TechProfileInstance
-					switch techTpInst := iaTechTpInst.TechTpInstance.(type) {
-					case *ia.TechProfileDownloadMessage_TpInstance: // supports only GPON, XGPON, XGS-PON
-						tpInst = techTpInst.TpInstance
-						logger.Debugw(ctx, "received-tp-instance-successfully-after-reboot", log.Fields{
-							"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
-					default: // do not support epon or other tech
-						logger.Errorw(ctx, "unsupported-tech-profile", log.Fields{
-							"tp-id": tpID, "tpPath": uniData.PersTpPathMap[tpID], "uni-id": uniData.PersUniID, "device-id": dh.DeviceID})
-						techProfInstLoadFailed = true
-						break outerLoop
-					}
+				continueWithFlowConfig = true
+				deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
+				dctx, cancel := context.WithDeadline(ctx, deadline)
 
-					continueWithFlowConfig = true
-					deadline := time.Now().Add(dh.pOpenOnuAc.maxTimeoutInterAdapterComm) //allowed run time to finish before execution
-					dctx, cancel := context.WithDeadline(ctx, deadline)
-
-					dh.pOnuTP.ResetTpProcessingErrorIndication(uniData.PersUniID, tpID)
-					var wg sync.WaitGroup
-					wg.Add(1) // for the 1 go routine to finish
-					go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], tpInst, &wg)
-					// Wait for either completion or cancellation
-					dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwldDuringReboot")
+				dh.pOnuTP.ResetTpProcessingErrorIndication(uniData.PersUniID, tpID)
+				var wg sync.WaitGroup
+				wg.Add(1) // for the 1 go routine to finish
+				go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], nil, pCurrentUniPort, &wg)
+				// Wait for either completion or cancellation
+				err = dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwldDuringReboot")
+				if err != nil {
+					logger.Errorw(ctx, "TechProfile configuration to the device UNI port failed", log.Fields{"device-id": dh.DeviceID, "uniID": uniData.PersUniID, "err": err})
+					techProfInstLoadFailed = true
+					continueWithFlowConfig = false
+					break outerLoop
+				} else {
 					if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
 						logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": uniData.PersTpPathMap[tpID]})
 						techProfInstLoadFailed = true
 						continueWithFlowConfig = false
 						break outerLoop
 					}
-				} else {
-					logger.Errorw(ctx, "Tp instance is not valid", log.Fields{"tp-id": tpID, "tpPath": tpPath, "device-id": dh.DeviceID, "err": err})
-					techProfInstLoadFailed = true
-					break outerLoop
 				}
 			} else {
 				logger.Errorw(ctx, "Tp instance is nil", log.Fields{"tp-id": tpID, "tpPath": tpPath,
@@ -4321,11 +4345,32 @@ func (dh *deviceHandler) StorePersUniFlowConfig(ctx context.Context, aUniID uint
 	return nil
 }
 
-func (dh *deviceHandler) waitForCompletion(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, aCallerIdent string) {
+// waitForCompletion waits for the completion of the WaitGroup processing or evict if the device gets deleted in the meantime.
+func (dh *deviceHandler) waitForCompletion(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, aCallerIdent string) error {
 	defer cancel() //ensure termination of context (may be pro forma)
-	wg.Wait()
-	logger.Debugw(ctx, "WaitGroup processing completed", log.Fields{
-		"device-id": dh.DeviceID, "called from": aCallerIdent})
+	doneCh := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(doneCh)
+	}()
+
+	select {
+	case <-dh.deviceCtx.Done():
+		// Device deletion invoked
+		logger.Warnw(ctx, "Device Deletion invoked , stop further processing ", log.Fields{"device-id": dh.DeviceID})
+		return fmt.Errorf("device deletion invoked, stop further processing : %s", dh.DeviceID)
+
+	case <-ctx.Done():
+		// Context cancelled
+		logger.Warnw(ctx, "Context cancelled return  ", log.Fields{"device-id": dh.DeviceID, "called from": aCallerIdent})
+		return ctx.Err()
+	case <-doneCh:
+		// WaitGroup processing completed
+		logger.Debugw(ctx, "WaitGroup processing completed", log.Fields{
+			"device-id": dh.DeviceID, "called from": aCallerIdent})
+		return nil
+
+	}
 }
 
 // ReasonUpdate set the internally store device reason and if requested in notifyCore updates this state in the core
@@ -5762,6 +5807,53 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+// validateAndPrepareTechProfile extracts TPID from TPPath, finds uniport by UNIID,
+// validates if uni port exists and checks if any parallel reset of this techprofile processing is requested.
+// Returns TpID, pCurrentUniPort, and error if validation fails.
+func (dh *deviceHandler) validateAndPrepareTechProfile(ctx context.Context, uniID uint8, tpPath string) (uint8, *cmn.OnuUniPort, error) {
+	TpID, err := cmn.GetTpIDFromTpPath(tpPath)
+	if err != nil {
+		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "path": tpPath})
+		return 0, nil, err
+	}
+
+	// Create UniTP key for operations
+	uniTpKey := avcfg.UniTP{UniID: uniID, TpID: TpID}
+
+	//ensure that the given UniID is available (configured) in the UniPort class (used for OMCI entities)
+	var pCurrentUniPort *cmn.OnuUniPort
+	for _, uniPort := range *dh.pOnuTP.BaseDeviceHandler.GetUniEntityMap() {
+		// only if this port is validated for operState transfer
+		if uniPort.UniID == uniID {
+			pCurrentUniPort = uniPort
+			break //found - end search loop
+		}
+	}
+
+	if pCurrentUniPort == nil {
+		err := fmt.Errorf("techProfile config aborted: requested UniID not found %d on %s", uniID, dh.DeviceID)
+		logger.Errorw(ctx, "TechProfile configuration aborted: requested UniID not found in PortDB",
+			log.Fields{"device-id": dh.DeviceID, "uni-id": uniID, "tp-id": TpID})
+		dh.pOnuTP.MutexTPState.Lock()
+		defer dh.pOnuTP.MutexTPState.Unlock()
+		dh.pOnuTP.ProcResult[uniTpKey] = err
+		return 0, nil, err
+	}
+
+	// Check if any parallel reset of this techprofile processing is requested
+	if dh.pOnuTP.GetProfileResetting(uniTpKey) {
+		err := fmt.Errorf("techProfile config aborted - reset requested in parallel - for UniID %d on %s", uniID, dh.DeviceID)
+		logger.Debugw(ctx, "aborting TP configuration, reset requested in parallel", log.Fields{
+			"device-id": dh.DeviceID, "uni-id": uniID, "tp-id": uniTpKey.TpID})
+		dh.pOnuTP.MutexTPState.Lock()
+		defer dh.pOnuTP.MutexTPState.Unlock()
+		dh.pOnuTP.ProcResult[uniTpKey] = err
+		return 0, nil, err
+	}
+
+	return TpID, pCurrentUniPort, nil
 }
 
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
