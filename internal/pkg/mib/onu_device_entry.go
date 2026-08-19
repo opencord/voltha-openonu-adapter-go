@@ -360,7 +360,7 @@ func NewOnuDeviceEntry(ctx context.Context, cc *vgrpc.Client, dh cmn.IdeviceHand
 
 			{Name: UlEvStop, Src: []string{UlStStarting, UlStResettingMib, UlStGettingVendorAndSerial, UlStGettingVersion, UlStGettingEquipIDAndOmcc, UlStTestingExtOmciSupport,
 				UlStGettingFirstSwVersion, UlStGettingSecondSwVersion, UlStGettingMacAddress, UlStGettingMibTemplate, UlStUploading, UlStResynchronizing,
-				UlStVerifyingAndStoringTPs, UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing}, Dst: UlStDisabled},
+				UlStVerifyingAndStoringTPs, UlStExaminingMds, UlStUploadDone, UlStInSync, UlStOutOfSync, UlStAuditing, UlStReAuditing, UlStExaminingMdsSuccess}, Dst: UlStDisabled},
 		},
 
 		fsm.Callbacks{
