@@ -648,7 +648,7 @@ func (oFsm *OnuUpgradeFsm) enterWaitingAdapterDL(ctx context.Context, e *fsm.Eve
 	go oFsm.waitOnDownloadToAdapterReady(ctx, syncChannel, oFsm.chAdapterDlReady)
 	//block until the wait routine is really blocked on chAdapterDlReady
 	<-syncChannel
-	go oFsm.pFileManager.RequestDownloadReady(ctx, oFsm.imageIdentifier, oFsm.chAdapterDlReady)
+	go oFsm.pFileManager.RequestDownloadReady(ctx, oFsm.imageIdentifier, oFsm.chAdapterDlReady, oFsm.deviceID)
 }
 
 func (oFsm *OnuUpgradeFsm) enterPreparingDL(ctx context.Context, e *fsm.Event) {
@@ -1881,7 +1881,7 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aSy
 	case <-time.After(downloadToAdapterTimeout): //10s should be enough for downloading some image to the adapter
 		logger.Warnw(ctx, "OnuUpgradeFsm Waiting-adapter-download timeout", log.Fields{
 			"for device-id": oFsm.deviceID, "image-id": oFsm.imageIdentifier, "timeout": downloadToAdapterTimeout})
-		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, aWaitChannel)
+		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, oFsm.deviceID)
 		//running into timeout here may still have the download to adapter active -> abort
 		oFsm.pFileManager.CancelDownload(ctx, oFsm.imageIdentifier)
 		oFsm.mutexIsAwaitingAdapterDlResponse.Lock()
@@ -1919,7 +1919,7 @@ func (oFsm *OnuUpgradeFsm) waitOnDownloadToAdapterReady(ctx context.Context, aSy
 		// waiting was aborted (assumed here to be caused by
 		//   error detection or cancel at download after upgrade FSM reset/abort with according image states set there)
 		logger.Debugw(ctx, "OnuUpgradeFsm Waiting-adapter-download aborted", log.Fields{"device-id": oFsm.deviceID})
-		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, aWaitChannel)
+		oFsm.pFileManager.RemoveReadyRequest(ctx, oFsm.imageIdentifier, oFsm.deviceID)
 		oFsm.mutexIsAwaitingAdapterDlResponse.Lock()
 		oFsm.isWaitingForAdapterDlResponse = false
 		oFsm.mutexIsAwaitingAdapterDlResponse.Unlock()

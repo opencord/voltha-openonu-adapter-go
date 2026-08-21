@@ -390,6 +390,7 @@ type OnuMetricsManager struct {
 
 	StopTicks                 chan bool
 	GarbageCollectionComplete chan bool
+	StopCollectData           chan struct{} // closed/signalled by resetFsms to abort an in-progress l2PmFsmCollectData loop
 
 	pmKvStore *db.Backend
 
@@ -446,12 +447,13 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 	metricsManager.l2PmChan = make(chan me.AttributeValueMap)
 	metricsManager.extendedPmMeChan = make(chan me.AttributeValueMap)
 
-	metricsManager.syncTimeResponseChan = make(chan bool)
+	metricsManager.syncTimeResponseChan = make(chan bool, 1)
 	metricsManager.l2PmCreateOrDeleteResponseChan = make(chan bool)
 	metricsManager.extendedPMMeResponseChan = make(chan me.Results)
 
 	metricsManager.StopProcessingOmciResponses = make(chan bool)
 	metricsManager.StopTicks = make(chan bool)
+	metricsManager.StopCollectData = make(chan struct{}, 1)
 
 	metricsManager.GroupMetricMap = make(map[string]*groupMetric)
 	metricsManager.StandaloneMetricMap = make(map[string]*standaloneMetric)
@@ -1572,6 +1574,13 @@ func (mm *OnuMetricsManager) l2PMFsmStarting(ctx context.Context, e *fsm.Event) 
 	// list of active L2 PM list then mark it for creation
 	// It it is a L2 PM Interval metric and it is disabled, then if it is in the
 	// list of active L2 PM list then mark it for deletion
+	// Drain any stale stop-signal from a previous resetFsms call so the new
+	// collection cycle is not immediately cancelled.
+	select {
+	case <-mm.StopCollectData:
+	default:
+	}
+
 	mm.OnuMetricsManagerLock.Lock()
 	for n, g := range mm.GroupMetricMap {
 		if g.IsL2PMCounter { // it is a l2 pm counter
@@ -1770,6 +1779,9 @@ func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 		select {
 		case <-mm.pDeviceHandler.GetDeviceContext().Done():
 			logger.Warnw(ctx, "Deleting the device, stopping l2PmFsmCollectData for the device ", log.Fields{"device-id": mm.deviceID})
+			return
+		case <-mm.StopCollectData:
+			logger.Warnw(ctx, "resetFsms triggered, stopping l2PmFsmCollectData for the device", log.Fields{"device-id": mm.deviceID})
 			return
 		default:
 			var metricInfoSlice []*voltha.MetricInformation

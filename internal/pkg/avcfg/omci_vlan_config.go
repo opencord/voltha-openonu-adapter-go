@@ -371,6 +371,7 @@ func (oFsm *UniVlanConfigFsm) CancelProcessing(ctx context.Context) {
 	if oFsm.isAwaitingResponse {
 		//attention: for an unbuffered channel the sender is blocked until the value is received (processed)!
 		// accordingly the mutex must be released before sending to channel here (mutex acquired in receiver)
+		oFsm.isAwaitingResponse = false
 		oFsm.mutexIsAwaitingResponse.Unlock()
 		//use channel to indicate that the response waiting shall be aborted
 		oFsm.omciMIdsResponseReceived <- false
@@ -557,6 +558,15 @@ func (oFsm *UniVlanConfigFsm) SetUniFlowParams(ctx context.Context, aTpID uint8,
 	kvStoreWrite := false //default setting is to not write to kvStore immediately - will be done on FSM execution finally
 	if requestAppendRule {
 		oFsm.mutexFlowParams.Lock()
+		// Check if FSM is in a reset or disabled state before modifying flow params
+		if oFsm.PAdaptFsm.PFsm.Is(VlanStResetting) || oFsm.PAdaptFsm.PFsm.Is(VlanStDisabled) {
+			logger.Errorw(ctx, "UniVlanConfigFsm flow add aborted - FSM not in the appropriate state",
+				log.Fields{"fsmState": oFsm.PAdaptFsm.PFsm.Current(), "device-id": oFsm.deviceID})
+			oFsm.mutexFlowParams.Unlock()
+			err = fmt.Errorf("UniVlanConfigFsm flow add aborted - FSM not in the appropriate state: %s", oFsm.deviceID)
+			oFsm.pushReponseOnFlowResponseChannel(ctx, respChan, err)
+			return err
+		}
 		if oFsm.NumUniFlows < cMaxAllowedFlows {
 			loFlowParams := cmn.UniVlanFlowParams{VlanRuleParams: loRuleParams, RespChan: respChan}
 			loFlowParams.CookieSlice = make([]uint64, 0)
