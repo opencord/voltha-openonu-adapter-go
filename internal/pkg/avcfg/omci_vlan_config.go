@@ -1242,9 +1242,7 @@ func (oFsm *UniVlanConfigFsm) enterConfigVtfd(ctx context.Context, e *fsm.Event)
 		oFsm.vlanFilterList[0] = uint16(oFsm.actualUniFlowParam.VlanRuleParams.SetVid)
 		oFsm.mutexFlowParams.Unlock()
 		vtfdFilterList := make([]uint16, cVtfdTableSize) //needed for parameter serialization
-		// #nosec G602 -- vtfdFilterList is always allocated with cVtfdTableSize (64)
-		// entries for OMCI parameter serialization, so index 0 is guaranteed to be valid.
-		vtfdFilterList[0] = oFsm.vlanFilterList[0]
+		vtfdFilterList[0] = oFsm.vlanFilterList[0]       //nolint:gosec // cVtfdTableSize is 64, index 0 is always valid
 		oFsm.numVlanFilterEntries = 1
 		meParams := me.ParamData{
 			EntityID: vtfdID,
