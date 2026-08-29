@@ -20,7 +20,6 @@ package avcfg
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -100,19 +99,19 @@ type UniTP struct {
 
 // OnuUniTechProf structure holds information about the TechProfiles attached to Uni Ports of the ONU
 type OnuUniTechProf struct {
-	baseDeviceHandler        cmn.IdeviceHandler
+	BaseDeviceHandler        cmn.IdeviceHandler
 	onuDevice                cmn.IonuDeviceEntry
 	chTpConfigProcessingStep chan uint8
 	mapUniTpIndication       map[UniTP]*tTechProfileIndication //use pointer values to ease assignments to the map
 	mapPonAniConfig          map[UniTP]*tcontGemList           //per UNI: use pointer values to ease assignments to the map
 	PAniConfigFsm            map[UniTP]*UniPonAniConfigFsm
-	procResult               map[UniTP]error //error indication of processing
+	ProcResult               map[UniTP]error //error indication of processing
 	tpProfileExists          map[UniTP]bool
 	tpProfileResetting       map[UniTP]bool
 	mapRemoveGemEntry        map[UniTP]*gemPortParamStruct //per UNI: pointer to GemEntry to be removed
 	deviceID                 string
 	tpProcMutex              sync.RWMutex
-	mutexTPState             sync.RWMutex
+	MutexTPState             sync.RWMutex
 }
 
 func (onuTP *OnuUniTechProf) multicastConfiguredForOtherUniTps(ctx context.Context, uniTpKey UniTP) bool {
@@ -134,12 +133,12 @@ func NewOnuUniTechProf(ctx context.Context, aDeviceHandler cmn.IdeviceHandler, a
 	var onuTP OnuUniTechProf
 	onuTP.deviceID = aDeviceHandler.GetDeviceID()
 	logger.Debugw(ctx, "init-OnuUniTechProf", log.Fields{"device-id": onuTP.deviceID})
-	onuTP.baseDeviceHandler = aDeviceHandler
+	onuTP.BaseDeviceHandler = aDeviceHandler
 	onuTP.onuDevice = aOnuDev
 	onuTP.chTpConfigProcessingStep = make(chan uint8)
 	onuTP.mapUniTpIndication = make(map[UniTP]*tTechProfileIndication)
 	onuTP.mapPonAniConfig = make(map[UniTP]*tcontGemList)
-	onuTP.procResult = make(map[UniTP]error)
+	onuTP.ProcResult = make(map[UniTP]error)
 	onuTP.tpProfileExists = make(map[UniTP]bool)
 	onuTP.tpProfileResetting = make(map[UniTP]bool)
 	onuTP.mapRemoveGemEntry = make(map[UniTP]*gemPortParamStruct)
@@ -160,16 +159,16 @@ func (onuTP *OnuUniTechProf) UnlockTpProcMutex() {
 // ResetTpProcessingErrorIndication resets the internal error indication
 // need to be called before evaluation of any subsequent processing (given by waitForTpCompletion())
 func (onuTP *OnuUniTechProf) ResetTpProcessingErrorIndication(aUniID uint8, aTpID uint8) {
-	onuTP.mutexTPState.Lock()
-	defer onuTP.mutexTPState.Unlock()
-	onuTP.procResult[UniTP{UniID: aUniID, TpID: aTpID}] = nil
+	onuTP.MutexTPState.Lock()
+	defer onuTP.MutexTPState.Unlock()
+	onuTP.ProcResult[UniTP{UniID: aUniID, TpID: aTpID}] = nil
 }
 
 // GetTpProcessingErrorIndication - TODO: add comment
 func (onuTP *OnuUniTechProf) GetTpProcessingErrorIndication(aUniID uint8, aTpID uint8) error {
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
-	return onuTP.procResult[UniTP{UniID: aUniID, TpID: aTpID}]
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
+	return onuTP.ProcResult[UniTP{UniID: aUniID, TpID: aTpID}]
 }
 
 // ConfigureUniTp checks existing tp resources to configure and starts the corresponding OMCI configuation of the UNI port
@@ -178,46 +177,13 @@ func (onuTP *OnuUniTechProf) GetTpProcessingErrorIndication(aUniID uint8, aTpID 
 //
 //	use waitForTimeoutOrCompletion(ctx, chTpConfigProcessingStep, processingStep) for internal synchronization
 func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
-	aUniID uint8, aPathString string, tpInst *tech_profile.TechProfileInstance, wg *sync.WaitGroup) {
+	aUniID uint8, aPathString string, tpInst *tech_profile.TechProfileInstance, pCurrentUniPort *cmn.OnuUniPort, wg *sync.WaitGroup) {
 	defer wg.Done() //always decrement the waitGroup on return
 	logger.Info(ctx, "configure the Uni according to TpPath", log.Fields{
 		"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString})
-	tpID, err := cmn.GetTpIDFromTpPath(aPathString)
-	uniTpKey := UniTP{UniID: aUniID, TpID: tpID}
-	if err != nil {
-		logger.Errorw(ctx, "error-extracting-tp-id-from-tp-path", log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString})
-		return
-	}
+	TpID, _ := cmn.GetTpIDFromTpPath(aPathString)
+	uniTpKey := UniTP{UniID: aUniID, TpID: TpID}
 
-	//ensure that the given uniID is available (configured) in the UniPort class (used for OMCI entities)
-	var pCurrentUniPort *cmn.OnuUniPort
-	for _, uniPort := range *onuTP.baseDeviceHandler.GetUniEntityMap() {
-		// only if this port is validated for operState transfer
-		if uniPort.UniID == aUniID {
-			pCurrentUniPort = uniPort
-			break //found - end search loop
-		}
-	}
-	if pCurrentUniPort == nil {
-		logger.Errorw(ctx, "TechProfile configuration aborted: requested uniID not found in PortDB",
-			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": uniTpKey.TpID})
-		onuTP.mutexTPState.Lock()
-		defer onuTP.mutexTPState.Unlock()
-		onuTP.procResult[uniTpKey] = fmt.Errorf("techProfile config aborted: requested uniID not found %d on %s",
-			aUniID, onuTP.deviceID)
-		return
-	}
-
-	if onuTP.getProfileResetting(uniTpKey) {
-		logger.Debugw(ctx, "aborting TP configuration, reset requested in parallel", log.Fields{
-			"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": uniTpKey.TpID})
-		onuTP.mutexTPState.Lock()
-		defer onuTP.mutexTPState.Unlock()
-		onuTP.procResult[uniTpKey] = fmt.Errorf(
-			"techProfile config aborted - reset requested in parallel - for uniID %d on %s",
-			aUniID, onuTP.deviceID)
-		return
-	}
 	var processingStep uint8 = 1 // used to synchronize the different processing steps with chTpConfigProcessingStep
 
 	//according to UpdateOnuUniTpPath() logic the assumption here is, that this configuration is only called
@@ -238,87 +204,43 @@ func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
 
 	processingStep++
 	*/
-	go onuTP.readAniSideConfigFromTechProfile(ctx, aUniID, tpID, aPathString, tpInst, processingStep)
-	if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpConfigProcessingStep, processingStep) {
-		//timeout or error detected
-		onuTP.mutexTPState.RLock()
-		ok := onuTP.tpProfileExists[uniTpKey]
-		onuTP.mutexTPState.RUnlock()
-		if ok {
-			//ignore the internal error in case the new profile is already configured
-			// and abort the processing here
-			return
-		}
-		logger.Errorw(ctx, "tech-profile related configuration aborted on read",
-			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
-		onuTP.mutexTPState.Lock()
-		defer onuTP.mutexTPState.Unlock()
-		onuTP.procResult[uniTpKey] = fmt.Errorf("techProfile config aborted: tech-profile read issue for %d on %s",
-			aUniID, onuTP.deviceID)
-		return
-	}
-	if onuTP.getProfileResetting(uniTpKey) {
+	// Check for profile reset before starting FSM
+	if onuTP.GetProfileResetting(uniTpKey) {
 		logger.Debugw(ctx, "aborting TP configuration, reset requested in parallel", log.Fields{
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": uniTpKey.TpID})
-		onuTP.mutexTPState.Lock()
-		defer onuTP.mutexTPState.Unlock()
-		onuTP.procResult[uniTpKey] = fmt.Errorf(
+		onuTP.MutexTPState.Lock()
+		defer onuTP.MutexTPState.Unlock()
+		onuTP.ProcResult[uniTpKey] = fmt.Errorf(
 			"techProfile config aborted - reset requested in parallel - for uniID %d on %s",
 			aUniID, onuTP.deviceID)
 		return
 	}
-	processingStep++
+	// Create or start FSM directly with tech profile data
+	if err := onuTP.setAniSideConfigFromTechProfile(ctx, aUniID, TpID, aPathString, tpInst, pCurrentUniPort, processingStep); err != nil {
+		logger.Errorw(ctx, "tech-profile related FSM could not be started",
+			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
+		onuTP.MutexTPState.Lock()
+		defer onuTP.MutexTPState.Unlock()
+		onuTP.ProcResult[uniTpKey] = err
+		return
+	}
 
-	//ensure read protection for access to mapPonAniConfig
-	onuTP.mutexTPState.RLock()
-	valuePA, existPA := onuTP.mapPonAniConfig[uniTpKey]
-	onuTP.mutexTPState.RUnlock()
-	if existPA {
-		if valuePA != nil {
-			//Config data for this uni and and at least TCont Index 0 exist
-			if err := onuTP.setAniSideConfigFromTechProfile(ctx, aUniID, tpID, pCurrentUniPort, processingStep); err != nil {
-				logger.Errorw(ctx, "tech-profile related FSM could not be started",
-					log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
-				onuTP.mutexTPState.Lock()
-				defer onuTP.mutexTPState.Unlock()
-				onuTP.procResult[uniTpKey] = err
-				return
-			}
-			if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpConfigProcessingStep, processingStep) {
-				//timeout or error detected (included wanted cancellation after e.g. disable device (FsmReset))
-				logger.Warnw(ctx, "tech-profile related configuration aborted on set",
-					log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
+	if !onuTP.waitForTimeoutOrCompletion(ctx, onuTP.chTpConfigProcessingStep, processingStep) {
+		//timeout or error detected (included wanted cancellation after e.g. disable device (FsmReset))
+		logger.Warnw(ctx, "tech-profile related configuration aborted on set",
+			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
 
-				onuTP.mutexTPState.Lock()
-				onuTP.procResult[uniTpKey] = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
-					aUniID, onuTP.deviceID)
-				onuTP.mutexTPState.Unlock()
-				//this issue here means that the AniConfigFsm has not finished successfully
-				//which requires to reset it to allow for new usage, e.g. also on a different UNI
-				//(without that it would be reset on device down indication latest)
-				if _, ok := onuTP.PAniConfigFsm[uniTpKey]; ok {
-					_ = onuTP.PAniConfigFsm[uniTpKey].PAdaptFsm.PFsm.Event(aniEvReset)
-				}
-				return
-			}
-		} else {
-			// strange: UNI entry exists, but no ANI data, maybe such situation should be cleared up (if observed)
-			logger.Errorw(ctx, "no Tcont/Gem data for this UNI found - abort", log.Fields{
-				"device-id": onuTP.deviceID, "uni-id": aUniID})
-			onuTP.mutexTPState.Lock()
-			defer onuTP.mutexTPState.Unlock()
-			onuTP.procResult[uniTpKey] = fmt.Errorf("techProfile config aborted: no Tcont/Gem data found for this UNI %d on %s",
-				aUniID, onuTP.deviceID)
-			return
-		}
-	} else {
-		logger.Errorw(ctx, "no PonAni data for this UNI found - abort", log.Fields{
-			"device-id": onuTP.deviceID, "uni-id": aUniID})
-
-		onuTP.mutexTPState.Lock()
-		defer onuTP.mutexTPState.Unlock()
-		onuTP.procResult[uniTpKey] = fmt.Errorf("techProfile config aborted: no AniSide data found for this UNI %d on %s",
+		onuTP.MutexTPState.Lock()
+		onuTP.ProcResult[uniTpKey] = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
 			aUniID, onuTP.deviceID)
+		onuTP.MutexTPState.Unlock()
+		//this issue here means that the AniConfigFsm has not finished successfully
+		//which requires to reset it to allow for new usage, e.g. also on a different UNI
+		//(without that it would be reset on device down indication latest)
+		if _, ok := onuTP.PAniConfigFsm[uniTpKey]; ok {
+			_ = onuTP.PAniConfigFsm[uniTpKey].PAdaptFsm.PFsm.Event(aniEvReset)
+		}
+
 		return
 	}
 }
@@ -335,32 +257,34 @@ func (onuTP *OnuUniTechProf) SendChTpConfigProcessingFinished(value uint8) {
 
 /* internal methods *********************/
 // nolint: gocyclo
-func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
-	ctx context.Context, aUniID uint8, aTpID uint8, aPathString string, tpInst *tech_profile.TechProfileInstance, aProcessingStep uint8) {
-	var err error
-	//store profile type and identifier for later usage within the OMCI identifier and possibly ME setup
-	//pathstring is defined to be in the form of <ProfType>/<profID>/<Interface/../Identifier>
+func (onuTP *OnuUniTechProf) setAniSideConfigFromTechProfile(
+	ctx context.Context, aUniID uint8, aTpID uint8, aPathString string,
+	tpInst *tech_profile.TechProfileInstance, apCurrentUniPort *cmn.OnuUniPort, aProcessingStep uint8) error {
+
+	//OMCI transfer of ANI data acc. to mapPonAniConfig
+	// also the FSM's are running in background,
+	//   hence we have to make sure they indicate 'success' on chTpConfigProcessingStep with aProcessingStep
 	subStringSlice := strings.Split(aPathString, "/")
 	if len(subStringSlice) <= 2 {
 		logger.Errorw(ctx, "invalid path name format",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
 		onuTP.SendChTpConfigProcessingFinished(0) //error indication
-		return
+		return fmt.Errorf("invalid path name format: %s", aPathString)
 	}
 
 	//ensure write protection for access to used maps
-	onuTP.mutexTPState.Lock()
-	defer onuTP.mutexTPState.Unlock()
+	onuTP.MutexTPState.Lock()
+	defer onuTP.MutexTPState.Unlock()
 
 	uniTPKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.tpProfileExists[UniTP{UniID: aUniID, TpID: aTpID}] = false
+	onuTP.tpProfileExists[uniTPKey] = false
 
 	//at this point it is assumed that a new TechProfile is assigned to the UNI
 	//expectation is that no TPIndication entry exists here, if exists and with the same TPId
 	//  then we throw a warning, set an internal error and abort with error,
 	//  which is later re-defined to success response to OLT adapter
 	//  if TPId has changed, current data is removed (note that the ONU config state may be
-	// 	  ambivalent in such a case)
+	//    ambivalent in such a case)
 	if _, existTP := onuTP.mapUniTpIndication[uniTPKey]; existTP {
 		logger.Warnw(ctx, "Some active profile entry at reading new TechProfile",
 			log.Fields{"path": aPathString, "device-id": onuTP.deviceID,
@@ -372,7 +296,7 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 				log.Fields{"device-id": onuTP.deviceID})
 			onuTP.tpProfileExists[uniTPKey] = true
 			onuTP.SendChTpConfigProcessingFinished(0) //error indication
-			return
+			return fmt.Errorf("TechProfile already exists for this UNI: %d/%d", aUniID, aTpID)
 		}
 		//delete on the mapUniTpIndication map not needed, just overwritten later
 		//delete on the PonAniConfig map should be safe, even if not existing
@@ -387,181 +311,11 @@ func (onuTP *OnuUniTechProf) readAniSideConfigFromTechProfile(
 	onuTP.mapUniTpIndication[uniTPKey].techProfileID = aTpID
 	onuTP.mapUniTpIndication[uniTPKey].techProfileConfigDone = false
 	onuTP.mapUniTpIndication[uniTPKey].techProfileToDelete = false
-	logger.Debugw(ctx, "tech-profile path indications",
-		log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID,
-			"profType": onuTP.mapUniTpIndication[uniTPKey].techProfileType,
-			"profID":   onuTP.mapUniTpIndication[uniTPKey].techProfileID})
 
-	//default start with 1Tcont profile, later perhaps extend to MultiTcontMultiGem
-	localMapGemPortParams := make(map[uint16]*gemPortParamStruct)
-	onuTP.mapPonAniConfig[uniTPKey] = &tcontGemList{tcontParams: tcontParamStruct{}, mapGemPortParams: localMapGemPortParams}
-
-	//note: the code is currently restricted to one TCcont per Onu (index [0])
-	//get the relevant values from the profile and store to mapPonAniConfig
-	onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID = uint16(tpInst.UsScheduler.AllocId)
-	//maybe tCont scheduling not (yet) needed - just to basically have it for future
-	//  (would only be relevant in case of ONU-2G QOS configuration flexibility)
-	if tpInst.UsScheduler.QSchedPolicy == tech_profile.SchedulingPolicy_StrictPriority {
-		onuTP.mapPonAniConfig[uniTPKey].tcontParams.schedPolicy = 1 //for the moment fixed value acc. G.988 //TODO: defines!
-	} else {
-		//default profile defines "Hybrid" - which probably comes down to WRR with some weigthts for SP
-		onuTP.mapPonAniConfig[uniTPKey].tcontParams.schedPolicy = 2 //for G.988 WRR
-	}
-	loNumGemPorts := tpInst.NumGemPorts
-	loGemPortRead := false
-	for pos, content := range tpInst.UpstreamGemPortAttributeList {
-		if uint32(pos) == loNumGemPorts {
-			logger.Debugw(ctx, "PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
-				log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
-			break
-		}
-		if pos == 0 {
-			//at least one upstream GemPort should always exist (else traffic profile makes no sense)
-			loGemPortRead = true
-		}
-		//for all GemPorts we need to extend the mapGemPortParams
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)] = &gemPortParamStruct{}
-
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortID =
-			uint16(content.GemportId)
-		//direction can be correlated later with Downstream list,
-		//  for now just assume bidirectional (upstream never exists alone)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].direction = cGemDirBiDirect
-		// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
-		if content.PriorityQ > 7 {
-			logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
-				log.Fields{"device-id": onuTP.deviceID, "index": pos, "PrioQueue": content.PriorityQ})
-			//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
-			delete(onuTP.mapPonAniConfig, uniTPKey)
-			onuTP.SendChTpConfigProcessingFinished(0) //error indication
-			return
-		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].prioQueueIndex =
-			uint8(content.PriorityQ)
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].pbitString =
-			strings.TrimPrefix(content.PbitMap, binaryStringPrefix)
-		if content.AesEncryption == "True" {
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortEncState = 1
-		} else {
-			onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].gemPortEncState = 0
-		}
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].discardPolicy =
-			content.DiscardPolicy.String()
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].queueSchedPolicy =
-			content.SchedulingPolicy.String()
-		//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
-		onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[uint16(content.GemportId)].queueWeight =
-			uint8(content.Weight)
-	}
-
-	for _, downstreamContent := range tpInst.DownstreamGemPortAttributeList {
-		logger.Debugw(ctx, "Operating on Downstream Gem Port", log.Fields{"downstream-gem": downstreamContent})
-		//Commenting this out due to faliure, needs investigation
-		//if uint32(pos) == loNumGemPorts {
-		//	logger.Debugw("PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
-		//		log.Fields{"device-id": onuTP.deviceID, "index": pos, "NumGem": loNumGemPorts})
-		//	break
-		//}
-		isMulticast := false
-		//Flag is defined as string in the TP in voltha-lib-go, parsing it from string
-		if downstreamContent.IsMulticast != "" {
-			isMulticast, err = strconv.ParseBool(downstreamContent.IsMulticast)
-			if err != nil {
-				logger.Errorw(ctx, "multicast-error-config-unknown-flag-in-technology-profile",
-					log.Fields{"device-id": onuTP.deviceID, "UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "error": err})
-				continue
-			}
-		}
-		logger.Debugw(ctx, "Gem Port is multicast", log.Fields{"isMulticast": isMulticast})
-		if isMulticast {
-			mcastGemID := uint16(downstreamContent.MulticastGemId)
-			_, existing := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID]
-			if existing {
-				//GEM port was previously configured, avoid setting multicast attributes
-				logger.Errorw(ctx, "multicast-error-config-existing-gem-port-config", log.Fields{"device-id": onuTP.deviceID,
-					"UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "key": mcastGemID})
-				continue
-			} else {
-				//GEM port is not configured, setting multicast attributes
-				logger.Infow(ctx, "creating-multicast-gem-port", log.Fields{"uniTpKey": uniTPKey,
-					"gemPortId": mcastGemID, "key": mcastGemID})
-
-				//for all further GemPorts we need to extend the mapGemPortParams
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID] = &gemPortParamStruct{}
-
-				//Separate McastGemId is derived from OMCI-lib-go, if not needed first needs to be removed there.
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].gemPortID = mcastGemID
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].direction = cGemDirAniToUni
-
-				if downstreamContent.AesEncryption == "True" {
-					onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].gemPortEncState = 1
-				} else {
-					onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].gemPortEncState = 0
-				}
-
-				// expected Prio-Queue values 0..7 with 7 for highest PrioQueue, QueueIndex=Prio = 0..7
-				if downstreamContent.PriorityQ > 7 {
-					logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
-						log.Fields{"device-id": onuTP.deviceID, "index": mcastGemID, "PrioQueue": downstreamContent.PriorityQ})
-					//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
-					delete(onuTP.mapPonAniConfig, uniTPKey)
-					onuTP.SendChTpConfigProcessingFinished(0) //error indication
-					return
-				}
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].prioQueueIndex =
-					uint8(downstreamContent.PriorityQ)
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].pbitString =
-					strings.TrimPrefix(downstreamContent.PbitMap, binaryStringPrefix)
-
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].discardPolicy =
-					downstreamContent.DiscardPolicy.String()
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].queueSchedPolicy =
-					downstreamContent.SchedulingPolicy.String()
-				//'GemWeight' looks strange in default profile, for now we just copy the weight to first queue
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].queueWeight =
-					uint8(downstreamContent.Weight)
-
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].isMulticast = isMulticast
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].multicastGemPortID =
-					uint16(downstreamContent.MulticastGemId)
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].staticACL = downstreamContent.StaticAccessControlList
-				onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams[mcastGemID].dynamicACL = downstreamContent.DynamicAccessControlList
-			}
-		}
-	}
-
-	if !loGemPortRead {
-		logger.Errorw(ctx, "PonAniConfig reject - no GemPort could be read from TechProfile",
-			log.Fields{"path": aPathString, "device-id": onuTP.deviceID})
-		//remove PonAniConfig  as done so far, delete map should be safe, even if not existing
-		delete(onuTP.mapPonAniConfig, uniTPKey)
-		onuTP.SendChTpConfigProcessingFinished(0) //error indication
-		return
-	}
-	//logger does not simply output the given structures, just give some example debug values
-	logger.Debugw(ctx, "PonAniConfig read from TechProfile", log.Fields{
-		"device-id": onuTP.deviceID, "uni-id": aUniID,
-		"AllocId": onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID})
-	for gemPortID, gemEntry := range onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams {
-		logger.Debugw(ctx, "PonAniConfig read from TechProfile", log.Fields{
-			"GemPort":         gemPortID,
-			"QueueScheduling": gemEntry.queueSchedPolicy})
-	}
-
-	onuTP.SendChTpConfigProcessingFinished(aProcessingStep) //done
-}
-
-func (onuTP *OnuUniTechProf) setAniSideConfigFromTechProfile(
-	ctx context.Context, aUniID uint8, aTpID uint8, apCurrentUniPort *cmn.OnuUniPort, aProcessingStep uint8) error {
-
-	//OMCI transfer of ANI data acc. to mapPonAniConfig
-	// also the FSM's are running in background,
-	//   hence we have to make sure they indicate 'success' on chTpConfigProcessingStep with aProcessingStep
-	uniTPKey := UniTP{UniID: aUniID, TpID: aTpID}
 	if onuTP.PAniConfigFsm == nil {
-		return onuTP.createAniConfigFsm(ctx, aUniID, aTpID, apCurrentUniPort, cmn.OmciAniConfigDone, aProcessingStep)
+		return onuTP.createAniConfigFsm(ctx, aUniID, aTpID, aPathString, tpInst, apCurrentUniPort, cmn.OmciAniConfigDone, aProcessingStep)
 	} else if _, ok := onuTP.PAniConfigFsm[uniTPKey]; !ok {
-		return onuTP.createAniConfigFsm(ctx, aUniID, aTpID, apCurrentUniPort, cmn.OmciAniConfigDone, aProcessingStep)
+		return onuTP.createAniConfigFsm(ctx, aUniID, aTpID, aPathString, tpInst, apCurrentUniPort, cmn.OmciAniConfigDone, aProcessingStep)
 	}
 	//AniConfigFsm already init
 	return onuTP.runAniConfigFsm(ctx, aniEvStart, aProcessingStep, aUniID, aTpID)
@@ -582,18 +336,18 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "GemPort": aEntryID})
 
 		//ensure read protection for access to mapPonAniConfig
-		onuTP.mutexTPState.RLock()
+		onuTP.MutexTPState.RLock()
 		// check if the requested GemPort exists in the DB, indicate it to the FSM
 		// store locally to remove it from DB later on success
 		pLocAniConfigOnUni := onuTP.mapPonAniConfig[uniTPKey]
 		if pLocAniConfigOnUni == nil {
-			onuTP.mutexTPState.RUnlock()
+			onuTP.MutexTPState.RUnlock()
 			// No relevant entry exists anymore - acknowledge success
 			logger.Debugw(ctx, "AniConfig or GemEntry do not exists in DB", log.Fields{
 				"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID})
 			return
 		}
-		onuTP.mutexTPState.RUnlock()
+		onuTP.MutexTPState.RUnlock()
 
 		for gemPortID, gemEntry := range pLocAniConfigOnUni.mapGemPortParams {
 			if gemPortID == uint16(aEntryID) {
@@ -615,7 +369,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 			*/
 			return
 		}
-		if onuTP.baseDeviceHandler.IsReadyForOmciConfig() {
+		if onuTP.BaseDeviceHandler.IsReadyForOmciConfig() {
 			// check that the TpConfigRequest was done before
 			//   -> that is implicitly done using the AniConfigFsm,
 			//      which must be in the according state to remove something
@@ -645,7 +399,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 				onuTP.deleteGemPortParams(ctx, uniTPKey)
 				return
 			}
-			if onuTP.getProfileResetting(uniTPKey) {
+			if onuTP.GetProfileResetting(uniTPKey) {
 				logger.Debugw(ctx, "aborting GemRemoval on FSM, reset requested in parallel", log.Fields{
 					"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID})
 				//ensure write protection for access to mapPonAniConfig
@@ -683,7 +437,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 			//a later TechProfile removal would cause the device-reason to be updated to 'techProfile-delete-success' which is not the expected state
 			// and anyway is no real useful information at that stage
 			logger.Debugw(ctx, "UniPonAniConfigFsm delete Gem on OMCI skipped based on device state", log.Fields{
-				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.GetDeviceReasonString()})
+				"device-id": onuTP.deviceID, "device-state": onuTP.BaseDeviceHandler.GetDeviceReasonString()})
 		}
 		// remove GemPort from config DB
 		//ensure write protection for access to mapPonAniConfig
@@ -695,17 +449,17 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 			"device-id": onuTP.deviceID, "uni-id": aUniID, "path": aPathString, "allocId": aEntryID})
 
 		//ensure read protection for access to mapPonAniConfig
-		onuTP.mutexTPState.RLock()
+		onuTP.MutexTPState.RLock()
 		// check if the TCont with the indicated AllocId exists in the DB, indicate its EntityId to the FSM
 		pLocAniConfigOnUni := onuTP.mapPonAniConfig[uniTPKey]
 		if pLocAniConfigOnUni == nil {
 			// No relevant entry exists anymore - acknowledge success
-			onuTP.mutexTPState.RUnlock()
+			onuTP.MutexTPState.RUnlock()
 			logger.Debugw(ctx, "AniConfig or TCont entry do not exists in DB", log.Fields{
 				"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID})
 			return
 		}
-		onuTP.mutexTPState.RUnlock()
+		onuTP.MutexTPState.RUnlock()
 
 		if pLocAniConfigOnUni.tcontParams.allocID != uint16(aEntryID) {
 			logger.Errorw(ctx, "TCont removal aborted - indicated AllocId not found",
@@ -737,11 +491,11 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 			//if the FSM is not valid, also TP related data should not be valid - clear the internal store profile data
 			return
 		}
-		if onuTP.baseDeviceHandler.IsReadyForOmciConfig() {
+		if onuTP.BaseDeviceHandler.IsReadyForOmciConfig() {
 			// check that the TpConfigRequest was done before
 			//   -> that is implicitly done using the AniConfigFsm,
 			//      which must be in the according state to remove something
-			if onuTP.getProfileResetting(uniTPKey) {
+			if onuTP.GetProfileResetting(uniTPKey) {
 				logger.Debugw(ctx, "aborting TCont removal on FSM, reset requested in parallel", log.Fields{
 					"device-id": onuTP.deviceID, "uni-id": aUniID, "tp-id": aTpID})
 				return
@@ -773,7 +527,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 		} else {
 			//see gemPort comments
 			logger.Debugw(ctx, "UniPonAniConfigFsm TCont cleanup on OMCI skipped based on device state", log.Fields{
-				"device-id": onuTP.deviceID, "device-state": onuTP.baseDeviceHandler.GetDeviceReasonString()})
+				"device-id": onuTP.deviceID, "device-state": onuTP.BaseDeviceHandler.GetDeviceReasonString()})
 		}
 	}
 
@@ -783,7 +537,7 @@ func (onuTP *OnuUniTechProf) DeleteTpResource(ctx context.Context,
 func (onuTP *OnuUniTechProf) IsTechProfileConfigCleared(ctx context.Context, uniID uint8, tpID uint8) bool {
 	uniTPKey := UniTP{UniID: uniID, TpID: tpID}
 	logger.Debugw(ctx, "IsTechProfileConfigCleared", log.Fields{"device-id": onuTP.deviceID})
-	onuTP.mutexTPState.RLock()
+	onuTP.MutexTPState.RLock()
 	if onuTP.mapPonAniConfig[uniTPKey] != nil {
 		mapGemPortParams := onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams
 		unicastGemCount := 0
@@ -793,20 +547,20 @@ func (onuTP *OnuUniTechProf) IsTechProfileConfigCleared(ctx context.Context, uni
 			}
 		}
 		if unicastGemCount == 0 || onuTP.mapPonAniConfig[uniTPKey].tcontParams.allocID == 0 {
-			onuTP.mutexTPState.RUnlock()
+			onuTP.MutexTPState.RUnlock()
 			logger.Debugw(ctx, "clearing-ani-side-config", log.Fields{
 				"device-id": onuTP.deviceID, "uniTpKey": uniTPKey})
 			onuTP.clearAniSideConfig(ctx, uniID, tpID)
 			if _, ok := onuTP.PAniConfigFsm[uniTPKey]; ok {
 				_ = onuTP.PAniConfigFsm[uniTPKey].PAdaptFsm.PFsm.Event(aniEvReset)
 			}
-			onuTP.baseDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-AniResourceRemoved", func(rCtx context.Context) {
-				onuTP.baseDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OmciAniResourceRemoved)
+			onuTP.BaseDeviceHandler.RunTrackedRoutine(ctx, "DeviceProcStatusUpdate-AniResourceRemoved", func(rCtx context.Context) {
+				onuTP.BaseDeviceHandler.DeviceProcStatusUpdate(rCtx, cmn.OmciAniResourceRemoved)
 			})
 			return true
 		}
 	}
-	onuTP.mutexTPState.RUnlock()
+	onuTP.MutexTPState.RUnlock()
 	return false
 }
 
@@ -831,6 +585,7 @@ func (onuTP *OnuUniTechProf) waitForTimeoutOrCompletion(
 
 // createAniConfigFsm initializes and runs the AniConfig FSM to transfer the OMCI related commands for ANI side configuration
 func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint8, aTpID uint8,
+	aPathString string, tpInst *tech_profile.TechProfileInstance,
 	apCurrentUniPort *cmn.OnuUniPort, devEvent cmn.OnuDeviceEvent, aProcessingStep uint8) error {
 	logger.Info(ctx, "createAniConfigFsm", log.Fields{"device-id": onuTP.deviceID})
 	chAniConfigFsm := make(chan cmn.Message, 2)
@@ -841,7 +596,8 @@ func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint
 	}
 	pAniCfgFsm := NewUniPonAniConfigFsm(ctx, onuTP.onuDevice.GetDevOmciCC(), apCurrentUniPort, onuTP,
 		onuTP.onuDevice.GetOnuDB(), aTpID, onuTP.mapUniTpIndication[uniTPKey].techProfileType, devEvent,
-		"AniConfigFsm", onuTP.baseDeviceHandler, onuTP.onuDevice, chAniConfigFsm)
+		"AniConfigFsm", onuTP.BaseDeviceHandler, onuTP.onuDevice, chAniConfigFsm,
+		tpInst, aPathString)
 	if pAniCfgFsm == nil {
 		logger.Errorw(ctx, "AniConfigFSM could not be created - abort!!", log.Fields{"device-id": onuTP.deviceID})
 		return fmt.Errorf("could not create AniConfigFSM: %s", onuTP.deviceID)
@@ -856,7 +612,7 @@ func (onuTP *OnuUniTechProf) createAniConfigFsm(ctx context.Context, aUniID uint
 // deleteGemPortParams removes GemPort from config DB
 func (onuTP *OnuUniTechProf) deleteGemPortParams(ctx context.Context, uniTPKey UniTP) {
 	//ensure write protection for access to mapPonAniConfig
-	onuTP.mutexTPState.Lock()
+	onuTP.MutexTPState.Lock()
 	if _, ok := onuTP.mapPonAniConfig[uniTPKey]; ok {
 		delete(onuTP.mapPonAniConfig[uniTPKey].mapGemPortParams, onuTP.mapRemoveGemEntry[uniTPKey].removeGemID)
 	} else {
@@ -865,7 +621,7 @@ func (onuTP *OnuUniTechProf) deleteGemPortParams(ctx context.Context, uniTPKey U
 	}
 	// remove from the removGemeEntry
 	delete(onuTP.mapRemoveGemEntry, uniTPKey)
-	onuTP.mutexTPState.Unlock()
+	onuTP.MutexTPState.Unlock()
 }
 
 // runAniConfigFsm starts the AniConfig FSM to transfer the OMCI related commands for  ANI side configuration
@@ -913,8 +669,8 @@ func (onuTP *OnuUniTechProf) clearAniSideConfig(ctx context.Context, aUniID uint
 		"device-id": onuTP.deviceID, "uni-id": aUniID})
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
 
-	onuTP.mutexTPState.Lock()
-	defer onuTP.mutexTPState.Unlock()
+	onuTP.MutexTPState.Lock()
+	defer onuTP.MutexTPState.Unlock()
 	//deleting a map entry should be safe, even if not existing
 	delete(onuTP.mapUniTpIndication, uniTpKey)
 	delete(onuTP.mapPonAniConfig, uniTpKey)
@@ -925,8 +681,8 @@ func (onuTP *OnuUniTechProf) clearAniSideConfig(ctx context.Context, aUniID uint
 // setConfigDone sets the requested techProfile config state (if possible)
 func (onuTP *OnuUniTechProf) setConfigDone(aUniID uint8, aTpID uint8, aState bool) {
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.mutexTPState.Lock()
-	defer onuTP.mutexTPState.Unlock()
+	onuTP.MutexTPState.Lock()
+	defer onuTP.MutexTPState.Unlock()
 	if _, existTP := onuTP.mapUniTpIndication[uniTpKey]; existTP {
 		onuTP.mapUniTpIndication[uniTpKey].techProfileConfigDone = aState
 	} //else: the state is just ignored (does not exist)
@@ -935,8 +691,8 @@ func (onuTP *OnuUniTechProf) setConfigDone(aUniID uint8, aTpID uint8, aState boo
 // getTechProfileDone checks if the Techprofile processing with the requested TechProfile ID was done
 func (onuTP *OnuUniTechProf) getTechProfileDone(ctx context.Context, aUniID uint8, aTpID uint8) bool {
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
 	if _, existTP := onuTP.mapUniTpIndication[uniTpKey]; existTP {
 		if onuTP.mapUniTpIndication[uniTpKey].techProfileID == aTpID {
 			if onuTP.mapUniTpIndication[uniTpKey].techProfileToDelete {
@@ -954,8 +710,8 @@ func (onuTP *OnuUniTechProf) getTechProfileDone(ctx context.Context, aUniID uint
 // SetProfileToDelete sets the requested techProfile toDelete state (if possible)
 func (onuTP *OnuUniTechProf) SetProfileToDelete(aUniID uint8, aTpID uint8, aState bool) {
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.mutexTPState.Lock()
-	defer onuTP.mutexTPState.Unlock()
+	onuTP.MutexTPState.Lock()
+	defer onuTP.MutexTPState.Unlock()
 	if _, existTP := onuTP.mapUniTpIndication[uniTpKey]; existTP {
 		onuTP.mapUniTpIndication[uniTpKey].techProfileToDelete = aState
 	} //else: the state is just ignored (does not exist)
@@ -963,8 +719,8 @@ func (onuTP *OnuUniTechProf) SetProfileToDelete(aUniID uint8, aTpID uint8, aStat
 
 func (onuTP *OnuUniTechProf) getMulticastGemPorts(ctx context.Context, aUniID uint8, aTpID uint8) []uint16 {
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
 	gemPortIds := make([]uint16, 0)
 	if techProfile, existTP := onuTP.mapPonAniConfig[uniTpKey]; existTP {
 		for _, gemPortParam := range techProfile.mapGemPortParams {
@@ -981,8 +737,8 @@ func (onuTP *OnuUniTechProf) getMulticastGemPorts(ctx context.Context, aUniID ui
 
 func (onuTP *OnuUniTechProf) getBidirectionalGemPortIDsForTP(ctx context.Context, aUniID uint8, aTpID uint8) []uint16 {
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
 	gemPortIds := make([]uint16, 0)
 	if techProfile, existTP := onuTP.mapPonAniConfig[uniTpKey]; existTP {
 		logger.Debugw(ctx, "TechProfile exist", log.Fields{"device-id": onuTP.deviceID})
@@ -1004,8 +760,8 @@ func (onuTP *OnuUniTechProf) getBidirectionalGemPortIDsForTP(ctx context.Context
 // GetAllBidirectionalGemPortIDsForOnu - TODO: add comment
 func (onuTP *OnuUniTechProf) GetAllBidirectionalGemPortIDsForOnu() []uint16 {
 	var gemPortInstIDs []uint16
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
 	for _, tcontGemList := range onuTP.mapPonAniConfig {
 		for gemPortID, gemPortData := range tcontGemList.mapGemPortParams {
 			if gemPortData != nil && !gemPortData.isMulticast { // only if not multicast gem port
@@ -1018,8 +774,8 @@ func (onuTP *OnuUniTechProf) GetAllBidirectionalGemPortIDsForOnu() []uint16 {
 
 // GetNumberOfConfiguredUsGemPorts - provides the number of Gem ports for each UNI/TP combination
 func (onuTP *OnuUniTechProf) GetNumberOfConfiguredUsGemPorts(ctx context.Context) int {
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
 	usGemPorts := make([]uint16, 0)
 	for _, tcontGemList := range onuTP.mapPonAniConfig {
 		for gemPortID, gemPortParams := range tcontGemList.mapGemPortParams {
@@ -1045,15 +801,15 @@ func (onuTP *OnuUniTechProf) GetNumberOfConfiguredUsGemPorts(ctx context.Context
 //nolint:unparam
 func (onuTP *OnuUniTechProf) setProfileResetting(ctx context.Context, aUniID uint8, aTpID uint8, aState bool) {
 	uniTpKey := UniTP{UniID: aUniID, TpID: aTpID}
-	onuTP.mutexTPState.Lock()
-	defer onuTP.mutexTPState.Unlock()
+	onuTP.MutexTPState.Lock()
+	defer onuTP.MutexTPState.Unlock()
 	onuTP.tpProfileResetting[uniTpKey] = aState
 }
 
 // getProfileResetting returns true, if the the according indication for started reset procedure is set
-func (onuTP *OnuUniTechProf) getProfileResetting(aUniTpKey UniTP) bool {
-	onuTP.mutexTPState.RLock()
-	defer onuTP.mutexTPState.RUnlock()
+func (onuTP *OnuUniTechProf) GetProfileResetting(aUniTpKey UniTP) bool {
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
 	if isResetting, exist := onuTP.tpProfileResetting[aUniTpKey]; exist {
 		return isResetting
 	}
@@ -1063,7 +819,7 @@ func (onuTP *OnuUniTechProf) getProfileResetting(aUniTpKey UniTP) bool {
 // PrepareForGarbageCollection - remove references to prepare for garbage collection
 func (onuTP *OnuUniTechProf) PrepareForGarbageCollection(ctx context.Context, aDeviceID string) {
 	logger.Debugw(ctx, "prepare for garbage collection", log.Fields{"device-id": aDeviceID})
-	onuTP.baseDeviceHandler = nil
+	onuTP.BaseDeviceHandler = nil
 	onuTP.onuDevice = nil
 	for k, v := range onuTP.PAniConfigFsm {
 		v.PrepareForGarbageCollection(ctx, aDeviceID)
@@ -1083,4 +839,15 @@ func (onuTP *OnuUniTechProf) GetGEMportToAllocIDMappingForONU(ctx context.Contex
 	}
 	logger.Debugw(ctx, "Mapping between all the GEM ports to corresponding AllocID", log.Fields{"device-id": aDeviceID, "gemportAllocIDMapping": gemportAllocIdMap})
 	return gemportAllocIdMap
+}
+
+func (onuTP *OnuUniTechProf) IsTechProfileInstancePresent(ctx context.Context, uniID uint8, tpID uint8) bool {
+	uniTpKey := UniTP{UniID: uniID, TpID: tpID}
+	onuTP.MutexTPState.RLock()
+	defer onuTP.MutexTPState.RUnlock()
+	if PAniConfigFSM, ok := onuTP.PAniConfigFsm[uniTpKey]; ok {
+		return PAniConfigFSM.techProfileInst != nil
+	}
+
+	return false
 }
