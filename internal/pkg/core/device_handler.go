@@ -2987,8 +2987,8 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		var waitForOmciProcessor sync.WaitGroup
 		waitForOmciProcessor.Add(1)
 		// Start PM collector routine
-		dh.runTrackedRoutine(ctx, "StartAlarmManager", func(rCtx context.Context) {
-			dh.StartAlarmManager(rCtx)
+		dh.runTrackedRoutine(ctx, "StartCollector", func(rCtx context.Context) {
+			dh.StartCollector(rCtx, &waitForOmciProcessor)
 		})
 		waitForOmciProcessor.Wait()
 	}
