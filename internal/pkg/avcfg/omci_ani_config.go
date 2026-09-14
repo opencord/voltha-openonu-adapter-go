@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/opencord/omci-lib-go/v2"
 	me "github.com/opencord/omci-lib-go/v2/generated"
 	"github.com/opencord/voltha-lib-go/v7/pkg/log"
+	"github.com/opencord/voltha-protos/v5/go/tech_profile"
 
 	//ic "github.com/opencord/voltha-protos/v5/go/inter_container"
 	//"github.com/opencord/voltha-protos/v5/go/openflow_13"
@@ -42,6 +44,7 @@ import (
 const (
 	// events of config PON ANI port FSM
 	aniEvStart             = "aniEvStart"
+	aniEvReadAniSideConfig = "aniEvReadAniSideConfig"
 	aniEvPrepareConfig     = "aniEvPrepareConfig"
 	aniEvStartConfig       = "aniEvStartConfig"
 	aniEvRxDot1pmapCResp   = "aniEvRxDot1pmapCResp"
@@ -72,6 +75,7 @@ const (
 	// states of config PON ANI port FSM
 	aniStDisabled            = "aniStDisabled"
 	aniStStarting            = "aniStStarting"
+	aniStReadAniSideConfig   = "aniStReadAniSideConfig"
 	aniStPrepareConfig       = "aniStPrepareConfig"
 	aniStCreatingDot1PMapper = "aniStCreatingDot1PMapper"
 	aniStCreatingMBPCD       = "aniStCreatingMBPCD"
@@ -153,6 +157,8 @@ type UniPonAniConfigFsm struct {
 	alloc0ID                 uint16
 	uniTpKey                 UniTP
 	techProfileID            uint8
+	techProfileInst          *tech_profile.TechProfileInstance
+	techProfilePath          string
 	isCanceled               bool
 	isAwaitingResponse       bool
 	procStep                 uint8
@@ -165,7 +171,8 @@ type UniPonAniConfigFsm struct {
 // NewUniPonAniConfigFsm is the 'constructor' for the state machine to config the PON ANI ports of ONU UNI ports via OMCI
 func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPort *cmn.OnuUniPort, apUniTechProf *OnuUniTechProf,
 	apOnuDB *devdb.OnuDeviceDB, aTechProfileID uint8, aTechProfileType string, aRequestEvent cmn.OnuDeviceEvent, aName string,
-	apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, aCommChannel chan cmn.Message) *UniPonAniConfigFsm {
+	apDeviceHandler cmn.IdeviceHandler, apOnuDeviceEntry cmn.IonuDeviceEntry, aCommChannel chan cmn.Message,
+	aTpInst *tech_profile.TechProfileInstance, aPathString string) *UniPonAniConfigFsm {
 	instFsm := &UniPonAniConfigFsm{
 		pDeviceHandler:  apDeviceHandler,
 		pOnuDeviceEntry: apOnuDeviceEntry,
@@ -176,6 +183,8 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 		pOnuDB:          apOnuDB,
 		techProfileID:   aTechProfileID,
 		techProfileType: aTechProfileType,
+		techProfileInst: aTpInst,
+		techProfilePath: aPathString,
 		requestEvent:    aRequestEvent,
 		chanSet:         false,
 		tcontSetBefore:  false,
@@ -197,7 +206,8 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 			{Name: aniEvStart, Src: []string{aniStDisabled}, Dst: aniStStarting},
 
 			//Note: .1p-Mapper and MBPCD might also have multi instances (per T-Cont) - by now only one 1 T-Cont considered!
-			{Name: aniEvPrepareConfig, Src: []string{aniStStarting}, Dst: aniStPrepareConfig},
+			{Name: aniEvReadAniSideConfig, Src: []string{aniStStarting}, Dst: aniStReadAniSideConfig},
+			{Name: aniEvPrepareConfig, Src: []string{aniStReadAniSideConfig}, Dst: aniStPrepareConfig},
 			{Name: aniEvStartConfig, Src: []string{aniStPrepareConfig}, Dst: aniStCreatingDot1PMapper},
 			{Name: aniEvRxDot1pmapCResp, Src: []string{aniStCreatingDot1PMapper}, Dst: aniStCreatingMBPCD},
 			{Name: aniEvRxMbpcdResp, Src: []string{aniStCreatingMBPCD}, Dst: aniStSettingTconts},
@@ -232,19 +242,20 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 				aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs}, Dst: aniStStarting},
 
 			// exceptional treatment for all states except aniStResetting
-			{Name: aniEvReset, Src: []string{aniStStarting, aniStPrepareConfig, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
+			{Name: aniEvReset, Src: []string{aniStStarting, aniStReadAniSideConfig, aniStPrepareConfig, aniStCreatingDot1PMapper, aniStCreatingMBPCD,
 				aniStSettingTconts, aniStCreatingGemNCTPs, aniStCreatingGemIWs, aniStSettingPQs, aniStSettingDot1PMapper,
 				aniStConfigDone, aniStRemovingGemIW, aniStWaitingFlowRem, aniStRemovingGemNCTP, aniStRemovingTD,
 				aniStResetTcont, aniStRemDot1PMapper, aniStRemAniBPCD, aniStRemoveDone}, Dst: aniStResetting},
 			// the only way to get to resource-cleared disabled state again is via "resseting"
 			{Name: aniEvRestart, Src: []string{aniStResetting}, Dst: aniStDisabled},
-			{Name: aniEvSkipOmciConfig, Src: []string{aniStStarting, aniStPrepareConfig}, Dst: aniStConfigDone},
+			{Name: aniEvSkipOmciConfig, Src: []string{aniStStarting, aniStReadAniSideConfig, aniStPrepareConfig}, Dst: aniStConfigDone},
 		},
 
 		fsm.Callbacks{
 			"enter_state":                         func(e *fsm.Event) { instFsm.PAdaptFsm.LogFsmStateChange(ctx, e) },
 			("enter_" + aniStStarting):            func(e *fsm.Event) { instFsm.enterConfigStartingState(ctx, e) },
 			("enter_" + aniStPrepareConfig):       func(e *fsm.Event) { instFsm.prepareAndEnterConfigState(ctx, e) },
+			("enter_" + aniStReadAniSideConfig):   func(e *fsm.Event) { instFsm.enterReadAniSideConfig(ctx, e) },
 			("enter_" + aniStCreatingDot1PMapper): func(e *fsm.Event) { instFsm.enterCreatingDot1PMapper(ctx, e) },
 			("enter_" + aniStCreatingMBPCD):       func(e *fsm.Event) { instFsm.enterCreatingMBPCD(ctx, e) },
 			("enter_" + aniStSettingTconts):       func(e *fsm.Event) { instFsm.enterSettingTconts(ctx, e) },
@@ -360,13 +371,13 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 			return
 		}
 		// Access critical state with lock
-		oFsm.pUniTechProf.mutexTPState.RLock()
+		oFsm.pUniTechProf.MutexTPState.RLock()
 		// Set T-Cont in device irrespective of whether it is stored in onu-adapter or not
 		tcontInstID, _, err := oFsm.pOnuDeviceEntry.AllocateFreeTcont(ctx, oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID)
 		if err != nil {
 			logger.Errorw(ctx, "No TCont instances found", log.Fields{"device-id": oFsm.deviceID, "err": err})
 			//reset the state machine to enable usage on subsequent requests
-			oFsm.pUniTechProf.mutexTPState.RUnlock()
+			oFsm.pUniTechProf.MutexTPState.RUnlock()
 			// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 			go func(aPAFsm *cmn.AdapterFsm) {
 				if aPAFsm != nil && aPAFsm.PFsm != nil {
@@ -382,7 +393,7 @@ func (oFsm *UniPonAniConfigFsm) prepareAndEnterConfigState(ctx context.Context, 
 
 		oFsm.alloc0ID = oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID
 		mapGemPortParams := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
-		oFsm.pUniTechProf.mutexTPState.RUnlock()
+		oFsm.pUniTechProf.MutexTPState.RUnlock()
 
 		//for all TechProfile set GemIndices
 		for _, gemEntry := range mapGemPortParams {
@@ -552,11 +563,92 @@ func (oFsm *UniPonAniConfigFsm) enterConfigStartingState(ctx context.Context, e 
 		// obviously calling some FSM event here directly does not work - so trying to decouple it ...
 		go func(aPAFsm *cmn.AdapterFsm) {
 			if aPAFsm != nil && aPAFsm.PFsm != nil {
-				_ = aPAFsm.PFsm.Event(aniEvPrepareConfig)
+				_ = aPAFsm.PFsm.Event(aniEvReadAniSideConfig)
 			}
 		}(pConfigAniStateAFsm)
 
 	}
+}
+
+// enterReadAniSideConfig reads and validates tech profile data and populates mapPonAniConfig
+// nolint: gocyclo,unparam
+func (oFsm *UniPonAniConfigFsm) enterReadAniSideConfig(ctx context.Context, e *fsm.Event) {
+	logger.Debugw(ctx, "UniPonAniConfigFsm enterReadAniSideConfig", log.Fields{
+		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
+
+	// Get tech profile data from FSM instance
+	tpInst := oFsm.techProfileInst
+	aUniID := oFsm.pOnuUniPort.UniID
+	aTpID := oFsm.techProfileID
+	uniTPKey := UniTP{UniID: aUniID, TpID: aTpID}
+
+	// Tech profile indication is already set before FSM creation
+	logger.Debugw(ctx, "tech-profile path indications",
+		log.Fields{"device-id": oFsm.deviceID, "uni-id": aUniID,
+			"profType": oFsm.pUniTechProf.mapUniTpIndication[uniTPKey].techProfileType,
+			"profID":   oFsm.pUniTechProf.mapUniTpIndication[uniTPKey].techProfileID})
+
+	// Parse and validate the complete tech profile configuration
+	validatedConfig, err := oFsm.parseAndValidateTechProfileConfig(ctx, tpInst, uniTPKey)
+	if err != nil {
+		err := fmt.Errorf("parseAndValidateTechProfileConfig failed for UniID %d on %s: %w", aUniID, oFsm.deviceID, err)
+		logger.Errorw(ctx, "Failed to parse and validate tech profile config", log.Fields{
+			"device-id": oFsm.deviceID, "error": err})
+		oFsm.pUniTechProf.MutexTPState.Lock()
+		delete(oFsm.pUniTechProf.mapPonAniConfig, uniTPKey)
+		// Indicate parsing failure to waiting configureUniTp routine
+		oFsm.pUniTechProf.ProcResult[uniTPKey] = err
+		oFsm.pUniTechProf.MutexTPState.Unlock()
+		// Trigger reset
+		go func() {
+			if oFsm.PAdaptFsm != nil && oFsm.PAdaptFsm.PFsm != nil {
+				_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
+			}
+		}()
+		return
+	}
+
+	// Check again if techprofile reset happened during parseAndValidateTechProfileConfig
+	if oFsm.pUniTechProf.GetProfileResetting(uniTPKey) {
+		err := fmt.Errorf("techProfile reset requested during processing for UniID %d on %s", aUniID, oFsm.deviceID)
+		logger.Debugw(ctx, "techProfile reset detected after parsing, aborting configuration", log.Fields{
+			"device-id": oFsm.deviceID, "uni-id": aUniID, "tp-id": aTpID})
+		oFsm.pUniTechProf.MutexTPState.Lock()
+		delete(oFsm.pUniTechProf.mapPonAniConfig, uniTPKey)
+		// Indicate reset failure to waiting configureUniTp routine
+		oFsm.pUniTechProf.ProcResult[uniTPKey] = err
+		oFsm.pUniTechProf.MutexTPState.Unlock()
+		// Reset the FSM
+		go func() {
+			if oFsm.PAdaptFsm != nil && oFsm.PAdaptFsm.PFsm != nil {
+				_ = oFsm.PAdaptFsm.PFsm.Event(aniEvReset)
+			}
+		}()
+		return
+	}
+
+	// Lock and assign the validated config to pUniTechProf
+	oFsm.pUniTechProf.MutexTPState.Lock()
+	oFsm.pUniTechProf.mapPonAniConfig[uniTPKey] = validatedConfig
+
+	// Log successful configuration
+	logger.Debugw(ctx, "PonAniConfig read from TechProfile", log.Fields{
+		"device-id": oFsm.deviceID, "uni-id": aUniID,
+		"AllocId": oFsm.pUniTechProf.mapPonAniConfig[uniTPKey].tcontParams.allocID})
+	for gemPortID, gemEntry := range oFsm.pUniTechProf.mapPonAniConfig[uniTPKey].mapGemPortParams {
+		logger.Debugw(ctx, "PonAniConfig read from TechProfile", log.Fields{
+			"GemPort":         gemPortID,
+			"QueueScheduling": gemEntry.queueSchedPolicy})
+	}
+
+	oFsm.pUniTechProf.MutexTPState.Unlock()
+
+	// Success - trigger next state
+	go func() {
+		if oFsm.PAdaptFsm != nil && oFsm.PAdaptFsm.PFsm != nil {
+			_ = oFsm.PAdaptFsm.PFsm.Event(aniEvPrepareConfig)
+		}
+	}()
 }
 
 //nolint:unparam
@@ -909,10 +1001,10 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemIW(ctx context.Context, e *fsm.E
 			log.Fields{"device-id": oFsm.deviceID, "techProfile-id": oFsm.techProfileID})
 	}
 
-	oFsm.pUniTechProf.mutexTPState.RLock()
+	oFsm.pUniTechProf.MutexTPState.RLock()
 	// get the related GemPort entity Id from pUniTechProf, OMCI Gem* entityID is set to be equal to GemPortId!
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
-	oFsm.pUniTechProf.mutexTPState.RUnlock()
+	oFsm.pUniTechProf.MutexTPState.RUnlock()
 	logger.Debugw(ctx, "UniPonAniConfigFsm - start removing one GemIwTP", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
 		"GemIwTp-entity-id": loGemPortID})
@@ -1016,9 +1108,9 @@ func (oFsm *UniPonAniConfigFsm) enterWaitingFlowRem(ctx context.Context, e *fsm.
 
 //nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm.Event) {
-	oFsm.pUniTechProf.mutexTPState.RLock()
+	oFsm.pUniTechProf.MutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
-	oFsm.pUniTechProf.mutexTPState.RUnlock()
+	oFsm.pUniTechProf.MutexTPState.RUnlock()
 	logger.Info(ctx, "UniPonAniConfigFsm - start removing one GemNCTP", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
 		"GemNCTP-entity-id": loGemPortID})
@@ -1053,9 +1145,9 @@ func (oFsm *UniPonAniConfigFsm) enterRemovingGemNCTP(ctx context.Context, e *fsm
 
 //nolint:unparam
 func (oFsm *UniPonAniConfigFsm) enterRemovingTD(ctx context.Context, e *fsm.Event) {
-	oFsm.pUniTechProf.mutexTPState.RLock()
+	oFsm.pUniTechProf.MutexTPState.RLock()
 	loGemPortID := (*(oFsm.pUniTechProf.mapRemoveGemEntry[oFsm.uniTpKey])).gemPortID
-	oFsm.pUniTechProf.mutexTPState.RUnlock()
+	oFsm.pUniTechProf.MutexTPState.RUnlock()
 	logger.Info(ctx, "UniPonAniConfigFsm - start removing Traffic Descriptor", log.Fields{
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID,
 		"TD-entity-id": loGemPortID})
@@ -1125,14 +1217,14 @@ func (oFsm *UniPonAniConfigFsm) enterRemoving1pMapper(ctx context.Context, e *fs
 		"device-id": oFsm.deviceID, "uni-id": oFsm.pOnuUniPort.UniID})
 	var mapGemPortParams map[uint16]*gemPortParamStruct
 	unicastGemCount := 0
-	oFsm.pUniTechProf.mutexTPState.RLock()
+	oFsm.pUniTechProf.MutexTPState.RLock()
 	if _, ok := oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey]; ok {
 		mapGemPortParams = oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].mapGemPortParams
 	} else {
 		logger.Warnw(ctx, "GemPortParams not found in mapPonAniConfig", log.Fields{"device-id": oFsm.deviceID,
 			"uni-id": oFsm.pOnuUniPort.UniID})
 	}
-	oFsm.pUniTechProf.mutexTPState.RUnlock()
+	oFsm.pUniTechProf.MutexTPState.RUnlock()
 	for _, gemEntry := range mapGemPortParams {
 		if !gemEntry.isMulticast {
 			unicastGemCount++
@@ -1399,7 +1491,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetFailResponseMessage(ctx co
 		case "TCont":
 			//If this is for TCONT creation(requestEventOffset=0) and this is the first allocation of TCONT(so noone else is using the same TCONT)
 			//We should revert DB
-			oFsm.pUniTechProf.mutexTPState.RLock()
+			oFsm.pUniTechProf.MutexTPState.RLock()
 			if oFsm.requestEventOffset == 0 && !oFsm.tcontSetBefore && oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey] != nil {
 				logger.Debugw(ctx, "UniPonAniConfigFsm TCONT creation failed on device. Freeing alloc id", log.Fields{"device-id": oFsm.deviceID,
 					"alloc-id": oFsm.pUniTechProf.mapPonAniConfig[oFsm.uniTpKey].tcontParams.allocID, "uni-tp": oFsm.uniTpKey})
@@ -1410,7 +1502,7 @@ func (oFsm *UniPonAniConfigFsm) handleOmciAniConfigSetFailResponseMessage(ctx co
 						log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "device-id": oFsm.deviceID})
 				}
 			}
-			oFsm.pUniTechProf.mutexTPState.RUnlock()
+			oFsm.pUniTechProf.MutexTPState.RUnlock()
 		default:
 			logger.Warnw(ctx, "Unsupported ME name received with error!",
 				log.Fields{"ME name": oFsm.pLastTxMeInstance.GetName(), "result": msgObj.Result, "device-id": oFsm.deviceID})
@@ -1982,4 +2074,134 @@ func (oFsm *UniPonAniConfigFsm) PrepareForGarbageCollection(ctx context.Context,
 	oFsm.pOnuDeviceEntry = nil
 	oFsm.pOmciCC = nil
 	oFsm.PAdaptFsm = nil
+}
+
+// parseAndValidateTechProfileConfig parses TCont parameters, upstream GEM ports, and downstream multicast GEM ports
+// Returns the complete validated config if successful
+func (oFsm *UniPonAniConfigFsm) parseAndValidateTechProfileConfig(ctx context.Context, tpInst *tech_profile.TechProfileInstance, uniTPKey UniTP) (*tcontGemList, error) {
+	// Initialize config structure
+	localMapGemPortParams := make(map[uint16]*gemPortParamStruct)
+	config := &tcontGemList{
+		tcontParams:      tcontParamStruct{},
+		mapGemPortParams: localMapGemPortParams,
+	}
+
+	// Parse TCont parameters
+	config.tcontParams.allocID = uint16(tpInst.UsScheduler.AllocId)
+	if tpInst.UsScheduler.QSchedPolicy == tech_profile.SchedulingPolicy_StrictPriority {
+		config.tcontParams.schedPolicy = 1
+	} else {
+		config.tcontParams.schedPolicy = 2
+	}
+
+	// Parse upstream GEM ports
+	loNumGemPorts := tpInst.NumGemPorts
+	loGemPortRead := false
+	for pos, content := range tpInst.UpstreamGemPortAttributeList {
+		if uint32(pos) == loNumGemPorts {
+			logger.Debugw(ctx, "PonAniConfig abort GemPortList - GemList exceeds set NumberOfGemPorts",
+				log.Fields{"device-id": oFsm.deviceID, "index": pos, "NumGem": loNumGemPorts})
+			break
+		}
+		if pos == 0 {
+			loGemPortRead = true
+		}
+
+		// Create gem port entry
+		config.mapGemPortParams[uint16(content.GemportId)] = &gemPortParamStruct{}
+		gemParams := config.mapGemPortParams[uint16(content.GemportId)]
+
+		gemParams.gemPortID = uint16(content.GemportId)
+		gemParams.direction = cGemDirBiDirect
+
+		// Validate priority queue
+		if content.PriorityQ > 7 {
+			logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
+				log.Fields{"device-id": oFsm.deviceID, "index": pos, "PrioQueue": content.PriorityQ})
+			return nil, fmt.Errorf("invalid priority queue value: %d", content.PriorityQ)
+		}
+
+		gemParams.prioQueueIndex = uint8(content.PriorityQ)
+		gemParams.pbitString = strings.TrimPrefix(content.PbitMap, binaryStringPrefix)
+		if content.AesEncryption == "True" {
+			gemParams.gemPortEncState = 1
+		} else {
+			gemParams.gemPortEncState = 0
+		}
+		gemParams.discardPolicy = content.DiscardPolicy.String()
+		gemParams.queueSchedPolicy = content.SchedulingPolicy.String()
+		gemParams.queueWeight = uint8(content.Weight)
+	}
+
+	// Parse downstream multicast GEM ports
+	for _, downstreamContent := range tpInst.DownstreamGemPortAttributeList {
+		logger.Debugw(ctx, "Operating on Downstream Gem Port", log.Fields{"downstream-gem": downstreamContent})
+		isMulticast := false
+		if downstreamContent.IsMulticast != "" {
+			var err error
+			isMulticast, err = strconv.ParseBool(downstreamContent.IsMulticast)
+			if err != nil {
+				logger.Errorw(ctx, "multicast-error-config-unknown-flag-in-technology-profile",
+					log.Fields{"device-id": oFsm.deviceID, "UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "error": err})
+				continue
+			}
+		}
+
+		logger.Debugw(ctx, "Gem Port is multicast", log.Fields{"isMulticast": isMulticast})
+		if isMulticast {
+			mcastGemID := uint16(downstreamContent.MulticastGemId)
+			if _, existing := config.mapGemPortParams[mcastGemID]; existing {
+				logger.Errorw(ctx, "multicast-error-config-existing-gem-port-config",
+					log.Fields{"device-id": oFsm.deviceID, "UniTpKey": uniTPKey, "downstream-gem": downstreamContent, "key": mcastGemID})
+				continue
+			}
+
+			logger.Infow(ctx, "creating-multicast-gem-port", log.Fields{"uniTpKey": uniTPKey,
+				"gemPortId": mcastGemID, "key": mcastGemID})
+
+			// Create multicast gem port entry
+			config.mapGemPortParams[mcastGemID] = &gemPortParamStruct{}
+			gemParams := config.mapGemPortParams[mcastGemID]
+
+			gemParams.gemPortID = mcastGemID
+			gemParams.direction = cGemDirAniToUni
+
+			if downstreamContent.AesEncryption == "True" {
+				gemParams.gemPortEncState = 1
+			} else {
+				gemParams.gemPortEncState = 0
+			}
+
+			// Validate priority queue
+			if downstreamContent.PriorityQ > 7 {
+				logger.Errorw(ctx, "PonAniConfig reject on GemPortList - PrioQueue value invalid",
+					log.Fields{"device-id": oFsm.deviceID, "index": mcastGemID, "PrioQueue": downstreamContent.PriorityQ})
+				return nil, fmt.Errorf("invalid priority queue value for multicast gem: %d", downstreamContent.PriorityQ)
+			}
+
+			gemParams.prioQueueIndex = uint8(downstreamContent.PriorityQ)
+			gemParams.pbitString = strings.TrimPrefix(downstreamContent.PbitMap, binaryStringPrefix)
+			gemParams.discardPolicy = downstreamContent.DiscardPolicy.String()
+			gemParams.queueSchedPolicy = downstreamContent.SchedulingPolicy.String()
+			gemParams.queueWeight = uint8(downstreamContent.Weight)
+			gemParams.isMulticast = isMulticast
+			gemParams.multicastGemPortID = uint16(downstreamContent.MulticastGemId)
+			gemParams.staticACL = downstreamContent.StaticAccessControlList
+			gemParams.dynamicACL = downstreamContent.DynamicAccessControlList
+		}
+	}
+
+	// Validate at least one GEM port was read
+	if !loGemPortRead {
+		logger.Errorw(ctx, "PonAniConfig reject - no GemPort could be read from TechProfile",
+			log.Fields{"path": oFsm.techProfilePath, "device-id": oFsm.deviceID})
+		return nil, fmt.Errorf("no GemPort could be read from TechProfile")
+	}
+
+	// Log successful parsing
+	logger.Debugw(ctx, "TechProfile config parsed successfully", log.Fields{
+		"device-id": oFsm.deviceID, "uni-id": uniTPKey.UniID,
+		"AllocId": config.tcontParams.allocID, "GemPortCount": len(config.mapGemPortParams)})
+
+	return config, nil
 }

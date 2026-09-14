@@ -741,6 +741,25 @@ func (oo *OnuDeviceEntry) storeDataInOnuKvStore(ctx context.Context) error {
 	return nil
 }
 
+func (oo *OnuDeviceEntry) StoreOnuUniTpPath(ctx context.Context, aUniID uint8, aTpID uint8, aPathString string) {
+	oo.MutexPersOnuConfig.Lock()
+	defer oo.MutexPersOnuConfig.Unlock()
+	//check if entry exists for uniId
+	for k, v := range oo.SOnuPersistentData.PersUniConfig {
+		if v.PersUniID == aUniID {
+			oo.SOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID] = aPathString
+			logger.Debugw(ctx, "UniTp path updated", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString, "PersUniConfig": oo.SOnuPersistentData.PersUniConfig})
+			return
+		}
+	}
+	//no entry exists for uniId
+	perSubTpPathMap := make(map[uint8]string)
+	perSubTpPathMap[aTpID] = aPathString
+	oo.SOnuPersistentData.PersUniConfig =
+		append(oo.SOnuPersistentData.PersUniConfig, uniPersConfig{PersUniID: aUniID, PersTpPathMap: perSubTpPathMap, PersFlowParams: make([]cmn.UniVlanFlowParams, 0)})
+	logger.Debugw(ctx, "New UniTp path set", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString, "PersUniConfig": oo.SOnuPersistentData.PersUniConfig})
+}
+
 // UpdateOnuUniTpPath - TODO: add comment
 func (oo *OnuDeviceEntry) UpdateOnuUniTpPath(ctx context.Context, aUniID uint8, aTpID uint8, aPathString string) bool {
 	/* within some specific InterAdapter processing request write/read access to data is ensured to be sequentially,
