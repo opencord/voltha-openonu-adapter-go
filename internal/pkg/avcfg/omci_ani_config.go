@@ -254,8 +254,8 @@ func NewUniPonAniConfigFsm(ctx context.Context, apDevOmciCC *cmn.OmciCC, apUniPo
 		fsm.Callbacks{
 			"enter_state":                         func(e *fsm.Event) { instFsm.PAdaptFsm.LogFsmStateChange(ctx, e) },
 			("enter_" + aniStStarting):            func(e *fsm.Event) { instFsm.enterConfigStartingState(ctx, e) },
-			("enter_" + aniStPrepareConfig):       func(e *fsm.Event) { instFsm.prepareAndEnterConfigState(ctx, e) },
 			("enter_" + aniStReadAniSideConfig):   func(e *fsm.Event) { instFsm.enterReadAniSideConfig(ctx, e) },
+			("enter_" + aniStPrepareConfig):       func(e *fsm.Event) { instFsm.prepareAndEnterConfigState(ctx, e) },
 			("enter_" + aniStCreatingDot1PMapper): func(e *fsm.Event) { instFsm.enterCreatingDot1PMapper(ctx, e) },
 			("enter_" + aniStCreatingMBPCD):       func(e *fsm.Event) { instFsm.enterCreatingMBPCD(ctx, e) },
 			("enter_" + aniStSettingTconts):       func(e *fsm.Event) { instFsm.enterSettingTconts(ctx, e) },

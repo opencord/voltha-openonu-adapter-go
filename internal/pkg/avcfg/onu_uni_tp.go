@@ -231,8 +231,10 @@ func (onuTP *OnuUniTechProf) ConfigureUniTp(ctx context.Context,
 			log.Fields{"device-id": onuTP.deviceID, "uni-id": aUniID})
 
 		onuTP.MutexTPState.Lock()
-		onuTP.ProcResult[uniTpKey] = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
-			aUniID, onuTP.deviceID)
+		if onuTP.ProcResult[uniTpKey] == nil {
+			onuTP.ProcResult[uniTpKey] = fmt.Errorf("techProfile config aborted: Omci AniSideConfig failed %d on %s",
+				aUniID, onuTP.deviceID)
+		}
 		onuTP.MutexTPState.Unlock()
 		//this issue here means that the AniConfigFsm has not finished successfully
 		//which requires to reset it to allow for new usage, e.g. also on a different UNI

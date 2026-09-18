@@ -1,0 +1,149 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+# -----------------------------------------------------------------------
+# Creates the release tag for a merged change.
+#
+# Runs on every push (i.e. every merged PR) to master/main and to the
+# voltha-* release branches.  It reads the VERSION file from the repo
+# root and, unless the version is a "-dev" version, creates and pushes
+# the matching "v<VERSION>" tag when that tag does not already exist.
+#
+# Deliberately minimal validation: SemVer correctness, version ordering,
+# etc. are the job of the pre-merge verify workflow.
+#
+# [REQUIRED] A repository/org secret named RELEASE_TAG_TOKEN holding a
+# PAT or GitHub App token with "contents: write".  The default
+# GITHUB_TOKEN cannot be used here: tags it pushes do not trigger other
+# workflows, so release.yaml would never fire.
+# -----------------------------------------------------------------------
+
+name: Create Release Tag
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+      - 'voltha-*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: merge-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tag-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Tags pushed with this token trigger release.yaml normally
+          token: ${{ secrets.RELEASE_TAG_TOKEN }}
+
+      - name: Read VERSION file
+        id: version
+        run: |
+          set -eu -o pipefail
+
+          if [ ! -f VERSION ]; then
+            echo "::error::No VERSION file in the repository root"
+            exit 1
+          fi
+
+          # First non-blank line, leading/trailing whitespace removed
+          VERSION="$(awk 'NF {
+            gsub(/^[ \t\r]+|[ \t\r]+$/, ""); print; exit
+          }' VERSION)"
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::VERSION file is empty"
+            exit 1
+          fi
+
+          echo "VERSION file contains: '${VERSION}'"
+
+          # Development versions are never tagged
+          if [[ "${VERSION,,}" == *-dev* ]]; then
+            echo "'${VERSION}' is a development version, no tag needed"
+            echo "is-release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "'${VERSION}' is a release version"
+            echo "is-release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for an existing tag
+        id: tag-check
+        if: steps.version.outputs.is-release == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -eu -o pipefail
+
+          EXISTING="$(git ls-remote --tags origin "refs/tags/${TAG}")"
+
+          if [ -n "$EXISTING" ]; then
+            echo "Tag '${TAG}' already exists:"
+            echo "  ${EXISTING}"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag '${TAG}' does not exist yet"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push tag
+        id: push-tag
+        if: steps.tag-check.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu -o pipefail
+
+          # Identity recorded as the tagger of the annotated tag.  Match
+          # it to the account owning RELEASE_TAG_TOKEN so the tagger and
+          # the pusher agree, and GitHub attributes the tag correctly.
+          BOT_USER="opencord-gerrit"
+          BOT_EMAIL="19677594+opencord-gerrit@users.noreply.github.com"
+          git config user.name "${BOT_USER}"
+          git config user.email "${BOT_EMAIL}"
+
+          git tag -a "${TAG}" -m "Release ${VERSION}"
+          git push origin "refs/tags/${TAG}"
+
+          echo "Pushed tag '${TAG}' -> $(git rev-parse HEAD)"
+
+      - name: Summary
+        if: always()
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          IS_RELEASE: ${{ steps.version.outputs.is-release }}
+          EXISTED: ${{ steps.tag-check.outputs.exists }}
+          PUSHED: ${{ steps.push-tag.outcome }}
+        run: |
+          set -eu -o pipefail
+
+          {
+            echo "### Release tagging"
+            echo ""
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            echo "| VERSION | \`${VERSION:-unknown}\` |"
+            echo "| Tag | \`${TAG:-n/a}\` |"
+            echo "| Release version | ${IS_RELEASE:-false} |"
+            echo "| Tag already existed | ${EXISTED:-n/a} |"
+            echo "| Tag pushed | ${PUSHED:-skipped} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+# [EOF]

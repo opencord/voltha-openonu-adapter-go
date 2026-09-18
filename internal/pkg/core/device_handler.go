@@ -489,7 +489,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 			wg.Add(1) // for the 1 go routine to finish
 			// attention: deadline completion check and wg.Done is to be done in both routines
 			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniID, techProfMsg.TpInstancePath, tpInst.TpInstance, pCurrentUniPort, &wg)
-			err = dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwld")
+			err = dh.waitForCompletion(dctx, cancel, &wg, "TechProfDwld")
 			if err != nil {
 				logger.Errorw(ctx, "TechProfile configuration to the device UNI port  failed", log.Fields{"device-id": dh.DeviceID, "uniID": uniID, "err": err})
 				return err
@@ -635,14 +635,14 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 	wg.Add(1) // for the 1 go routine to finish
 	go dh.pOnuTP.DeleteTpResource(log.WithSpanFromContext(dctx, ctx), uniID, tpID, pathString,
 		resource, entryID, &wg)
-	err := dh.waitForCompletion(ctx, cancel, &wg, "DeleteTechProfileResource")
+	err := dh.waitForCompletion(dctx, cancel, &wg, "DeleteTechProfileResource")
 	if err != nil {
 		logger.Errorw(ctx, "Delete TechProfile resource failed for the UNI port", log.Fields{"device-id": dh.DeviceID, "uniID": uniID, "err": err})
 		return err
 	} else {
 		if tpErr := dh.pOnuTP.GetTpProcessingErrorIndication(uniID, tpID); tpErr != nil {
 			logger.Errorw(ctx, "error-processing-tp", log.Fields{"device-id": dh.DeviceID, "err": tpErr, "tp-path": pathString})
-			return err
+			return tpErr
 		}
 	}
 
@@ -1077,7 +1077,7 @@ outerLoop:
 			wg.Add(1) // for the 1 go routine to finish
 			go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], tpInst, pCurrentUniPort, &wg)
 			// Wait for either completion or cancellation
-			err = dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwldDuringReconcile")
+			err = dh.waitForCompletion(dctx, cancel, &wg, "TechProfDwldDuringReconcile")
 			if err != nil {
 				logger.Errorw(ctx, "TechProfile configuration to the device UNI port  failed", log.Fields{"device-id": dh.DeviceID, "uniID": uniData.PersUniID, "err": err})
 				return false
@@ -1604,7 +1604,7 @@ outerLoop:
 				wg.Add(1) // for the 1 go routine to finish
 				go dh.pOnuTP.ConfigureUniTp(log.WithSpanFromContext(dctx, ctx), uniData.PersUniID, uniData.PersTpPathMap[tpID], nil, pCurrentUniPort, &wg)
 				// Wait for either completion or cancellation
-				err = dh.waitForCompletion(ctx, cancel, &wg, "TechProfDwldDuringReboot")
+				err = dh.waitForCompletion(dctx, cancel, &wg, "TechProfDwldDuringReboot")
 				if err != nil {
 					logger.Errorw(ctx, "TechProfile configuration to the device UNI port failed", log.Fields{"device-id": dh.DeviceID, "uniID": uniData.PersUniID, "err": err})
 					techProfInstLoadFailed = true
@@ -3011,8 +3011,8 @@ func (dh *deviceHandler) processMibDownloadDoneEvent(ctx context.Context, devEve
 		var waitForOmciProcessor sync.WaitGroup
 		waitForOmciProcessor.Add(1)
 		// Start PM collector routine
-		dh.runTrackedRoutine(ctx, "StartAlarmManager", func(rCtx context.Context) {
-			dh.StartAlarmManager(rCtx)
+		dh.runTrackedRoutine(ctx, "StartCollector", func(rCtx context.Context) {
+			dh.StartCollector(rCtx, &waitForOmciProcessor)
 		})
 		waitForOmciProcessor.Wait()
 	}

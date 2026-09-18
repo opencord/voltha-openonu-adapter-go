@@ -747,6 +747,9 @@ func (oo *OnuDeviceEntry) StoreOnuUniTpPath(ctx context.Context, aUniID uint8, a
 	//check if entry exists for uniId
 	for k, v := range oo.SOnuPersistentData.PersUniConfig {
 		if v.PersUniID == aUniID {
+			if oo.SOnuPersistentData.PersUniConfig[k].PersTpPathMap == nil {
+				oo.SOnuPersistentData.PersUniConfig[k].PersTpPathMap = make(map[uint8]string)
+			}
 			oo.SOnuPersistentData.PersUniConfig[k].PersTpPathMap[aTpID] = aPathString
 			logger.Debugw(ctx, "UniTp path updated", log.Fields{"device-id": oo.deviceID, "uniID": aUniID, "tpID": aTpID, "path": aPathString, "PersUniConfig": oo.SOnuPersistentData.PersUniConfig})
 			return
