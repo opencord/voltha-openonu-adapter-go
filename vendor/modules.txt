@@ -171,7 +171,7 @@ github.com/munnerz/goautoneg
 github.com/opencord/omci-lib-go/v2
 github.com/opencord/omci-lib-go/v2/generated
 github.com/opencord/omci-lib-go/v2/meframe
-# github.com/opencord/voltha-lib-go/v7 v7.8.4
+# github.com/opencord/voltha-lib-go/v7 v7.9.1
 ## explicit; go 1.25.5
 github.com/opencord/voltha-lib-go/v7/pkg/config
 github.com/opencord/voltha-lib-go/v7/pkg/db

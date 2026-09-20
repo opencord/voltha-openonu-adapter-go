@@ -363,13 +363,12 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 			logger.Errorw(ctx, "Device FSM: Can't go to state DeviceInit", log.Fields{"device-id": device.Id, "err": err})
 		}
 		logger.Debugw(ctx, "Device FSM: ", log.Fields{"device-id": device.Id, "state": string(dh.pDeviceStateFsm.Current())})
-		// device.PmConfigs is not nil in cases when adapter restarts. We should not re-set the core again.
-		if device.PmConfigs == nil {
-			// Now, set the initial PM configuration for that device
-			if err := dh.updatePMConfigInCore(ctx, dh.pmConfigs); err != nil {
-				logger.Errorw(ctx, "error updating pm config to core", log.Fields{"device-id": dh.DeviceID, "err": err})
-			}
+		// Now, set the initial PM configuration for that device
+		// update pmconfig in core in case new configs are introducced in the adapter and the device is being reconciled
+		if err := dh.updatePMConfigInCore(ctx, dh.pmConfigs); err != nil {
+			logger.Errorw(ctx, "error updating pm config to core", log.Fields{"device-id": dh.DeviceID, "err": err})
 		}
+
 	} else {
 		logger.Debugw(ctx, "AdoptOrReconcileDevice: Agent/device init already done", log.Fields{"device-id": device.Id})
 	}
