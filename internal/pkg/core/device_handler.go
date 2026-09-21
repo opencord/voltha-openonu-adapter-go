@@ -2683,6 +2683,21 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			// abort: system behavior is just unstable ...
 			return err
 		}
+
+		for _, uni := range dh.uniEntityMap {
+			if dh.GetFlowMonitoringIsRunning(uni.UniID) {
+				select {
+				case dh.stopFlowMonitoringRoutine[uni.UniID] <- true:
+					logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+				default:
+
+					logger.Warnw(ctx, "stopFlowMonitoringRoutine channel already closed", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+				}
+			} else {
+				logger.Warnw(ctx, "stopFlowMonitoringRoutine channel failed to send", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+			}
+		}
+
 		//all stored persistent data are not valid anymore (loosing knowledge about the connected ONU)
 		if !dh.GetDeviceTechProfOnReboot() {
 			_ = dh.deleteDevicePersistencyData(ctx) //ignore possible errors here and continue, hope is that data is synchronized with new ONU-Up
