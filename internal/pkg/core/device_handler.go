@@ -4521,6 +4521,7 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 			// Stop the L2 PM FSM
 			go func() {
 				if dh.pOnuMetricsMgr.PAdaptFsm != nil && dh.pOnuMetricsMgr.PAdaptFsm.PFsm != nil {
+					logger.Infow(ctx, "stopping-l2-pm-fsm", log.Fields{"device-id": dh.DeviceID})
 					if err := dh.pOnuMetricsMgr.PAdaptFsm.PFsm.Event(pmmgr.L2PmEventStop); err != nil {
 						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": dh.DeviceID, "err": err})
 					}
@@ -4540,6 +4541,7 @@ func (dh *deviceHandler) StartCollector(ctx context.Context, waitForOmciProcesso
 			// Also stop the L2 PM FSM and processing routines on device context cancel
 			go func() {
 				if dh.pOnuMetricsMgr.PAdaptFsm != nil && dh.pOnuMetricsMgr.PAdaptFsm.PFsm != nil {
+					logger.Infow(ctx, "stopping-l2-pm-fsm", log.Fields{"device-id": dh.DeviceID})
 					if err := dh.pOnuMetricsMgr.PAdaptFsm.PFsm.Event(pmmgr.L2PmEventStop); err != nil {
 						logger.Errorw(ctx, "error calling event", log.Fields{"device-id": dh.DeviceID, "err": err})
 					}
@@ -5718,15 +5720,16 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 
 	switch onuOperstate {
 	case "up":
-		if !dh.pDeviceStateFsm.Can(devEvDeviceUpInd) {
-			logger.Errorw(ctx, "invalid state transition for up indication",
-				log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
-			return nil, fmt.Errorf("invalid state transition for up indication: current state %s, device %s",
-				dh.pDeviceStateFsm.Current(), dh.DeviceID)
-		}
-		// Two-phase activation: DeviceUpInd → Activating (heavy work), then ActivationDone → Up
+		// Event() holds eventMu for its entire duration (including postInit callback),
+		// so concurrent calls naturally serialize — no retry needed.
 		err := dh.pDeviceStateFsm.Event(devEvDeviceUpInd, onuIndication)
 		if err != nil {
+			if _, ok := err.(fsm.InvalidEventError); ok {
+				logger.Errorw(ctx, "invalid state transition for up indication",
+					log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
+				return nil, fmt.Errorf("invalid state transition for up indication: current state %s, device %s",
+					dh.pDeviceStateFsm.Current(), dh.DeviceID)
+			}
 			// Activation failed — transition Activating → Down
 			if fsmErr := dh.pDeviceStateFsm.Event(devEvActivationFail); fsmErr != nil {
 				logger.Warnw(ctx, "FSM: could not transition to Down after activation failure",
@@ -5740,14 +5743,17 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 				log.Fields{"device-id": dh.DeviceID, "fsmErr": fsmErr})
 		}
 	case "down", "unreachable":
-		if !dh.pDeviceStateFsm.Can(devEvDeviceDownInd) {
+		// Event() holds eventMu for its entire duration (including preDeactivation callback),
+		// so concurrent calls naturally serialize — no retry needed.
+		// Two-phase deactivation: DeviceDownInd → Deactivating (heavy work), then DeactivationDone → Down
+		err := dh.pDeviceStateFsm.Event(devEvDeviceDownInd, onuIndication)
+		if _, ok := err.(fsm.InvalidEventError); ok {
 			logger.Errorw(ctx, "invalid state transition for down indication",
 				log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
 			return nil, fmt.Errorf("invalid state transition for down indication: current state %s, device %s",
 				dh.pDeviceStateFsm.Current(), dh.DeviceID)
 		}
-		// Two-phase deactivation: DeviceDownInd → Deactivating (heavy work), then DeactivationDone → Down
-		err := dh.pDeviceStateFsm.Event(devEvDeviceDownInd, onuIndication)
+
 		// Always complete deactivation regardless of error
 		if fsmErr := dh.pDeviceStateFsm.Event(devEvDeactivationDone); fsmErr != nil {
 			logger.Warnw(ctx, "FSM: could not complete deactivation (state may have changed)",
@@ -5788,12 +5794,12 @@ func (dh *deviceHandler) PrepareForGarbageCollection(ctx context.Context, aDevic
 				log.Fields{"device-id": aDeviceID, "current-state": dh.pOnuMetricsMgr.PAdaptFsm.PFsm.Current()})
 			select {
 			case <-dh.pOnuMetricsMgr.GarbageCollectionComplete:
-				logger.Debugw(ctx, "PM FSM reached null state, proceeding with cleanup", log.Fields{"device-id": aDeviceID})
+				logger.Infow(ctx, "PM FSM reached null state, proceeding with cleanup", log.Fields{"device-id": aDeviceID})
 			case <-time.After(pmmgr.MaxTimeForPmFsmShutDown * time.Second):
 				logger.Errorw(ctx, "PM FSM did not reach null state in time, proceeding with cleanup anyway", log.Fields{"device-id": aDeviceID})
 			}
 		} else {
-			logger.Debugw(ctx, "PM FSM already in null state, proceeding with cleanup", log.Fields{"device-id": aDeviceID})
+			logger.Infow(ctx, "PM FSM already in null state, proceeding with cleanup", log.Fields{"device-id": aDeviceID})
 		}
 		// Now safe to clean up - FSM is idle
 		dh.pOnuMetricsMgr.CleanupOnDeviceDeletion(ctx)
