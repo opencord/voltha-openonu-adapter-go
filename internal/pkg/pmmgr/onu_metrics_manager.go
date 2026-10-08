@@ -79,6 +79,52 @@ const (
 	UnsupportedCounterValue64bit uint64 = 18446744073709551614
 )
 
+const (
+	EthernetFrameExtendedPmGroupMetricName                = "Ethernet_Frame_Extended_PM"
+	EthernetFrameExtendedPmGroupMetricEnabled             = true
+	EthernetFrameExtendedPmMetricGroupCollectionFrequency = 5 * 60
+)
+
+var EthernetFrameExtendedPmGroupMetrics = map[string]voltha.PmConfig_PmType{
+	"direction": voltha.PmConfig_CONTEXT,
+
+	"drop_events":                voltha.PmConfig_COUNTER,
+	"octets":                     voltha.PmConfig_COUNTER,
+	"frames":                     voltha.PmConfig_COUNTER,
+	"broadcast_frames":           voltha.PmConfig_COUNTER,
+	"multicast_frames":           voltha.PmConfig_COUNTER,
+	"crc_errored_frames":         voltha.PmConfig_COUNTER,
+	"undersize_frames":           voltha.PmConfig_COUNTER,
+	"oversize_frames":            voltha.PmConfig_COUNTER,
+	"frames_64_octets":           voltha.PmConfig_COUNTER,
+	"frames_65_to_127_octets":    voltha.PmConfig_COUNTER,
+	"frames_128_to_255_octets":   voltha.PmConfig_COUNTER,
+	"frames_256_to_511_octets":   voltha.PmConfig_COUNTER,
+	"frames_512_to_1023_octets":  voltha.PmConfig_COUNTER,
+	"frames_1024_to_1518_octets": voltha.PmConfig_COUNTER,
+}
+
+// EnhancedFecHistory is supported Enhanced FEC Performance Monitoring History Data related metrics.
+// These counters are exposed natively as 64-bit values by the ONU.
+var EnhancedFecHistory = map[string]voltha.PmConfig_PmType{
+	"class_id":          voltha.PmConfig_CONTEXT,
+	"entity_id":         voltha.PmConfig_CONTEXT,
+	"interval_end_time": voltha.PmConfig_CONTEXT,
+
+	"corrected_bytes":          voltha.PmConfig_COUNTER,
+	"corrected_code_words":     voltha.PmConfig_COUNTER,
+	"uncorrectable_code_words": voltha.PmConfig_COUNTER,
+	"total_code_words":         voltha.PmConfig_COUNTER,
+	"fec_seconds":              voltha.PmConfig_COUNTER,
+}
+
+// EnhancedFecHistory specific constants
+const (
+	EnhancedFecHistoryName      = "Enhanced_FEC_History"
+	EnhancedFecHistoryEnabled   = true // This setting can be changed from voltha NBI PmConfig configuration
+	EnhancedFecHistoryFrequency = L2PmCollectionInterval
+)
+
 // OpticalPowerGroupMetrics are supported optical pm names
 var OpticalPowerGroupMetrics = map[string]voltha.PmConfig_PmType{
 	"ani_g_instance_id":     voltha.PmConfig_CONTEXT,
@@ -266,6 +312,35 @@ type groupMetricPopulateFunc func(context.Context, me.ClassID, uint16, me.Attrib
 
 // *** Classical L2 PM Counters end   ***
 
+// MetricPrecision defines the wire precision required for a metric group.
+type MetricPrecision int
+
+const (
+	Precision32 MetricPrecision = iota
+	Precision64
+)
+
+var meGroupPrecisionMap = map[string]MetricPrecision{
+	EthernetBridgeHistoryName:   Precision32,
+	EthernetUniHistoryName:      Precision32,
+	FecHistoryName:              Precision32,
+	OpticalPowerGroupMetricName: Precision32,
+	UniStatusGroupMetricName:    Precision32,
+	EnhancedFecHistoryName:      Precision64,
+	GemPortHistoryName:          Precision64,
+}
+
+// GetMetricPrecision returns the configured precision for a metric group.
+func GetMetricPrecision(groupName string) MetricPrecision {
+	if precision, ok := meGroupPrecisionMap[groupName]; ok {
+		return precision
+	}
+	return Precision32
+}
+
+// Defines the type for generic 64-bit metric population functions.
+type groupMetricPopulateFunc64 func(context.Context, me.ClassID, uint16, me.AttributeValueMap, me.AttributeValueMap, map[string]float64, *int, bool) error
+
 type pmMEData struct {
 	InstancesActive   []uint16 `json:"instances_active"`    // list of active ME instance IDs for the group
 	InstancesToDelete []uint16 `json:"instances_to_delete"` // list of ME instance IDs marked for deletion for the group
@@ -280,7 +355,8 @@ type groupMetric struct {
 	Frequency              uint32 // valid only if FrequencyOverride is enabled.
 	collectAttempts        uint32 // number of attempts to collect L2 PM data
 	Enabled                bool
-	IsL2PMCounter          bool // true for only L2 PM counters
+	IsL2PMCounter          bool            // true for only L2 PM counters
+	Precision              MetricPrecision // Precision32 or Precision64 based on ME attribute sizes
 }
 
 type standaloneMetric struct {
@@ -390,6 +466,8 @@ func NewOnuMetricsManager(ctx context.Context, dh cmn.IdeviceHandler, onuDev cmn
 
 	if dh.GetPmConfigs() == nil { // dh.GetPmConfigs() is NOT nil if adapter comes back from a restart. We should NOT go back to defaults in this case
 		metricsManager.initializeAllGroupMetrics()
+	} else {
+		metricsManager.reconcileAllGroupMetrics()
 	}
 
 	metricsManager.populateLocalGroupMetricData(ctx)
@@ -714,6 +792,18 @@ func (mm *OnuMetricsManager) collectAllGroupMetrics(ctx context.Context) {
 		}
 	}()
 
+	go func() {
+		logger.Debug(ctx, "startCollector before collecting ethernet extended pm metrics")
+		metricInfo64, err := mm.collectEthernetFrameExtendedPMMetrics(ctx)
+		if err != nil {
+			logger.Errorw(ctx, "collectEthernetFrameExtendedPMMetrics failed",
+				log.Fields{"device-id": mm.deviceID, "Error": err})
+			return
+		}
+		if metricInfo64 != nil {
+			mm.publishMetrics64(ctx, metricInfo64)
+		}
+	}()
 	// Add more here
 }
 
@@ -734,6 +824,12 @@ func (mm *OnuMetricsManager) CollectGroupMetric(ctx context.Context, groupName s
 		go func() {
 			if mi, _ := mm.collectUniStatusMetrics(ctx); mi != nil {
 				mm.publishMetrics(ctx, mi)
+			}
+		}()
+	case EthernetFrameExtendedPmGroupMetricName:
+		go func() {
+			if mi, _ := mm.collectEthernetFrameExtendedPMMetrics(ctx); mi != nil {
+				mm.publishMetrics64(ctx, mi)
 			}
 		}()
 	default:
@@ -1088,6 +1184,82 @@ loop3:
 	return metricInfoSlice, nil
 }
 
+// collectEthernetFrameExtendedPMMetrics periodically collects the ethernet frame extended pm metrics from the device and sends to voltha
+func (mm *OnuMetricsManager) collectEthernetFrameExtendedPMMetrics(
+	ctx context.Context,
+) ([]*voltha.MetricInformation64, error) {
+	logger.Debugw(ctx, "collectEthernetFrameExtendedPMMetrics", log.Fields{"device-id": mm.deviceID})
+	mm.OnuMetricsManagerLock.RLock()
+	if !mm.GroupMetricMap[EthernetFrameExtendedPmGroupMetricName].Enabled {
+		mm.OnuMetricsManagerLock.RUnlock()
+		logger.Debugw(ctx, "Ethernet Frame Extended metric is not enabled", log.Fields{"device-id": mm.deviceID})
+		return nil, nil
+	}
+	mm.OnuMetricsManagerLock.RUnlock()
+	var metricInfoSlice []*voltha.MetricInformation64
+	metricsContext := make(map[string]string)
+	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetProxyAddress().OnuId)
+	metricsContext["intfID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetProxyAddress().ChannelId)
+	metricsContext["devicetype"] = mm.pDeviceHandler.GetDeviceType()
+	raisedTs := time.Now().Unix()
+	mmd := voltha.MetricMetaData{
+		Title:           EthernetFrameExtendedPmGroupMetricName,
+		Ts:              float64(raisedTs),
+		Context:         metricsContext,
+		DeviceId:        mm.deviceID,
+		LogicalDeviceId: mm.pDeviceHandler.GetLogicalDeviceID(),
+		SerialNo:        mm.pDeviceHandler.GetDevice().SerialNumber,
+	}
+	getvalueInfo := mm.CollectEthernetFrameExtendedPMCounters(ctx, &extension.GetOmciEthernetFrameExtendedPmRequest{OnuDeviceId: mm.deviceID})
+
+	if getvalueInfo.GetResponse().Status == extension.GetValueResponse_OK {
+		metrics := getvalueInfo.GetResponse().GetResponse().(*extension.GetValueResponse_OnuCounters)
+		pm := metrics.OnuCounters
+		upstream := pm.Upstream
+		downstream := pm.Downstream
+		upstreamMetrics := map[string]float64{
+			"direction":                  1,
+			"drop_events":                float64(upstream.DropEvents),
+			"octets":                     float64(upstream.Octets),
+			"frames":                     float64(upstream.Frames),
+			"broadcast_frames":           float64(upstream.BroadcastFrames),
+			"multicast_frames":           float64(upstream.MulticastFrames),
+			"crc_errored_frames":         float64(upstream.CrcErroredFrames),
+			"undersize_frames":           float64(upstream.UndersizeFrames),
+			"oversize_frames":            float64(upstream.OversizeFrames),
+			"frames_64_octets":           float64(upstream.Frames_64Octets),
+			"frames_65_to_127_octets":    float64(upstream.Frames_65To_127Octets),
+			"frames_128_to_255_octets":   float64(upstream.Frames_128To_255Octets),
+			"frames_256_to_511_octets":   float64(upstream.Frames_256To_511Octets),
+			"frames_512_to_1023_octets":  float64(upstream.Frames_512To_1023Octets),
+			"frames_1024_to_1518_octets": float64(upstream.Frames_1024To_1518Octets),
+		}
+		downstreamMetrics := map[string]float64{
+			"direction":                  0,
+			"drop_events":                float64(downstream.DropEvents),
+			"octets":                     float64(downstream.Octets),
+			"frames":                     float64(downstream.Frames),
+			"broadcast_frames":           float64(downstream.BroadcastFrames),
+			"multicast_frames":           float64(downstream.MulticastFrames),
+			"crc_errored_frames":         float64(downstream.CrcErroredFrames),
+			"undersize_frames":           float64(downstream.UndersizeFrames),
+			"oversize_frames":            float64(downstream.OversizeFrames),
+			"frames_64_octets":           float64(downstream.Frames_64Octets),
+			"frames_65_to_127_octets":    float64(downstream.Frames_65To_127Octets),
+			"frames_128_to_255_octets":   float64(downstream.Frames_128To_255Octets),
+			"frames_256_to_511_octets":   float64(downstream.Frames_256To_511Octets),
+			"frames_512_to_1023_octets":  float64(downstream.Frames_512To_1023Octets),
+			"frames_1024_to_1518_octets": float64(downstream.Frames_1024To_1518Octets),
+		}
+
+		metricInfoSlice = append(metricInfoSlice, &voltha.MetricInformation64{Metadata: &mmd, Metrics: upstreamMetrics})
+		metricInfoSlice = append(metricInfoSlice, &voltha.MetricInformation64{Metadata: &mmd, Metrics: downstreamMetrics})
+	} else {
+		return nil, fmt.Errorf("failed to collect ethernet frame extended pm metrics for device %s, status: %v", mm.deviceID, getvalueInfo.GetResponse().Status)
+	}
+	return metricInfoSlice, nil
+}
+
 // publishMetrics publishes the metrics on kafka
 func (mm *OnuMetricsManager) publishMetrics(ctx context.Context, metricInfo []*voltha.MetricInformation) {
 	var ke voltha.KpiEvent2
@@ -1199,7 +1371,8 @@ func (mm *OnuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 			me.EthernetFramePerformanceMonitoringHistoryDataDownstreamClassID,
 			me.EthernetPerformanceMonitoringHistoryDataClassID,
 			me.FecPerformanceMonitoringHistoryDataClassID,
-			me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
+			me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID,
+			me.EnhancedFecPerformanceMonitoringHistoryDataClassID:
 			mm.l2PmChan <- meAttributes
 			return nil
 		case me.EthernetFrameExtendedPmClassID,
@@ -1218,6 +1391,9 @@ func (mm *OnuMetricsManager) handleOmciGetResponseMessage(ctx context.Context, m
 			// not all counters may be supported in which case we have seen some ONUs throwing
 			// AttributeFailure error code, while correctly populating other counters it supports
 			mm.extendedPmMeChan <- meAttributes
+			return nil
+		case me.EnhancedFecPerformanceMonitoringHistoryDataClassID:
+			mm.l2PmChan <- meAttributes
 			return nil
 		default:
 			logger.Errorw(ctx, "unhandled omci get response message",
@@ -1252,6 +1428,9 @@ func (mm *OnuMetricsManager) handleOmciGetCurrentDataResponseMessage(ctx context
 		case me.FecPerformanceMonitoringHistoryDataClassID:
 			mm.opticalMetricsChan <- meAttributes
 			return nil
+		case me.EnhancedFecPerformanceMonitoringHistoryDataClassID:
+			mm.opticalMetricsChan <- meAttributes
+			return nil
 		default:
 			logger.Errorw(ctx, "unhandled omci get current data response message",
 				log.Fields{"device-id": mm.deviceID, "class-id": msgObj.EntityClass})
@@ -1273,7 +1452,9 @@ func (mm *OnuMetricsManager) handleOmciGetCurrentDataResponseMessage(ctx context
 			// Handle attribute failure for FEC data similar to Extended PM
 			mm.opticalMetricsChan <- meAttributes
 			return nil
-
+		case me.EnhancedFecPerformanceMonitoringHistoryDataClassID:
+			mm.opticalMetricsChan <- meAttributes
+			return nil
 		default:
 			logger.Errorw(ctx, "unhandled omci get current data response message",
 				log.Fields{"device-id": mm.deviceID, "class-id": msgObj.EntityClass})
@@ -1604,6 +1785,7 @@ func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 			return
 		default:
 			var metricInfoSlice []*voltha.MetricInformation
+			var metricInfoSlice64 []*voltha.MetricInformation64
 
 			// mm.GroupMetricMap[n].pmMEData.InstancesActive could dynamically change, so make a copy
 			mm.OnuMetricsManagerLock.RLock()
@@ -1636,17 +1818,29 @@ func (mm *OnuMetricsManager) l2PmFsmCollectData(ctx context.Context, e *fsm.Even
 						metricInfoSlice = append(metricInfoSlice, metricInfo)
 					}
 				}
+
+			case EnhancedFecHistoryName:
+				for _, entityID := range copyOfEntityIDs {
+					if metricInfo := mm.collectEnhancedFecHistoryData(ctx, entityID, false); metricInfo != nil {
+						metricInfoSlice64 = append(metricInfoSlice64, metricInfo)
+					}
+				}
+
 			case GemPortHistoryName:
 				for _, entityID := range copyOfEntityIDs {
 					if metricInfo := mm.collectGemHistoryData(ctx, entityID, false); metricInfo != nil { // upstream
-						metricInfoSlice = append(metricInfoSlice, metricInfo)
+						metricInfoSlice64 = append(metricInfoSlice64, metricInfo)
 					}
 				}
 
 			default:
 				logger.Errorw(ctx, "unsupported l2 pm", log.Fields{"device-id": mm.deviceID, "name": n})
 			}
-			mm.handleMetricsPublish(ctx, n, metricInfoSlice)
+			if mm.GroupMetricMap[n].Precision == Precision64 {
+				mm.handleMetricsPublish64(ctx, n, metricInfoSlice64)
+			} else {
+				mm.handleMetricsPublish(ctx, n, metricInfoSlice)
+			}
 		}
 	}
 	// Does not matter we send success or failure here.
@@ -1776,6 +1970,34 @@ func (mm *OnuMetricsManager) l2PmFsmCreatePM(ctx context.Context, e *fsm.Event) 
 					}
 				}
 				if cnt == L2PmCreateAttempts { // if we reached max attempts just give up hope on this given instance of the PM ME
+					_ = mm.updatePmData(ctx, n, anigInstID, cPmRemoved) // TODO: ignore error for now
+				}
+			}
+		case EnhancedFecHistoryName:
+			for _, anigInstID := range mm.pOnuDeviceEntry.GetOnuDB().GetSortedInstKeys(ctx, me.AniGClassID) {
+				_, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendCreateOrDeleteEnhancedFecHistoryME(
+					ctx, mm.pDeviceHandler.GetOmciTimeout(), true, true, mm.PAdaptFsm.CommChan, anigInstID)
+				if err != nil {
+					logger.Errorw(ctx, "CreateOrDeleteEnhancedFecHistoryME failed, failure PM FSM!",
+						log.Fields{"device-id": mm.deviceID})
+					_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
+					return fmt.Errorf("CreateOrDeleteEnhancedFecHistoryMe-failed-%s-%s",
+						mm.deviceID, err)
+				}
+				_ = mm.updatePmData(ctx, n, anigInstID, cPmAdd) // TODO: ignore error for now
+			inner3a:
+				for cnt = 0; cnt < L2PmCreateAttempts; cnt++ {
+					if resp = mm.waitForResponseOrTimeout(ctx, true, anigInstID, "EnhancedFecPerformanceMonitoringHistoryData"); resp {
+						atLeastOneSuccess = true
+						_ = mm.updatePmData(ctx, n, anigInstID, cPmAdded) // TODO: ignore error for now
+						break inner3a
+					}
+					if mm.GetdeviceDeletionInProgress() {
+						logger.Debugw(ctx, "device deleted, no more pm processing", log.Fields{"deviceID": mm.deviceID})
+						return nil
+					}
+				}
+				if cnt == L2PmCreateAttempts {
 					_ = mm.updatePmData(ctx, n, anigInstID, cPmRemoved) // TODO: ignore error for now
 				}
 			}
@@ -2005,6 +2227,34 @@ func (mm *OnuMetricsManager) l2PmFsmDeletePM(ctx context.Context, e *fsm.Event) 
 					_ = mm.updatePmData(ctx, n, entityID, cPmRemoved) // TODO: ignore error for now
 				}
 			}
+		case EnhancedFecHistoryName:
+			for _, entityID := range copyOfEntityIDs {
+			inner3a:
+				for cnt = 0; cnt < L2PmDeleteAttempts; cnt++ {
+					_, err := mm.pOnuDeviceEntry.GetDevOmciCC().SendCreateOrDeleteEnhancedFecHistoryME(
+						ctx, mm.pDeviceHandler.GetOmciTimeout(), true, false, mm.PAdaptFsm.CommChan, entityID)
+					if err != nil {
+						logger.Errorw(ctx, "CreateOrDeleteEnhancedFecHistoryME failed, failure PM FSM!",
+							log.Fields{"device-id": mm.deviceID})
+						_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
+						return fmt.Errorf("CreateOrDeleteEnhancedFecHistoryMe-failed-%s-%s",
+							mm.deviceID, err)
+					}
+					if resp := mm.waitForResponseOrTimeout(ctx, false, entityID, "EnhancedFecPerformanceMonitoringHistoryData"); !resp {
+						if mm.GetdeviceDeletionInProgress() {
+							logger.Debugw(ctx, "device deleted, no more pm processing", log.Fields{"deviceID": mm.deviceID})
+							return nil
+						}
+						atLeastOneDeleteFailure = true
+					} else {
+						_ = mm.updatePmData(ctx, n, entityID, cPmRemoved) // TODO: ignore error for now
+						break inner3a
+					}
+				}
+				if cnt == L2PmDeleteAttempts {
+					_ = mm.updatePmData(ctx, n, entityID, cPmRemoved) // TODO: ignore error for now
+				}
+			}
 		case GemPortHistoryName:
 			for _, entityID := range copyOfEntityIDs {
 			inner4:
@@ -2210,7 +2460,36 @@ func (mm *OnuMetricsManager) collectFecHistoryData(ctx context.Context, entityID
 	return metricInfo
 }
 
-func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID uint16, isCurrent bool) *voltha.MetricInformation {
+func (mm *OnuMetricsManager) collectEnhancedFecHistoryData(ctx context.Context, entityID uint16, isCurrent bool) *voltha.MetricInformation64 {
+	var mEnt *me.ManagedEntity
+	var omciErr me.OmciErrors
+	var classID me.ClassID
+	var meAttributes me.AttributeValueMap
+	logger.Debugw(ctx, "collecting data for EnhancedFecPerformanceMonitoringHistoryData", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
+	meParam := me.ParamData{EntityID: entityID}
+	if mEnt, omciErr = me.NewEnhancedFecPerformanceMonitoringHistoryData(meParam); omciErr == nil || mEnt == nil || omciErr.GetError() != nil {
+		logger.Errorw(ctx, "error creating me", log.Fields{"device-id": mm.deviceID, "entityID": entityID})
+		return nil
+	}
+	classID = me.EnhancedFecPerformanceMonitoringHistoryDataClassID
+
+	intervalEndTime := -1
+	enhancedFecHistData := make(map[string]float64)
+	if err := mm.populateGroupSpecificMetrics64(ctx, mEnt, classID, entityID, meAttributes, enhancedFecHistData, &intervalEndTime, isCurrent); err != nil {
+		return nil
+	}
+
+	enhancedFecHistData["class_id"] = float64(classID)
+	enhancedFecHistData["interval_end_time"] = float64(intervalEndTime)
+
+	metricInfo := mm.populateOnuMetricInfo64(EnhancedFecHistoryName, enhancedFecHistData)
+
+	logger.Debugw(ctx, "collecting data for EnhancedFecPerformanceMonitoringHistoryData successful",
+		log.Fields{"device-id": mm.deviceID, "entityID": entityID, "metricInfo": metricInfo})
+	return metricInfo
+}
+
+func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID uint16, isCurrent bool) *voltha.MetricInformation64 {
 	var mEnt *me.ManagedEntity
 	var omciErr me.OmciErrors
 	var classID me.ClassID
@@ -2224,16 +2503,16 @@ func (mm *OnuMetricsManager) collectGemHistoryData(ctx context.Context, entityID
 	classID = me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID
 
 	intervalEndTime := -1
-	gemHistData := make(map[string]float32)
-	if err := mm.populateGroupSpecificMetrics(ctx, mEnt, classID, entityID, meAttributes, gemHistData, &intervalEndTime, isCurrent); err != nil {
+	gemHistData := make(map[string]float64)
+	if err := mm.populateGroupSpecificMetrics64(ctx, mEnt, classID, entityID, meAttributes, gemHistData, &intervalEndTime, isCurrent); err != nil {
 		return nil
 	}
 
 	// Populate some relevant context for the GemPortNetworkCtpPerformanceMonitoringHistoryData PM
-	gemHistData["class_id"] = float32(classID)
-	gemHistData["interval_end_time"] = float32(intervalEndTime)
+	gemHistData["class_id"] = float64(classID)
+	gemHistData["interval_end_time"] = float64(intervalEndTime)
 
-	metricInfo := mm.populateOnuMetricInfo(GemPortHistoryName, gemHistData)
+	metricInfo := mm.populateOnuMetricInfo64(GemPortHistoryName, gemHistData)
 
 	logger.Debugw(ctx, "collecting data for GemPortNetworkCtpPerformanceMonitoringHistoryData successful",
 		log.Fields{"device-id": mm.deviceID, "entityID": entityID, "metricInfo": metricInfo})
@@ -2571,6 +2850,88 @@ func (mm *OnuMetricsManager) populateFecHistoryMetrics(ctx context.Context, clas
 	return nil
 }
 
+// nolint: gocyclo
+func (mm *OnuMetricsManager) populateEnhancedFecHistoryMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
+	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, enhancedFecHistData map[string]float64, intervalEndTime *int, isCurrent bool) error {
+	if _, ok := requestedAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_IntervalEndTime]; !ok {
+		requestedAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_IntervalEndTime] = 0
+	}
+
+	var meInstance *me.ManagedEntity
+	var err error
+
+	if isCurrent {
+		meInstance, err = mm.GetCurrentDataMEInstance(ctx, classID, entityID, requestedAttributes,
+			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
+	} else {
+		meInstance, err = mm.GetMeInstance(ctx, classID, entityID, requestedAttributes,
+			mm.pDeviceHandler.GetOmciTimeout(), true, mm.PAdaptFsm.CommChan, mm.isExtendedOmci)
+	}
+	if err != nil {
+		if CheckMeInstanceStatusCode(err) {
+			return err
+		}
+		logger.Errorw(ctx, "GetMe failed, failure PM FSM!", log.Fields{"device-id": mm.deviceID})
+		_ = mm.PAdaptFsm.PFsm.Event(L2PmEventFailure)
+		return fmt.Errorf("GetME-failed-%s-%s", mm.deviceID, err)
+	}
+	if meInstance != nil {
+		select {
+		case <-mm.pDeviceHandler.GetDeviceContext().Done():
+			logger.Warnw(ctx, "Deleting the device, stopping enhanced FEC history metrics collection for the device ", log.Fields{"device-id": mm.deviceID})
+			return fmt.Errorf("deleting the device, stopping enhanced FEC history metrics collection for the device %v", mm.deviceID)
+		case meAttributes = <-func() chan me.AttributeValueMap {
+			if isCurrent {
+				return mm.opticalMetricsChan
+			}
+			return mm.l2PmChan
+		}():
+			logger.Debugw(ctx, "received enhanced fec history data metrics",
+				log.Fields{"device-id": mm.deviceID, "entityID": entityID, "isCurrent": isCurrent})
+		case <-time.After(mm.pOnuDeviceEntry.GetDevOmciCC().GetMaxOmciTimeoutWithRetries() * time.Second):
+			logger.Debugw(ctx, "timeout waiting for omci-get response for enhanced fec history data",
+				log.Fields{"device-id": mm.deviceID, "entityID": entityID})
+			return fmt.Errorf("timeout-during-l2-pm-collection-for-enhanced-fec-history-%v", mm.deviceID)
+		}
+		if valid := mm.updateAndValidateIntervalEndTime(ctx, entityID, meAttributes, intervalEndTime); !valid {
+			return fmt.Errorf("interval-end-time-changed-during-metric-collection-for-enhanced-fec-history-%v", mm.deviceID)
+		}
+	}
+
+	for k := range EnhancedFecHistory {
+		if _, ok := enhancedFecHistData[k]; !ok {
+			switch k {
+			case "entity_id":
+				if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
+					enhancedFecHistData[k] = float64(val.(uint16))
+				}
+			case "corrected_bytes":
+				if val, ok := meAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_CorrectedBytes]; ok && val != nil {
+					enhancedFecHistData[k] = float64(val.(uint64))
+				}
+			case "corrected_code_words":
+				if val, ok := meAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_CorrectedCodeWords]; ok && val != nil {
+					enhancedFecHistData[k] = float64(val.(uint64))
+				}
+			case "uncorrectable_code_words":
+				if val, ok := meAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_UncorrectableCodeWords]; ok && val != nil {
+					enhancedFecHistData[k] = float64(val.(uint64))
+				}
+			case "total_code_words":
+				if val, ok := meAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_TotalCodeWords]; ok && val != nil {
+					enhancedFecHistData[k] = float64(val.(uint64))
+				}
+			case "fec_seconds":
+				if val, ok := meAttributes[me.EnhancedFecPerformanceMonitoringHistoryData_FecSeconds]; ok && val != nil {
+					enhancedFecHistData[k] = float64(val.(uint16))
+				}
+			default:
+			}
+		}
+	}
+	return nil
+}
+
 func (mm *OnuMetricsManager) GetMeInstance(ctx context.Context, classID me.ClassID, entityID uint16, requestedAttributes me.AttributeValueMap,
 	timeout int, highPrio bool, rxChan chan cmn.Message, isExtendedOmci bool) (*me.ManagedEntity, error) {
 
@@ -2621,7 +2982,7 @@ func CheckMeInstanceStatusCode(err error) bool {
 
 // nolint: gocyclo
 func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID me.ClassID, entityID uint16,
-	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, gemPortHistData map[string]float32, intervalEndTime *int, isCurrent bool) error {
+	meAttributes me.AttributeValueMap, requestedAttributes me.AttributeValueMap, gemPortHistData map[string]float64, intervalEndTime *int, isCurrent bool) error {
 	// Insert "IntervalEndTime" is part of the requested attributes as we need this to compare the get responses when get request is multipart
 	if _, ok := requestedAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_IntervalEndTime]; !ok {
 		requestedAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_IntervalEndTime] = 0
@@ -2672,27 +3033,27 @@ func (mm *OnuMetricsManager) populateGemPortMetrics(ctx context.Context, classID
 			switch k {
 			case "entity_id":
 				if val, ok := meAttributes[me.ManagedEntityID]; ok && val != nil {
-					gemPortHistData[k] = float32(val.(uint16))
+					gemPortHistData[k] = float64(val.(uint16))
 				}
 			case "transmitted_gem_frames":
 				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_TransmittedGemFrames]; ok && val != nil {
-					gemPortHistData[k] = float32(val.(uint32))
+					gemPortHistData[k] = float64(val.(uint32))
 				}
 			case "received_gem_frames":
 				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_ReceivedGemFrames]; ok && val != nil {
-					gemPortHistData[k] = float32(val.(uint32))
+					gemPortHistData[k] = float64(val.(uint32))
 				}
 			case "received_payload_bytes":
 				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_ReceivedPayloadBytes]; ok && val != nil {
-					gemPortHistData[k] = float32(val.(uint64))
+					gemPortHistData[k] = float64(val.(uint64))
 				}
 			case "transmitted_payload_bytes":
 				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_TransmittedPayloadBytes]; ok && val != nil {
-					gemPortHistData[k] = float32(val.(uint64))
+					gemPortHistData[k] = float64(val.(uint64))
 				}
 			case "encryption_key_errors":
 				if val, ok := meAttributes[me.GemPortNetworkCtpPerformanceMonitoringHistoryData_EncryptionKeyErrors]; ok && val != nil {
-					gemPortHistData[k] = float32(val.(uint32))
+					gemPortHistData[k] = float64(val.(uint32))
 				}
 			default:
 				// do nothing
@@ -2810,6 +3171,21 @@ func (mm *OnuMetricsManager) handleMetricsPublish(ctx context.Context, metricNam
 	}
 }
 
+func (mm *OnuMetricsManager) handleMetricsPublish64(ctx context.Context, metricName string, metricInfoSlice []*voltha.MetricInformation64) {
+	if metricInfoSlice != nil {
+		mm.publishMetrics64(ctx, metricInfoSlice)
+	} else {
+		mm.OnuMetricsManagerLock.Lock()
+		mm.GroupMetricMap[metricName].collectAttempts++
+		if mm.GroupMetricMap[metricName].collectAttempts > L2PmCollectAttempts {
+			mm.activeL2Pms = mm.removeIfFoundString(mm.activeL2Pms, metricName)
+		}
+		logger.Warnw(ctx, "state collect data - no metrics collected",
+			log.Fields{"device-id": mm.deviceID, "metricName": metricName, "collectAttempts": mm.GroupMetricMap[metricName].collectAttempts})
+		mm.OnuMetricsManagerLock.Unlock()
+	}
+}
+
 // nolint: unparam
 func (mm *OnuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, mEnt *me.ManagedEntity, classID me.ClassID, entityID uint16,
 	meAttributes me.AttributeValueMap, data map[string]float32, intervalEndTime *int, isCurrent bool) error {
@@ -2821,8 +3197,6 @@ func (mm *OnuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 		grpFunc = mm.populateEthernetUniHistoryMetrics
 	case me.FecPerformanceMonitoringHistoryDataClassID:
 		grpFunc = mm.populateFecHistoryMetrics
-	case me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
-		grpFunc = mm.populateGemPortMetrics
 	default:
 		return fmt.Errorf("unknown-classid-%v", classID)
 	}
@@ -2860,6 +3234,46 @@ func (mm *OnuMetricsManager) populateGroupSpecificMetrics(ctx context.Context, m
 	return nil
 }
 
+func (mm *OnuMetricsManager) populateGroupSpecificMetrics64(ctx context.Context, mEnt *me.ManagedEntity, classID me.ClassID, entityID uint16,
+	meAttributes me.AttributeValueMap, data map[string]float64, intervalEndTime *int, isCurrent bool) error {
+	var grpFunc groupMetricPopulateFunc64
+	switch classID {
+	case me.EnhancedFecPerformanceMonitoringHistoryDataClassID:
+		grpFunc = mm.populateEnhancedFecHistoryMetrics
+	case me.GemPortNetworkCtpPerformanceMonitoringHistoryDataClassID:
+		grpFunc = mm.populateGemPortMetrics
+	default:
+		return fmt.Errorf("unknown-classid-%v", classID)
+	}
+
+	size := 0
+	requestedAttributes := make(me.AttributeValueMap)
+	for _, v := range mEnt.GetAttributeDefinitions() {
+		if v.Name == "ManagedEntityId" || v.Name == "IntervalEndTime" || v.Name == "ThresholdData12Id" || v.Name == "ThresholdData64BitId" {
+			continue
+		}
+		if v.Size+size <= mm.maxL2PMGetPayLoadSize {
+			requestedAttributes[v.Name] = v.DefValue
+			size = v.Size + size
+		} else {
+			if err := grpFunc(ctx, classID, entityID, meAttributes, requestedAttributes, data, intervalEndTime, isCurrent); err != nil {
+				logger.Errorw(ctx, "error during metric collection",
+					log.Fields{"device-id": mm.deviceID, "entityID": entityID, "err": err})
+				return err
+			}
+			requestedAttributes = make(me.AttributeValueMap)
+			requestedAttributes[v.Name] = v.DefValue
+			size = v.Size
+		}
+	}
+	if err := grpFunc(ctx, classID, entityID, meAttributes, requestedAttributes, data, intervalEndTime, isCurrent); err != nil {
+		logger.Errorw(ctx, "error during metric collection",
+			log.Fields{"device-id": mm.deviceID, "entityID": entityID, "err": err})
+		return err
+	}
+	return nil
+}
+
 func (mm *OnuMetricsManager) populateOnuMetricInfo(title string, data map[string]float32) *voltha.MetricInformation {
 	metricsContext := make(map[string]string)
 	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetDevice().ProxyAddress.OnuId)
@@ -2879,6 +3293,37 @@ func (mm *OnuMetricsManager) populateOnuMetricInfo(title string, data map[string
 	// create slice of metrics given that there could be more than one VEIP instance
 	metricInfo := voltha.MetricInformation{Metadata: &mmd, Metrics: data}
 	return &metricInfo
+}
+
+func (mm *OnuMetricsManager) populateOnuMetricInfo64(title string, data map[string]float64) *voltha.MetricInformation64 {
+	metricsContext := make(map[string]string)
+	metricsContext["onuID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetDevice().ProxyAddress.OnuId)
+	metricsContext["intfID"] = fmt.Sprintf("%d", mm.pDeviceHandler.GetDevice().ProxyAddress.ChannelId)
+	metricsContext["devicetype"] = mm.pDeviceHandler.GetDeviceType()
+
+	raisedTs := time.Now().Unix()
+	mmd := voltha.MetricMetaData{
+		Title:           title,
+		Ts:              float64(raisedTs),
+		Context:         metricsContext,
+		DeviceId:        mm.deviceID,
+		LogicalDeviceId: mm.pDeviceHandler.GetLogicalDeviceID(),
+		SerialNo:        mm.pDeviceHandler.GetDevice().SerialNumber,
+	}
+
+	metricInfo := voltha.MetricInformation64{Metadata: &mmd, Metrics: data}
+	return &metricInfo
+}
+
+func (mm *OnuMetricsManager) publishMetrics64(ctx context.Context, metricInfo []*voltha.MetricInformation64) {
+	var ke voltha.KpiEvent3
+	ts := time.Now().Unix()
+	ke.SliceData = metricInfo
+	ke.Type = voltha.KpiEventType_slice
+	ke.Ts = float64(ts)
+	if err := mm.pDeviceHandler.GetEventProxy().SendKpiEvent3(ctx, "STATS_PUBLISH_EVENT", &ke, voltha.EventCategory_EQUIPMENT, voltha.EventSubCategory_ONU, ts); err != nil {
+		logger.Errorw(ctx, "failed-to-send-pon-stats", log.Fields{"device-id": mm.deviceID, "err": err})
+	}
 }
 
 func (mm *OnuMetricsManager) updateAndValidateIntervalEndTime(ctx context.Context, entityID uint16, meAttributes me.AttributeValueMap, intervalEndTime *int) bool {
@@ -2996,6 +3441,9 @@ func (mm *OnuMetricsManager) initializeAllGroupMetrics() {
 	mm.initializeGroupMetric(UniStatusGroupMetrics, UniStatusGroupMetricName,
 		UniStatusGroupMetricEnabled, UniStatusMetricGroupCollectionFrequency)
 
+	mm.initializeGroupMetric(EthernetFrameExtendedPmGroupMetrics, EthernetFrameExtendedPmGroupMetricName,
+		EthernetFrameExtendedPmGroupMetricEnabled, EthernetFrameExtendedPmMetricGroupCollectionFrequency)
+
 	// classical l2 pm counter start
 
 	mm.initializeGroupMetric(EthernetBridgeHistory, EthernetBridgeHistoryName,
@@ -3007,8 +3455,70 @@ func (mm *OnuMetricsManager) initializeAllGroupMetrics() {
 	mm.initializeGroupMetric(FecHistory, FecHistoryName,
 		FecHistoryEnabled, FecHistoryFrequency)
 
+	mm.initializeGroupMetric(EnhancedFecHistory, EnhancedFecHistoryName,
+		EnhancedFecHistoryEnabled, EnhancedFecHistoryFrequency)
+
 	mm.initializeGroupMetric(GemPortHistory, GemPortHistoryName,
 		GemPortHistoryEnabled, GemPortHistoryFrequency)
+
+	// classical l2 pm counter end
+
+	// Add standalone metric (if present) after this (will be added to dh.pmConfigs.Metrics)
+}
+
+func (mm *OnuMetricsManager) reconcileAllGroupMetrics() {
+	pmConfigs := mm.pDeviceHandler.GetPmConfigs()
+
+	// Ensure basic PM config fields are present.
+	pmConfigs.Id = mm.deviceID
+
+	// Build a lookup of existing groups.
+	existingGroups := make(map[string]bool)
+	for _, g := range pmConfigs.Groups {
+		existingGroups[g.GroupName] = true
+	}
+
+	if !existingGroups[OpticalPowerGroupMetricName] {
+		mm.initializeGroupMetric(OpticalPowerGroupMetrics, OpticalPowerGroupMetricName,
+			OpticalPowerGroupMetricEnabled, OpticalPowerMetricGroupCollectionFrequency)
+	}
+
+	if !existingGroups[UniStatusGroupMetricName] {
+		mm.initializeGroupMetric(UniStatusGroupMetrics, UniStatusGroupMetricName,
+			UniStatusGroupMetricEnabled, UniStatusMetricGroupCollectionFrequency)
+	}
+
+	if !existingGroups[EthernetFrameExtendedPmGroupMetricName] {
+		mm.initializeGroupMetric(EthernetFrameExtendedPmGroupMetrics, EthernetFrameExtendedPmGroupMetricName,
+			EthernetFrameExtendedPmGroupMetricEnabled, EthernetFrameExtendedPmMetricGroupCollectionFrequency)
+	}
+
+	// classical l2 pm counter start
+
+	if !existingGroups[EthernetBridgeHistoryName] {
+		mm.initializeGroupMetric(EthernetBridgeHistory, EthernetBridgeHistoryName,
+			EthernetBridgeHistoryEnabled, EthernetBridgeHistoryFrequency)
+	}
+
+	if !existingGroups[EthernetUniHistoryName] {
+		mm.initializeGroupMetric(EthernetUniHistory, EthernetUniHistoryName,
+			EthernetUniHistoryEnabled, EthernetUniHistoryFrequency)
+	}
+
+	if !existingGroups[FecHistoryName] {
+		mm.initializeGroupMetric(FecHistory, FecHistoryName,
+			FecHistoryEnabled, FecHistoryFrequency)
+	}
+
+	if !existingGroups[EnhancedFecHistoryName] {
+		mm.initializeGroupMetric(EnhancedFecHistory, EnhancedFecHistoryName,
+			EnhancedFecHistoryEnabled, EnhancedFecHistoryFrequency)
+	}
+
+	if !existingGroups[GemPortHistoryName] {
+		mm.initializeGroupMetric(GemPortHistory, GemPortHistoryName,
+			GemPortHistoryEnabled, GemPortHistoryFrequency)
+	}
 
 	// classical l2 pm counter end
 
@@ -3022,12 +3532,15 @@ func (mm *OnuMetricsManager) populateLocalGroupMetricData(ctx context.Context) {
 			groupName: g.GroupName,
 			Enabled:   g.Enabled,
 			Frequency: g.GroupFreq,
+			Precision: GetMetricPrecision(g.GroupName),
 		}
 		switch g.GroupName {
 		case OpticalPowerGroupMetricName:
 			mm.GroupMetricMap[g.GroupName].metricMap = OpticalPowerGroupMetrics
 		case UniStatusGroupMetricName:
 			mm.GroupMetricMap[g.GroupName].metricMap = UniStatusGroupMetrics
+		case EthernetFrameExtendedPmGroupMetricName:
+			mm.GroupMetricMap[g.GroupName].metricMap = EthernetFrameExtendedPmGroupMetrics
 		case EthernetBridgeHistoryName:
 			mm.GroupMetricMap[g.GroupName].metricMap = EthernetBridgeHistory
 			mm.GroupMetricMap[g.GroupName].IsL2PMCounter = true
@@ -3036,6 +3549,9 @@ func (mm *OnuMetricsManager) populateLocalGroupMetricData(ctx context.Context) {
 			mm.GroupMetricMap[g.GroupName].IsL2PMCounter = true
 		case FecHistoryName:
 			mm.GroupMetricMap[g.GroupName].metricMap = FecHistory
+			mm.GroupMetricMap[g.GroupName].IsL2PMCounter = true
+		case EnhancedFecHistoryName:
+			mm.GroupMetricMap[g.GroupName].metricMap = EnhancedFecHistory
 			mm.GroupMetricMap[g.GroupName].IsL2PMCounter = true
 		case GemPortHistoryName:
 			mm.GroupMetricMap[g.GroupName].metricMap = GemPortHistory
@@ -4346,11 +4862,21 @@ func (mm *OnuMetricsManager) GetONUGEMCounters(ctx context.Context) *extension.S
 				gemHistoryData := extension.OnuGemPortHistoryData{}
 				gemHistoryData.GemId = uint32(gem)
 				metrics := metricInfo.GetMetrics()
-				gemHistoryData.TransmittedGEMFrames = mm.safeGetMetricValue(ctx, metrics, "transmitted_gem_frames", mm.deviceID)
-				gemHistoryData.ReceivedGEMFrames = mm.safeGetMetricValue(ctx, metrics, "received_gem_frames", mm.deviceID)
-				gemHistoryData.ReceivedPayloadBytes_64 = uint64(mm.safeGetMetricValue(ctx, metrics, "received_payload_bytes", mm.deviceID))
-				gemHistoryData.TransmittedPayloadBytes_64 = uint64(mm.safeGetMetricValue(ctx, metrics, "transmitted_payload_bytes", mm.deviceID))
-				gemHistoryData.EncryptionKeyErrors = mm.safeGetMetricValue(ctx, metrics, "encryption_key_errors", mm.deviceID)
+				if val, ok := metrics["transmitted_gem_frames"]; ok {
+					gemHistoryData.TransmittedGEMFrames = uint32(val)
+				}
+				if val, ok := metrics["received_gem_frames"]; ok {
+					gemHistoryData.ReceivedGEMFrames = uint32(val)
+				}
+				if val, ok := metrics["received_payload_bytes"]; ok {
+					gemHistoryData.ReceivedPayloadBytes_64 = uint64(val)
+				}
+				if val, ok := metrics["transmitted_payload_bytes"]; ok {
+					gemHistoryData.TransmittedPayloadBytes_64 = uint64(val)
+				}
+				if val, ok := metrics["encryption_key_errors"]; ok {
+					gemHistoryData.EncryptionKeyErrors = uint32(val)
+				}
 				allocIdGemData.GemPortInfo = append(allocIdGemData.GemPortInfo, &gemHistoryData)
 				logger.Debugw(ctx, " allocIdGemData value ", log.Fields{"AllocIDGemData": &allocIdGemData})
 
@@ -4389,12 +4915,36 @@ func (mm *OnuMetricsManager) GetONUFECCounters(ctx context.Context) *extension.S
 		firstInstanceKey := FecHistoryInstKeys[0]
 		logger.Debugw(ctx, "First FEC History Instance Key and Length", log.Fields{"InstanceKey": firstInstanceKey, "FecHistoryInstKeys": FecHistoryInstKeys, "Length": len(FecHistoryInstKeys)})
 
-		logger.Debugw(ctx, "Collecting FEC stats for ONU", log.Fields{"EntityID": firstInstanceKey})
+		logger.Debugw(ctx, "Attempting Enhanced FEC stats collection for ONU", log.Fields{"EntityID": firstInstanceKey})
+		if metricInfo := mm.collectEnhancedFecHistoryData(ctx, firstInstanceKey, true); metricInfo != nil {
+			metrics := metricInfo.GetMetrics()
+			fecResponse := resp.Response.GetFecHistory()
+			if val, ok := metrics["corrected_bytes"]; ok {
+				fecResponse.FecCorrectedBytes_64 = uint64(val)
+			}
+			if val, ok := metrics["corrected_code_words"]; ok {
+				fecResponse.FecCorrectedCodeWords_64 = uint64(val)
+			}
+			if val, ok := metrics["uncorrectable_code_words"]; ok {
+				fecResponse.UncorrectableCodeWords_64 = uint64(val)
+			}
+			if val, ok := metrics["total_code_words"]; ok {
+				fecResponse.TotalCodeWords_64 = uint64(val)
+			}
+			if val, ok := metrics["fec_seconds"]; ok {
+				fecResponse.FecSeconds = uint32(val)
+			}
+			logger.Debugw(ctx, "Enhanced FEC response populated successfully",
+				log.Fields{"device-id": mm.deviceID, "correctedBytes": fecResponse.FecCorrectedBytes_64,
+					"correctedCodeWords": fecResponse.FecCorrectedCodeWords_64, "fecSeconds": fecResponse.FecSeconds})
+			return &resp
+		}
+
+		logger.Debugw(ctx, "Enhanced FEC not available, falling back to standard FEC stats collection",
+			log.Fields{"device-id": mm.deviceID, "EntityID": firstInstanceKey})
 		if metricInfo := mm.collectFecHistoryData(ctx, firstInstanceKey, true); metricInfo != nil {
-			// Process FEC metrics data here
 			logger.Debugw(ctx, "FEC metrics collected successfully", log.Fields{"metricInfo": metricInfo})
 
-			// Populate the response with the collected FEC metrics directly
 			fecResponse := resp.Response.GetFecHistory()
 			metrics := metricInfo.GetMetrics()
 			fecResponse.FecCorrectedBytes_64 = uint64(mm.safeGetMetricValue(ctx, metrics, "corrected_bytes", mm.deviceID))

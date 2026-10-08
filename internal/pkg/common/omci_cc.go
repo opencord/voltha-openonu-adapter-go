@@ -5460,3 +5460,56 @@ func (oo *OmciCC) ResetConfFailMEs() {
 	defer oo.mutexConfFailMEs.Unlock()
 	oo.confFailMEs = nil
 }
+
+// SendCreateOrDeleteEnhancedFecHistoryME creates or deletes EnhancedFecPerformanceMonitoringHistoryData ME instance
+func (oo *OmciCC) SendCreateOrDeleteEnhancedFecHistoryME(ctx context.Context, timeout int, highPrio bool,
+	create bool, rxChan chan Message, entityID uint16) (*me.ManagedEntity, error) {
+	tid := oo.GetNextTid(highPrio)
+	logger.Debugw(ctx, "send enhanced-fec-history-me-msg:", log.Fields{"device-id": oo.deviceID,
+		"SequNo": strconv.FormatInt(int64(tid), 16), "InstId": strconv.FormatInt(int64(entityID), 16), "create": create})
+	meParam := me.ParamData{EntityID: entityID}
+	var meInstance *me.ManagedEntity
+	var omciErr me.OmciErrors
+	meInstance, omciErr = me.NewEnhancedFecPerformanceMonitoringHistoryData(meParam)
+
+	if omciErr.GetError() == nil {
+		var omciLayer *omci.OMCI
+		var msgLayer gopacket.SerializableLayer
+		var err error
+		if create {
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.CreateRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
+		} else {
+			omciLayer, msgLayer, err = oframe.EncodeFrame(meInstance, omci.DeleteRequestType, oframe.TransactionID(tid),
+				oframe.AddDefaults(true))
+		}
+		if err != nil {
+			logger.Errorw(ctx, "Cannot encode enhanced fec history data ME",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+
+		pkt, err := SerializeOmciLayer(ctx, omciLayer, msgLayer)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot serialize enhanced fec history data ME",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+
+		omciRxCallbackPair := CallbackPair{CbKey: tid,
+			CbEntry: CallbackPairEntry{rxChan, oo.receiveOmciResponse, true},
+		}
+		err = oo.Send(ctx, pkt, timeout, CDefaultRetries, highPrio, omciRxCallbackPair)
+		if err != nil {
+			logger.Errorw(ctx, "Cannot send enhanced fec history data ME",
+				log.Fields{"Err": err, "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+			return nil, err
+		}
+		logger.Debugw(ctx, "send enhanced fec history data ME done",
+			log.Fields{"device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+		return meInstance, nil
+	}
+	logger.Errorw(ctx, "Cannot generate enhanced fec history data ME Instance",
+		log.Fields{"Err": omciErr.GetError(), "device-id": oo.deviceID, "create": create, "InstId": strconv.FormatInt(int64(entityID), 16)})
+	return nil, omciErr.GetError()
+}
