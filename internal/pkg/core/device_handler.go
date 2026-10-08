@@ -364,7 +364,7 @@ func (dh *deviceHandler) adoptOrReconcileDevice(ctx context.Context, device *vol
 		}
 		logger.Debugw(ctx, "Device FSM: ", log.Fields{"device-id": device.Id, "state": string(dh.pDeviceStateFsm.Current())})
 		// Now, set the initial PM configuration for that device
-		// update pmconfig in core in case new configs are introducced in the adapter and the device is being reconciled
+		// update pmconfig in core in case new configs are introduced in the adapter and the device is being reconciled
 		if err := dh.updatePMConfigInCore(ctx, dh.pmConfigs); err != nil {
 			logger.Errorw(ctx, "error updating pm config to core", log.Fields{"device-id": dh.DeviceID, "err": err})
 		}
