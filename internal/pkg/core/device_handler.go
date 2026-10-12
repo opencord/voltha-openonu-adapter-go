@@ -5785,6 +5785,12 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 		err := dh.pDeviceStateFsm.Event(devEvDeviceUpInd, onuIndication)
 		if err != nil {
 			if _, ok := err.(fsm.InvalidEventError); ok {
+				//In case already up indication handled skipping processing again up indication
+				if dh.pDeviceStateFsm.Current() == devStUp {
+					logger.Warnw(ctx, "invalid state transition for up indication",
+						log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
+					return &emptypb.Empty{}, nil
+				}
 				logger.Errorw(ctx, "invalid state transition for up indication",
 					log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
 				return nil, fmt.Errorf("invalid state transition for up indication: current state %s, device %s",
@@ -5808,6 +5814,12 @@ func (dh *deviceHandler) processOnuIndication(ctx context.Context, onuInd *ia.On
 		// Two-phase deactivation: DeviceDownInd → Deactivating (heavy work), then DeactivationDone → Down
 		err := dh.pDeviceStateFsm.Event(devEvDeviceDownInd, onuIndication)
 		if _, ok := err.(fsm.InvalidEventError); ok {
+			//In case already down indication handled skipping processing again down indication
+			if dh.pDeviceStateFsm.Current() == devStDown {
+				logger.Warnw(ctx, "invalid state transition for down indication",
+					log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
+				return &emptypb.Empty{}, nil
+			}
 			logger.Errorw(ctx, "invalid state transition for down indication",
 				log.Fields{"currentState": dh.pDeviceStateFsm.Current(), "device-id": dh.DeviceID})
 			return nil, fmt.Errorf("invalid state transition for down indication: current state %s, device %s",
