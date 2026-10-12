@@ -1484,6 +1484,7 @@ func (mm *OnuMetricsManager) l2PMFsmSyncTime(ctx context.Context, e *fsm.Event) 
 }
 
 func (mm *OnuMetricsManager) l2PMFsmNull(ctx context.Context, e *fsm.Event) {
+	logger.Infow(ctx, "Enter state null", log.Fields{"device-id": mm.deviceID})
 	// We need to reset the local data so that the L2 PM MEs are re-provisioned once the ONU is back up based on the latest PM CONFIG
 	mm.OnuMetricsManagerLock.Lock()
 	mm.activeL2Pms = nil
