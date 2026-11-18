@@ -2708,19 +2708,19 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			return err
 		}
 
-		for _, uni := range dh.uniEntityMap {
-			if dh.GetFlowMonitoringIsRunning(uni.UniID) {
-				select {
-				case dh.stopFlowMonitoringRoutine[uni.UniID] <- true:
-					logger.Infow(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
-				default:
+		// for _, uni := range dh.uniEntityMap {
+		// 	if dh.GetFlowMonitoringIsRunning(uni.UniID) {
+		// 		select {
+		// 		case dh.stopFlowMonitoringRoutine[uni.UniID] <- true:
+		// 			logger.Infow(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+		// 		default:
 
-					logger.Warnw(ctx, "stopFlowMonitoringRoutine channel already closed", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
-				}
-			} else {
-				logger.Warnw(ctx, "stopFlowMonitoringRoutine channel failed to send", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
-			}
-		}
+		// 			logger.Warnw(ctx, "stopFlowMonitoringRoutine channel already closed", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+		// 		}
+		// 	} else {
+		// 		logger.Warnw(ctx, "stopFlowMonitoringRoutine channel failed to send", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+		// 	}
+		// }
 
 		logger.Infow(ctx, "stopping interface", log.Fields{"device-id": dh.DeviceID, "uni-count": len(dh.uniEntityMap), "device-tech-prof": dh.GetDeviceTechProfOnReboot()})
 		//all stored persistent data are not valid anymore (loosing knowledge about the connected ONU)
