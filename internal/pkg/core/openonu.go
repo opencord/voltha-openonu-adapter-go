@@ -402,7 +402,7 @@ func (oo *OpenONUAC) DeleteDevice(ctx context.Context, device *voltha.Device) (*
 			if handler.GetFlowMonitoringIsRunning(uni.UniID) {
 				select {
 				case handler.stopFlowMonitoringRoutine[uni.UniID] <- true:
-					logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id, "uni-id": uni.UniID})
+					logger.Infow(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": device.Id, "uni-id": uni.UniID})
 				default:
 
 					logger.Warnw(ctx, "stopFlowMonitoringRoutine channel already closed", log.Fields{"device-id": device.Id, "uni-id": uni.UniID})

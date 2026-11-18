@@ -445,14 +445,14 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 			log.Fields{"device-id": dh.DeviceID, "err": err, "tp-path": techProfMsg.TpInstancePath})
 		return err
 	}
-	logger.Debugw(ctx, "unmarshal-techprof-msg-body", log.Fields{"device-id": dh.DeviceID,
+	logger.Infow(ctx, "unmarshal-techprof-msg-body", log.Fields{"device-id": dh.DeviceID,
 		"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 
 	if bTpModify := pDevEntry.UpdateOnuUniTpPath(ctx, uniID, uint8(tpID), techProfMsg.TpInstancePath); bTpModify {
 
 		switch tpInst := techProfMsg.TechTpInstance.(type) {
 		case *ia.TechProfileDownloadMessage_TpInstance:
-			logger.Debugw(ctx, "onu-uni-tp-path-modified", log.Fields{"device-id": dh.DeviceID,
+			logger.Infow(ctx, "onu-uni-tp-path-modified", log.Fields{"device-id": dh.DeviceID,
 				"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 
 			err = dh.CheckAvailableOnuCapabilities(ctx, pDevEntry, tpInst.TpInstance)
@@ -515,7 +515,7 @@ func (dh *deviceHandler) handleTechProfileDownloadRequest(ctx context.Context, t
 		}
 	}
 	// no change, nothing really to do - return success
-	logger.Debugw(ctx, "onu-uni-tp-path-not-modified", log.Fields{"device-id": dh.DeviceID,
+	logger.Infow(ctx, "onu-uni-tp-path-not-modified", log.Fields{"device-id": dh.DeviceID,
 		"uniID": uniID, "tp-path": techProfMsg.TpInstancePath, "tpID": tpID})
 	return nil
 }
@@ -670,7 +670,7 @@ func (dh *deviceHandler) deleteTechProfileResource(ctx context.Context,
 func (dh *deviceHandler) FlowUpdateIncremental(ctx context.Context,
 	apOfFlowChanges *of.FlowChanges,
 	apOfGroupChanges *of.FlowGroupChanges, apFlowMetaData *of.FlowMetadata) error {
-	logger.Debugw(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.DeviceID, "flow": apOfFlowChanges, "metadata": apFlowMetaData})
+	logger.Infow(ctx, "FlowUpdateIncremental started", log.Fields{"device-id": dh.DeviceID, "flow": apOfFlowChanges, "metadata": apFlowMetaData})
 	var errorsList []error
 	var retError error
 	if dh.GetPersRebootFlag(ctx) {
@@ -1130,7 +1130,7 @@ func (dh *deviceHandler) updateReconcileStates(ctx context.Context,
 }
 
 func (dh *deviceHandler) ReconcileDeviceFlowConfig(ctx context.Context) {
-	logger.Debugw(ctx, "reconciling - trigger flow config", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "reconciling - trigger flow config", log.Fields{"device-id": dh.DeviceID})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	if pDevEntry == nil {
@@ -1350,7 +1350,7 @@ func (dh *deviceHandler) SendChUniVlanConfigFinished(value uint16) {
 }
 
 func (dh *deviceHandler) DeviceFlowConfigOnReboot(ctx context.Context) {
-	logger.Debugw(ctx, "rebooting - trigger flow config", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "rebooting - trigger flow config", log.Fields{"device-id": dh.DeviceID})
 
 	defer dh.UpdateAndStoreRebootState(ctx, false)
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
@@ -2263,7 +2263,7 @@ func (dh *deviceHandler) doActivation(ctx context.Context, e *fsm.Event) {
 // The caller is responsible for firing devEvDeactivationDone after Event() returns.
 func (dh *deviceHandler) doDeactivation(ctx context.Context, e *fsm.Event) {
 
-	logger.Debugw(ctx, "doDeactivation-started", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "doDeactivation-started", log.Fields{"device-id": dh.DeviceID})
 
 	device := dh.device
 	if device == nil {
@@ -2318,7 +2318,7 @@ func (dh *deviceHandler) doDeactivation(ctx context.Context, e *fsm.Event) {
 		logger.Debugw("do-state-down-end", log.Fields{"device-id": device.Id})
 		return nil
 	*/
-	logger.Debugw(ctx, "doStateDown-done", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "doStateDown-done", log.Fields{"device-id": dh.DeviceID})
 }
 
 // doStateFail handle device failure scenarios and update device state to FAILED
@@ -2712,7 +2712,7 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			if dh.GetFlowMonitoringIsRunning(uni.UniID) {
 				select {
 				case dh.stopFlowMonitoringRoutine[uni.UniID] <- true:
-					logger.Debugw(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
+					logger.Infow(ctx, "sent stop signal to self flow monitoring routine", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
 				default:
 
 					logger.Warnw(ctx, "stopFlowMonitoringRoutine channel already closed", log.Fields{"device-id": dh.DeviceID, "uni-id": uni.UniID})
@@ -2722,6 +2722,7 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			}
 		}
 
+		logger.Infow(ctx, "stopping interface", log.Fields{"device-id": dh.DeviceID, "uni-count": len(dh.uniEntityMap), "device-tech-prof": dh.GetDeviceTechProfOnReboot()})
 		//all stored persistent data are not valid anymore (loosing knowledge about the connected ONU)
 		if !dh.GetDeviceTechProfOnReboot() {
 			_ = dh.deleteDevicePersistencyData(ctx) //ignore possible errors here and continue, hope is that data is synchronized with new ONU-Up
@@ -2758,7 +2759,7 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			// abort: system behavior is just unstable ...
 			return err
 		}
-		logger.Debugw(ctx, "call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
+		logger.Infow(ctx, "call DeviceStateUpdate upon update interface", log.Fields{"ConnectStatus": voltha.ConnectStatus_UNREACHABLE,
 			"OperStatus": voltha.OperStatus_DISCOVERED, "device-id": dh.DeviceID})
 		if err := dh.updateDeviceStateInCore(ctx, &ca.DeviceStateFilter{
 			DeviceId:   dh.DeviceID,
@@ -2772,14 +2773,14 @@ func (dh *deviceHandler) UpdateInterface(ctx context.Context) error {
 			return err
 		}
 		if dh.GetDeviceTechProfOnReboot() {
-			logger.Debugw(ctx, "Storing OnuPersData during device-down-indication", log.Fields{"device": dh.DeviceID, "onu-pers-data": dh.pOnuOmciDevice.SOnuPersistentData})
+			logger.Infow(ctx, "Storing OnuPersData during device-down-indication", log.Fields{"device": dh.DeviceID, "onu-pers-data": dh.pOnuOmciDevice.SOnuPersistentData})
 			if err := dh.StorePersistentData(ctx); err != nil {
 				logger.Warnw(ctx, "store persistent data error - Failed to store DownIndication",
 					log.Fields{"device-id": dh.DeviceID, "err": err})
 			}
 		}
 	} else {
-		logger.Debugw(ctx, "updateInterface - device already stopped", log.Fields{"device-id": dh.DeviceID})
+		logger.Infow(ctx, "updateInterface - device already stopped", log.Fields{"device-id": dh.DeviceID})
 	}
 	return nil
 }
@@ -2789,7 +2790,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	//it is not sufficient to stop/reset the latest running FSM as done in previous versions
 	//  as after down/up procedures all FSM's might be active/ongoing (in theory)
 	//  and using the stop/reset event should never harm
-	logger.Debugw(ctx, "resetFsms entered", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(ctx, "resetFsms entered", log.Fields{"device-id": dh.DeviceID})
 
 	pDevEntry := dh.GetOnuDeviceEntry(ctx, false)
 	//VOL-5260: During race conditions when adoptDevice has not yet completed
@@ -2850,7 +2851,7 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	}
 
 	dh.mutexCollectorFlag.Lock()
-	logger.Debugw(ctx, "check-collector-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.collectorIsRunning})
+	logger.Infow(ctx, "check-collector-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.collectorIsRunning})
 	if dh.collectorIsRunning {
 		// Stop collector routine
 		dh.stopCollector <- true
@@ -2859,14 +2860,14 @@ func (dh *deviceHandler) resetFsms(ctx context.Context, includingMibSyncFsm bool
 	dh.mutexCollectorFlag.Unlock()
 
 	dh.mutextAlarmManagerFlag.Lock()
-	logger.Debugw(ctx, "check-alarm-manager-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.alarmManagerIsRunning})
+	logger.Infow(ctx, "check-alarm-manager-is-running", log.Fields{"device-id": dh.device.Id, "flag": dh.alarmManagerIsRunning})
 	if dh.alarmManagerIsRunning {
 		dh.stopAlarmManager <- true
 		dh.alarmManagerIsRunning = false
 	}
 	dh.mutextAlarmManagerFlag.Unlock()
 
-	logger.Debugw(ctx, "check-and-stop-self-test-control-block-if-running", log.Fields{"device-id": dh.DeviceID, "flag": dh.pSelfTestHdlr.GetSelfTestHandlerIsRunning()})
+	logger.Infow(ctx, "check-and-stop-self-test-control-block-if-running", log.Fields{"device-id": dh.DeviceID, "flag": dh.pSelfTestHdlr.GetSelfTestHandlerIsRunning()})
 	dh.pSelfTestHdlr.Stop(ctx)
 	if !includingMibSyncFsm {
 		// start the selftestHandler again here when Mibsync FSM not going to reset
@@ -3356,35 +3357,35 @@ func (dh *deviceHandler) AddAllUniPorts(ctx context.Context) {
 	if pptpInstKeys := pDevEntry.GetOnuDB().GetSortedInstKeys(
 		ctx, me.PhysicalPathTerminationPointEthernetUniClassID); len(pptpInstKeys) > 0 {
 		for _, mgmtEntityID := range pptpInstKeys {
-			logger.Debugw(ctx, "Add PPTPEthUni port for MIB-stored instance:", log.Fields{
+			logger.Infow(ctx, "Add PPTPEthUni port for MIB-stored instance:", log.Fields{
 				"device-id": dh.DeviceID, "PPTPEthUni EntityID": mgmtEntityID})
 			dh.addUniPort(ctx, mgmtEntityID, uniCnt, cmn.UniPPTP)
 			uniCnt++
 		}
 	} else {
-		logger.Debugw(ctx, "No PPTP instances found", log.Fields{"device-id": dh.DeviceID})
+		logger.Infow(ctx, "No PPTP instances found", log.Fields{"device-id": dh.DeviceID})
 	}
 	if veipInstKeys := pDevEntry.GetOnuDB().GetSortedInstKeys(
 		ctx, me.VirtualEthernetInterfacePointClassID); len(veipInstKeys) > 0 {
 		for _, mgmtEntityID := range veipInstKeys {
-			logger.Debugw(ctx, "Add VEIP for MIB-stored instance:", log.Fields{
+			logger.Infow(ctx, "Add VEIP for MIB-stored instance:", log.Fields{
 				"device-id": dh.DeviceID, "VEIP EntityID": mgmtEntityID})
 			dh.addUniPort(ctx, mgmtEntityID, uniCnt, cmn.UniVEIP)
 			uniCnt++
 		}
 	} else {
-		logger.Debugw(ctx, "No VEIP instances found", log.Fields{"device-id": dh.DeviceID})
+		logger.Infow(ctx, "No VEIP instances found", log.Fields{"device-id": dh.DeviceID})
 	}
 	if potsInstKeys := pDevEntry.GetOnuDB().GetSortedInstKeys(
 		ctx, me.PhysicalPathTerminationPointPotsUniClassID); len(potsInstKeys) > 0 {
 		for _, mgmtEntityID := range potsInstKeys {
-			logger.Debugw(ctx, "Add PPTP Pots UNI for MIB-stored instance:", log.Fields{
+			logger.Infow(ctx, "Add PPTP Pots UNI for MIB-stored instance:", log.Fields{
 				"device-id": dh.DeviceID, "PPTP Pots UNI EntityID": mgmtEntityID})
 			dh.addUniPort(ctx, mgmtEntityID, uniCnt, cmn.UniPPTPPots)
 			uniCnt++
 		}
 	} else {
-		logger.Debugw(ctx, "No PPTP Pots UNI instances found", log.Fields{"device-id": dh.DeviceID})
+		logger.Infow(ctx, "No PPTP Pots UNI instances found", log.Fields{"device-id": dh.DeviceID})
 	}
 	if uniCnt == 0 {
 		logger.Warnw(ctx, "No UniG instances found", log.Fields{"device-id": dh.DeviceID})
@@ -4012,7 +4013,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 
 	metadata := flow.GetMetadataFromWriteMetadataAction(ctx, apFlowItem)
 	if metadata == 0 {
-		logger.Debugw(ctx, "flow-add invalid metadata - abort",
+		logger.Infow(ctx, "flow-add invalid metadata - abort",
 			log.Fields{"device-id": dh.DeviceID})
 		*respChan <- fmt.Errorf("flow-add invalid metadata: %s", dh.DeviceID)
 	}
@@ -4020,7 +4021,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	loCookie := apFlowItem.GetCookie()
 	loCookieSlice := []uint64{loCookie}
 	loInnerCvlan := flow.GetInnerTagFromWriteMetaData(ctx, metadata)
-	logger.Debugw(ctx, "flow-add base indications", log.Fields{"device-id": dh.DeviceID,
+	logger.Infow(ctx, "flow-add base indications", log.Fields{"device-id": dh.DeviceID,
 		"TechProf-Id": loTpID, "cookie": loCookie, "innerCvlan": loInnerCvlan})
 
 	dh.getFlowOfbFields(ctx, apFlowItem, &loMatchVlan, &loMatchPcp, &loIPProto)
@@ -4046,19 +4047,19 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 		*respChan <- fmt.Errorf("flow-add Set/Match VlanId inconsistent: %s", dh.DeviceID)
 	}
 	if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan == uint16(of.OfpVlanId_OFPVID_PRESENT) {
-		logger.Debugw(ctx, "flow-add vlan-any/copy", log.Fields{"device-id": dh.DeviceID})
+		logger.Infow(ctx, "flow-add vlan-any/copy", log.Fields{"device-id": dh.DeviceID})
 		loSetVlan = loMatchVlan //both 'transparent' (copy any)
 	} else if loSetVlan == uint16(of.OfpVlanId_OFPVID_NONE) && loMatchVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) &&
 		loInnerCvlan != uint16(of.OfpVlanId_OFPVID_NONE) {
 		loSetVlan = loMatchVlan
-		logger.Debugw(ctx, "flow-add, double tagged case, set setvlan to matchvlan ", log.Fields{"device-id": dh.DeviceID, "loSetVlan": loSetVlan, "loMatchVlan": loMatchVlan})
+		logger.Infow(ctx, "flow-add, double tagged case, set setvlan to matchvlan ", log.Fields{"device-id": dh.DeviceID, "loSetVlan": loSetVlan, "loMatchVlan": loMatchVlan})
 	} else {
 		//looks like OMCI value 4097 (copyFromOuter - for Uni double tagged) is not supported here
 		if loSetVlan != uint16(of.OfpVlanId_OFPVID_PRESENT) {
 			// not set to transparent
 			loSetVlan &= 0x0FFF //mask VID bits as prerequisite for vlanConfigFsm
 		}
-		logger.Debugw(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.DeviceID})
+		logger.Infow(ctx, "flow-add vlan-set", log.Fields{"device-id": dh.DeviceID})
 	}
 
 	var meter *of.OfpMeterConfig
@@ -4071,7 +4072,7 @@ func (dh *deviceHandler) addFlowItemToUniPort(ctx context.Context, apFlowItem *o
 	//  (also vlan persistency data does not support multiple FSM's on the same UNI correctly!)
 	dh.lockVlanAdd.Lock()     //prevent multiple add activities to start in parallel
 	dh.lockVlanConfig.RLock() //read protection on UniVlanConfigFsmMap (removeFlowItemFromUniPort)
-	logger.Debugw(ctx, "flow-add got lock", log.Fields{"device-id": dh.DeviceID, "tpID": loTpID, "uniID": apUniPort.UniID})
+	logger.Infow(ctx, "flow-add got lock", log.Fields{"device-id": dh.DeviceID, "tpID": loTpID, "uniID": apUniPort.UniID})
 	if _, exist := dh.UniVlanConfigFsmMap[apUniPort.UniID]; exist {
 		//SetUniFlowParams() may block on some rule that is suspended-to-add
 		//  in order to allow for according flow removal lockVlanConfig may only be used with RLock here
@@ -4407,7 +4408,7 @@ func (dh *deviceHandler) ReasonUpdate(ctx context.Context, deviceReason uint8, n
 			return err
 		}
 	} else {
-		logger.Debugf(ctx, "update reason in core not requested: %s - device-id: %s", cmn.DeviceReasonMap[deviceReason], dh.DeviceID)
+		logger.Infof(ctx, "update reason in core not requested: %s - device-id: %s", cmn.DeviceReasonMap[deviceReason], dh.DeviceID)
 	}
 	dh.deviceReason = deviceReason
 	logger.Infof(ctx, "reason update done for: %s - device-id: %s - with core update: %v",
@@ -4948,7 +4949,7 @@ func (dh *deviceHandler) setFlowMonitoringIsRunning(uniID uint8, flag bool) {
 func (dh *deviceHandler) GetFlowMonitoringIsRunning(uniID uint8) bool {
 	dh.mutexFlowMonitoringRoutineFlag.RLock()
 	defer dh.mutexFlowMonitoringRoutineFlag.RUnlock()
-	logger.Debugw(context.Background(), "get-flow-monitoring-routine",
+	logger.Infow(context.Background(), "get-flow-monitoring-routine",
 		log.Fields{"device-id": dh.device.Id, "isFlowMonitoringRoutineActive": dh.isFlowMonitoringRoutineActive})
 	if len(dh.isFlowMonitoringRoutineActive) != 0 {
 		return dh.isFlowMonitoringRoutineActive[uniID]
@@ -5348,7 +5349,7 @@ func (dh *deviceHandler) GetTechProfileInstanceFromParentAdapter(ctx context.Con
 // This routine is unique per ONU ID and blocks on flowControlBlock channel for incoming flows
 // Each incoming flow is processed in a synchronous manner, i.e., the flow is processed to completion before picking another
 func (dh *deviceHandler) PerOnuFlowHandlerRoutine(uniID uint8) {
-	logger.Debugw(context.Background(), "starting-flow-handler-routine", log.Fields{"device-id": dh.DeviceID})
+	logger.Infow(context.Background(), "starting-flow-handler-routine", log.Fields{"device-id": dh.DeviceID})
 	dh.setFlowMonitoringIsRunning(uniID, true)
 	for {
 		select {

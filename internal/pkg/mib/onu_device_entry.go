@@ -466,7 +466,7 @@ func (oo *OnuDeviceEntry) Start(ctx context.Context) error {
 
 // Stop stops/resets the omciCC
 func (oo *OnuDeviceEntry) Stop(ctx context.Context, abResetOmciCC bool) error {
-	logger.Debugw(ctx, "OnuDeviceEntry-stopping", log.Fields{"for device-id": oo.deviceID})
+	logger.Infow(ctx, "OnuDeviceEntry-stopping", log.Fields{"for device-id": oo.deviceID})
 	if abResetOmciCC && (oo.PDevOmciCC != nil) {
 		_ = oo.PDevOmciCC.Stop(ctx)
 	}
